@@ -152,6 +152,19 @@
                     <td class="text-tm-primary">جمع کل</td>
                     <td class="text-start text-tm-primary">{{ invoice.total | toman }} <small>تومان</small></td>
                 </tr>
+                {% if invoice.wage %}
+                <tr>
+                    <td class="text-success">
+                        <i class="bi bi-arrow-repeat me-1"></i>مبلغ بازخرید
+                        <i class="bi bi-exclamation-circle-fill text-warning ms-1"
+                           style="cursor:pointer;"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="top"
+                           title="این مبلغ در زمان فروش بصورت اعتبار کیف پول جهت خرید‌های دیگر به حساب شما واریز می‌گردد"></i>
+                    </td>
+                    <td class="text-start text-success">{{ invoice.wage | toman }} <small>تومان</small></td>
+                </tr>
+                {% endif %}
             </table>
         </div>
         {% endif %}
@@ -197,4 +210,12 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block shop_js %}
+<script>
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+        new bootstrap.Tooltip(el);
+    });
+</script>
 {% endblock %}

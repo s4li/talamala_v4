@@ -24,7 +24,7 @@
         <div class="row">
             <div class="col-md-4"><strong>وزن:</strong> {{ product.weight }} گرم</div>
             <div class="col-md-4"><strong>اجرت پیش‌فرض:</strong> {{ product.wage }}{% if product.is_wage_percent %}%{% endif %}</div>
-            <div class="col-md-4"><strong>دسته‌بندی:</strong> {{ product.category.name if product.category else '—' }}</div>
+            <div class="col-md-4"><strong>دسته‌بندی:</strong> {{ product.categories|map(attribute='name')|join('، ') or '—' }}</div>
         </div>
     </div>
         <form method="post" action="/admin/dealers/tier-wages/{{ product.id }}">

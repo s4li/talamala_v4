@@ -54,7 +54,7 @@ async def list_products(request: Request, db: Session = Depends(get_db), user=De
 async def add_product(
     request: Request,
     name: str = Form(...), weight: str = Form(...), purity: str = Form("750"),
-    category_id: str = Form(""), design: str = Form(None),
+    design: str = Form(None),
     card_design_id: str = Form(""), package_type_id: str = Form(""),
     wage: str = Form("0"), is_wage_percent: bool = Form(False),
     profit_percent: str = Form("7"), commission_percent: str = Form("0"),
@@ -65,12 +65,13 @@ async def add_product(
     db: Session = Depends(get_db), user=Depends(require_super_admin),
 ):
     csrf_check(request, csrf_token)
-    cat_id = int(category_id) if category_id.strip().isdigit() else None
+    form = await request.form()
+    category_ids = [int(v) for v in form.getlist("category_ids") if str(v).isdigit()]
     cd_id = int(card_design_id) if card_design_id.strip().isdigit() else None
     pt_id = int(package_type_id) if package_type_id.strip().isdigit() else None
     product_service.create(db, {
         "name": name, "weight": weight, "purity": purity, "design": design,
-        "category_id": cat_id, "card_design_id": cd_id, "package_type_id": pt_id,
+        "category_ids": category_ids, "card_design_id": cd_id, "package_type_id": pt_id,
         "wage": wage, "is_wage_percent": is_wage_percent,
         "profit_percent": profit_percent, "commission_percent": commission_percent,
         "stone_price": stone_price, "accessory_cost": accessory_cost,
@@ -97,7 +98,7 @@ async def edit_product_form(request: Request, p_id: int, db: Session = Depends(g
 async def update_product(
     request: Request, p_id: int,
     name: str = Form(...), weight: str = Form(...), purity: str = Form(...),
-    category_id: str = Form(""), design: str = Form(None),
+    design: str = Form(None),
     card_design_id: str = Form(""), package_type_id: str = Form(""),
     wage: str = Form(...), is_wage_percent: bool = Form(False),
     profit_percent: str = Form(...), commission_percent: str = Form(...),
@@ -108,12 +109,13 @@ async def update_product(
     db: Session = Depends(get_db), user=Depends(require_super_admin),
 ):
     csrf_check(request, csrf_token)
-    cat_id = int(category_id) if category_id.strip().isdigit() else None
+    form = await request.form()
+    category_ids = [int(v) for v in form.getlist("category_ids") if str(v).isdigit()]
     cd_id = int(card_design_id) if card_design_id.strip().isdigit() else None
     pt_id = int(package_type_id) if package_type_id.strip().isdigit() else None
     product_service.update(db, p_id, {
         "name": name, "weight": weight, "purity": purity, "design": design,
-        "category_id": cat_id, "card_design_id": cd_id, "package_type_id": pt_id,
+        "category_ids": category_ids, "card_design_id": cd_id, "package_type_id": pt_id,
         "wage": wage, "is_wage_percent": is_wage_percent,
         "profit_percent": profit_percent, "commission_percent": commission_percent,
         "stone_price": stone_price, "accessory_cost": accessory_cost,

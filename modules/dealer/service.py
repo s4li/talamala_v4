@@ -454,7 +454,7 @@ class DealerService:
                 "name": p.name,
                 "weight": str(p.weight),
                 "purity": p.purity,
-                "category": p.category.name if p.category else "",
+                "categories": [c.name for c in p.categories],
                 "final_price": price_info.get("total", 0),
                 "price_breakdown": {
                     "raw_gold": price_info.get("raw_gold", 0),

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from common.upload import save_upload_file, delete_file
 from common.helpers import safe_int
 from modules.catalog.models import (
-    Product, ProductImage,
+    Product, ProductImage, ProductCategoryLink,
     CardDesign, CardDesignImage,
     PackageType, PackageTypeImage,
     Batch, BatchImage,
@@ -113,7 +113,6 @@ class ProductService:
             name=data["name"],
             weight=data["weight"],
             purity=safe_int(data.get("purity", "750")) or 750,
-            category_id=data.get("category_id"),
             design=data.get("design"),
             card_design_id=data.get("card_design_id"),
             package_type_id=data.get("package_type_id"),
@@ -130,6 +129,12 @@ class ProductService:
         db.commit()
         db.refresh(product)
 
+        # M2M categories
+        for cat_id in (data.get("category_ids") or []):
+            db.add(ProductCategoryLink(product_id=product.id, category_id=int(cat_id)))
+        if data.get("category_ids"):
+            db.commit()
+
         if files:
             images.save_images(db, product.id, files, ProductImage, "product_id", subfolder="products")
 
@@ -143,7 +148,6 @@ class ProductService:
         p.name = data["name"]
         p.weight = data["weight"]
         p.purity = safe_int(data.get("purity", "750")) or 750
-        p.category_id = data.get("category_id")
         p.design = data.get("design")
         p.card_design_id = data.get("card_design_id")
         p.package_type_id = data.get("package_type_id")
@@ -155,6 +159,13 @@ class ProductService:
         p.accessory_cost = safe_int(data.get("accessory_cost", "0")) or 0
         p.accessory_profit_percent = data.get("accessory_profit_percent", 15)
         p.is_active = data.get("is_active", False)
+
+        # Sync M2M categories
+        if "category_ids" in data:
+            db.query(ProductCategoryLink).filter(ProductCategoryLink.product_id == p.id).delete()
+            for cat_id in (data["category_ids"] or []):
+                db.add(ProductCategoryLink(product_id=p.id, category_id=int(cat_id)))
+
         db.commit()
 
         if files:

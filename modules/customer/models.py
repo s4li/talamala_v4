@@ -9,7 +9,7 @@ NOTE on Relationships:
     See modules/<module>/models.py for relationship setup.
 """
 
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.sql import func
 from config.database import Base
 
@@ -24,6 +24,7 @@ class Customer(Base):
     mobile = Column(String, unique=True, index=True, nullable=False)
     birth_date = Column(String, nullable=True)
     avatar_path = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True, server_default="true", nullable=False)
 
     # OTP fields (used by auth module)
     otp_code = Column(String, nullable=True)

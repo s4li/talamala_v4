@@ -25,7 +25,7 @@ from modules.admin.models import SystemUser, SystemSetting  # noqa: F401
 from modules.customer.models import Customer  # noqa: F401
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress  # noqa: F401
 from modules.catalog.models import (  # noqa: F401
-    ProductCategory, Product, ProductImage, CardDesign, CardDesignImage,
+    ProductCategory, ProductCategoryLink, Product, ProductImage, CardDesign, CardDesignImage,
     PackageType, PackageTypeImage, Batch, BatchImage, ProductTierWage,
 )
 from modules.inventory.models import Bar, BarImage, OwnershipHistory, Location, LocationTransfer, BarTransfer  # noqa: F401

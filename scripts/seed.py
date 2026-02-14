@@ -31,7 +31,7 @@ from modules.admin.models import SystemUser, SystemSetting
 from modules.customer.models import Customer
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress
 from modules.catalog.models import (
-    ProductCategory, Product, ProductImage, CardDesign, CardDesignImage,
+    ProductCategory, ProductCategoryLink, Product, ProductImage, CardDesign, CardDesignImage,
     PackageType, PackageTypeImage, Batch, BatchImage, ProductTierWage,
 )
 from modules.inventory.models import (
@@ -223,11 +223,8 @@ def seed():
         for name, weight, purity, wage, profit, comm in products_data:
             existing = db.query(Product).filter(Product.name == name).first()
             if not existing:
-                # Assign category: ≤ 2.5g = گرمی, > 2.5g = سرمایه‌ای
-                cat = cat_gerami if weight <= 2.5 else cat_sarmayei
                 p = Product(
                     name=name, weight=weight, purity=purity,
-                    category_id=cat.id if cat else None,
                     card_design_id=default_design.id if default_design else None,
                     package_type_id=default_package.id if default_package else None,
                     wage=wage, is_wage_percent=True,
@@ -237,6 +234,10 @@ def seed():
                 )
                 db.add(p)
                 db.flush()
+                # Assign categories via M2M: ≤ 2.5g = گرمی, > 2.5g = سرمایه‌ای
+                cat = cat_gerami if weight <= 2.5 else cat_sarmayei
+                if cat:
+                    db.add(ProductCategoryLink(product_id=p.id, category_id=cat.id))
                 product_map[name] = p
                 print(f"  + {name} ({weight}g)")
             else:

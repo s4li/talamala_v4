@@ -42,7 +42,7 @@ async def home_page(
     if category:
         cat_id = int(category) if category.isdigit() else None
         if cat_id:
-            products = [p for p in products if p.category_id == cat_id]
+            products = [p for p in products if cat_id in p.category_ids]
 
     cart_map, cart_count = _get_cart_info(db, user)
 

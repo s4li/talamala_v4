@@ -74,7 +74,7 @@ from modules.admin.models import SystemUser, SystemSetting  # noqa: F401
 from modules.customer.models import Customer  # noqa: F401
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress  # noqa: F401
 from modules.catalog.models import (  # noqa: F401
-    ProductCategory, Product, ProductImage, CardDesign, CardDesignImage,
+    ProductCategory, ProductCategoryLink, Product, ProductImage, CardDesign, CardDesignImage,
     PackageType, PackageTypeImage, Batch, BatchImage, ProductTierWage,
 )
 from modules.inventory.models import Bar, BarImage, OwnershipHistory, Location, LocationTransfer, BarTransfer  # noqa: F401
@@ -173,9 +173,16 @@ async def csrf_cookie_refresh(request: Request, call_next):
     if request.method == "GET" and "text/html" in response.headers.get("content-type", ""):
         existing = request.cookies.get("csrf_token")
         if not existing:
-            from common.security import new_csrf_token
-            csrf = new_csrf_token()
-            response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+            # Only add if route handler didn't already set csrf_token cookie
+            already_set = any(
+                b"csrf_token" in value
+                for name, value in response.headers.raw
+                if name == b"set-cookie"
+            )
+            if not already_set:
+                from common.security import new_csrf_token
+                csrf = new_csrf_token()
+                response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
 
 

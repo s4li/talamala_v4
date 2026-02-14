@@ -26,10 +26,29 @@ class ProductCategory(Base):
     sort_order = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
 
-    products = relationship("Product", back_populates="category")
+    product_links = relationship("ProductCategoryLink", back_populates="category", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<ProductCategory {self.name}>"
+
+
+# ==========================================
+# 🔗 Product ↔ Category (M2M Junction)
+# ==========================================
+
+class ProductCategoryLink(Base):
+    __tablename__ = "product_category_links"
+
+    id = Column(Integer, primary_key=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    category_id = Column(Integer, ForeignKey("product_categories.id", ondelete="CASCADE"), nullable=False)
+
+    product = relationship("Product", back_populates="category_links")
+    category = relationship("ProductCategory", back_populates="product_links")
+
+    __table_args__ = (
+        UniqueConstraint("product_id", "category_id", name="uq_product_category_link"),
+    )
 
 
 # ==========================================
@@ -41,7 +60,6 @@ class Product(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    category_id = Column(Integer, ForeignKey("product_categories.id", ondelete="SET NULL"), nullable=True, index=True)
     weight = Column(Numeric(10, 3), nullable=False)           # گرم
     purity = Column(Integer, default=750, nullable=False)      # عیار (750 = 18K)
     wage = Column(BigInteger, default=0, nullable=False)       # اجرت ساخت
@@ -57,11 +75,21 @@ class Product(Base):
     is_active = Column(Boolean, default=True)
 
     # Relationships
-    category = relationship("ProductCategory", back_populates="products")
+    category_links = relationship("ProductCategoryLink", back_populates="product", cascade="all, delete-orphan")
     card_design = relationship("CardDesign", foreign_keys=[card_design_id])
     package_type = relationship("PackageType", foreign_keys=[package_type_id])
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
     tier_wages = relationship("ProductTierWage", back_populates="product", cascade="all, delete-orphan")
+
+    @property
+    def categories(self):
+        """Get list of ProductCategory objects for this product."""
+        return [link.category for link in self.category_links]
+
+    @property
+    def category_ids(self):
+        """Get list of category IDs for this product."""
+        return [link.category_id for link in self.category_links]
 
     @property
     def default_image(self):

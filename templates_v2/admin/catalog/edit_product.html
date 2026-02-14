@@ -34,13 +34,17 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label-tm">دسته‌بندی</label>
-                        <select name="category_id" class="form-select form-select-tm">
-                            <option value="">بدون دسته‌بندی</option>
+                        <label class="form-label-tm">دسته‌بندی‌ها</label>
+                        <div class="border rounded p-2" style="max-height:150px; overflow-y:auto;">
                             {% for cat in categories %}
-                            <option value="{{ cat.id }}" {% if p.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                            <div class="form-check mb-1">
+                                <input type="checkbox" name="category_ids" value="{{ cat.id }}"
+                                       class="form-check-input" id="edit_cat_{{ cat.id }}"
+                                       {{ 'checked' if cat.id in p.category_ids }}>
+                                <label class="form-check-label" for="edit_cat_{{ cat.id }}">{{ cat.name }}</label>
+                            </div>
                             {% endfor %}
-                        </select>
+                        </div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label-tm">اجرت ساخت</label>

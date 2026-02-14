@@ -34,7 +34,7 @@ async def check_coupon(
 
     item_count = sum(it["quantity"] for it in items)
     product_ids = [it["product"].id for it in items]
-    category_ids = list({it["product"].category_id for it in items})
+    category_ids = list({cid for it in items for cid in it["product"].category_ids})
 
     result = coupon_service.quick_check(
         db, code.strip(), me.id, total_price,

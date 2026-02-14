@@ -213,7 +213,7 @@ class OrderService:
             try:
                 from modules.coupon.service import coupon_service, CouponValidationError
                 product_ids_list = [oi.product_id for oi in order_items]
-                category_ids_list = list({item.product.category_id for item in cart.items if item.product.category_id})
+                category_ids_list = list({cid for item in cart.items for cid in item.product.category_ids})
 
                 coupon_result = coupon_service.apply_to_order(
                     db,

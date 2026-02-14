@@ -45,7 +45,7 @@
                             {% endif %}
                         </td>
                         <td class="fw-bold">{{ p.name }}</td>
-                        <td><small class="text-muted">{{ p.category.name if p.category else '—' }}</small></td>
+                        <td><small class="text-muted">{{ p.categories|map(attribute='name')|join('، ') or '—' }}</small></td>
                         <td>{{ p.weight }}</td>
                         <td>{{ p.purity }}</td>
                         <td>{{ p.wage }}{% if p.is_wage_percent %}%{% endif %}</td>
@@ -95,13 +95,16 @@
                             <input type="text" name="weight" class="form-control form-control-tm" required placeholder="1.000">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label-tm">دسته‌بندی</label>
-                            <select name="category_id" class="form-select form-select-tm">
-                                <option value="">بدون دسته‌بندی</option>
+                            <label class="form-label-tm">دسته‌بندی‌ها</label>
+                            <div class="border rounded p-2" style="max-height:150px; overflow-y:auto;">
                                 {% for cat in categories %}
-                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                <div class="form-check mb-1">
+                                    <input type="checkbox" name="category_ids" value="{{ cat.id }}"
+                                           class="form-check-input" id="add_cat_{{ cat.id }}">
+                                    <label class="form-check-label" for="add_cat_{{ cat.id }}">{{ cat.name }}</label>
+                                </div>
                                 {% endfor %}
-                            </select>
+                            </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label-tm">عیار</label>

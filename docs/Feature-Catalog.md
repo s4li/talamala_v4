@@ -112,12 +112,22 @@
 
 #### ProductCategory (دسته‌بندی محصول)
 - نام، slug (برای URL)، ترتیب نمایش، وضعیت فعال/غیرفعال
+- Relationship `product_links`: لینک به ProductCategoryLink (رابطه M2M با Product)
 
 #### Product (محصول = شمش طلا)
-- نام، دسته‌بندی، وزن (گرم)، عیار (750=18K)
+- نام، وزن (گرم)، عیار (750=18K)
+- **دسته‌بندی‌ها**: رابطه Many-to-Many با ProductCategory از طریق جدول واسط `ProductCategoryLink` — هر محصول می‌تواند در **چند دسته‌بندی** قرار بگیرد
 - اجرت ساخت (درصدی یا ریالی)، درصد سود، درصد کمیسیون
 - هزینه سنگ، هزینه لوازم جانبی
 - تصاویر محصول (ProductImage)
+- Property `categories`: لیست اشیاء ProductCategory مرتبط
+- Property `category_ids`: لیست شناسه‌های دسته‌بندی‌ها (List[int])
+
+#### ProductCategoryLink (رابطه محصول-دسته‌بندی)
+- جدول واسط (junction table) برای رابطه Many-to-Many بین Product و ProductCategory
+- `product_id` (FK → products): شناسه محصول
+- `category_id` (FK → product_categories): شناسه دسته‌بندی
+- UniqueConstraint روی (product_id, category_id)
 
 #### CardDesign (طرح کارت هدیه)
 - طرح‌های مختلف کارت برای بسته‌بندی شمش
@@ -189,7 +199,7 @@
 
 ### قابلیت‌ها
 - نمایش لیست محصولات با قیمت محاسبه‌شده لحظه‌ای
-- فیلتر بر اساس دسته‌بندی
+- فیلتر بر اساس دسته‌بندی (M2M — محصولات چنددسته‌بندی‌ای در نتایج همه دسته‌بندی‌های مرتبط نمایش داده می‌شوند)
 - مرتب‌سازی (جدیدترین، ارزان‌ترین، گران‌ترین)
 - صفحه جزئیات محصول با ریز قیمت
 
@@ -661,7 +671,7 @@
 | متد | مسیر | توضیح |
 |------|------|--------|
 | GET | `/api/dealer/info` | اطلاعات نماینده (health check) |
-| GET | `/api/dealer/products` | لیست محصولات + قیمت لحظه‌ای + سریال‌کد شمش‌ها |
+| GET | `/api/dealer/products` | لیست محصولات + قیمت لحظه‌ای + سریال‌کد شمش‌ها (فیلد `categories` آرایه‌ای از نام دسته‌بندی‌ها) |
 | POST | `/api/dealer/sale` | ثبت فروش POS (serial_code, sale_price, اطلاعات مشتری) |
 | GET | `/api/dealer/sales` | تاریخچه فروش (صفحه‌بندی) |
 

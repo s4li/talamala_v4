@@ -110,8 +110,10 @@ talamala_v4/
 - **CustomerAddress**: id, customer_id (FK), title, province_id, city_id, district_id, address, postal_code, receiver_name, receiver_phone, is_default
 
 ### catalog/models.py
-- **ProductCategory**: id, name (unique), slug (unique), sort_order, is_active → has many Product
-- **Product**: id, name, category_id (FK → product_categories), weight (Decimal), purity (int: 750=18K), wage, is_wage_percent, profit_percent, commission_percent, stone_price, accessory_cost, accessory_profit_percent, design, is_active
+- **ProductCategory**: id, name (unique), slug (unique), sort_order, is_active
+- **ProductCategoryLink**: id, product_id (FK → products), category_id (FK → product_categories) — M2M junction (UniqueConstraint)
+- **Product**: id, name, weight (Decimal), purity (int: 750=18K), wage, is_wage_percent, profit_percent, commission_percent, stone_price, accessory_cost, accessory_profit_percent, design, is_active
+  - Properties: `categories` (list of ProductCategory), `category_ids` (list of int)
 - **ProductImage**: id, product_id, path, is_default
 - **CardDesign / CardDesignImage**: طرح کارت‌های هدیه
 - **PackageType / PackageTypeImage**: بسته‌بندی
@@ -361,7 +363,7 @@ uvicorn main:app --reload
 `shop_service.list_products_with_pricing()` → `(List[Product], gold_price_rial, tax_percent_str)`
 - هر آیتم یک **Product ORM object** است (نه dict!)
 - Dynamic attributes اضافه‌شده: `product.inventory`, `product.final_price`, `product.price_info`
-- Category access: `product.category_id`, `product.category.name`
+- Category access (M2M): `product.categories` (list), `product.category_ids` (list of int)
 
 ### Jinja2 Tips:
 - هر `{% if %}` ← `{% endif %}`
@@ -537,3 +539,16 @@ CSRF_ENABLED=true
 - اضافه شدن سناریو عملیاتی جدید → Operator Manual
 - تغییر رفتار موجود → هر سه سند (در صورت تأثیر)
 - فاز جدید تکمیل‌شده → Feature Catalog (جدول فازها)
+
+---
+
+## 15. قانون کامیت و پوش (AUTO COMMIT & PUSH)
+
+> **⚠️ الزامی**: بعد از هر تغییر کدی (حتی کوچک)، **حتماً** تغییرات را commit و push کن.
+
+### قوانین:
+- بعد از اتمام هر تسک یا تغییر، بلافاصله `git add` + `git commit` + `git push` انجام بده
+- پیام کامیت فارسی یا انگلیسی مختصر و گویا باشد
+- هرگز تغییرات را بدون commit رها نکن
+- اگر چند تغییر مرتبط داری، یک commit با پیام جامع بزن
+- اگر تغییرات غیرمرتبط داری، commit های جداگانه بزن
