@@ -21,6 +21,9 @@ static/uploads/*
 .claude/
 templates_v2/
 
+# Private (personal notes, screenshots, etc.)
+_private/
+
 # Screenshots (dev only)
 screenshots/
 
