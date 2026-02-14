@@ -207,26 +207,26 @@
             <form method="POST" action="/payment/{{ order.id }}/wallet"
                   onsubmit="return confirm('آیا از پرداخت {{ order.grand_total | toman }} تومان از کیف پول مطمئنید؟')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button class="btn btn-lg btn-tm-primary w-100 mb-2">
+                <button class="btn btn-tm-primary w-100 mb-1">
                     <i class="bi bi-wallet2 me-1"></i> پرداخت از کیف پول
-                    <small class="d-block" style="font-size:0.7rem;">
-                        موجودی: {{ wallet_balance.available | toman }} تومان
-                    </small>
                 </button>
             </form>
+            <div class="text-center text-muted mb-2" style="font-size:0.75rem;">
+                موجودی: {{ wallet_balance.available | toman }} تومان
+            </div>
             {% else %}
             <div class="mb-2">
-                <button class="btn btn-lg btn-tm-outline w-100" disabled>
+                <button class="btn btn-tm-outline w-100" disabled>
                     <i class="bi bi-wallet2 me-1"></i> پرداخت از کیف پول
-                    <small class="d-block text-danger" style="font-size:0.7rem;">
-                        {% if wallet_balance %}
-                        موجودی: {{ wallet_balance.available | toman }} تومان
-                        (کسری: {{ (order.grand_total - wallet_balance.available) | toman }} تومان)
-                        {% else %}
-                        کیف پول خالی است
-                        {% endif %}
-                    </small>
                 </button>
+                <div class="text-center mt-1" style="font-size:0.75rem;">
+                    {% if wallet_balance %}
+                    <div class="text-danger">موجودی: {{ wallet_balance.available | toman }} تومان</div>
+                    <div class="text-danger">کسری: {{ (order.grand_total - wallet_balance.available) | toman }} تومان</div>
+                    {% else %}
+                    <span class="text-danger">کیف پول خالی است</span>
+                    {% endif %}
+                </div>
                 <a href="/wallet" class="btn btn-sm btn-tm-success w-100 mt-1">
                     <i class="bi bi-plus-circle me-1"></i> شارژ کیف پول
                 </a>
@@ -237,7 +237,7 @@
             <form method="POST" action="/payment/{{ order.id }}/zibal">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button class="btn btn-tm-outline w-100 mb-2">
-                    <i class="bi bi-credit-card me-1"></i> پرداخت آنلاین (درگاه بانکی)
+                    <i class="bi bi-credit-card me-1"></i> پرداخت آنلاین
                 </button>
             </form>
 
