@@ -145,16 +145,17 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <div>
                         <label class="form-label-tm small">مبلغ (تومان)</label>
-                        <input type="number" name="amount_toman" class="form-control form-control-tm" min="10000" step="10000"
-                               value="100000" required>
+                        <input type="number" name="amount_toman" id="topup-amount" class="form-control form-control-tm" min="10000" step="10000"
+                               value="1000000" required>
                     </div>
                     <button type="submit" class="btn btn-tm-success">
                         <i class="bi bi-credit-card me-1"></i> پرداخت
                     </button>
                 </form>
+                <div id="amount-words" class="mt-2 text-muted small" style="min-height:1.5em;"></div>
                 <!-- Quick amounts -->
                 <div class="mt-2 d-flex gap-1 justify-content-center flex-wrap">
-                    {% for val in [50000, 100000, 500000, 1000000] %}
+                    {% for val in [1000000, 50000000, 100000000, 200000000] %}
                     <button type="button" class="btn btn-sm btn-tm-outline quick-amount" data-amount="{{ val }}">
                         {{ val | toman }}
                     </button>
@@ -262,9 +263,67 @@
 
 {% block shop_js %}
 <script>
+// تبدیل عدد به حروف فارسی
+function numberToWordsFa(num) {
+    if (!num || num <= 0) return '';
+    num = Math.floor(num);
+
+    const yekan = ['', 'یک', 'دو', 'سه', 'چهار', 'پنج', 'شش', 'هفت', 'هشت', 'نه'];
+    const dahgan = ['', '', 'بیست', 'سی', 'چهل', 'پنجاه', 'شصت', 'هفتاد', 'هشتاد', 'نود'];
+    const dahyek = ['ده', 'یازده', 'دوازده', 'سیزده', 'چهارده', 'پانزده', 'شانزده', 'هفده', 'هجده', 'نوزده'];
+    const sadgan = ['', 'یکصد', 'دویست', 'سیصد', 'چهارصد', 'پانصد', 'ششصد', 'هفتصد', 'هشتصد', 'نهصد'];
+    const scale = ['', 'هزار', 'میلیون', 'میلیارد', 'تریلیون'];
+
+    function threeDigits(n) {
+        if (n === 0) return '';
+        let parts = [];
+        let s = Math.floor(n / 100);
+        let d = Math.floor((n % 100) / 10);
+        let y = n % 10;
+        if (s > 0) parts.push(sadgan[s]);
+        if (d === 1) {
+            parts.push(dahyek[y]);
+            return parts.join(' و ');
+        }
+        if (d > 1) parts.push(dahgan[d]);
+        if (y > 0) parts.push(yekan[y]);
+        return parts.join(' و ');
+    }
+
+    let chunks = [];
+    let i = 0;
+    while (num > 0) {
+        let rem = num % 1000;
+        if (rem > 0) {
+            let w = threeDigits(rem);
+            if (scale[i]) w += ' ' + scale[i];
+            chunks.unshift(w);
+        }
+        num = Math.floor(num / 1000);
+        i++;
+    }
+    return chunks.join(' و ');
+}
+
+function updateAmountWords() {
+    const inp = document.getElementById('topup-amount');
+    const el = document.getElementById('amount-words');
+    const val = parseInt(inp.value);
+    if (val && val > 0) {
+        el.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + numberToWordsFa(val) + ' تومان';
+    } else {
+        el.textContent = '';
+    }
+}
+
+const topupInput = document.getElementById('topup-amount');
+topupInput.addEventListener('input', updateAmountWords);
+updateAmountWords();
+
 document.querySelectorAll('.quick-amount').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.querySelector('input[name="amount_toman"]').value = btn.dataset.amount;
+        topupInput.value = btn.dataset.amount;
+        updateAmountWords();
     });
 });
 </script>
