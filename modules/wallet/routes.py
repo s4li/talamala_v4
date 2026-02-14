@@ -53,7 +53,7 @@ async def wallet_dashboard(
     )
 
     csrf = new_csrf_token()
-    return templates.TemplateResponse("shop/wallet.html", {
+    response = templates.TemplateResponse("shop/wallet.html", {
         "request": request,
         "user": me,
         "balance": balance,
@@ -65,6 +65,8 @@ async def wallet_dashboard(
         "msg": msg,
         "error": error,
     })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
 
 
 # ==========================================
