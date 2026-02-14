@@ -39,15 +39,54 @@
         <!-- Serial Code -->
         <div class="mb-3">
             <label class="form-label-tm fw-bold">سریال شمش <span class="text-danger">*</span></label>
-            <input type="text" name="serial_code" class="form-control form-control-tm" required
-                   dir="ltr" placeholder="سریال شمش را وارد کنید" style="text-transform: uppercase;">
+            <div class="input-group">
+                <input type="text" name="serial_code" id="serialInput" class="form-control form-control-tm" required
+                       dir="ltr" placeholder="سریال شمش را وارد کنید" style="text-transform: uppercase;">
+                <button type="button" id="lookupBtn" class="btn btn-tm-outline">
+                    <i class="bi bi-search me-1"></i> استعلام
+                </button>
+            </div>
+            <small class="text-muted">سریال را وارد کنید و روی «استعلام» بزنید تا قیمت سیستمی نمایش داده شود</small>
+        </div>
+
+        <!-- Bar Info Box (auto-filled by AJAX) -->
+        <div id="barInfoBox" class="mb-3" style="display:none;">
+            <div class="p-3 rounded" style="background:var(--tm-info-900, #f8f5f0); border:1px solid var(--tm-primary-100, #ddd);">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-gem" style="color:var(--tm-primary);"></i>
+                    <span class="fw-bold" id="barProductName"></span>
+                </div>
+                <div class="row small text-muted mb-2">
+                    <div class="col-auto">سریال: <code id="barSerial" dir="ltr"></code></div>
+                    <div class="col-auto">وزن: <span id="barWeight"></span>g</div>
+                    <div class="col-auto">عیار: <span id="barPurity"></span></div>
+                    <div class="col-auto">مالک: <span id="barOwner"></span></div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="small text-muted">ارزش طلای خام (قیمت بازخرید پیشنهادی)</div>
+                        <div class="fw-bold fs-5" style="color:var(--tm-primary);" id="rawGoldPrice"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="small text-muted">قیمت خرده‌فروشی (مرجع)</div>
+                        <div class="fw-bold text-muted" id="retailPrice"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="barErrorBox" class="mb-3" style="display:none;">
+            <div class="alert-tm-danger mb-0">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                <span id="barErrorMsg"></span>
+            </div>
         </div>
 
         <!-- Buyback Price -->
         <div class="mb-3">
             <label class="form-label-tm fw-bold">مبلغ بازخرید (تومان) <span class="text-danger">*</span></label>
-            <input type="number" name="buyback_price" class="form-control form-control-tm" required min="1"
-                   placeholder="مبلغ پیشنهادی بازخرید">
+            <input type="number" name="buyback_price" id="buybackPriceInput" class="form-control form-control-tm" required min="1"
+                   placeholder="ابتدا سریال را استعلام کنید" readonly>
+            <small class="text-muted">مبلغ بر اساس ارزش طلای خام محاسبه می‌شود</small>
         </div>
 
         <hr>
@@ -73,10 +112,76 @@
             <textarea name="description" class="form-control form-control-tm" rows="2" placeholder="توضیح اختیاری..."></textarea>
         </div>
 
-        <button type="submit" class="btn btn-lg btn-tm-primary px-5">
+        <button type="submit" id="submitBtn" class="btn btn-lg btn-tm-primary px-5" disabled>
             <i class="bi bi-send me-1"></i>
             ارسال درخواست بازخرید
         </button>
     </form>
 </div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+(function(){
+    const serialInput = document.getElementById('serialInput');
+    const lookupBtn = document.getElementById('lookupBtn');
+    const infoBox = document.getElementById('barInfoBox');
+    const errorBox = document.getElementById('barErrorBox');
+    const priceInput = document.getElementById('buybackPriceInput');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function fmt(n) {
+        return Number(n).toLocaleString('fa-IR') + ' تومان';
+    }
+
+    function doLookup() {
+        const serial = serialInput.value.trim();
+        if (serial.length < 3) return;
+
+        lookupBtn.disabled = true;
+        lookupBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> ...';
+        infoBox.style.display = 'none';
+        errorBox.style.display = 'none';
+
+        fetch('/dealer/buyback/lookup?serial=' + encodeURIComponent(serial))
+            .then(r => r.json())
+            .then(data => {
+                if (data.found) {
+                    document.getElementById('barProductName').textContent = data.product_name;
+                    document.getElementById('barSerial').textContent = data.serial_code;
+                    document.getElementById('barWeight').textContent = data.weight;
+                    document.getElementById('barPurity').textContent = data.purity;
+                    document.getElementById('barOwner').textContent = data.owner_name;
+                    document.getElementById('rawGoldPrice').textContent = fmt(data.raw_gold_toman);
+                    document.getElementById('retailPrice').textContent = fmt(data.retail_toman);
+                    priceInput.value = data.raw_gold_toman;
+                    priceInput.removeAttribute('readonly');
+                    submitBtn.disabled = false;
+                    infoBox.style.display = 'block';
+                    errorBox.style.display = 'none';
+                } else {
+                    document.getElementById('barErrorMsg').textContent = data.error || 'شمش یافت نشد';
+                    errorBox.style.display = 'block';
+                    infoBox.style.display = 'none';
+                    priceInput.value = '';
+                    priceInput.setAttribute('readonly', '');
+                    submitBtn.disabled = true;
+                }
+            })
+            .catch(() => {
+                document.getElementById('barErrorMsg').textContent = 'خطا در ارتباط با سرور';
+                errorBox.style.display = 'block';
+            })
+            .finally(() => {
+                lookupBtn.disabled = false;
+                lookupBtn.innerHTML = '<i class="bi bi-search me-1"></i> استعلام';
+            });
+    }
+
+    lookupBtn.addEventListener('click', doLookup);
+    serialInput.addEventListener('keydown', function(e){
+        if (e.key === 'Enter') { e.preventDefault(); doLookup(); }
+    });
+})();
+</script>
 {% endblock %}

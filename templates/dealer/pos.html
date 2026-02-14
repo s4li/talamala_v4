@@ -43,7 +43,7 @@
         <div class="mb-3">
             <label class="form-label-tm fw-bold">انتخاب شمش <span class="text-danger">*</span></label>
             {% if bars|length > 0 %}
-            <select name="bar_id" class="form-select form-select-tm" required>
+            <select name="bar_id" id="barSelect" class="form-select form-select-tm" required>
                 <option value="">-- انتخاب کنید --</option>
                 {% for bar in bars %}
                 <option value="{{ bar.id }}">
@@ -61,11 +61,28 @@
             {% endif %}
         </div>
 
+        <!-- Price Info Box (auto-filled) -->
+        <div id="priceInfoBox" class="mb-3" style="display:none;">
+            <div class="p-3 rounded" style="background:var(--tm-info-900, #f8f5f0); border:1px solid var(--tm-primary-100, #ddd);">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="fw-bold"><i class="bi bi-calculator me-1"></i> قیمت سیستمی</span>
+                    <span id="systemPriceDisplay" class="fw-bold fs-5" style="color:var(--tm-primary);"></span>
+                </div>
+                <div class="row small text-muted">
+                    <div class="col">ارزش طلا: <span id="rawGoldDisplay">-</span></div>
+                    <div class="col">اجرت: <span id="wageDisplay">-</span></div>
+                    <div class="col">سود: <span id="profitDisplay">-</span></div>
+                    <div class="col">مالیات: <span id="taxDisplay">-</span></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Sale Price -->
         <div class="mb-3">
             <label class="form-label-tm fw-bold">مبلغ فروش (تومان) <span class="text-danger">*</span></label>
-            <input type="number" name="sale_price" class="form-control form-control-tm" required min="1"
-                   placeholder="مثال: 5000000">
+            <input type="number" name="sale_price" id="salePriceInput" class="form-control form-control-tm" required min="1"
+                   placeholder="با انتخاب شمش، قیمت سیستمی پر می‌شود" readonly>
+            <small class="text-muted">قیمت توسط سیستم محاسبه می‌شود</small>
         </div>
 
         <hr>
@@ -102,4 +119,38 @@
         </button>
     </form>
 </div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+(function(){
+    const barPrices = {{ bar_prices_json | safe }};
+    const barSelect = document.getElementById('barSelect');
+    const priceBox = document.getElementById('priceInfoBox');
+    const priceInput = document.getElementById('salePriceInput');
+
+    function fmt(n) {
+        return Number(n).toLocaleString('fa-IR') + ' تومان';
+    }
+
+    if (barSelect) {
+        barSelect.addEventListener('change', function(){
+            const barId = this.value;
+            if (barId && barPrices[barId]) {
+                const p = barPrices[barId];
+                priceInput.value = p.total_toman;
+                document.getElementById('systemPriceDisplay').textContent = fmt(p.total_toman);
+                document.getElementById('rawGoldDisplay').textContent = fmt(p.raw_gold_toman);
+                document.getElementById('wageDisplay').textContent = fmt(p.wage_toman);
+                document.getElementById('profitDisplay').textContent = fmt(p.profit_toman);
+                document.getElementById('taxDisplay').textContent = fmt(p.tax_toman);
+                priceBox.style.display = 'block';
+            } else {
+                priceInput.value = '';
+                priceBox.style.display = 'none';
+            }
+        });
+    }
+})();
+</script>
 {% endblock %}
