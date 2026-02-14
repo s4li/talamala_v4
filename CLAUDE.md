@@ -150,7 +150,7 @@ talamala_v4/
 - **CouponUsage**: id, coupon_id, customer_id, order_id, discount_applied
 
 ### dealer/models.py
-- **Dealer**: id, mobile (unique), full_name, national_id, location_id (FK→locations), commission_percent, is_active, api_key (unique, for POS), otp_code, otp_expiry, created_at
+- **Dealer**: id, mobile (unique), full_name, national_id, location_id (FK→locations), tier_id (FK→dealer_tiers), province_id (FK→geo_provinces), city_id (FK→geo_cities), district_id (FK→geo_districts), address, postal_code, landline_phone, commission_percent, is_active, api_key (unique, for POS), otp_code, otp_expiry, created_at
 - **DealerSale**: id, dealer_id, bar_id, customer_name/mobile/national_id, sale_price, commission_amount, description, created_at
 - **BuybackRequest**: id, dealer_id, bar_id, customer_name/mobile, buyback_price, status (Pending/Approved/Completed/Rejected), admin_note, description, wage_refund_amount (rial), wage_refund_customer_id, created_at, updated_at
 

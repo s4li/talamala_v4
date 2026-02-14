@@ -39,7 +39,10 @@ def hash_otp(mobile: str, otp: str) -> str:
 
 
 def generate_otp(length: int = 6) -> str:
-    """Generate a random numeric OTP code."""
+    """Generate a random numeric OTP code. In DEBUG mode, always returns 111111."""
+    from config.settings import DEBUG
+    if DEBUG:
+        return "1" * length
     lower = 10 ** (length - 1)
     upper = 10 ** length - 1
     return str(secrets.randbelow(upper - lower) + lower)

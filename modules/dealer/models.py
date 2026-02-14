@@ -67,6 +67,14 @@ class Dealer(Base):
     commission_percent = Column(Numeric(5, 2), default=2.0, nullable=False)  # legacy
     is_active = Column(Boolean, default=True, nullable=False)
 
+    # Address fields (like CustomerAddress)
+    province_id = Column(Integer, ForeignKey("geo_provinces.id", ondelete="SET NULL"), nullable=True)
+    city_id = Column(Integer, ForeignKey("geo_cities.id", ondelete="SET NULL"), nullable=True)
+    district_id = Column(Integer, ForeignKey("geo_districts.id", ondelete="SET NULL"), nullable=True)
+    address = Column(Text, nullable=True)
+    postal_code = Column(String(10), nullable=True)
+    landline_phone = Column(String(15), nullable=True)
+
     # API Key for POS device authentication
     api_key = Column(String(64), unique=True, nullable=True, index=True)
 
@@ -79,6 +87,9 @@ class Dealer(Base):
     # Relationships
     location = relationship("Location", foreign_keys=[location_id])
     tier = relationship("DealerTier", back_populates="dealers")
+    province = relationship("GeoProvince", foreign_keys=[province_id])
+    city = relationship("GeoCity", foreign_keys=[city_id])
+    district = relationship("GeoDistrict", foreign_keys=[district_id])
     sales = relationship("DealerSale", back_populates="dealer", cascade="all, delete-orphan")
     buybacks = relationship("BuybackRequest", back_populates="dealer", cascade="all, delete-orphan")
 
@@ -89,6 +100,31 @@ class Dealer(Base):
     @property
     def tier_name(self) -> str:
         return self.tier.name if self.tier else "—"
+
+    @property
+    def province_name(self) -> str:
+        return self.province.name if self.province else "—"
+
+    @property
+    def city_name(self) -> str:
+        return self.city.name if self.city else "—"
+
+    @property
+    def district_name(self) -> str:
+        return self.district.name if self.district else "—"
+
+    @property
+    def full_address(self) -> str:
+        parts = []
+        if self.province:
+            parts.append(self.province.name)
+        if self.city:
+            parts.append(self.city.name)
+        if self.district:
+            parts.append(self.district.name)
+        if self.address:
+            parts.append(self.address)
+        return "، ".join(parts) if parts else "—"
 
     def __repr__(self):
         return f"<Dealer {self.full_name} ({self.mobile})>"

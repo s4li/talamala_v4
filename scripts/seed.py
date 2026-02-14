@@ -798,6 +798,18 @@ def seed():
         tier_wholesaler = tier_map.get("wholesaler")
         tier_store = tier_map.get("store")
 
+        # Lookup geo IDs for dealer addresses
+        def geo_ids(province_name, city_name):
+            prov = db.query(GeoProvince).filter(GeoProvince.name == province_name).first()
+            city = db.query(GeoCity).filter(GeoCity.province_id == prov.id, GeoCity.name == city_name).first() if prov else None
+            return (prov.id if prov else None, city.id if city else None)
+
+        geo_tehran = geo_ids("تهران", "تهران")
+        geo_esfahan = geo_ids("اصفهان", "اصفهان")
+        geo_shiraz = geo_ids("فارس", "شیراز")
+        geo_mashhad = geo_ids("خراسان رضوی", "مشهد")
+        geo_tabriz = geo_ids("آذربایجان شرقی", "تبریز")
+
         dealers_data = [
             # --- شهرستان ---
             {
@@ -807,6 +819,9 @@ def seed():
                 "location_id": branch_esfahan.id if branch_esfahan else None,
                 "api_key": "test_esfahan_key_0000000000000000",
                 "tier_id": tier_distributor.id if tier_distributor else None,
+                "province_id": geo_esfahan[0], "city_id": geo_esfahan[1],
+                "address": "اصفهان، خیابان چهارباغ، پلاک ۴۵",
+                "landline_phone": "03132001234",
             },
             {
                 "mobile": "09171234567",
@@ -815,6 +830,9 @@ def seed():
                 "location_id": branch_shiraz.id if branch_shiraz else None,
                 "api_key": "test_shiraz__key_1111111111111111",
                 "tier_id": tier_wholesaler.id if tier_wholesaler else None,
+                "province_id": geo_shiraz[0], "city_id": geo_shiraz[1],
+                "address": "شیراز، خیابان زند، پلاک ۷۸",
+                "landline_phone": "07136001234",
             },
             {
                 "mobile": "09181234567",
@@ -823,6 +841,9 @@ def seed():
                 "location_id": branch_mashhad.id if branch_mashhad else None,
                 "api_key": "test_mashhad_key_2222222222222222",
                 "tier_id": tier_store.id if tier_store else None,
+                "province_id": geo_mashhad[0], "city_id": geo_mashhad[1],
+                "address": "مشهد، بلوار وکیل‌آباد، پلاک ۲۲",
+                "landline_phone": "05138001234",
             },
             {
                 "mobile": "09141234567",
@@ -831,6 +852,9 @@ def seed():
                 "location_id": branch_tabriz.id if branch_tabriz else None,
                 "api_key": "test_tabriz__key_3333333333333333",
                 "tier_id": tier_distributor.id if tier_distributor else None,
+                "province_id": geo_tabriz[0], "city_id": geo_tabriz[1],
+                "address": "تبریز، خیابان آزادی، پلاک ۳۳",
+                "landline_phone": "04135001234",
             },
             # --- تهران (شعب از صفحه تماس با ما) ---
             {
@@ -840,6 +864,9 @@ def seed():
                 "location_id": branch_mirdamad.id if branch_mirdamad else None,
                 "api_key": "test_mirdmad_key_4444444444444444",
                 "tier_id": tier_distributor.id if tier_distributor else None,
+                "province_id": geo_tehran[0], "city_id": geo_tehran[1],
+                "address": "بلوار میرداماد، برج آرین، طبقه دوم اداری، واحد ۵",
+                "landline_phone": "02145241",
             },
             {
                 "mobile": "09122345678",
@@ -848,6 +875,9 @@ def seed():
                 "location_id": branch_naserkh.id if branch_naserkh else None,
                 "api_key": "test_nasrkhr_key_5555555555555555",
                 "tier_id": tier_wholesaler.id if tier_wholesaler else None,
+                "province_id": geo_tehran[0], "city_id": geo_tehran[1],
+                "address": "بازار تهران، خیابان ناصر خسرو، پاساژ شمس العماره، طبقه منفی ۱، واحد ۳۰۵",
+                "landline_phone": "02186091012",
             },
             {
                 "mobile": "09123456780",
@@ -856,6 +886,9 @@ def seed():
                 "location_id": branch_ordibehesht.id if branch_ordibehesht else None,
                 "api_key": "test_ordibht_key_6666666666666666",
                 "tier_id": tier_wholesaler.id if tier_wholesaler else None,
+                "province_id": geo_tehran[0], "city_id": geo_tehran[1],
+                "address": "بازار بزرگ تهران، پاساژ اردیبهشت، طبقه هم‌کف، پلاک ۶۸",
+                "landline_phone": "02186091013",
             },
             {
                 "mobile": "09124567890",
@@ -864,6 +897,9 @@ def seed():
                 "location_id": branch_shahrak.id if branch_shahrak else None,
                 "api_key": "test_shahrak_key_7777777777777777",
                 "tier_id": tier_store.id if tier_store else None,
+                "province_id": geo_tehran[0], "city_id": geo_tehran[1],
+                "address": "بلوار فرحزادی، مجتمع تجاری لیدوما، تجاری دوم (G2)، واحد ۱۵",
+                "landline_phone": "02186091014",
             },
             {
                 "mobile": "09125678901",
@@ -872,6 +908,9 @@ def seed():
                 "location_id": branch_karimkhan.id if branch_karimkhan else None,
                 "api_key": "test_karimkh_key_8888888888888888",
                 "tier_id": tier_store.id if tier_store else None,
+                "province_id": geo_tehran[0], "city_id": geo_tehran[1],
+                "address": "میدان ولی‌عصر(عج)، خیابان کریمخان، مجتمع تجاری الماس کریمخان، طبقه دوم، واحد ۲۰۸",
+                "landline_phone": "02186091015",
             },
         ]
 
@@ -885,6 +924,10 @@ def seed():
                     location_id=dd["location_id"],
                     api_key=dd["api_key"],
                     tier_id=dd["tier_id"],
+                    province_id=dd.get("province_id"),
+                    city_id=dd.get("city_id"),
+                    address=dd.get("address"),
+                    landline_phone=dd.get("landline_phone"),
                 )
                 db.add(dealer)
                 db.flush()

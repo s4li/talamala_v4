@@ -16,6 +16,7 @@ from modules.dealer.service import dealer_service
 from modules.dealer.models import DealerTier
 from modules.catalog.models import Product, ProductTierWage
 from modules.inventory.models import Location, LocationType
+from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict
 
 router = APIRouter(prefix="/admin/dealers", tags=["admin-dealer"])
 
@@ -52,24 +53,49 @@ async def dealer_list(
 # Create Dealer
 # ==========================================
 
+def _load_form_context(db: Session):
+    """Load provinces and tiers for dealer form."""
+    provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
+    tiers = db.query(DealerTier).filter(DealerTier.is_active == True).order_by(DealerTier.sort_order).all()
+    return provinces, tiers
+
+
+def _load_edit_geo(db: Session, dealer):
+    """Load cities/districts for pre-populating edit form cascades."""
+    cities = []
+    districts = []
+    if dealer.province_id:
+        cities = db.query(GeoCity).filter(
+            GeoCity.province_id == dealer.province_id
+        ).order_by(GeoCity.sort_order, GeoCity.name).all()
+    if dealer.city_id:
+        districts = db.query(GeoDistrict).filter(
+            GeoDistrict.city_id == dealer.city_id
+        ).order_by(GeoDistrict.name).all()
+    return cities, districts
+
+
+def _parse_int(val: str) -> int | None:
+    """Parse string to int, return None if empty."""
+    return int(val) if val and val.strip().isdigit() else None
+
+
 @router.get("/create", response_class=HTMLResponse)
 async def dealer_create_form(
     request: Request,
     user=Depends(require_operator_or_admin),
     db: Session = Depends(get_db),
 ):
-    locations = db.query(Location).filter(
-        Location.is_active == True,
-        Location.location_type == LocationType.BRANCH,
-    ).order_by(Location.name).all()
-    tiers = db.query(DealerTier).filter(DealerTier.is_active == True).order_by(DealerTier.sort_order).all()
+    provinces, tiers = _load_form_context(db)
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("admin/dealers/form.html", {
         "request": request,
         "user": user,
         "dealer": None,
-        "locations": locations,
+        "provinces": provinces,
+        "cities": [],
+        "districts": [],
         "tiers": tiers,
         "csrf_token": csrf,
         "active_page": "dealers",
@@ -85,8 +111,13 @@ async def dealer_create_submit(
     mobile: str = Form(...),
     full_name: str = Form(...),
     national_id: str = Form(""),
-    location_id: str = Form(""),
     tier_id: str = Form(""),
+    province_id: str = Form(""),
+    city_id: str = Form(""),
+    district_id: str = Form(""),
+    address: str = Form(""),
+    postal_code: str = Form(""),
+    landline_phone: str = Form(""),
     csrf_token: str = Form(""),
     user=Depends(require_operator_or_admin),
     db: Session = Depends(get_db),
@@ -96,18 +127,15 @@ async def dealer_create_submit(
     # Check duplicate mobile
     existing = dealer_service.get_dealer_by_mobile(db, mobile.strip())
     if existing:
-        locations = db.query(Location).filter(
-            Location.is_active == True,
-            Location.location_type == LocationType.BRANCH,
-        ).order_by(Location.name).all()
-        tiers = db.query(DealerTier).filter(DealerTier.is_active == True).order_by(DealerTier.sort_order).all()
-
+        provinces, tiers = _load_form_context(db)
         csrf = new_csrf_token()
         response = templates.TemplateResponse("admin/dealers/form.html", {
             "request": request,
             "user": user,
             "dealer": None,
-            "locations": locations,
+            "provinces": provinces,
+            "cities": [],
+            "districts": [],
             "tiers": tiers,
             "csrf_token": csrf,
             "active_page": "dealers",
@@ -116,13 +144,16 @@ async def dealer_create_submit(
         response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
         return response
 
-    loc_id = int(location_id) if location_id.strip() else None
-    t_id = int(tier_id) if tier_id.strip() else None
     dealer = dealer_service.create_dealer(
         db, mobile.strip(), full_name.strip(),
         national_id=national_id.strip(),
-        location_id=loc_id,
-        tier_id=t_id,
+        tier_id=_parse_int(tier_id),
+        province_id=_parse_int(province_id),
+        city_id=_parse_int(city_id),
+        district_id=_parse_int(district_id),
+        address=address.strip(),
+        postal_code=postal_code.strip(),
+        landline_phone=landline_phone.strip(),
     )
     db.commit()
 
@@ -144,18 +175,17 @@ async def dealer_edit_form(
     if not dealer:
         return RedirectResponse("/admin/dealers", status_code=302)
 
-    locations = db.query(Location).filter(
-        Location.is_active == True,
-        Location.location_type == LocationType.BRANCH,
-    ).order_by(Location.name).all()
-    tiers = db.query(DealerTier).filter(DealerTier.is_active == True).order_by(DealerTier.sort_order).all()
+    provinces, tiers = _load_form_context(db)
+    cities, districts = _load_edit_geo(db, dealer)
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("admin/dealers/form.html", {
         "request": request,
         "user": user,
         "dealer": dealer,
-        "locations": locations,
+        "provinces": provinces,
+        "cities": cities,
+        "districts": districts,
         "tiers": tiers,
         "csrf_token": csrf,
         "active_page": "dealers",
@@ -170,8 +200,13 @@ async def dealer_edit_submit(
     dealer_id: int,
     request: Request,
     full_name: str = Form(...),
-    location_id: str = Form(""),
     tier_id: str = Form(""),
+    province_id: str = Form(""),
+    city_id: str = Form(""),
+    district_id: str = Form(""),
+    address: str = Form(""),
+    postal_code: str = Form(""),
+    landline_phone: str = Form(""),
     is_active: str = Form("off"),
     csrf_token: str = Form(""),
     user=Depends(require_operator_or_admin),
@@ -179,13 +214,16 @@ async def dealer_edit_submit(
 ):
     csrf_check(request, csrf_token)
 
-    loc_id = int(location_id) if location_id.strip() else None
-    t_id = int(tier_id) if tier_id.strip() else None
     dealer = dealer_service.update_dealer(
         db, dealer_id,
         full_name=full_name.strip(),
-        location_id=loc_id,
-        tier_id=t_id,
+        tier_id=_parse_int(tier_id),
+        province_id=_parse_int(province_id),
+        city_id=_parse_int(city_id),
+        district_id=_parse_int(district_id),
+        address=address.strip(),
+        postal_code=postal_code.strip(),
+        landline_phone=landline_phone.strip(),
         is_active=(is_active == "on"),
     )
     db.commit()

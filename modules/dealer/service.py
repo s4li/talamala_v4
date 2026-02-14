@@ -68,6 +68,9 @@ class DealerService:
         self, db: Session, mobile: str, full_name: str,
         national_id: str = "", location_id: int = None,
         tier_id: int = None,
+        province_id: int = None, city_id: int = None,
+        district_id: int = None, address: str = "",
+        postal_code: str = "", landline_phone: str = "",
     ) -> Dealer:
         dealer = Dealer(
             mobile=mobile,
@@ -75,6 +78,12 @@ class DealerService:
             national_id=national_id or None,
             location_id=location_id,
             tier_id=tier_id,
+            province_id=province_id,
+            city_id=city_id,
+            district_id=district_id,
+            address=address or None,
+            postal_code=postal_code or None,
+            landline_phone=landline_phone or None,
         )
         db.add(dealer)
         db.flush()
@@ -84,6 +93,9 @@ class DealerService:
         self, db: Session, dealer_id: int,
         full_name: str = None, location_id: int = None,
         tier_id: int = None, is_active: bool = None,
+        province_id: int = None, city_id: int = None,
+        district_id: int = None, address: str = None,
+        postal_code: str = None, landline_phone: str = None,
     ) -> Optional[Dealer]:
         dealer = self.get_dealer(db, dealer_id)
         if not dealer:
@@ -96,6 +108,18 @@ class DealerService:
             dealer.tier_id = tier_id
         if is_active is not None:
             dealer.is_active = is_active
+        if province_id is not None:
+            dealer.province_id = province_id
+        if city_id is not None:
+            dealer.city_id = city_id
+        if district_id is not None:
+            dealer.district_id = district_id
+        if address is not None:
+            dealer.address = address or None
+        if postal_code is not None:
+            dealer.postal_code = postal_code or None
+        if landline_phone is not None:
+            dealer.landline_phone = landline_phone or None
         db.flush()
         return dealer
 

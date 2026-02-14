@@ -63,7 +63,7 @@
                     <th>#</th>
                     <th>نام</th>
                     <th>موبایل</th>
-                    <th>محل نمایندگی</th>
+                    <th>استان / شهر</th>
                     <th>سطح</th>
                     <th>وضعیت</th>
                     <th>تاریخ ثبت</th>
@@ -76,7 +76,7 @@
                     <td>{{ d.id }}</td>
                     <td class="fw-bold">{{ d.full_name }}</td>
                     <td dir="ltr">{{ d.mobile }}</td>
-                    <td>{{ d.location_name }}</td>
+                    <td>{{ d.province_name }} / {{ d.city_name }}</td>
                     <td>{{ d.tier_name }}</td>
                     <td>
                         {% if d.is_active %}
