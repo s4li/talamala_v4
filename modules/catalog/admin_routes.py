@@ -57,9 +57,7 @@ async def add_product(
     design: str = Form(None),
     card_design_id: str = Form(""), package_type_id: str = Form(""),
     wage: str = Form("0"), is_wage_percent: bool = Form(False),
-    profit_percent: str = Form("7"), commission_percent: str = Form("0"),
-    stone_price: str = Form("0"), accessory_cost: str = Form("0"),
-    accessory_profit_percent: str = Form("15"), is_active: bool = Form(True),
+    is_active: bool = Form(True),
     files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db), user=Depends(require_super_admin),
@@ -73,9 +71,7 @@ async def add_product(
         "name": name, "weight": weight, "purity": purity, "design": design,
         "category_ids": category_ids, "card_design_id": cd_id, "package_type_id": pt_id,
         "wage": wage, "is_wage_percent": is_wage_percent,
-        "profit_percent": profit_percent, "commission_percent": commission_percent,
-        "stone_price": stone_price, "accessory_cost": accessory_cost,
-        "accessory_profit_percent": accessory_profit_percent, "is_active": is_active,
+        "is_active": is_active,
     }, files)
     return RedirectResponse("/admin/products", status_code=303)
 
@@ -101,9 +97,7 @@ async def update_product(
     design: str = Form(None),
     card_design_id: str = Form(""), package_type_id: str = Form(""),
     wage: str = Form(...), is_wage_percent: bool = Form(False),
-    profit_percent: str = Form(...), commission_percent: str = Form(...),
-    stone_price: str = Form(...), accessory_cost: str = Form(...),
-    accessory_profit_percent: str = Form(...), is_active: bool = Form(False),
+    is_active: bool = Form(False),
     new_files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db), user=Depends(require_super_admin),
@@ -117,9 +111,7 @@ async def update_product(
         "name": name, "weight": weight, "purity": purity, "design": design,
         "category_ids": category_ids, "card_design_id": cd_id, "package_type_id": pt_id,
         "wage": wage, "is_wage_percent": is_wage_percent,
-        "profit_percent": profit_percent, "commission_percent": commission_percent,
-        "stone_price": stone_price, "accessory_cost": accessory_cost,
-        "accessory_profit_percent": accessory_profit_percent, "is_active": is_active,
+        "is_active": is_active,
     }, new_files)
     return RedirectResponse("/admin/products", status_code=303)
 

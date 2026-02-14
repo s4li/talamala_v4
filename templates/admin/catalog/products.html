@@ -24,7 +24,6 @@
                         <th>وزن (گرم)</th>
                         <th>عیار</th>
                         <th>اجرت</th>
-                        <th>سود %</th>
                         <th>طرح کارت</th>
                         <th>بسته‌بندی</th>
                         <th>وضعیت</th>
@@ -49,7 +48,6 @@
                         <td>{{ p.weight }}</td>
                         <td>{{ p.purity }}</td>
                         <td>{{ p.wage }}{% if p.is_wage_percent %}%{% endif %}</td>
-                        <td>{{ p.profit_percent }}%</td>
                         <td><small>{{ p.card_design.name if p.card_design else '—' }}</small></td>
                         <td><small>{{ p.package_type.name if p.package_type else '—' }}</small></td>
                         <td>
@@ -71,7 +69,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="12" class="text-center text-muted py-4">هنوز محصولی ثبت نشده</td></tr>
+                    <tr><td colspan="11" class="text-center text-muted py-4">هنوز محصولی ثبت نشده</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -128,26 +126,6 @@
                                     <small>درصدی</small>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label-tm">سود %</label>
-                            <input type="text" name="profit_percent" class="form-control form-control-tm" value="7">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label-tm">کمیسیون %</label>
-                            <input type="text" name="commission_percent" class="form-control form-control-tm" value="0">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label-tm">قیمت سنگ (ریال)</label>
-                            <input type="text" name="stone_price" class="form-control form-control-tm" value="0">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label-tm">هزینه متفرقه (ریال)</label>
-                            <input type="text" name="accessory_cost" class="form-control form-control-tm" value="0">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label-tm">سود متفرقه %</label>
-                            <input type="text" name="accessory_profit_percent" class="form-control form-control-tm" value="15">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label-tm">طرح</label>

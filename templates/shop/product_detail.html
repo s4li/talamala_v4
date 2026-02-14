@@ -118,30 +118,6 @@
                     <td class="text-start">{{ invoice.wage | toman }} <small>تومان</small></td>
                 </tr>
                 {% endif %}
-                {% if invoice.profit %}
-                <tr>
-                    <td class="text-muted">سود ({{ invoice.audit.profit_percent_str }}%)</td>
-                    <td class="text-start">{{ invoice.profit | toman }} <small>تومان</small></td>
-                </tr>
-                {% endif %}
-                {% if invoice.commission %}
-                <tr>
-                    <td class="text-muted">کمیسیون</td>
-                    <td class="text-start">{{ invoice.commission | toman }} <small>تومان</small></td>
-                </tr>
-                {% endif %}
-                {% if invoice.stone %}
-                <tr>
-                    <td class="text-muted">سنگ</td>
-                    <td class="text-start">{{ invoice.stone | toman }} <small>تومان</small></td>
-                </tr>
-                {% endif %}
-                {% if invoice.accessory %}
-                <tr>
-                    <td class="text-muted">متفرقه</td>
-                    <td class="text-start">{{ invoice.accessory | toman }} <small>تومان</small></td>
-                </tr>
-                {% endif %}
                 {% if invoice.tax %}
                 <tr>
                     <td class="text-muted">مالیات ({{ tax_percent }}%)</td>

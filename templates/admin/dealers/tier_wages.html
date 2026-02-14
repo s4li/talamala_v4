@@ -46,9 +46,16 @@
                             {% endif %}
                         </td>
                         <td>
+                            {% if item.tier.is_end_customer %}
+                            <input type="number" class="form-control form-control-tm form-control-sm"
+                                   step="0.01" min="0" max="100"
+                                   value="{{ item.wage_percent }}" readonly disabled style="max-width:150px; background:#f0f0f0;">
+                            <small class="text-muted">از اجرت محصول (خودکار)</small>
+                            {% else %}
                             <input type="number" name="wage_{{ item.tier.id }}" class="form-control form-control-tm form-control-sm"
                                    step="0.01" min="0" max="100"
                                    value="{{ item.wage_percent }}" style="max-width:150px;">
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

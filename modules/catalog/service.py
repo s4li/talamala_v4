@@ -11,7 +11,9 @@ from sqlalchemy.orm import Session
 
 from common.upload import save_upload_file, delete_file
 from common.helpers import safe_int
+from modules.dealer.models import DealerTier
 from modules.catalog.models import (
+    ProductTierWage,
     Product, ProductImage, ProductCategoryLink,
     CardDesign, CardDesignImage,
     PackageType, PackageTypeImage,
@@ -118,11 +120,6 @@ class ProductService:
             package_type_id=data.get("package_type_id"),
             wage=data.get("wage", 0),
             is_wage_percent=data.get("is_wage_percent", True),
-            profit_percent=data.get("profit_percent", 7),
-            commission_percent=data.get("commission_percent", 0),
-            stone_price=safe_int(data.get("stone_price", "0")) or 0,
-            accessory_cost=safe_int(data.get("accessory_cost", "0")) or 0,
-            accessory_profit_percent=data.get("accessory_profit_percent", 15),
             is_active=data.get("is_active", True),
         )
         db.add(product)
@@ -134,6 +131,19 @@ class ProductService:
             db.add(ProductCategoryLink(product_id=product.id, category_id=int(cat_id)))
         if data.get("category_ids"):
             db.commit()
+
+        # Auto-sync end_customer tier wage from product wage
+        ec_tier = db.query(DealerTier).filter(DealerTier.is_end_customer == True, DealerTier.is_active == True).first()
+        if ec_tier:
+            ptw = db.query(ProductTierWage).filter(
+                ProductTierWage.product_id == product.id,
+                ProductTierWage.tier_id == ec_tier.id,
+            ).first()
+            if ptw:
+                ptw.wage_percent = product.wage
+            else:
+                db.add(ProductTierWage(product_id=product.id, tier_id=ec_tier.id, wage_percent=product.wage))
+            db.flush()
 
         if files:
             images.save_images(db, product.id, files, ProductImage, "product_id", subfolder="products")
@@ -153,11 +163,6 @@ class ProductService:
         p.package_type_id = data.get("package_type_id")
         p.wage = data.get("wage", 0)
         p.is_wage_percent = data.get("is_wage_percent", False)
-        p.profit_percent = data.get("profit_percent", 7)
-        p.commission_percent = data.get("commission_percent", 0)
-        p.stone_price = safe_int(data.get("stone_price", "0")) or 0
-        p.accessory_cost = safe_int(data.get("accessory_cost", "0")) or 0
-        p.accessory_profit_percent = data.get("accessory_profit_percent", 15)
         p.is_active = data.get("is_active", False)
 
         # Sync M2M categories
@@ -167,6 +172,19 @@ class ProductService:
                 db.add(ProductCategoryLink(product_id=p.id, category_id=int(cat_id)))
 
         db.commit()
+
+        # Auto-sync end_customer tier wage from product wage
+        ec_tier = db.query(DealerTier).filter(DealerTier.is_end_customer == True, DealerTier.is_active == True).first()
+        if ec_tier:
+            ptw = db.query(ProductTierWage).filter(
+                ProductTierWage.product_id == p.id,
+                ProductTierWage.tier_id == ec_tier.id,
+            ).first()
+            if ptw:
+                ptw.wage_percent = p.wage
+            else:
+                db.add(ProductTierWage(product_id=p.id, tier_id=ec_tier.id, wage_percent=p.wage))
+            db.flush()
 
         if files:
             has_default = any(img.is_default for img in p.images)

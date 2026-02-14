@@ -127,28 +127,6 @@
                             <span>{{ item.final_wage_amount | toman }} تومان</span>
                         </div>
                         <div class="breakdown-item">
-                            <span>سود ({{ item.applied_profit_percent }}%)</span>
-                            <span>{{ item.final_profit_amount | toman }} تومان</span>
-                        </div>
-                        {% if item.final_commission_amount %}
-                        <div class="breakdown-item">
-                            <span>کمیسیون</span>
-                            <span>{{ item.final_commission_amount | toman }} تومان</span>
-                        </div>
-                        {% endif %}
-                        {% if item.final_stone_amount %}
-                        <div class="breakdown-item">
-                            <span>سنگ</span>
-                            <span>{{ item.final_stone_amount | toman }} تومان</span>
-                        </div>
-                        {% endif %}
-                        {% if item.final_accessory_amount %}
-                        <div class="breakdown-item">
-                            <span>متفرقه</span>
-                            <span>{{ item.final_accessory_amount | toman }} تومان</span>
-                        </div>
-                        {% endif %}
-                        <div class="breakdown-item">
                             <span>مالیات ({{ item.applied_tax_percent }}%)</span>
                             <span>{{ item.final_tax_amount | toman }} تومان</span>
                         </div>
