@@ -91,36 +91,21 @@
             </div>
 
             <!-- Footer -->
-            <div class="product-card-footer">
+            <div class="product-card-footer" id="cart-footer-{{ p.id }}">
                 {% if p.inventory > 0 and gold_price %}
                     {% set in_cart = cart_map.get(p.id, 0) %}
                     {% if in_cart %}
                     <div class="d-flex align-items-center justify-content-between">
-                        <form method="POST" action="/cart/update">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <input type="hidden" name="product_id" value="{{ p.id }}">
-                            <input type="hidden" name="action" value="decrease">
-                            <button class="btn btn-sm btn-tm-danger"><i class="bi bi-dash"></i></button>
-                        </form>
-                        <span class="fw-bold">{{ in_cart }}</span>
-                        <form method="POST" action="/cart/update">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <input type="hidden" name="product_id" value="{{ p.id }}">
-                            <input type="hidden" name="action" value="increase">
-                            <button class="btn btn-sm btn-tm-success"><i class="bi bi-plus"></i></button>
-                        </form>
+                        <button class="btn btn-sm btn-tm-danger cart-btn" data-pid="{{ p.id }}" data-change="-1"><i class="bi bi-dash"></i></button>
+                        <span class="fw-bold cart-qty" data-pid="{{ p.id }}">{{ in_cart }}</span>
+                        <button class="btn btn-sm btn-tm-success cart-btn" data-pid="{{ p.id }}" data-change="1"><i class="bi bi-plus"></i></button>
                     </div>
                     {% else %}
-                    <form method="POST" action="/cart/update">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <input type="hidden" name="product_id" value="{{ p.id }}">
-                        <input type="hidden" name="action" value="increase">
-                        <button class="btn btn-sm btn-tm-primary w-100 text-nowrap">
-                            <i class="bi bi-cart-plus me-1"></i>
-                            <span class="d-none d-lg-inline">افزودن به سبد</span>
-                            <span class="d-lg-none">سبد خرید</span>
-                        </button>
-                    </form>
+                    <button class="btn btn-sm btn-tm-primary w-100 text-nowrap cart-btn" data-pid="{{ p.id }}" data-change="1">
+                        <i class="bi bi-cart-plus me-1"></i>
+                        <span class="d-none d-lg-inline">افزودن به سبد</span>
+                        <span class="d-lg-none">سبد خرید</span>
+                    </button>
                     {% endif %}
                 {% else %}
                 <button class="btn btn-sm btn-tm-outline w-100" disabled>ناموجود</button>
@@ -181,4 +166,64 @@
     </ul>
 </nav>
 {% endif %}
+{% endblock %}
+
+{% block shop_js %}
+<script>
+function getCsrf() {
+    const m = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+    return m ? m[1] : '';
+}
+function renderFooter(pid, qty) {
+    const el = document.getElementById('cart-footer-' + pid);
+    if (!el) return;
+    if (qty > 0) {
+        el.innerHTML =
+            '<div class="d-flex align-items-center justify-content-between">' +
+            '<button class="btn btn-sm btn-tm-danger cart-btn" data-pid="'+pid+'" data-change="-1"><i class="bi bi-dash"></i></button>' +
+            '<span class="fw-bold cart-qty" data-pid="'+pid+'">'+qty+'</span>' +
+            '<button class="btn btn-sm btn-tm-success cart-btn" data-pid="'+pid+'" data-change="1"><i class="bi bi-plus"></i></button>' +
+            '</div>';
+    } else {
+        el.innerHTML =
+            '<button class="btn btn-sm btn-tm-primary w-100 text-nowrap cart-btn" data-pid="'+pid+'" data-change="1">' +
+            '<i class="bi bi-cart-plus me-1"></i>' +
+            '<span class="d-none d-lg-inline">افزودن به سبد</span>' +
+            '<span class="d-lg-none">سبد خرید</span></button>';
+    }
+}
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.cart-btn');
+    if (!btn) return;
+    e.preventDefault();
+    btn.disabled = true;
+    const pid = btn.dataset.pid;
+    const change = parseInt(btn.dataset.change);
+    fetch('/api/cart/update', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json', 'X-CSRF-Token': getCsrf()},
+        body: JSON.stringify({product_id: pid, change: change})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'success') {
+            renderFooter(pid, data.new_quantity);
+            const badge = document.querySelector('.cart-badge');
+            if (badge) {
+                badge.textContent = data.cart_count || '';
+                badge.style.display = data.cart_count ? '' : 'none';
+            } else if (data.cart_count > 0) {
+                const cartLink = document.querySelector('a[href="/cart"]');
+                if (cartLink) {
+                    const sp = document.createElement('span');
+                    sp.className = 'cart-badge';
+                    sp.textContent = data.cart_count;
+                    cartLink.appendChild(sp);
+                }
+            }
+        }
+    })
+    .catch(() => { btn.disabled = false; });
+});
+</script>
 {% endblock %}
