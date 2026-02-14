@@ -40,7 +40,7 @@ class DealerTier(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)        # "پخش", "بنکدار", "فروشگاه", "مشتری نهایی"
-    slug = Column(String, unique=True, nullable=False)        # "pakhsh", "bankdar", "forushgah", "end_customer"
+    slug = Column(String, unique=True, nullable=False)        # "distributor", "wholesaler", "store", "end_customer"
     sort_order = Column(Integer, default=0)
     is_end_customer = Column(Boolean, default=False)          # فلگ ویژه: بالاترین اجرت
     is_active = Column(Boolean, default=True)

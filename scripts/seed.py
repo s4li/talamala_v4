@@ -251,6 +251,18 @@ def seed():
         locations_data = [
             ("انبار مرکزی تهران", LocationType.WAREHOUSE, "تهران", "تهران",
              "تهران، خیابان ولیعصر، پلاک ۱۲۳", "02188001234", True),
+            # شعب تهران (از صفحه تماس با ما)
+            ("شعبه میرداماد", LocationType.BRANCH, "تهران", "تهران",
+             "تهران، بلوار میرداماد، برج آرین، طبقه دوم اداری، واحد ۵", "02145241", False),
+            ("شعبه بازار ناصرخسرو", LocationType.BRANCH, "تهران", "تهران",
+             "بازار تهران، خیابان ناصر خسرو، پاساژ شمس العماره، طبقه منفی ۱، واحد ۳۰۵", "02186091012", False),
+            ("شعبه بازار اردیبهشت", LocationType.BRANCH, "تهران", "تهران",
+             "بازار بزرگ تهران، پاساژ اردیبهشت، طبقه هم‌کف، پلاک ۶۸", "02186091013", False),
+            ("شعبه شهرک غرب", LocationType.BRANCH, "تهران", "تهران",
+             "تهران، بلوار فرحزادی، مجتمع تجاری لیدوما، تجاری دوم (G2)، واحد ۱۵", "02186091014", False),
+            ("شعبه کریمخان", LocationType.BRANCH, "تهران", "تهران",
+             "تهران، میدان ولی‌عصر(عج)، خیابان کریمخان، مجتمع تجاری الماس کریمخان، طبقه دوم، واحد ۲۰۸", "02186091015", False),
+            # شعب شهرستان
             ("نمایندگی اصفهان", LocationType.BRANCH, "اصفهان", "اصفهان",
              "اصفهان، خیابان چهارباغ، پلاک ۴۵", "03132001234", False),
             ("نمایندگی شیراز", LocationType.BRANCH, "فارس", "شیراز",
@@ -688,9 +700,9 @@ def seed():
         print("\n[9.5] Dealer Tiers")
 
         tiers_data = [
-            {"name": "پخش", "slug": "pakhsh", "sort_order": 1, "is_end_customer": False},
-            {"name": "بنکدار", "slug": "bankdar", "sort_order": 2, "is_end_customer": False},
-            {"name": "فروشگاه", "slug": "forushgah", "sort_order": 3, "is_end_customer": False},
+            {"name": "پخش", "slug": "distributor", "sort_order": 1, "is_end_customer": False},
+            {"name": "بنکدار", "slug": "wholesaler", "sort_order": 2, "is_end_customer": False},
+            {"name": "فروشگاه", "slug": "store", "sort_order": 3, "is_end_customer": False},
             {"name": "مشتری نهایی", "slug": "end_customer", "sort_order": 4, "is_end_customer": True},
         ]
 
@@ -718,18 +730,18 @@ def seed():
         # Wage percentages: {product_weight: {tier_slug: wage%}}
         # Lower weight = higher wage, lower tier = lower wage
         tier_wage_config = {
-            0.1:   {"pakhsh": 3.0, "bankdar": 5.0, "forushgah": 7.0, "end_customer": 10.0},
-            0.2:   {"pakhsh": 3.0, "bankdar": 5.0, "forushgah": 7.0, "end_customer": 10.0},
-            0.25:  {"pakhsh": 3.0, "bankdar": 5.0, "forushgah": 7.0, "end_customer": 10.0},
-            0.5:   {"pakhsh": 3.0, "bankdar": 5.0, "forushgah": 7.0, "end_customer": 10.0},
-            1.0:   {"pakhsh": 3.0, "bankdar": 5.0, "forushgah": 7.0, "end_customer": 10.0},
-            1.5:   {"pakhsh": 2.5, "bankdar": 4.0, "forushgah": 6.0, "end_customer": 8.0},
-            2.0:   {"pakhsh": 2.5, "bankdar": 4.0, "forushgah": 6.0, "end_customer": 8.0},
-            2.5:   {"pakhsh": 2.5, "bankdar": 4.0, "forushgah": 6.0, "end_customer": 8.0},
-            5.0:   {"pakhsh": 2.0, "bankdar": 3.0, "forushgah": 5.0, "end_customer": 7.0},
-            10.0:  {"pakhsh": 2.0, "bankdar": 3.0, "forushgah": 5.0, "end_customer": 7.0},
-            50.0:  {"pakhsh": 1.5, "bankdar": 2.5, "forushgah": 4.0, "end_customer": 5.0},
-            100.0: {"pakhsh": 1.0, "bankdar": 2.0, "forushgah": 3.0, "end_customer": 4.0},
+            0.1:   {"distributor": 3.0, "wholesaler": 5.0, "store": 7.0, "end_customer": 10.0},
+            0.2:   {"distributor": 3.0, "wholesaler": 5.0, "store": 7.0, "end_customer": 10.0},
+            0.25:  {"distributor": 3.0, "wholesaler": 5.0, "store": 7.0, "end_customer": 10.0},
+            0.5:   {"distributor": 3.0, "wholesaler": 5.0, "store": 7.0, "end_customer": 10.0},
+            1.0:   {"distributor": 3.0, "wholesaler": 5.0, "store": 7.0, "end_customer": 10.0},
+            1.5:   {"distributor": 2.5, "wholesaler": 4.0, "store": 6.0, "end_customer": 8.0},
+            2.0:   {"distributor": 2.5, "wholesaler": 4.0, "store": 6.0, "end_customer": 8.0},
+            2.5:   {"distributor": 2.5, "wholesaler": 4.0, "store": 6.0, "end_customer": 8.0},
+            5.0:   {"distributor": 2.0, "wholesaler": 3.0, "store": 5.0, "end_customer": 7.0},
+            10.0:  {"distributor": 2.0, "wholesaler": 3.0, "store": 5.0, "end_customer": 7.0},
+            50.0:  {"distributor": 1.5, "wholesaler": 2.5, "store": 4.0, "end_customer": 5.0},
+            100.0: {"distributor": 1.0, "wholesaler": 2.0, "store": 3.0, "end_customer": 4.0},
         }
 
         existing_tw = db.query(ProductTierWage).count()
@@ -764,19 +776,27 @@ def seed():
         branch_esfahan = db.query(Location).filter(Location.name == "نمایندگی اصفهان").first()
         branch_shiraz = db.query(Location).filter(Location.name == "نمایندگی شیراز").first()
         branch_mashhad = db.query(Location).filter(Location.name == "نمایندگی مشهد").first()
+        branch_tabriz = db.query(Location).filter(Location.name == "نمایندگی تبریز").first()
+        # شعب تهران
+        branch_mirdamad = db.query(Location).filter(Location.name == "شعبه میرداماد").first()
+        branch_naserkh = db.query(Location).filter(Location.name == "شعبه بازار ناصرخسرو").first()
+        branch_ordibehesht = db.query(Location).filter(Location.name == "شعبه بازار اردیبهشت").first()
+        branch_shahrak = db.query(Location).filter(Location.name == "شعبه شهرک غرب").first()
+        branch_karimkhan = db.query(Location).filter(Location.name == "شعبه کریمخان").first()
 
-        tier_pakhsh = tier_map.get("pakhsh")
-        tier_bankdar = tier_map.get("bankdar")
-        tier_forushgah = tier_map.get("forushgah")
+        tier_distributor = tier_map.get("distributor")
+        tier_wholesaler = tier_map.get("wholesaler")
+        tier_store = tier_map.get("store")
 
         dealers_data = [
+            # --- شهرستان ---
             {
                 "mobile": "09161234567",
                 "full_name": "احمد نوری",
                 "national_id": "1111111111",
                 "location_id": branch_esfahan.id if branch_esfahan else None,
                 "api_key": "test_esfahan_key_0000000000000000",
-                "tier_id": tier_pakhsh.id if tier_pakhsh else None,
+                "tier_id": tier_distributor.id if tier_distributor else None,
             },
             {
                 "mobile": "09171234567",
@@ -784,7 +804,7 @@ def seed():
                 "national_id": "2222222222",
                 "location_id": branch_shiraz.id if branch_shiraz else None,
                 "api_key": "test_shiraz__key_1111111111111111",
-                "tier_id": tier_bankdar.id if tier_bankdar else None,
+                "tier_id": tier_wholesaler.id if tier_wholesaler else None,
             },
             {
                 "mobile": "09181234567",
@@ -792,7 +812,56 @@ def seed():
                 "national_id": "3333333333",
                 "location_id": branch_mashhad.id if branch_mashhad else None,
                 "api_key": "test_mashhad_key_2222222222222222",
-                "tier_id": tier_forushgah.id if tier_forushgah else None,
+                "tier_id": tier_store.id if tier_store else None,
+            },
+            {
+                "mobile": "09141234567",
+                "full_name": "یوسف قربانی",
+                "national_id": "4444444444",
+                "location_id": branch_tabriz.id if branch_tabriz else None,
+                "api_key": "test_tabriz__key_3333333333333333",
+                "tier_id": tier_distributor.id if tier_distributor else None,
+            },
+            # --- تهران (شعب از صفحه تماس با ما) ---
+            {
+                "mobile": "09121234567",
+                "full_name": "محمد رضایی",
+                "national_id": "5555555555",
+                "location_id": branch_mirdamad.id if branch_mirdamad else None,
+                "api_key": "test_mirdmad_key_4444444444444444",
+                "tier_id": tier_distributor.id if tier_distributor else None,
+            },
+            {
+                "mobile": "09122345678",
+                "full_name": "علی حسینی",
+                "national_id": "6666666666",
+                "location_id": branch_naserkh.id if branch_naserkh else None,
+                "api_key": "test_nasrkhr_key_5555555555555555",
+                "tier_id": tier_wholesaler.id if tier_wholesaler else None,
+            },
+            {
+                "mobile": "09123456780",
+                "full_name": "فاطمه احمدی",
+                "national_id": "7777777777",
+                "location_id": branch_ordibehesht.id if branch_ordibehesht else None,
+                "api_key": "test_ordibht_key_6666666666666666",
+                "tier_id": tier_wholesaler.id if tier_wholesaler else None,
+            },
+            {
+                "mobile": "09124567890",
+                "full_name": "رضا محمدی",
+                "national_id": "8888888888",
+                "location_id": branch_shahrak.id if branch_shahrak else None,
+                "api_key": "test_shahrak_key_7777777777777777",
+                "tier_id": tier_store.id if tier_store else None,
+            },
+            {
+                "mobile": "09125678901",
+                "full_name": "مریم کاظمی",
+                "national_id": "9999999999",
+                "location_id": branch_karimkhan.id if branch_karimkhan else None,
+                "api_key": "test_karimkh_key_8888888888888888",
+                "tier_id": tier_store.id if tier_store else None,
             },
         ]
 
@@ -979,9 +1048,9 @@ def seed():
         print(f"  Customer: 09351234567 (wallet: 10M toman)")
         print(f"  Customer: 09359876543")
         print(f"  Customer: 09131112233")
-        print(f"  Dealer:   09161234567 (esfahan, tier: pakhsh)")
-        print(f"  Dealer:   09171234567 (shiraz, tier: bankdar)")
-        print(f"  Dealer:   09181234567 (mashhad, tier: forushgah)")
+        print(f"  Dealer:   09161234567 (esfahan, tier: distributor)")
+        print(f"  Dealer:   09171234567 (shiraz, tier: wholesaler)")
+        print(f"  Dealer:   09181234567 (mashhad, tier: store)")
 
         print(f"\n--- Dealer API Keys (for POS) ---")
         for dd in dealers_data:
