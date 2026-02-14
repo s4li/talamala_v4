@@ -176,10 +176,13 @@ def seed():
         print("\n[4.5] Product Categories")
 
         categories_data = [
-            ("شمش گرمی", "shamsh-gerami", 1),
-            ("شمش سرمایه‌ای", "shamsh-sarmayei", 2),
-            ("زیور آلات", "zivar", 3),
-            ("سکه", "sekke", 4),
+            ("طلا-995", "gold-995", 1),
+            ("طلا-750", "gold-750", 2),
+            ("نقره", "silver", 3),
+            ("سرمایه ای", "investment", 4),
+            ("وکیوم", "vacuum", 5),
+            ("پلاتین", "platinum", 6),
+            ("1گرمی", "one-gram", 7),
         ]
 
         cat_map = {}
@@ -219,8 +222,8 @@ def seed():
         ]
 
         product_map = {}
-        cat_gerami = cat_map.get("shamsh-gerami")
-        cat_sarmayei = cat_map.get("shamsh-sarmayei")
+        cat_gold750 = cat_map.get("gold-750")
+        cat_investment = cat_map.get("investment")
 
         # Get first design and package for product assignment
         default_design = db.query(CardDesign).first()
@@ -238,8 +241,8 @@ def seed():
                 )
                 db.add(p)
                 db.flush()
-                # Assign categories via M2M: ≤ 2.5g = گرمی, > 2.5g = سرمایه‌ای
-                cat = cat_gerami if weight <= 2.5 else cat_sarmayei
+                # Assign categories via M2M: ≤ 2.5g = طلا-750, > 2.5g = سرمایه ای
+                cat = cat_gold750 if weight <= 2.5 else cat_investment
                 if cat:
                     db.add(ProductCategoryLink(product_id=p.id, category_id=cat.id))
                 product_map[name] = p
@@ -447,7 +450,7 @@ def seed():
                 "coupon_type": "DISCOUNT", "discount_mode": "PERCENT",
                 "discount_value": 10, "max_discount_amount": 80_000_000,
                 "scope": "CATEGORY", "max_per_customer": 2,
-                "_category_slugs": ["shamsh-gerami"],
+                "_category_slugs": ["gold-750"],
             },
         ]
 
@@ -1073,7 +1076,7 @@ def seed():
         print(f"  CASHBACK5 : 5% cashback")
         print(f"  FIXED500  : 500K toman off (min 5M order)")
         print(f"  VIP2026   : 15% off (mobile: 09351234567, 09359876543)")
-        print(f"  GOLD10    : 10% off (category: shamsh-gerami only)")
+        print(f"  GOLD10    : 10% off (category: gold-750 only)")
 
     except Exception as e:
         db.rollback()
