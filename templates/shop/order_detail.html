@@ -6,6 +6,48 @@
     .invoice-card { border-radius: 12px; }
     .item-row { border-bottom: 1px solid #f0f0f0; }
     .item-row:last-child { border-bottom: none; }
+    .btn-breakdown {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border: none;
+        background: linear-gradient(135deg, #f8f4ef, #f1ebe2);
+        color: #8b7355;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    .btn-breakdown:hover {
+        background: linear-gradient(135deg, #f1ebe2, #e8dfd3);
+        color: #6b5a42;
+    }
+    .btn-breakdown i {
+        font-size: 0.7rem;
+        transition: transform 0.3s ease;
+    }
+    .btn-breakdown[aria-expanded="true"] i {
+        transform: rotate(180deg);
+    }
+    .breakdown-panel {
+        background: linear-gradient(135deg, #fdfbf8, #f9f5ef);
+        border-radius: 10px;
+        border: 1px solid #f0e8db;
+        padding: 12px 14px;
+        margin-top: 8px;
+    }
+    .breakdown-panel .breakdown-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 3px 0;
+        font-size: 0.82rem;
+        color: #6b5a42;
+    }
+    .breakdown-panel .breakdown-item + .breakdown-item {
+        border-top: 1px dashed #efe7da;
+    }
     @media print {
         .no-print { display: none !important; }
         .shop-navbar, footer, .gold-price-banner { display: none !important; }
@@ -68,26 +110,52 @@
 
             <!-- Detailed breakdown (collapsed) -->
             <div class="px-3 pb-2">
-                <button class="btn-sm btn-link text-muted p-0 no-print"
-                        type="button" data-bs-toggle="collapse" data-bs-target="#detail-{{ item.id }}">
-                    <i class="bi bi-chevron-down me-1"></i>ریز قیمت
+                <button class="btn-breakdown no-print"
+                        type="button" data-bs-toggle="collapse" data-bs-target="#detail-{{ item.id }}"
+                        aria-expanded="false" aria-controls="detail-{{ item.id }}">
+                    <i class="bi bi-chevron-down"></i>
+                    ریز قیمت
                 </button>
                 <div class="collapse" id="detail-{{ item.id }}">
-                    <div class="row g-1 mt-1 small text-muted">
-                        <div class="col-6">طلای خام: {{ item.final_gold_amount | toman }} ت</div>
-                        <div class="col-6">اجرت: {{ item.final_wage_amount | toman }} ت</div>
-                        <div class="col-6">سود ({{ item.applied_profit_percent }}%): {{ item.final_profit_amount | toman }} ت</div>
+                    <div class="breakdown-panel">
+                        <div class="breakdown-item">
+                            <span>طلای خام</span>
+                            <span>{{ item.final_gold_amount | toman }} تومان</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>اجرت</span>
+                            <span>{{ item.final_wage_amount | toman }} تومان</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>سود ({{ item.applied_profit_percent }}%)</span>
+                            <span>{{ item.final_profit_amount | toman }} تومان</span>
+                        </div>
                         {% if item.final_commission_amount %}
-                        <div class="col-6">کمیسیون: {{ item.final_commission_amount | toman }} ت</div>
+                        <div class="breakdown-item">
+                            <span>کمیسیون</span>
+                            <span>{{ item.final_commission_amount | toman }} تومان</span>
+                        </div>
                         {% endif %}
                         {% if item.final_stone_amount %}
-                        <div class="col-6">سنگ: {{ item.final_stone_amount | toman }} ت</div>
+                        <div class="breakdown-item">
+                            <span>سنگ</span>
+                            <span>{{ item.final_stone_amount | toman }} تومان</span>
+                        </div>
                         {% endif %}
                         {% if item.final_accessory_amount %}
-                        <div class="col-6">متفرقه: {{ item.final_accessory_amount | toman }} ت</div>
+                        <div class="breakdown-item">
+                            <span>متفرقه</span>
+                            <span>{{ item.final_accessory_amount | toman }} تومان</span>
+                        </div>
                         {% endif %}
-                        <div class="col-6">مالیات ({{ item.applied_tax_percent }}%): {{ item.final_tax_amount | toman }} ت</div>
-                        <div class="col-6">قیمت طلا: {{ item.applied_gold_price | toman }} ت/گرم</div>
+                        <div class="breakdown-item">
+                            <span>مالیات ({{ item.applied_tax_percent }}%)</span>
+                            <span>{{ item.final_tax_amount | toman }} تومان</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>قیمت طلا</span>
+                            <span>{{ item.applied_gold_price | toman }} ت/گرم</span>
+                        </div>
                     </div>
                 </div>
             </div>
