@@ -1034,7 +1034,15 @@
 | `modules/dealer/service.py` | تولید خودکار `claim_code` هنگام فروش POS |
 | route ثبت مالکیت / انتقال | صفحات claim-bar, my-bars, transfer |
 | `templates/shop/` | قالب‌های claim_bar.html, my_bars.html, transfer.html |
+| `templates/shop/base_shop.html` | لینک «ثبت شمش» در منوی کشویی کاربر + فوتر |
 | `templates/shop/checkout.html` | چک‌باکس «خرید به‌عنوان هدیه» |
+
+### دسترسی از رابط کاربری (Navigation)
+
+مشتری از مسیرهای زیر به صفحه ثبت شمش دسترسی دارد:
+- **منوی کشویی کاربر** (ناوبار): آیتم «ثبت شمش» با آیکن `bi-plus-circle`
+- **فوتر سایت**: لینک «ثبت شمش» در بخش دسترسی سریع
+- **صفحه شمش‌های من** (`/my-bars`): دکمه «ثبت شمش جدید» بالای صفحه + دکمه در حالت خالی
 
 ---
 
