@@ -228,7 +228,7 @@ async def wallet_withdraw_form(
 ):
     balance = wallet_service.get_balance(db, me.id)
     csrf = new_csrf_token()
-    return templates.TemplateResponse("shop/wallet_withdraw.html", {
+    response = templates.TemplateResponse("shop/wallet_withdraw.html", {
         "request": request,
         "user": me,
         "balance": balance,
@@ -236,6 +236,8 @@ async def wallet_withdraw_form(
         "error": error,
         "cart_count": 0,
     })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
 
 
 @router.post("/withdraw")
