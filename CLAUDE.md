@@ -132,7 +132,7 @@ talamala_v4/
 - **CartItem**: id, cart_id, product_id, quantity
 
 ### order/models.py
-- **Order**: id, customer_id, status (Pending/Paid/Cancelled), delivery_method (Pickup/Postal), is_gift (bool), pickup_location_id, shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at
+- **Order**: id, customer_id, status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_location_id, shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at
 - **OrderItem**: id, order_id, product_id, bar_id, unit_price, tax_amount, total_price, gold_price_snapshot, tax_rate_snapshot
 
 ### wallet/models.py
