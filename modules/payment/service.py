@@ -187,6 +187,9 @@ class PaymentService:
             )
             order_service._release_order_bars(db, order)
             order.status = OrderStatus.CANCELLED
+            order.cancellation_reason = "استرداد وجه توسط مدیر" + (f" — {admin_note}" if admin_note else "")
+            from common.helpers import now_utc
+            order.cancelled_at = now_utc()
             db.flush()
             logger.info(f"Order #{order_id} refunded: {amount} IRR")
             return {

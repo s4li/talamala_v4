@@ -349,7 +349,7 @@ async def cancel_order(
     if not order or order.customer_id != me.id:
         raise HTTPException(404)
 
-    result = order_service.cancel_order(db, order_id)
+    result = order_service.cancel_order(db, order_id, reason="لغو توسط مشتری")
     db.commit()
     if result:
         msg = urllib.parse.quote("سفارش لغو و شمش‌ها آزاد شدند.")

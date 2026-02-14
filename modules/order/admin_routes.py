@@ -76,7 +76,7 @@ async def cancel_order_admin(
 ):
     """Admin cancels a pending order and releases bars."""
     csrf_check(request, csrf_token)
-    result = order_service.cancel_order(db, order_id)
+    result = order_service.cancel_order(db, order_id, reason="لغو توسط مدیر سیستم")
     db.commit()
     if result:
         msg = urllib.parse.quote(f"سفارش #{order_id} لغو و شمش‌ها آزاد شد.")

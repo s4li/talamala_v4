@@ -70,6 +70,10 @@ class Order(Base):
     # Gift order
     is_gift = Column(Boolean, server_default=text("false"), default=False, nullable=False)
 
+    # Cancellation
+    cancellation_reason = Column(String, nullable=True)   # دلیل لغو سفارش
+    cancelled_at = Column(DateTime(timezone=True), nullable=True)
+
     # Payment (Phase 9)
     payment_method = Column(String, nullable=True)    # wallet / gateway_zibal / gateway_sepehr
     payment_ref = Column(String, nullable=True)        # شماره مرجع / ref_number

@@ -294,7 +294,7 @@ class OrderService:
     # Cancel
     # ==========================================
 
-    def cancel_order(self, db: Session, order_id: int) -> Optional[Order]:
+    def cancel_order(self, db: Session, order_id: int, reason: str = "") -> Optional[Order]:
         """Cancel order and release reserved bars."""
         order = db.query(Order).filter(Order.id == order_id).first()
         if not order or order.status != OrderStatus.PENDING:
@@ -302,6 +302,8 @@ class OrderService:
 
         self._release_order_bars(db, order)
         order.status = OrderStatus.CANCELLED
+        order.cancellation_reason = reason or None
+        order.cancelled_at = now_utc()
         db.flush()
         return order
 
@@ -325,9 +327,12 @@ class OrderService:
         )
 
         count = 0
+        now_ts = now_utc()
         for order in expired:
             self._release_order_bars(db, order)
             order.status = OrderStatus.CANCELLED
+            order.cancellation_reason = f"عدم پرداخت در مهلت مقرر ({reservation_minutes} دقیقه)"
+            order.cancelled_at = now_ts
             count += 1
 
         if count:
