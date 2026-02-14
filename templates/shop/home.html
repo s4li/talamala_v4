@@ -51,35 +51,37 @@
 <div class="row g-3">
     {% for p in products %}
     <div class="col-6 col-md-4 col-lg-3 tm-animate-fade-in-up tm-delay-{{ loop.index if loop.index <= 12 else 12 }}">
-        <div class="card-tm product-card h-100 tm-img-zoom">
-            <a href="/product/{{ p.id }}">
+        <div class="card-tm product-card h-100">
+            <!-- Image -->
+            <a href="/product/{{ p.id }}" class="product-card-img">
                 {% if p.default_image %}
-                <img src="/{{ p.default_image }}" class="card-img-top" alt="{{ p.name }}">
+                <img src="/{{ p.default_image }}" alt="{{ p.name }}" loading="lazy">
                 {% else %}
-                <div class="card-img-top d-flex align-items-center justify-content-center bg-light">
-                    <i class="bi bi-image text-muted" style="font-size:3rem;"></i>
+                <div class="product-card-placeholder">
+                    <i class="bi bi-image" style="font-size:3rem;"></i>
                 </div>
                 {% endif %}
             </a>
 
-            <div class="pb-2">
-                <h6 class="fw-bold mb-1">
+            <!-- Body -->
+            <div class="product-card-body">
+                <h6 class="fw-bold mb-1" style="font-size:0.85rem;">
                     <a href="/product/{{ p.id }}" class="text-decoration-none text-dark">{{ p.name }}</a>
                 </h6>
-                <div class="text-muted small mb-2">
+                <div class="text-muted small mb-2" style="font-size:0.75rem;">
                     {{ p.weight }} گرم | عیار {{ p.purity }}
                 </div>
 
                 {% if p.final_price %}
                 <div class="price-tag">
                     {{ p.final_price | toman }}
-                    <small class="text-muted fw-normal">تومان</small>
+                    <small class="text-muted fw-normal" style="font-size:0.7rem;">تومان</small>
                 </div>
                 {% else %}
                 <div class="text-muted small">قیمت: —</div>
                 {% endif %}
 
-                <div class="mt-2">
+                <div class="mt-auto pt-2">
                     {% if p.inventory > 0 %}
                     <span class="badge-tm badge-tm-success stock-badge"><span class="tm-stock-dot in-stock"></span> {{ p.inventory }} موجود</span>
                     {% else %}
@@ -88,7 +90,8 @@
                 </div>
             </div>
 
-            <div class="bg-white border-0 pt-0 pb-3 px-3">
+            <!-- Footer -->
+            <div class="product-card-footer">
                 {% if p.inventory > 0 and gold_price %}
                     {% set in_cart = cart_map.get(p.id, 0) %}
                     {% if in_cart %}
