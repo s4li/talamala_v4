@@ -34,9 +34,10 @@
                     <!-- Amount -->
                     <div class="mb-3">
                         <label class="form-label-tm fw-bold">مبلغ برداشت (تومان) <span class="text-danger">*</span></label>
-                        <input type="number" name="amount_toman" class="form-control form-control-tm form-control-lg"
+                        <input type="number" name="amount_toman" id="withdraw-amount" class="form-control form-control-tm form-control-lg"
                                min="100000" max="999999999999" step="1" required
                                placeholder="مثال: ۱,۰۰۰,۰۰۰">
+                        <div id="withdraw-amount-words" class="mt-1 text-muted small" style="min-height:1.4em;"></div>
                         <div class="form-text">حداقل ۱۰۰,۰۰۰ تومان • حداکثر تا سقف موجودی ({{ balance.withdrawable | toman }} تومان)</div>
                     </div>
 
@@ -79,4 +80,46 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block shop_js %}
+<script>
+function numberToWordsFa(num) {
+    if (!num || num <= 0) return '';
+    num = Math.floor(num);
+    const yekan = ['', 'یک', 'دو', 'سه', 'چهار', 'پنج', 'شش', 'هفت', 'هشت', 'نه'];
+    const dahgan = ['', '', 'بیست', 'سی', 'چهل', 'پنجاه', 'شصت', 'هفتاد', 'هشتاد', 'نود'];
+    const dahyek = ['ده', 'یازده', 'دوازده', 'سیزده', 'چهارده', 'پانزده', 'شانزده', 'هفده', 'هجده', 'نوزده'];
+    const sadgan = ['', 'یکصد', 'دویست', 'سیصد', 'چهارصد', 'پانصد', 'ششصد', 'هفتصد', 'هشتصد', 'نهصد'];
+    const scale = ['', 'هزار', 'میلیون', 'میلیارد', 'تریلیون'];
+    function threeDigits(n) {
+        if (n === 0) return '';
+        let parts = [];
+        let s = Math.floor(n / 100), d = Math.floor((n % 100) / 10), y = n % 10;
+        if (s > 0) parts.push(sadgan[s]);
+        if (d === 1) { parts.push(dahyek[y]); return parts.join(' و '); }
+        if (d > 1) parts.push(dahgan[d]);
+        if (y > 0) parts.push(yekan[y]);
+        return parts.join(' و ');
+    }
+    let chunks = [], i = 0;
+    while (num > 0) {
+        let rem = num % 1000;
+        if (rem > 0) { let w = threeDigits(rem); if (scale[i]) w += ' ' + scale[i]; chunks.unshift(w); }
+        num = Math.floor(num / 1000); i++;
+    }
+    return chunks.join(' و ');
+}
+const wdInp = document.getElementById('withdraw-amount');
+const wdEl = document.getElementById('withdraw-amount-words');
+function updateWdWords() {
+    const val = parseInt(wdInp.value);
+    if (val && val > 0) {
+        wdEl.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + numberToWordsFa(val) + ' تومان';
+    } else {
+        wdEl.textContent = '';
+    }
+}
+wdInp.addEventListener('input', updateWdWords);
+</script>
 {% endblock %}
