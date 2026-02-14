@@ -36,7 +36,7 @@
             <i class="bi bi-cash-stack" style="color:#4ade80;"></i>
             <div class="stat-value" style="color:#4ade80;">{{ irr_balance.available | toman }}</div>
             <div class="stat-label">موجودی ریالی (تومان)</div>
-            <small class="text-muted">بلوکه: {{ irr_balance.locked | toman }} ت</small>
+            <small class="text-muted">بلوکه: {{ irr_balance.locked | toman }} تومان</small>
         </div>
     </div>
 </div>
@@ -107,7 +107,7 @@
                         {% if e.account and e.account.asset_code == 'XAU_MG' %}
                             {{ e.delta_balance | gold_gram }}
                         {% else %}
-                            {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }} ت
+                            {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }} تومان
                         {% endif %}
                     </td>
                     <td class="small">{{ e.created_at.strftime('%m/%d %H:%M') if e.created_at else '' }}</td>

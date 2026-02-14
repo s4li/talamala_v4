@@ -44,14 +44,14 @@
                             {% if e.account and e.account.asset_code == 'XAU_MG' %}
                                 {{ e.delta_balance | gold_gram }}
                             {% else %}
-                                {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }} ت
+                                {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }} تومان
                             {% endif %}
                         </td>
                         <td>
                             {% if e.account and e.account.asset_code == 'XAU_MG' %}
                                 {{ e.balance_after | gold_gram }}
                             {% else %}
-                                {{ e.balance_after | toman }} ت
+                                {{ e.balance_after | toman }} تومان
                             {% endif %}
                         </td>
                         <td class="small">{{ e.created_at.strftime('%Y/%m/%d %H:%M') if e.created_at else '' }}</td>

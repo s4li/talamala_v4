@@ -57,7 +57,7 @@
                     <td><span class="badge-tm badge-tm-{{ e.txn_type_color }}">{{ e.txn_type_label }}</span></td>
                     <td class="small">{{ e.description or '—' }}</td>
                     <td class="fw-bold {{ 'positive' if e.delta_balance > 0 else 'negative' if e.delta_balance < 0 else '' }}">
-                        {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }} ت
+                        {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }} تومان
                         {% if e.delta_locked != 0 %}
                         <br><small class="text-muted">
                             بلوکه: {% if e.delta_locked > 0 %}+{% endif %}{{ e.delta_locked | toman }}
