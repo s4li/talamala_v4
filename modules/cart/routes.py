@@ -65,8 +65,11 @@ async def update_cart_form(
     me=Depends(require_customer),
 ):
     csrf_check(request, csrf_token)
-    change = 1 if action == "increase" else -1
-    cart_service.update_item(db, me.id, product_id, change)
+    if action == "remove":
+        cart_service.update_item(db, me.id, product_id, -9999)
+    else:
+        change = 1 if action == "increase" else -1
+        cart_service.update_item(db, me.id, product_id, change)
     db.commit()
 
     # Redirect back to referrer page
