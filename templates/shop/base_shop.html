@@ -69,10 +69,16 @@
 <!-- Navbar -->
 <nav class="shop-navbar sticky-top">
     <div class="container d-flex align-items-center justify-content-between py-3">
-        <a href="/" class="d-flex align-items-center gap-2 text-decoration-none">
-            <img src="/static/assets/img/logomark-primary.svg" alt="طلامالا" width="32">
-            <img src="/static/assets/img/wordmark-primary.svg" alt="طلامالا" width="80" class="d-none d-sm-inline">
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <!-- Hamburger (mobile) -->
+            <button class="btn btn-link nav-link d-md-none p-0 me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu" aria-label="منو">
+                <i class="bi bi-list" style="font-size:1.5rem;"></i>
+            </button>
+            <a href="/" class="d-flex align-items-center gap-2 text-decoration-none">
+                <img src="/static/assets/img/logomark-primary.svg" alt="طلامالا" width="32">
+                <img src="/static/assets/img/wordmark-primary.svg" alt="طلامالا" width="80" class="d-none d-sm-inline">
+            </a>
+        </div>
         <!-- Nav Links (desktop) -->
         <div class="d-none d-md-flex align-items-center gap-4">
             <a href="/verify" class="nav-link"><i class="bi bi-qr-code-scan me-1"></i>اصالت‌سنجی</a>
@@ -116,10 +122,6 @@
                 <i class="bi bi-box-arrow-in-left me-1"></i> ورود
             </a>
             {% endif %}
-            <!-- Hamburger (mobile) -->
-            <button class="btn btn-link nav-link d-md-none p-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu" aria-label="منو">
-                <i class="bi bi-list" style="font-size:1.5rem;"></i>
-            </button>
         </div>
     </div>
 </nav>
