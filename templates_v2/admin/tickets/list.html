@@ -1,6 +1,16 @@
 {% extends "admin/base_admin.html" %}
 {% block title %}تیکت‌های پشتیبانی - طلامالا{% endblock %}
 
+{# URL builder macro — always produces correct ?key=val&key2=val2 #}
+{% macro ticket_url(status='', sender_type='', category='', search='') -%}
+{%- set ns = namespace(parts=[]) -%}
+{%- if status -%}{%- set ns.parts = ns.parts + ['status=' + status] -%}{%- endif -%}
+{%- if sender_type -%}{%- set ns.parts = ns.parts + ['sender_type=' + sender_type] -%}{%- endif -%}
+{%- if category -%}{%- set ns.parts = ns.parts + ['category=' + category] -%}{%- endif -%}
+{%- if search -%}{%- set ns.parts = ns.parts + ['search=' + search] -%}{%- endif -%}
+/admin/tickets{%- if ns.parts %}?{{ ns.parts | join('&') }}{%- endif -%}
+{%- endmacro %}
+
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
     <h4 class="mb-0 fw-bold">
@@ -23,7 +33,7 @@
                placeholder="جستجو: شماره تیکت، موضوع، نام یا موبایل..." style="max-width:400px;">
         <button class="btn btn-sm btn-tm-outline"><i class="bi bi-search"></i></button>
         {% if search_query %}
-        <a href="/admin/tickets{% if status_filter %}?status={{ status_filter }}{% endif %}{% if sender_type_filter %}&sender_type={{ sender_type_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}"
+        <a href="{{ ticket_url(status=status_filter, sender_type=sender_type_filter, category=category_filter) }}"
            class="btn btn-sm btn-tm-outline">پاک کردن</a>
         {% endif %}
     </form>
@@ -33,21 +43,21 @@
 <ul class="nav nav-tabs mb-3">
     <li class="nav-item">
         <a class="nav-link {% if not sender_type_filter %}active{% endif %}"
-           href="/admin/tickets{% if status_filter %}?status={{ status_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+           href="{{ ticket_url(status=status_filter, category=category_filter, search=search_query) }}">
             همه
             <span class="badge-tm badge-tm-info ms-1">{{ stats.total }}</span>
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {% if sender_type_filter == 'CUSTOMER' %}active{% endif %}"
-           href="/admin/tickets?sender_type=CUSTOMER{% if status_filter %}&status={{ status_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+           href="{{ ticket_url(sender_type='CUSTOMER', status=status_filter, category=category_filter, search=search_query) }}">
             <i class="bi bi-person me-1"></i>مشتریان
             <span class="badge-tm badge-tm-info ms-1">{{ stats.customer_count }}</span>
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {% if sender_type_filter == 'DEALER' %}active{% endif %}"
-           href="/admin/tickets?sender_type=DEALER{% if status_filter %}&status={{ status_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+           href="{{ ticket_url(sender_type='DEALER', status=status_filter, category=category_filter, search=search_query) }}">
             <i class="bi bi-shop me-1"></i>نمایندگان
             <span class="badge ms-1" style="background:#6f42c1;color:#fff;">{{ stats.dealer_count }}</span>
         </a>
@@ -57,15 +67,15 @@
 <!-- Status Filter -->
 <div class="mb-2">
     <div class="btn-group" role="group">
-        <a href="/admin/tickets{% if sender_type_filter %}?sender_type={{ sender_type_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+        <a href="{{ ticket_url(sender_type=sender_type_filter, category=category_filter, search=search_query) }}"
            class="btn btn-sm {% if not status_filter %}btn-dark{% else %}btn-outline-dark{% endif %}">همه</a>
-        <a href="/admin/tickets?status=Open{% if sender_type_filter %}&sender_type={{ sender_type_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+        <a href="{{ ticket_url(status='Open', sender_type=sender_type_filter, category=category_filter, search=search_query) }}"
            class="btn btn-sm {% if status_filter == 'Open' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">باز ({{ stats.open }})</a>
-        <a href="/admin/tickets?status=InProgress{% if sender_type_filter %}&sender_type={{ sender_type_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+        <a href="{{ ticket_url(status='InProgress', sender_type=sender_type_filter, category=category_filter, search=search_query) }}"
            class="btn btn-sm {% if status_filter == 'InProgress' %}btn-tm-warning{% else %}btn-tm-outline{% endif %}">در حال بررسی ({{ stats.in_progress }})</a>
-        <a href="/admin/tickets?status=Answered{% if sender_type_filter %}&sender_type={{ sender_type_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+        <a href="{{ ticket_url(status='Answered', sender_type=sender_type_filter, category=category_filter, search=search_query) }}"
            class="btn btn-sm {% if status_filter == 'Answered' %}btn-tm-success{% else %}btn-tm-outline{% endif %}">پاسخ داده شده ({{ stats.answered }})</a>
-        <a href="/admin/tickets?status=Closed{% if sender_type_filter %}&sender_type={{ sender_type_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+        <a href="{{ ticket_url(status='Closed', sender_type=sender_type_filter, category=category_filter, search=search_query) }}"
            class="btn btn-sm {% if status_filter == 'Closed' %}btn-tm-secondary{% else %}btn-tm-outline{% endif %}">بسته ({{ stats.closed }})</a>
     </div>
     <span class="ms-2 text-muted small">{{ total }} تیکت</span>
@@ -74,17 +84,17 @@
 <!-- Category Filter -->
 <div class="mb-3">
     <div class="btn-group" role="group">
-        <a href="/admin/tickets{% if status_filter %}?status={{ status_filter }}{% endif %}{% if sender_type_filter %}&sender_type={{ sender_type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+        <a href="{{ ticket_url(status=status_filter, sender_type=sender_type_filter, search=search_query) }}"
            class="btn btn-sm {% if not category_filter %}btn-dark{% else %}btn-outline-dark{% endif %}">همه دپارتمان‌ها</a>
-        <a href="/admin/tickets?category=Financial{% if status_filter %}&status={{ status_filter }}{% endif %}{% if sender_type_filter %}&sender_type={{ sender_type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+        <a href="{{ ticket_url(category='Financial', status=status_filter, sender_type=sender_type_filter, search=search_query) }}"
            class="btn btn-sm {% if category_filter == 'Financial' %}btn-tm-warning{% else %}btn-tm-outline{% endif %}">مالی</a>
-        <a href="/admin/tickets?category=Technical{% if status_filter %}&status={{ status_filter }}{% endif %}{% if sender_type_filter %}&sender_type={{ sender_type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+        <a href="{{ ticket_url(category='Technical', status=status_filter, sender_type=sender_type_filter, search=search_query) }}"
            class="btn btn-sm {% if category_filter == 'Technical' %}btn-tm-info{% else %}btn-tm-outline{% endif %}">فنی</a>
-        <a href="/admin/tickets?category=Sales{% if status_filter %}&status={{ status_filter }}{% endif %}{% if sender_type_filter %}&sender_type={{ sender_type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+        <a href="{{ ticket_url(category='Sales', status=status_filter, sender_type=sender_type_filter, search=search_query) }}"
            class="btn btn-sm {% if category_filter == 'Sales' %}btn-tm-success{% else %}btn-tm-outline{% endif %}">فروش</a>
-        <a href="/admin/tickets?category=Complaints{% if status_filter %}&status={{ status_filter }}{% endif %}{% if sender_type_filter %}&sender_type={{ sender_type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+        <a href="{{ ticket_url(category='Complaints', status=status_filter, sender_type=sender_type_filter, search=search_query) }}"
            class="btn btn-sm {% if category_filter == 'Complaints' %}btn-tm-danger{% else %}btn-tm-outline{% endif %}">شکایات</a>
-        <a href="/admin/tickets?category=Other{% if status_filter %}&status={{ status_filter }}{% endif %}{% if sender_type_filter %}&sender_type={{ sender_type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+        <a href="{{ ticket_url(category='Other', status=status_filter, sender_type=sender_type_filter, search=search_query) }}"
            class="btn btn-sm {% if category_filter == 'Other' %}btn-tm-secondary{% else %}btn-tm-outline{% endif %}">سایر</a>
     </div>
 </div>
