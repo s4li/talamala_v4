@@ -83,6 +83,8 @@ def seed():
         admins_data = [
             {"mobile": "09123456789", "full_name": "مدیر سیستم", "role": "admin"},
             {"mobile": "09121111111", "full_name": "اپراتور تهران", "role": "operator"},
+            {"mobile": "09121023589", "full_name": "ادمین ۱", "role": "admin"},
+            {"mobile": "09120725564", "full_name": "ادمین ۲", "role": "admin"},
         ]
         for data in admins_data:
             existing = db.query(SystemUser).filter(SystemUser.mobile == data["mobile"]).first()
