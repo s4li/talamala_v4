@@ -328,6 +328,13 @@ uvicorn main:app --reload
 | VIP2026 | 15% تخفیف | فقط موبایل‌های خاص |
 | GOLD10 | 10% تخفیف | فقط دسته شمش گرمی (CATEGORY scope) |
 
+### Test Bars (Claim & Transfer)
+| سریال‌کد | وضعیت | claim_code | مالک | کاربرد |
+|----------|--------|------------|------|--------|
+| TSCLM001 | SOLD | ABC123 | — | تست ثبت مالکیت موفق |
+| TSCLM002 | SOLD | XYZ789 | — | تست کد اشتباه |
+| TSTRF001 | SOLD | — | U3 (09351234567) | تست انتقال مالکیت |
+
 ### Zibal Sandbox
 - `ZIBAL_MERCHANT=zibal` → sandbox (auto-succeed)
 - `ZIBAL_MERCHANT=your-real-id` → production

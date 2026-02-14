@@ -171,6 +171,9 @@
             <table class="table table-tm table-borderless table-sm mb-0">
                 <tr><td class="text-muted">شناسه</td><td class="fw-bold">{{ bar.id }}</td></tr>
                 <tr><td class="text-muted">سریال</td><td><code class="fw-bold text-dark">{{ bar.serial_code }}</code></td></tr>
+                {% if bar.claim_code %}
+                <tr><td class="text-muted">کد ثبت مالکیت</td><td><code class="fw-bold" style="color:var(--tm-primary);">{{ bar.claim_code }}</code></td></tr>
+                {% endif %}
                 <tr><td class="text-muted">تاریخ ایجاد</td><td>{{ bar.created_at | jdate if bar.created_at else '' }}</td></tr>
                 {% if bar.location %}
                 <tr><td class="text-muted">مکان فعلی</td><td>

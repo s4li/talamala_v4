@@ -344,6 +344,52 @@ def seed():
             db.flush()
             print(f"  + {total_bars} bars across {len(locations)} locations")
 
+            # --- Test bars for claim & transfer testing ---
+            first_product = db.query(Product).first()
+            first_location = db.query(Location).filter(Location.is_active == True).first()
+            test_customer_1 = db.query(Customer).filter(Customer.mobile == "09351234567").first()
+
+            if first_product and first_location:
+                # Bar 1: SOLD + claim_code (for claim testing - no owner)
+                claim_bar_1 = Bar(
+                    serial_code="TSCLM001",
+                    status=BarStatus.SOLD,
+                    product_id=first_product.id,
+                    batch_id=batch1.id if batch1 else None,
+                    location_id=first_location.id,
+                    customer_id=None,
+                    claim_code="ABC123",
+                )
+                db.add(claim_bar_1)
+
+                # Bar 2: SOLD + claim_code (for wrong-code testing - no owner)
+                claim_bar_2 = Bar(
+                    serial_code="TSCLM002",
+                    status=BarStatus.SOLD,
+                    product_id=first_product.id,
+                    batch_id=batch1.id if batch1 else None,
+                    location_id=first_location.id,
+                    customer_id=None,
+                    claim_code="XYZ789",
+                )
+                db.add(claim_bar_2)
+
+                # Bar 3: SOLD + owner (for transfer testing - owned by test_customer_1)
+                if test_customer_1:
+                    transfer_bar = Bar(
+                        serial_code="TSTRF001",
+                        status=BarStatus.SOLD,
+                        product_id=first_product.id,
+                        batch_id=batch1.id if batch1 else None,
+                        location_id=first_location.id,
+                        customer_id=test_customer_1.id,
+                        claim_code=None,
+                    )
+                    db.add(transfer_bar)
+
+                db.flush()
+                print("  + 3 test bars for claim/transfer testing (TSCLM001, TSCLM002, TSTRF001)")
+
         # ==========================================
         # 8. Sample Coupons
         # ==========================================

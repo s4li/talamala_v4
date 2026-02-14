@@ -1036,6 +1036,8 @@
 | `templates/shop/` | قالب‌های claim_bar.html, my_bars.html, transfer.html |
 | `templates/shop/base_shop.html` | لینک «ثبت شمش» در منوی کشویی کاربر + فوتر |
 | `templates/shop/checkout.html` | چک‌باکس «خرید به‌عنوان هدیه» |
+| `templates/admin/inventory/bars.html` | نمایش کد ثبت مالکیت زیر سریال‌کد (با آیکن کلید) |
+| `templates/admin/inventory/edit_bar.html` | نمایش کد ثبت مالکیت در بخش اطلاعات سریع |
 
 ### دسترسی از رابط کاربری (Navigation)
 

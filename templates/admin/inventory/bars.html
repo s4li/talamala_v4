@@ -98,6 +98,9 @@
                         <td>{{ bar.id }}</td>
                         <td>
                             <code class="fw-bold text-dark" style="font-size:0.9rem;">{{ bar.serial_code }}</code>
+                            {% if bar.claim_code %}
+                            <br><small class="font-monospace" style="color:var(--tm-primary);" title="کد ثبت مالکیت"><i class="bi bi-key me-1"></i>{{ bar.claim_code }}</small>
+                            {% endif %}
                         </td>
                         <td><span class="badge bg-{{ bar.status_color }}">{{ bar.status_label }}</span></td>
                         <td>{{ bar.product.name if bar.product else '—' }}</td>
