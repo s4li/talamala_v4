@@ -1,6 +1,53 @@
 {% extends "shop/base_shop.html" %}
 {% block title %}پروفایل - طلامالا{% endblock %}
 
+{% block shop_css %}
+<style>
+    .profile-nav-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.25rem 0.75rem;
+        border-radius: 14px;
+        text-decoration: none;
+        color: inherit;
+        background: #fff;
+        border: 1px solid #f0f0f0;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+    .profile-nav-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        border-color: var(--tm-primary);
+        color: inherit;
+    }
+    .profile-nav-card .nav-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        margin-bottom: 0.6rem;
+        transition: transform 0.25s ease;
+    }
+    .profile-nav-card:hover .nav-icon {
+        transform: scale(1.1);
+    }
+    .profile-nav-card .nav-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .profile-nav-card .nav-desc {
+        font-size: 0.72rem;
+        color: #999;
+        margin-top: 0.15rem;
+    }
+</style>
+{% endblock %}
+
 {% block shop_content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-7">
@@ -8,6 +55,37 @@
 
         {% if msg %}<div class="alert-tm-success py-2">{{ msg }}</div>{% endif %}
         {% if error %}<div class="alert-tm-danger py-2">{{ error }}</div>{% endif %}
+
+        <!-- Quick Navigation Cards -->
+        <div class="row g-3 mb-4 tm-animate-fade-in-up">
+            <div class="col-4">
+                <a href="/orders" class="profile-nav-card h-100">
+                    <div class="nav-icon" style="background:rgba(212,168,67,0.12);color:var(--tm-primary);">
+                        <i class="bi bi-bag-check"></i>
+                    </div>
+                    <span class="nav-label">سفارشات</span>
+                    <span class="nav-desc">پیگیری خرید</span>
+                </a>
+            </div>
+            <div class="col-4">
+                <a href="/wallet" class="profile-nav-card h-100">
+                    <div class="nav-icon" style="background:rgba(25,135,84,0.1);color:#198754;">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                    <span class="nav-label">کیف پول</span>
+                    <span class="nav-desc">موجودی و تراکنش</span>
+                </a>
+            </div>
+            <div class="col-4">
+                <a href="/addresses" class="profile-nav-card h-100">
+                    <div class="nav-icon" style="background:rgba(13,110,253,0.1);color:#0d6efd;">
+                        <i class="bi bi-geo-alt"></i>
+                    </div>
+                    <span class="nav-label">آدرس‌ها</span>
+                    <span class="nav-desc">مدیریت آدرس</span>
+                </a>
+            </div>
+        </div>
 
         <!-- Identity (read-only — will be verified via Shahkar) -->
         <div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-1">
@@ -30,7 +108,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm small text-muted">تاریخ عضویت</label>
-                        <input type="text" class="form-control form-control-tm bg-light" value="{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '—' }}" readonly disabled>
+                        <input type="text" class="form-control form-control-tm bg-light" value="{{ user.created_at | jdate if user.created_at else '—' }}" readonly disabled>
                     </div>
                 </div>
                 <p class="small text-muted mt-2 mb-0">
@@ -55,21 +133,6 @@
                     </div>
                     <button class="btn btn-tm-primary mt-3"><i class="bi bi-check-lg me-1"></i>ذخیره تغییرات</button>
                 </form>
-        </div>
-
-        <!-- Quick Links -->
-        <div class="card-tm no-hover tm-animate-fade-in-up tm-delay-3">
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="/addresses" class="btn btn-sm btn-tm-outline">
-                        <i class="bi bi-geo-alt me-1"></i>آدرس‌های من
-                    </a>
-                    <a href="/wallet" class="btn btn-sm btn-tm-outline">
-                        <i class="bi bi-wallet2 me-1"></i>کیف پول
-                    </a>
-                    <a href="/orders" class="btn btn-sm btn-tm-outline">
-                        <i class="bi bi-bag me-1"></i>سفارشات
-                    </a>
-                </div>
         </div>
     </div>
 </div>
