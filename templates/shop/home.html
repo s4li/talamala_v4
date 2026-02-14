@@ -1,6 +1,10 @@
 {% extends "shop/base_shop.html" %}
 {% block title %}فروشگاه شمش طلا - طلامالا{% endblock %}
 
+{% block shop_css %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
 {% block shop_content %}
 <!-- Header + Sort -->
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2 tm-animate-fade-in">
@@ -171,8 +175,8 @@
 {% block shop_js %}
 <script>
 function getCsrf() {
-    const m = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
-    return m ? m[1] : '';
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.content : '';
 }
 function renderFooter(pid, qty) {
     const el = document.getElementById('cart-footer-' + pid);
