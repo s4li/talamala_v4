@@ -12,7 +12,7 @@ Usage:
 import uuid
 from typing import Optional, Tuple, List, Dict, Any
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func as sa_func
 
 from modules.wallet.models import (
@@ -498,7 +498,8 @@ class WalletService:
 
         total = q.count()
         entries = (
-            q.order_by(LedgerEntry.created_at.desc())
+            q.options(joinedload(LedgerEntry.account))
+            .order_by(LedgerEntry.created_at.desc())
             .offset((page - 1) * per_page)
             .limit(per_page)
             .all()

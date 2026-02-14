@@ -131,6 +131,15 @@ class LedgerEntry(Base):
     )
 
     @property
+    def asset(self) -> str:
+        """Asset code from parent account (IRR or XAU_MG)."""
+        return self.account.asset_code if self.account else AssetCode.IRR
+
+    @property
+    def is_gold(self) -> bool:
+        return self.asset == AssetCode.XAU_MG
+
+    @property
     def txn_type_label(self) -> str:
         labels = {
             TransactionType.DEPOSIT: "واریز",
