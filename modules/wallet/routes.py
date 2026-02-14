@@ -339,7 +339,7 @@ async def wallet_gold_sell(
             raise ValueError("مقدار طلا باید بیشتر از صفر باشد")
         result = wallet_service.convert_gold_to_rial(db, me.id, gold_mg)
         db.commit()
-        rial = result["rial_amount"]
+        rial = result["amount_irr"]
         msg = urllib.parse.quote(f"فروش {gold_mg / 1000:.3f} گرم طلا — {rial // 10:,} تومان واریز شد")
         return RedirectResponse(f"/wallet/gold?msg={msg}", status_code=302)
     except ValueError as e:
