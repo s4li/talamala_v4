@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, desc, asc
 
-from modules.catalog.models import Product
+from modules.catalog.models import Product, ProductCategoryLink
 from modules.inventory.models import Bar, BarStatus
 from modules.pricing.calculator import calculate_bar_price
 from modules.pricing.service import get_end_customer_wage
@@ -32,14 +32,18 @@ class ShopService:
         self,
         db: Session,
         sort: str = "weight_asc",
-    ) -> Tuple[List[dict], int, str]:
+        category_id: Optional[int] = None,
+        page: int = 1,
+        per_page: int = 12,
+    ) -> Tuple[List[dict], int, int, str]:
         """
-        Get all active products with:
+        Get paginated active products with:
         - Real-time calculated price
         - Available inventory count
+        - Optional category filter (at DB level)
 
         Returns:
-            (products_with_pricing, gold_price_rial, tax_percent_str)
+            (products_with_pricing, total_count, gold_price_rial, tax_percent_str)
         """
         gold_price_rial = self.get_gold_price(db)
         tax_percent_str = self.get_tax_percent(db)
@@ -55,9 +59,21 @@ class ShopService:
             & (Bar.customer_id.is_(None)),
         ).filter(
             Product.is_active == True,
-        ).group_by(Product.id).options(
+        )
+
+        # Category filter at DB level
+        if category_id:
+            query = query.join(
+                ProductCategoryLink,
+                ProductCategoryLink.product_id == Product.id,
+            ).filter(ProductCategoryLink.category_id == category_id)
+
+        query = query.group_by(Product.id).options(
             joinedload(Product.images),
         )
+
+        # Total count (before pagination)
+        total = query.count()
 
         # Sorting
         if sort == "weight_desc":
@@ -71,7 +87,9 @@ class ShopService:
         else:
             query = query.order_by(asc(Product.weight))
 
-        results = query.all()
+        # Pagination
+        offset = (page - 1) * per_page
+        results = query.offset(offset).limit(per_page).all()
 
         # Calculate price for each product
         products = []
@@ -90,7 +108,7 @@ class ShopService:
             product.price_info = price_info
             products.append(product)
 
-        return products, gold_price_rial, tax_percent_str
+        return products, total, gold_price_rial, tax_percent_str
 
     def get_product_detail(
         self, db: Session, product_id: int

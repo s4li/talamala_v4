@@ -30,19 +30,26 @@ async def home_page(
     request: Request,
     sort: str = Query("weight_asc"),
     category: str = Query(""),
+    page: int = Query(1),
     db: Session = Depends(get_db),
     user=Depends(get_current_active_user),
 ):
     """Shop home page - list all active products with prices."""
-    products, gold_price_rial, tax_percent_str = shop_service.list_products_with_pricing(db, sort=sort)
+    per_page = 12
 
-    # Category filter
+    # Category filter (DB-level)
+    cat_id = int(category) if category and category.isdigit() else None
+
+    products, total, gold_price_rial, tax_percent_str = shop_service.list_products_with_pricing(
+        db, sort=sort, category_id=cat_id, page=max(1, page), per_page=per_page,
+    )
+
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    page = min(max(1, page), total_pages)
+
+    # Category list for filter pills
     from modules.catalog.models import ProductCategory
     categories = db.query(ProductCategory).filter(ProductCategory.is_active == True).order_by(ProductCategory.sort_order).all()
-    if category:
-        cat_id = int(category) if category.isdigit() else None
-        if cat_id:
-            products = [p for p in products if cat_id in p.category_ids]
 
     cart_map, cart_count = _get_cart_info(db, user)
 
@@ -57,6 +64,9 @@ async def home_page(
         "current_sort": sort,
         "current_category": category,
         "categories": categories,
+        "page": page,
+        "total_pages": total_pages,
+        "total_products": total,
         "csrf_token": csrf,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
