@@ -64,50 +64,62 @@
 <!-- Quick Actions -->
 <div class="row g-3 mb-4">
     <div class="col-md-4 tm-animate-fade-in-up tm-delay-6">
-        <div class="card-tm no-hover tm-hover-lift">
-            <div class="text-center py-4">
-                <i class="bi bi-cart-plus text-tm-primary" style="font-size:2.5rem;"></i>
-                <h5 class="mt-3 fw-bold">فروش حضوری (POS)</h5>
-                <p class="text-muted mb-3">ثبت فروش شمش</p>
-                <a href="/dealer/pos" class="btn btn-tm-primary px-4">
-                    <i class="bi bi-plus-circle me-1"></i>
-                    ثبت فروش
-                </a>
-                {% if available_bars_count > 0 %}
-                <div class="mt-2">
-                    <small class="text-success">{{ available_bars_count | persian_number }} شمش موجود</small>
+        <div class="card-tm no-hover tm-hover-lift h-100">
+            <div class="text-center py-4 d-flex flex-column justify-content-between h-100">
+                <div>
+                    <i class="bi bi-cart-plus text-tm-primary" style="font-size:2.5rem;"></i>
+                    <h5 class="mt-3 fw-bold">فروش حضوری (POS)</h5>
+                    <p class="text-muted mb-3">ثبت فروش شمش</p>
                 </div>
-                {% else %}
-                <div class="mt-2">
-                    <small class="text-danger">شمشی موجود نیست</small>
+                <div>
+                    <a href="/dealer/pos" class="btn btn-tm-primary px-4">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        ثبت فروش
+                    </a>
+                    {% if available_bars_count > 0 %}
+                    <div class="mt-2">
+                        <small class="text-success">{{ available_bars_count | persian_number }} شمش موجود</small>
+                    </div>
+                    {% else %}
+                    <div class="mt-2">
+                        <small class="text-danger">شمشی موجود نیست</small>
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
     <div class="col-md-4 tm-animate-fade-in-up tm-delay-7">
-        <div class="card-tm no-hover tm-hover-lift">
-            <div class="text-center py-4">
-                <i class="bi bi-arrow-return-left text-tm-primary" style="font-size:2.5rem;"></i>
-                <h5 class="mt-3 fw-bold">درخواست بازخرید</h5>
-                <p class="text-muted mb-3">بازخرید شمش از مشتری</p>
-                <a href="/dealer/buyback" class="btn btn-tm-outline px-4">
-                    <i class="bi bi-plus-circle me-1"></i>
-                    ثبت بازخرید
-                </a>
+        <div class="card-tm no-hover tm-hover-lift h-100">
+            <div class="text-center py-4 d-flex flex-column justify-content-between h-100">
+                <div>
+                    <i class="bi bi-arrow-return-left text-tm-primary" style="font-size:2.5rem;"></i>
+                    <h5 class="mt-3 fw-bold">درخواست بازخرید</h5>
+                    <p class="text-muted mb-3">بازخرید شمش از مشتری</p>
+                </div>
+                <div>
+                    <a href="/dealer/buyback" class="btn btn-tm-outline px-4">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        ثبت بازخرید
+                    </a>
+                </div>
             </div>
         </div>
     </div>
     <div class="col-md-4 tm-animate-fade-in-up tm-delay-8">
-        <div class="card-tm no-hover tm-hover-lift">
-            <div class="text-center py-4">
-                <i class="bi bi-wallet2 text-tm-primary" style="font-size:2.5rem;"></i>
-                <h5 class="mt-3 fw-bold">کیف پول</h5>
-                <p class="text-muted mb-3">مدیریت موجودی طلا و ریال</p>
-                <a href="/dealer/wallet" class="btn btn-tm-outline px-4">
-                    <i class="bi bi-coin me-1"></i>
-                    کیف پول
-                </a>
+        <div class="card-tm no-hover tm-hover-lift h-100">
+            <div class="text-center py-4 d-flex flex-column justify-content-between h-100">
+                <div>
+                    <i class="bi bi-wallet2 text-tm-primary" style="font-size:2.5rem;"></i>
+                    <h5 class="mt-3 fw-bold">کیف پول</h5>
+                    <p class="text-muted mb-3">مدیریت موجودی طلا و ریال</p>
+                </div>
+                <div>
+                    <a href="/dealer/wallet" class="btn btn-tm-outline px-4">
+                        <i class="bi bi-coin me-1"></i>
+                        کیف پول
+                    </a>
+                </div>
             </div>
         </div>
     </div>
