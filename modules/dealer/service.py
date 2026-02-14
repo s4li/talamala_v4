@@ -379,7 +379,7 @@ class DealerService:
         """Get products with pricing + available bar serials for a dealer's location (JSON-ready)."""
         from modules.catalog.models import Product, ProductImage
         from modules.admin.models import SystemSetting
-        from modules.pricing.calculator import calculate_jewelry_price
+        from modules.pricing.calculator import calculate_bar_price
 
         dealer = self.get_dealer(db, dealer_id)
         if not dealer or not dealer.location_id:
@@ -420,14 +420,9 @@ class DealerService:
         result_products = []
         for p in products:
             ec_wage = get_end_customer_wage(db,p)
-            price_info = calculate_jewelry_price(
+            price_info = calculate_bar_price(
                 weight=p.weight, purity=p.purity,
-                wage=ec_wage, is_wage_percent=True,
-                profit_percent=float(p.profit_percent),
-                commission_percent=float(p.commission_percent),
-                stone_price=int(p.stone_price or 0),
-                accessory_cost=int(p.accessory_cost or 0),
-                accessory_profit_percent=float(p.accessory_profit_percent or 0),
+                wage_percent=ec_wage,
                 base_gold_price_18k=gold_price,
                 tax_percent=float(tax_percent),
             )
@@ -449,7 +444,6 @@ class DealerService:
                 "price_breakdown": {
                     "raw_gold": price_info.get("raw_gold", 0),
                     "wage": price_info.get("wage", 0),
-                    "profit": price_info.get("profit", 0),
                     "tax": price_info.get("tax", 0),
                     "total": price_info.get("total", 0),
                 },

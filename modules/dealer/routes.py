@@ -18,7 +18,7 @@ from modules.dealer.service import dealer_service
 from modules.wallet.service import wallet_service
 from modules.wallet.models import AssetCode, OwnerType
 from modules.admin.models import SystemSetting
-from modules.pricing.calculator import calculate_jewelry_price
+from modules.pricing.calculator import calculate_bar_price
 from modules.pricing.service import get_end_customer_wage
 from modules.inventory.models import Bar, BarStatus
 
@@ -75,14 +75,9 @@ def _calc_bar_prices(db: Session, bars):
         if not p:
             continue
         ec_wage = get_end_customer_wage(db, p)
-        info = calculate_jewelry_price(
+        info = calculate_bar_price(
             weight=p.weight, purity=p.purity,
-            wage=ec_wage, is_wage_percent=True,
-            profit_percent=float(p.profit_percent),
-            commission_percent=float(p.commission_percent),
-            stone_price=int(p.stone_price or 0),
-            accessory_cost=int(p.accessory_cost or 0),
-            accessory_profit_percent=float(p.accessory_profit_percent or 0),
+            wage_percent=ec_wage,
             base_gold_price_18k=gold_price,
             tax_percent=tax_percent,
         )
@@ -91,7 +86,6 @@ def _calc_bar_prices(db: Session, bars):
             "raw_gold_toman": info.get("raw_gold", 0) // 10,
             "wage_toman": info.get("wage", 0) // 10,
             "tax_toman": info.get("tax", 0) // 10,
-            "profit_toman": info.get("profit", 0) // 10,
         }
     return prices
 
@@ -323,10 +317,9 @@ async def buyback_lookup(
     gold_setting = db.query(SystemSetting).filter(SystemSetting.key == "gold_price").first()
     gold_price = int(gold_setting.value) if gold_setting else 0
 
-    info = calculate_jewelry_price(
+    info = calculate_bar_price(
         weight=product.weight, purity=product.purity,
-        wage=0, is_wage_percent=True,
-        profit_percent=0, commission_percent=0,
+        wage_percent=0,
         base_gold_price_18k=gold_price, tax_percent=0,
     )
     raw_gold_toman = info.get("total", 0) // 10
@@ -335,11 +328,9 @@ async def buyback_lookup(
     tax_setting = db.query(SystemSetting).filter(SystemSetting.key == "tax_percent").first()
     tax_percent = float(tax_setting.value) if tax_setting else 10.0
     ec_wage = get_end_customer_wage(db, product)
-    full_info = calculate_jewelry_price(
+    full_info = calculate_bar_price(
         weight=product.weight, purity=product.purity,
-        wage=ec_wage, is_wage_percent=True,
-        profit_percent=float(product.profit_percent),
-        commission_percent=float(product.commission_percent),
+        wage_percent=ec_wage,
         base_gold_price_18k=gold_price, tax_percent=tax_percent,
     )
     retail_toman = full_info.get("total", 0) // 10

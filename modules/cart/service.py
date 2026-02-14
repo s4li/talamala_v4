@@ -13,7 +13,7 @@ from sqlalchemy import func
 from modules.cart.models import Cart, CartItem
 from modules.catalog.models import Product
 from modules.inventory.models import Bar, BarStatus
-from modules.pricing.calculator import calculate_jewelry_price
+from modules.pricing.calculator import calculate_bar_price
 from modules.pricing.service import get_end_customer_wage
 from common.templating import get_setting_from_db
 
@@ -99,16 +99,10 @@ class CartService:
 
         for item in cart.items:
             ec_wage = get_end_customer_wage(db, item.product)
-            price_info = calculate_jewelry_price(
+            price_info = calculate_bar_price(
                 weight=item.product.weight,
                 purity=item.product.purity,
-                wage=ec_wage,
-                is_wage_percent=True,
-                profit_percent=item.product.profit_percent,
-                commission_percent=item.product.commission_percent,
-                stone_price=item.product.stone_price,
-                accessory_cost=item.product.accessory_cost,
-                accessory_profit_percent=item.product.accessory_profit_percent,
+                wage_percent=ec_wage,
                 base_gold_price_18k=gold_price_rial,
                 tax_percent=Decimal(tax_percent_str) if tax_percent_str else 0,
             )

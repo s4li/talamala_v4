@@ -12,7 +12,7 @@ from sqlalchemy import func, desc, asc
 
 from modules.catalog.models import Product
 from modules.inventory.models import Bar, BarStatus
-from modules.pricing.calculator import calculate_jewelry_price
+from modules.pricing.calculator import calculate_bar_price
 from modules.pricing.service import get_end_customer_wage
 from common.templating import get_setting_from_db
 
@@ -77,16 +77,10 @@ class ShopService:
         products = []
         for product, inv_count in results:
             ec_wage = get_end_customer_wage(db,product)
-            price_info = calculate_jewelry_price(
+            price_info = calculate_bar_price(
                 weight=product.weight,
                 purity=product.purity,
-                wage=ec_wage,
-                is_wage_percent=True,
-                profit_percent=product.profit_percent,
-                commission_percent=product.commission_percent,
-                stone_price=product.stone_price,
-                accessory_cost=product.accessory_cost,
-                accessory_profit_percent=product.accessory_profit_percent,
+                wage_percent=ec_wage,
                 base_gold_price_18k=gold_price_rial,
                 tax_percent=Decimal(tax_percent_str) if tax_percent_str else 0,
             )
@@ -144,16 +138,10 @@ class ShopService:
 
         # Full invoice — always use end-customer tier wage
         ec_wage = get_end_customer_wage(db,product)
-        invoice = calculate_jewelry_price(
+        invoice = calculate_bar_price(
             weight=product.weight,
             purity=product.purity,
-            wage=ec_wage,
-            is_wage_percent=True,
-            profit_percent=product.profit_percent,
-            commission_percent=product.commission_percent,
-            stone_price=product.stone_price,
-            accessory_cost=product.accessory_cost,
-            accessory_profit_percent=product.accessory_profit_percent,
+            wage_percent=ec_wage,
             base_gold_price_18k=gold_price_rial,
             tax_percent=Decimal(tax_percent_str) if tax_percent_str else 0,
         )

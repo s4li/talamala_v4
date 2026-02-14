@@ -18,7 +18,7 @@ from modules.order.models import Order, OrderItem, OrderStatus, DeliveryMethod, 
 from modules.cart.models import Cart, CartItem
 from modules.catalog.models import Product
 from modules.inventory.models import Bar, BarStatus, OwnershipHistory
-from modules.pricing.calculator import calculate_jewelry_price
+from modules.pricing.calculator import calculate_bar_price
 from modules.pricing.service import get_end_customer_wage
 
 logger = logging.getLogger("talamala.order")
@@ -34,19 +34,11 @@ def build_order_item(product, bar, invoice: dict, gold_price_rial: int, tax_perc
         applied_unit_price=int(audit.get("unit_price_used", 0)),
         applied_weight=audit.get("weight_used") or product.weight,
         applied_purity=int(product.purity),
-        applied_profit_percent=product.profit_percent,
-        applied_commission_percent=product.commission_percent,
+        applied_wage_percent=product.wage,
         applied_tax_percent=tax_percent_str,
         final_gold_amount=int(invoice.get("raw_gold", 0)),
         final_wage_amount=int(invoice.get("wage", 0)),
-        final_profit_amount=int(invoice.get("profit", 0)),
-        final_commission_amount=int(invoice.get("commission", 0)),
-        final_stone_amount=int(invoice.get("stone", 0)),
-        final_accessory_amount=int(invoice.get("accessory", 0)),
         final_tax_amount=int(invoice.get("tax", 0)),
-        final_exempt_amount=int(audit.get("exempt_principal_amount", 0)),
-        taxable_services_base=int(audit.get("taxable_services_base", 0)),
-        taxable_goods_base=int(audit.get("taxable_goods_base", 0)),
         line_total=int(invoice.get("total", 0)),
     )
 
@@ -129,16 +121,10 @@ class OrderService:
         for item in cart.items:
             # Calculate price for this product (always use end-customer tier wage)
             ec_wage = get_end_customer_wage(db, item.product)
-            price_info = calculate_jewelry_price(
+            price_info = calculate_bar_price(
                 weight=item.product.weight,
                 purity=item.product.purity,
-                wage=ec_wage,
-                is_wage_percent=True,
-                profit_percent=item.product.profit_percent,
-                commission_percent=item.product.commission_percent,
-                stone_price=item.product.stone_price,
-                accessory_cost=item.product.accessory_cost,
-                accessory_profit_percent=item.product.accessory_profit_percent,
+                wage_percent=ec_wage,
                 base_gold_price_18k=gold_price_rial,
                 tax_percent=Decimal(tax_percent_str) if tax_percent_str else 0,
             )
