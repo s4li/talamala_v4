@@ -1,0 +1,556 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}تکمیل خرید - طلامالا{% endblock %}
+
+{% block shop_css %}
+<style>
+    .delivery-option {
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .delivery-option:hover { border-color: #c9a03a; }
+    .delivery-option.active {
+        border-color: #c9a03a;
+        background: #fffdf5;
+        box-shadow: 0 0 0 3px rgba(201,160,58,0.15);
+    }
+    .delivery-option .option-icon { font-size: 2.5rem; }
+    .location-card {
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 12px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .location-card:hover { border-color: #c9a03a; }
+    .location-card.selected {
+        border-color: #c9a03a;
+        background: #fffdf5;
+    }
+    .location-card.no-stock {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .step-section { display: none; }
+    .step-section.active { display: block; }
+</style>
+{% endblock %}
+
+{% block shop_content %}
+<!-- Breadcrumb -->
+<nav class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="/" class="text-decoration-none">فروشگاه</a></li>
+        <li class="breadcrumb-item"><a href="/cart" class="text-decoration-none">سبد خرید</a></li>
+        <li class="breadcrumb-item active">تکمیل خرید</li>
+    </ol>
+</nav>
+
+{% if request.query_params.get('error') %}
+<div class="alert-tm-danger py-2"><i class="bi bi-exclamation-triangle me-1"></i>{{ request.query_params.get('error') }}</div>
+{% endif %}
+
+<form method="POST" action="/cart/checkout" id="checkoutForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+<input type="hidden" name="delivery_method" id="deliveryMethodInput" value="">
+<input type="hidden" name="coupon_code" id="couponCodeInput" value="">
+<input type="hidden" name="is_gift" id="isGiftInput" value="0">
+
+<div class="row g-4">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <h4 class="fw-bold mb-4"><i class="bi bi-truck me-2"></i>نحوه تحویل</h4>
+
+        <!-- Step 1: Choose delivery method -->
+        <div class="row g-3 mb-4">
+            <!-- Pickup Option -->
+            <div class="col-md-6">
+                <div class="delivery-option" id="optPickup" onclick="selectMethod('Pickup')">
+                    <div class="text-center mb-2">
+                        <div class="option-icon">🏪</div>
+                    </div>
+                    <h5 class="fw-bold text-center">تحویل حضوری</h5>
+                    <p class="text-muted text-center small mb-0">سریع و امن • بدون هزینه ارسال</p>
+                </div>
+            </div>
+
+            <!-- Postal Option -->
+            <div class="col-md-6">
+                <div class="delivery-option {% if not postal_info.is_available %}opacity-50{% endif %}"
+                     id="optPostal"
+                     {% if postal_info.is_available and postal_stock > 0 %}onclick="selectMethod('Postal')"{% endif %}>
+                    <div class="text-center mb-2">
+                        <div class="option-icon">📦</div>
+                    </div>
+                    <h5 class="fw-bold text-center">ارسال پستی</h5>
+                    <p class="text-muted text-center small mb-0">بیمه شده • سراسر ایران</p>
+                    {% if not postal_info.is_available %}
+                    <div class="alert-tm-warning py-1 px-2 mt-2 small text-center mb-0">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        {{ postal_info.unavailable_reason }}
+                    </div>
+                    {% elif postal_stock == 0 %}
+                    <div class="alert-tm-warning py-1 px-2 mt-2 small text-center mb-0">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        موجودی انبار ارسال پستی تمام شده است.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2A: Pickup Details -->
+        <div class="step-section" id="pickupSection">
+            <div class="card-tm no-hover">
+                <h5 class="fw-bold mb-3"><i class="bi bi-geo-alt me-1"></i>انتخاب نمایندگی</h5>
+
+                <!-- Province -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label-tm">استان</label>
+                        <select class="form-select form-select-tm" id="provinceSelect" onchange="onProvinceChange()">
+                            <option value="">انتخاب استان...</option>
+                            {% for prov in provinces %}
+                            <option value="{{ prov }}">{{ prov }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm">شهر</label>
+                        <select class="form-select form-select-tm" id="citySelect" onchange="onCityChange()" disabled>
+                            <option value="">ابتدا استان را انتخاب کنید</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Locations -->
+                <div id="locationsContainer">
+                    <div id="locationsLoading" class="text-center py-3 d-none">
+                        <div class="spinner-border spinner-border-sm text-warning"></div>
+                        <span class="ms-2 text-muted">در حال بارگذاری...</span>
+                    </div>
+                    <div id="locationsList" class="row g-2"></div>
+                    <div id="noLocations" class="text-center py-3 d-none">
+                        <i class="bi bi-info-circle text-warning me-1"></i>
+                        <span class="text-muted">در این شهر موجودی نداریم. لطفاً ارسال پستی را انتخاب کنید یا شهر دیگری را امتحان کنید.</span>
+                    </div>
+                </div>
+
+                <input type="hidden" name="pickup_location_id" id="pickupLocationInput" value="">
+
+                <!-- Commitment -->
+                <div class="form-check mt-3 p-3 bg-light rounded">
+                    <input type="checkbox" class="form-check-input" name="commitment" value="yes" id="commitmentCheck">
+                    <label class="form-check-label" for="commitmentCheck">
+                        <strong>متعهد می‌شوم</strong> با کارت ملی و کد تحویل، شخصاً به نمایندگی مراجعه کنم.
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2B: Postal Details -->
+        <div class="step-section" id="postalSection">
+            <div class="card-tm no-hover">
+                <h5 class="fw-bold mb-3"><i class="bi bi-envelope me-1"></i>آدرس ارسال</h5>
+
+                {% if customer_addresses %}
+                <div class="mb-3">
+                    <label class="form-label-tm fw-bold">انتخاب آدرس ذخیره‌شده</label>
+                    {% for addr in customer_addresses %}
+                    <div class="form-check border rounded p-3 mb-2 {% if addr.is_default %}border-success{% endif %}" style="cursor:pointer;"
+                         onclick="selectAddress({{ addr.id }}, '{{ addr.province.name if addr.province else '' }}', '{{ addr.city.name if addr.city else '' }}', `{{ addr.address }}`, '{{ addr.postal_code or '' }}')">
+                        <input class="form-check-input" type="radio" name="selected_address" value="{{ addr.id }}" id="addr{{ addr.id }}"
+                               {% if addr.is_default %}checked{% endif %}>
+                        <label class="form-check-label w-100" for="addr{{ addr.id }}">
+                            <strong>{{ addr.title }}</strong>
+                            {% if addr.is_default %}<span class="badge-tm badge-tm-success ms-1">پیش‌فرض</span>{% endif %}
+                            <div class="small text-muted">{{ addr.province.name if addr.province else '' }}، {{ addr.city.name if addr.city else '' }}{% if addr.district %}، {{ addr.district.name }}{% endif %} — {{ addr.address }}</div>
+                            {% if addr.postal_code %}<div class="small text-muted" dir="ltr">📮 {{ addr.postal_code }}</div>{% endif %}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert-tm-warning py-2 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    هنوز آدرسی ثبت نکرده‌اید.
+                    <a href="/addresses" class="alert-link">ابتدا آدرس خود را ثبت کنید</a>
+                </div>
+                {% endif %}
+
+                <!-- Hidden fields that get filled from selected address -->
+                <input type="hidden" name="shipping_province" id="shippingProvince">
+                <input type="hidden" name="shipping_city" id="shippingCity">
+                <input type="hidden" name="shipping_address" id="shippingAddress">
+                <input type="hidden" name="shipping_postal_code" id="shippingPostalCode">
+
+                <div class="alert-tm-info py-2 mt-3 small">
+                    <i class="bi bi-shield-check me-1"></i>
+                    کالای شما با <strong>بیمه کامل</strong> و بسته‌بندی ایمن ارسال می‌شود.
+                    پس از تحویل به پست، کد رهگیری برایتان پیامک خواهد شد.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Sidebar -->
+    <div class="col-lg-4">
+        <div class="card-tm no-hover sticky-top" style="top:80px;z-index:1;">
+            <h6 class="fw-bold mb-3"><i class="bi bi-receipt me-1"></i>خلاصه سفارش</h6>
+
+            {% for item in items %}
+            <div class="d-flex justify-content-between small mb-2">
+                <span>{{ item.product.name }} × {{ item.quantity }}</span>
+                <span>{{ item.line_total | toman }} ت</span>
+            </div>
+            {% endfor %}
+
+            <hr>
+            <div class="d-flex justify-content-between mb-1">
+                <span class="text-muted">جمع کالاها</span>
+                <span>{{ total_price | toman }} <small>تومان</small></span>
+            </div>
+
+            <!-- Shipping costs (shown for postal) -->
+            <div id="shippingCostRow" class="d-none">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">هزینه ارسال</span>
+                    <span id="shippingCostVal">{{ postal_info.shipping_cost | toman }} <small>تومان</small></span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">بیمه</span>
+                    <span id="insuranceCostVal">{{ postal_info.insurance_cost | toman }} <small>تومان</small></span>
+                </div>
+            </div>
+
+            <div id="freeDeliveryRow" class="d-none">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">هزینه ارسال</span>
+                    <span class="text-success">رایگان</span>
+                </div>
+            </div>
+
+            <!-- Coupon -->
+            <div class="mb-2 mt-2">
+                <label class="form-label-tm small fw-bold mb-1">
+                    <i class="bi bi-ticket-perforated me-1"></i>کد تخفیف
+                </label>
+                <div class="input-group input-group-sm">
+                    <input type="text" id="couponInput" class="form-control form-control-tm" dir="ltr"
+                           placeholder="مثال: SUMMER2026" style="text-transform:uppercase;">
+                    <button type="button" class="btn btn-tm-outline" id="couponCheckBtn" onclick="checkCoupon()">
+                        اعمال
+                    </button>
+                </div>
+                <div id="couponResult" class="mt-1 small"></div>
+            </div>
+
+            <!-- Applied coupon row -->
+            <div id="couponRow" class="d-none">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">
+                        <span id="couponTypeLabel">تخفیف</span>
+                        <button type="button" class="btn-sm p-0 text-danger border-0" onclick="removeCoupon()" title="حذف">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </span>
+                    <span class="text-success fw-bold" id="couponAmountVal">−0 تومان</span>
+                </div>
+            </div>
+
+            <hr>
+            <div class="d-flex justify-content-between">
+                <span class="fw-bold fs-5">مبلغ قابل پرداخت</span>
+                <span class="fw-bold fs-5 text-tm-primary" id="grandTotalVal">
+                    {{ total_price | toman }} <small>تومان</small>
+                </span>
+            </div>
+
+            <!-- Gift Option -->
+            <div class="form-check mt-3 p-3 rounded" style="background: var(--tm-info-900);">
+                <input type="checkbox" class="form-check-input" id="giftCheck"
+                       onchange="document.getElementById('isGiftInput').value = this.checked ? '1' : '0'">
+                <label class="form-check-label" for="giftCheck">
+                    <i class="bi bi-gift me-1"></i>
+                    <strong>این سفارش هدیه است</strong>
+                    <div class="small text-muted mt-1">شمش به نام خریدار ثبت نمی‌شود. کد ثبت مالکیت داخل بسته قرار می‌گیرد.</div>
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-lg btn-tm-primary w-100 mt-3" id="submitBtn" disabled>
+                <i class="bi bi-lock me-1"></i> ثبت سفارش و پرداخت
+            </button>
+
+            <a href="/cart" class="btn btn-sm btn-tm-outline w-100 mt-2">
+                <i class="bi bi-arrow-right me-1"></i> بازگشت به سبد خرید
+            </a>
+        </div>
+    </div>
+</div>
+</form>
+{% endblock %}
+
+{% block shop_js %}
+<script>
+(function(){
+    const totalPrice = {{ total_price }};
+    const shippingCost = {{ postal_info.shipping_cost }};
+    const insuranceCost = {{ postal_info.insurance_cost }};
+
+    let selectedMethod = '';
+    let selectedLocationId = null;
+    let couponDiscount = 0;  // in rial
+    let couponCode = '';
+    let couponIsCashback = false;
+
+    // ==============================
+    // Coupon
+    // ==============================
+    window.checkCoupon = async function() {
+        const input = document.getElementById('couponInput');
+        const code = input.value.trim().toUpperCase();
+        const result = document.getElementById('couponResult');
+        const btn = document.getElementById('couponCheckBtn');
+
+        if (!code) {
+            result.innerHTML = '<span class="text-danger">لطفاً کد را وارد کنید</span>';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '...';
+
+        try {
+            const resp = await fetch(`/api/coupon/check?code=${encodeURIComponent(code)}`);
+            const data = await resp.json();
+
+            if (data.valid) {
+                couponDiscount = data.discount_amount;
+                couponCode = data.code;
+                couponIsCashback = data.is_cashback;
+
+                document.getElementById('couponCodeInput').value = data.code;
+                document.getElementById('couponRow').classList.remove('d-none');
+                document.getElementById('couponAmountVal').textContent =
+                    '−' + formatToman(data.discount_amount) + ' تومان';
+                document.getElementById('couponTypeLabel').textContent =
+                    data.is_cashback ? 'کشبک (واریز به کیف پول)' : 'تخفیف';
+
+                result.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${data.title} — ${data.discount_display}</span>`;
+                input.readOnly = true;
+                input.classList.add('bg-light');
+
+                updateGrandTotal();
+            } else {
+                result.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${data.error}</span>`;
+                couponDiscount = 0;
+            }
+        } catch(e) {
+            result.innerHTML = '<span class="text-danger">خطا در بررسی کد</span>';
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'اعمال';
+    };
+
+    window.removeCoupon = function() {
+        couponDiscount = 0;
+        couponCode = '';
+        couponIsCashback = false;
+        document.getElementById('couponCodeInput').value = '';
+        document.getElementById('couponRow').classList.add('d-none');
+        document.getElementById('couponResult').innerHTML = '';
+        const input = document.getElementById('couponInput');
+        input.value = '';
+        input.readOnly = false;
+        input.classList.remove('bg-light');
+        updateGrandTotal();
+    };
+
+    function updateGrandTotal() {
+        let grand = totalPrice;
+        if (selectedMethod === 'Postal') {
+            grand += shippingCost + insuranceCost;
+        }
+        // Apply discount (cashback doesn't reduce total, only pure discount does)
+        if (couponDiscount > 0 && !couponIsCashback) {
+            grand = Math.max(0, grand - couponDiscount);
+        }
+        document.getElementById('grandTotalVal').innerHTML =
+            formatToman(grand) + ' <small>تومان</small>';
+    }
+
+    // ==============================
+    // Method Selection
+    // ==============================
+    window.selectMethod = function(method) {
+        selectedMethod = method;
+        document.getElementById('deliveryMethodInput').value = method;
+
+        // Toggle active class
+        document.getElementById('optPickup').classList.toggle('active', method === 'Pickup');
+        document.getElementById('optPostal').classList.toggle('active', method === 'Postal');
+
+        // Toggle sections
+        document.getElementById('pickupSection').classList.toggle('active', method === 'Pickup');
+        document.getElementById('postalSection').classList.toggle('active', method === 'Postal');
+
+        // Toggle costs
+        document.getElementById('shippingCostRow').classList.toggle('d-none', method !== 'Postal');
+        document.getElementById('freeDeliveryRow').classList.toggle('d-none', method !== 'Pickup');
+
+        // Update total
+        updateGrandTotal();
+
+        updateSubmitButton();
+    };
+
+    // ==============================
+    // Province / City / Location AJAX
+    // ==============================
+    window.onProvinceChange = async function() {
+        const province = document.getElementById('provinceSelect').value;
+        const citySelect = document.getElementById('citySelect');
+
+        if (!province) {
+            citySelect.innerHTML = '<option value="">ابتدا استان را انتخاب کنید</option>';
+            citySelect.disabled = true;
+            document.getElementById('locationsList').innerHTML = '';
+            return;
+        }
+
+        // Show loading
+        document.getElementById('locationsLoading').classList.remove('d-none');
+        document.getElementById('noLocations').classList.add('d-none');
+
+        try {
+            const resp = await fetch(`/api/delivery/locations?province=${encodeURIComponent(province)}`);
+            const data = await resp.json();
+
+            // Fill cities
+            citySelect.innerHTML = '<option value="">همه شهرها</option>';
+            data.cities.forEach(c => {
+                citySelect.innerHTML += `<option value="${c}">${c}</option>`;
+            });
+            citySelect.disabled = false;
+
+            // Show locations
+            renderLocations(data.locations);
+        } catch(e) {
+            console.error(e);
+        }
+
+        document.getElementById('locationsLoading').classList.add('d-none');
+    };
+
+    window.onCityChange = async function() {
+        const province = document.getElementById('provinceSelect').value;
+        const city = document.getElementById('citySelect').value;
+
+        document.getElementById('locationsLoading').classList.remove('d-none');
+
+        try {
+            let url = `/api/delivery/locations?province=${encodeURIComponent(province)}`;
+            if (city) url += `&city=${encodeURIComponent(city)}`;
+            const resp = await fetch(url);
+            const data = await resp.json();
+            renderLocations(data.locations);
+        } catch(e) {
+            console.error(e);
+        }
+
+        document.getElementById('locationsLoading').classList.add('d-none');
+    };
+
+    function renderLocations(locations) {
+        const container = document.getElementById('locationsList');
+        const noLoc = document.getElementById('noLocations');
+
+        if (!locations.length) {
+            container.innerHTML = '';
+            noLoc.classList.remove('d-none');
+            return;
+        }
+        noLoc.classList.add('d-none');
+
+        container.innerHTML = locations.map(loc => {
+            const hasStock = loc.stock > 0;
+            return `
+                <div class="col-md-6">
+                    <div class="location-card ${hasStock ? '' : 'no-stock'} ${selectedLocationId == loc.id ? 'selected' : ''}"
+                         ${hasStock ? `onclick="selectLocation(${loc.id})"` : ''}>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-bold"><i class="bi bi-shop me-1"></i>${loc.name}</div>
+                                <div class="small text-muted">${loc.city}${loc.province ? ' - ' + loc.province : ''}</div>
+                                ${loc.address ? `<div class="small text-muted mt-1"><i class="bi bi-geo me-1"></i>${loc.address}</div>` : ''}
+                                ${loc.phone ? `<div class="small text-muted" dir="ltr"><i class="bi bi-telephone me-1"></i>${loc.phone}</div>` : ''}
+                            </div>
+                            <span class="${hasStock ? 'badge-tm badge-tm-success' : 'badge-tm badge-tm-info'}">
+                                ${hasStock ? loc.stock + ' موجود' : 'ناموجود'}
+                            </span>
+                        </div>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    window.selectLocation = function(id) {
+        selectedLocationId = id;
+        document.getElementById('pickupLocationInput').value = id;
+
+        // Toggle selected class
+        document.querySelectorAll('.location-card').forEach(el => el.classList.remove('selected'));
+        event.currentTarget.classList.add('selected');
+
+        updateSubmitButton();
+    };
+
+    // ==============================
+    // Address Selection (Postal)
+    // ==============================
+    window.selectAddress = function(id, province, city, address, postalCode) {
+        document.getElementById('shippingProvince').value = province;
+        document.getElementById('shippingCity').value = city;
+        document.getElementById('shippingAddress').value = address;
+        document.getElementById('shippingPostalCode').value = postalCode;
+        updateSubmitButton();
+    };
+
+    // Auto-select default address on load
+    const defaultAddr = document.querySelector('input[name="selected_address"]:checked');
+    if (defaultAddr) { defaultAddr.closest('.form-check').click(); }
+
+    // ==============================
+    // Submit Button State
+    // ==============================
+    function updateSubmitButton() {
+        const btn = document.getElementById('submitBtn');
+        let enabled = false;
+
+        if (selectedMethod === 'Pickup') {
+            const committed = document.getElementById('commitmentCheck').checked;
+            enabled = selectedLocationId && committed;
+        } else if (selectedMethod === 'Postal') {
+            const addr = document.getElementById('shippingAddress');
+            enabled = addr && addr.value.length > 0;
+        }
+
+        btn.disabled = !enabled;
+    }
+
+    // Listen for commitment checkbox
+    document.getElementById('commitmentCheck').addEventListener('change', updateSubmitButton);
+
+    // ==============================
+    // Format
+    // ==============================
+    function formatToman(rial) {
+        const toman = Math.floor(rial / 10);
+        return toman.toLocaleString('fa-IR');
+    }
+})();
+</script>
+{% endblock %}

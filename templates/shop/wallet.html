@@ -1,0 +1,252 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}کیف پول - طلامالا{% endblock %}
+
+{% block shop_css %}
+<style>
+    .wallet-card {
+        background: linear-gradient(135deg, var(--tm-primary-100) 0%, var(--tm-primary) 100%);
+        color: #fff;
+        border-radius: 16px;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .wallet-card::after {
+        content: '';
+        position: absolute;
+        top: -50px;
+        left: -50px;
+        width: 200px;
+        height: 200px;
+        background: var(--tm-primary-900);
+        opacity: 0.08;
+        border-radius: 50%;
+    }
+    .wallet-balance {
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--tm-primary-900);
+    }
+    .wallet-label {
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.6);
+    }
+    .action-card {
+        border: none;
+        border-radius: 12px;
+        transition: transform 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+    }
+    .action-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+    .txn-row {
+        border-bottom: 1px solid #f0f0f0;
+        padding: 0.75rem 0;
+    }
+    .txn-row:last-child { border-bottom: none; }
+    .txn-amount.positive { color: #198754; }
+    .txn-amount.negative { color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block shop_content %}
+<div class="row g-4">
+    <!-- Wallet Balance Card -->
+    <div class="col-12">
+        {% if msg %}
+        <div class="alert alert-tm-success alert-dismissible fade show">
+            <i class="bi bi-check-circle me-1"></i> {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+        {% if error %}
+        <div class="alert alert-tm-danger alert-dismissible fade show">
+            <i class="bi bi-exclamation-triangle me-1"></i> {{ error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
+        <div class="wallet-card">
+            <div class="d-flex align-items-center mb-3">
+                <i class="bi bi-wallet2 me-2" style="font-size:1.5rem;color:var(--tm-primary-900);"></i>
+                <span style="font-size:1.1rem;">کیف پول من</span>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div class="wallet-label">موجودی ریالی</div>
+                    <div class="wallet-balance">{{ balance.balance | toman }}</div>
+                    <small class="text-muted">تومان</small>
+                </div>
+                <div class="col">
+                    <div class="wallet-label">قابل برداشت</div>
+                    <div style="font-size:1.3rem;font-weight:bold;color:#4ade80;">{{ balance.withdrawable | toman }}</div>
+                    <small class="text-muted">تومان</small>
+                </div>
+                {% if balance.credit > 0 %}
+                <div class="col">
+                    <div class="wallet-label">اعتبار فروشگاهی</div>
+                    <div style="font-size:1.3rem;font-weight:bold;color:#a78bfa;">{{ balance.credit | toman }}</div>
+                    <small class="text-muted">تومان</small>
+                </div>
+                {% endif %}
+                <div class="col">
+                    <div class="wallet-label">موجودی طلا</div>
+                    <div style="font-size:1.3rem;font-weight:bold;color:#fbbf24;">{{ gold_balance.balance | gold_gram }}</div>
+                </div>
+                <div class="col">
+                    <div class="wallet-label">بلوکه شده</div>
+                    <div style="font-size:1.3rem;font-weight:bold;color:#f97316;">{{ balance.locked | toman }}</div>
+                    <small class="text-muted">تومان</small>
+                </div>
+            </div>
+            {% if balance.credit > 0 %}
+            <div class="mt-3 p-2 rounded" style="background:rgba(167,139,250,0.15);">
+                <small>
+                    <i class="bi bi-info-circle me-1"></i>
+                    اعتبار فروشگاهی شما <strong>{{ balance.credit | toman }} تومان</strong> است.
+                    این اعتبار از بازخرید اجرت شمش‌ها حاصل شده و فقط برای خرید محصولات جدید قابل استفاده است.
+                </small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="col-md-6">
+        <div class="card action-card h-100 border-0">
+            <div class="text-center p-4">
+                <i class="bi bi-plus-circle text-success" style="font-size:2.5rem;"></i>
+                <h5 class="mt-3 mb-2">شارژ کیف پول</h5>
+                <p class="text-muted small mb-3">افزایش موجودی از درگاه بانکی</p>
+                <form method="post" action="/wallet/topup" class="d-flex gap-2 justify-content-center align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div>
+                        <label class="form-label-tm small">مبلغ (تومان)</label>
+                        <input type="number" name="amount_toman" class="form-control form-control-tm" min="10000" step="10000"
+                               value="100000" required>
+                    </div>
+                    <button type="submit" class="btn btn-tm-success">
+                        <i class="bi bi-credit-card me-1"></i> پرداخت
+                    </button>
+                </form>
+                <!-- Quick amounts -->
+                <div class="mt-2 d-flex gap-1 justify-content-center flex-wrap">
+                    {% for val in [50000, 100000, 500000, 1000000] %}
+                    <button type="button" class="btn btn-sm btn-tm-outline quick-amount" data-amount="{{ val }}">
+                        {{ val | toman }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card action-card h-100 border-0">
+            <div class="text-center p-4">
+                <i class="bi bi-bank text-primary" style="font-size:2.5rem;"></i>
+                <h5 class="mt-3 mb-2">برداشت وجه</h5>
+                <p class="text-muted small mb-3">انتقال به حساب بانکی</p>
+                <a href="/wallet/withdraw" class="btn btn-tm-primary">
+                    <i class="bi bi-arrow-left-circle me-1"></i> درخواست برداشت
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card action-card h-100 border-0">
+            <div class="text-center p-4">
+                <i class="bi bi-coin text-warning" style="font-size:2.5rem;"></i>
+                <h5 class="mt-3 mb-2">خرید/فروش طلا</h5>
+                <p class="text-muted small mb-3">تبدیل ریال به طلا و بالعکس</p>
+                <a href="/wallet/gold" class="btn btn-tm-warning">
+                    <i class="bi bi-arrow-left-right me-1"></i> تبدیل
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Withdrawals -->
+    {% if pending_withdrawals %}
+    <div class="col-12">
+        <div class="card-tm no-hover border-warning">
+            <div class="border-bottom pb-3 mb-3">
+                <i class="bi bi-hourglass-split me-1"></i> درخواست‌های برداشت در انتظار
+            </div>
+                <table class="table table-tm table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>مبلغ (تومان)</th>
+                            <th>شبا</th>
+                            <th>تاریخ</th>
+                            <th>وضعیت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for wr in pending_withdrawals %}
+                        <tr>
+                            <td>{{ wr.id }}</td>
+                            <td class="fw-bold">{{ wr.amount_irr | toman }}</td>
+                            <td><code class="small">{{ wr.shaba_number }}</code></td>
+                            <td class="small">{{ wr.created_at.strftime('%Y/%m/%d %H:%M') if wr.created_at else '—' }}</td>
+                            <td><span class="badge-tm badge-tm-{{ wr.status_color }}">{{ wr.status_label }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Transactions -->
+    <div class="col-12">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3 d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history me-1"></i> آخرین تراکنش‌ها</span>
+                <a href="/wallet/transactions" class="btn btn-sm btn-tm-outline">مشاهده همه</a>
+            </div>
+                {% if entries %}
+                <div class="px-3">
+                    {% for e in entries %}
+                    <div class="txn-row d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="badge-tm badge-tm-{{ e.txn_type_color }} me-1">{{ e.txn_type_label }}</span>
+                            <small class="text-muted">{{ e.description or '' }}</small>
+                        </div>
+                        <div class="text-start" style="min-width:140px;">
+                            <div class="txn-amount fw-bold {{ 'positive' if e.delta_balance > 0 else 'negative' if e.delta_balance < 0 else '' }}">
+                                {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }} ت
+                            </div>
+                            <small class="text-muted">
+                                {{ e.created_at.strftime('%m/%d %H:%M') if e.created_at else '' }}
+                            </small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-inbox" style="font-size:2rem;"></i>
+                    <p class="mt-2">هنوز تراکنشی ثبت نشده</p>
+                </div>
+                {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block shop_js %}
+<script>
+document.querySelectorAll('.quick-amount').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelector('input[name="amount_toman"]').value = btn.dataset.amount;
+    });
+});
+</script>
+{% endblock %}

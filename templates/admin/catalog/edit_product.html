@@ -1,0 +1,158 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "products" %}
+{% block title %}ویرایش {{ p.name }} - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4 class="fw-bold mb-0">
+        <a href="/admin/products" class="text-decoration-none text-muted"><i class="bi bi-arrow-right me-2"></i></a>
+        ویرایش: {{ p.name }}
+    </h4>
+</div>
+
+<div class="row g-4">
+    <!-- Edit Form -->
+    <div class="col-lg-8">
+        <div class="card-tm no-hover">
+            <form method="POST" action="/admin/products/update/{{ p.id }}" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-tm">نام محصول *</label>
+                        <input type="text" name="name" class="form-control form-control-tm" value="{{ p.name }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-tm">وزن (گرم) *</label>
+                        <input type="text" name="weight" class="form-control form-control-tm" value="{{ p.weight }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-tm">عیار</label>
+                        <select name="purity" class="form-select form-select-tm">
+                            <option value="999" {% if p.purity == 999 %}selected{% endif %}>999 (24K)</option>
+                            <option value="750" {% if p.purity == 750 %}selected{% endif %}>750 (18K)</option>
+                            <option value="585" {% if p.purity == 585 %}selected{% endif %}>585 (14K)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-tm">دسته‌بندی</label>
+                        <select name="category_id" class="form-select form-select-tm">
+                            <option value="">بدون دسته‌بندی</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if p.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label-tm">اجرت ساخت</label>
+                        <div class="input-group">
+                            <input type="text" name="wage" class="form-control form-control-tm" value="{{ p.wage }}">
+                            <div class="input-group-text">
+                                <input type="checkbox" name="is_wage_percent" class="form-check-input me-1"
+                                       {% if p.is_wage_percent %}checked{% endif %}>
+                                <small>درصدی</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label-tm">سود %</label>
+                        <input type="text" name="profit_percent" class="form-control form-control-tm" value="{{ p.profit_percent }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label-tm">کمیسیون %</label>
+                        <input type="text" name="commission_percent" class="form-control form-control-tm" value="{{ p.commission_percent }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label-tm">قیمت سنگ (ریال)</label>
+                        <input type="text" name="stone_price" class="form-control form-control-tm" value="{{ p.stone_price }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label-tm">هزینه متفرقه (ریال)</label>
+                        <input type="text" name="accessory_cost" class="form-control form-control-tm" value="{{ p.accessory_cost }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label-tm">سود متفرقه %</label>
+                        <input type="text" name="accessory_profit_percent" class="form-control form-control-tm" value="{{ p.accessory_profit_percent }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm">طرح</label>
+                        <input type="text" name="design" class="form-control form-control-tm" value="{{ p.design or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-tm">طرح کارت</label>
+                        <select name="card_design_id" class="form-select form-select-tm">
+                            <option value="">بدون طرح کارت</option>
+                            {% for d in designs %}
+                            <option value="{{ d.id }}" {% if p.card_design_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-tm">بسته‌بندی</label>
+                        <select name="package_type_id" class="form-select form-select-tm">
+                            <option value="">بدون بسته‌بندی</option>
+                            {% for pkg in packages %}
+                            <option value="{{ pkg.id }}" {% if p.package_type_id == pkg.id %}selected{% endif %}>{{ pkg.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-tm">وضعیت</label>
+                        <div class="form-check form-switch mt-2">
+                            <input type="checkbox" name="is_active" class="form-check-input"
+                                   {% if p.is_active %}checked{% endif %}>
+                            <label class="form-check-label">فعال</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-tm">افزودن تصاویر جدید</label>
+                        <input type="file" name="new_files" class="form-control form-control-tm" multiple accept="image/*">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-tm-primary">
+                            <i class="bi bi-check-lg me-1"></i> ذخیره تغییرات
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Images -->
+    <div class="col-lg-4">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3 fw-bold">
+                <i class="bi bi-images me-1"></i> تصاویر ({{ p.images|length }})
+            </div>
+            {% if p.images %}
+            <div class="row g-2">
+                {% for img in p.images %}
+                <div class="col-6">
+                    <div class="position-relative">
+                        <img src="/{{ img.file_path }}" class="img-thumb-lg w-100" alt="">
+                        {% if img.is_default %}
+                        <span class="default-badge">پیش‌فرض</span>
+                        {% endif %}
+                        <div class="mt-1 d-flex gap-1">
+                            {% if not img.is_default %}
+                            <form method="POST" action="/admin/products/set_default/{{ img.id }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button class="btn btn-sm btn-tm-warning" title="پیش‌فرض"><i class="bi bi-star"></i></button>
+                            </form>
+                            {% endif %}
+                            <form method="POST" action="/admin/products/delete_image/{{ img.id }}" class="d-inline"
+                                  onsubmit="return confirm('حذف تصویر؟')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted text-center py-3">بدون تصویر</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

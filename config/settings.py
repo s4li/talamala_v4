@@ -1,0 +1,90 @@
+"""
+TalaMala v4 - Centralized Configuration
+========================================
+All environment variables and constants are loaded here.
+No other module should call os.getenv() directly.
+"""
+
+import os
+import sys
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+# ==========================================
+# 🗄️ Database
+# ==========================================
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME = os.getenv("DB_NAME")
+
+if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_NAME]):
+    print("❌ Critical: Database config missing in .env (DB_USER, DB_PASSWORD, DB_HOST, DB_NAME)")
+    sys.exit(1)
+
+DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+
+# ==========================================
+# 🔐 Security
+# ==========================================
+SECRET_KEY = os.getenv("SECRET_KEY")
+CUSTOMER_SECRET_KEY = os.getenv("CUSTOMER_SECRET_KEY")
+DEALER_SECRET_KEY = os.getenv("DEALER_SECRET_KEY", os.getenv("CUSTOMER_SECRET_KEY", "dealer-fallback-key"))
+OTP_SECRET = os.getenv("OTP_SECRET")
+
+if not all([SECRET_KEY, CUSTOMER_SECRET_KEY, OTP_SECRET]):
+    print("❌ Critical: Security keys missing in .env (SECRET_KEY, CUSTOMER_SECRET_KEY, OTP_SECRET)")
+    sys.exit(1)
+
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "lax")
+CSRF_ENABLED = os.getenv("CSRF_ENABLED", "true").lower() == "true"
+
+
+# ==========================================
+# 📱 SMS (Kavenegar)
+# ==========================================
+SMS_API_KEY = os.getenv("SMS_API_KEY", "")
+
+
+# ==========================================
+# 💳 Payment Gateways
+# ==========================================
+ZIBAL_MERCHANT = os.getenv("ZIBAL_MERCHANT", "zibal")
+SEPEHR_TERMINAL_ID = int(os.getenv("SEPEHR_TERMINAL_ID", "99079327"))
+
+
+# ==========================================
+# 📁 File Upload
+# ==========================================
+UPLOAD_DIR = "static/uploads"
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+DEFAULT_IMAGE_MAX_SIZE = (800, 800)
+
+
+# ==========================================
+# 🔧 App
+# ==========================================
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+MAINTENANCE_MODE = os.getenv("MAINTENANCE_MODE", "false").lower() == "true"
+MAINTENANCE_SECRET = os.getenv("MAINTENANCE_SECRET", "")
+
+# OTP Settings
+OTP_LENGTH = 6
+OTP_EXPIRE_MINUTES = 5
+OTP_MAX_ATTEMPTS = 3
+OTP_RATE_LIMIT_WINDOW = 10  # minutes
+
+# Reservation
+RESERVATION_EXPIRE_MINUTES = 15
+
+# Base URL for callbacks
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")

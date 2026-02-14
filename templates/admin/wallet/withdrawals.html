@@ -1,0 +1,134 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}درخواست‌های برداشت - مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h4 class="mb-1"><i class="bi bi-bank me-2"></i>درخواست‌های برداشت</h4>
+        {% if pending_count > 0 %}
+        <small class="text-warning">
+            <i class="bi bi-exclamation-circle me-1"></i>{{ pending_count }} درخواست در انتظار بررسی
+        </small>
+        {% endif %}
+    </div>
+    <a href="/admin/wallets" class="btn btn-tm-outline">
+        <i class="bi bi-arrow-right me-1"></i> کیف پول‌ها
+    </a>
+</div>
+
+{% if request.query_params.get('msg') %}
+<div class="alert alert-tm-success alert-dismissible fade show">
+    <i class="bi bi-check-circle me-1"></i> {{ request.query_params.get('msg') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+{% if request.query_params.get('error') %}
+<div class="alert alert-tm-danger alert-dismissible fade show">
+    <i class="bi bi-exclamation-triangle me-1"></i> {{ request.query_params.get('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="card-tm no-hover">
+    <div class="p-0">
+        {% if withdrawals %}
+        <div class="table-responsive">
+            <table class="table table-tm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th style="width:40px;">#</th>
+                        <th>مشتری</th>
+                        <th>مبلغ (تومان)</th>
+                        <th>شبا</th>
+                        <th>صاحب حساب</th>
+                        <th>وضعیت</th>
+                        <th>یادداشت مدیر</th>
+                        <th>تاریخ</th>
+                        <th style="width:200px;">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for wr in withdrawals %}
+                    <tr class="{{ 'table-warning' if wr.status == 'Pending' else '' }}">
+                        <td>{{ wr.id }}</td>
+                        <td>
+                            <strong>{{ wr.customer.full_name if wr.customer else '—' }}</strong>
+                            <br><small class="text-muted">{{ wr.customer.mobile if wr.customer else '' }}</small>
+                        </td>
+                        <td class="fw-bold">{{ wr.amount_irr | toman }}</td>
+                        <td><code class="small">{{ wr.shaba_number }}</code></td>
+                        <td class="small">{{ wr.account_holder or '—' }}</td>
+                        <td><span class="badge bg-{{ wr.status_color }}">{{ wr.status_label }}</span></td>
+                        <td class="small">{{ wr.admin_note or '—' }}</td>
+                        <td class="small text-muted">{{ wr.created_at.strftime('%Y/%m/%d %H:%M') if wr.created_at else '—' }}</td>
+                        <td>
+                            {% if wr.status == 'Pending' %}
+                            <div class="d-flex gap-1">
+                                <!-- Approve -->
+                                <form method="post" action="/admin/wallets/withdrawals/{{ wr.id }}/approve"
+                                      style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <input type="hidden" name="admin_note" value="">
+                                    <button type="submit" class="btn btn-sm btn-tm-success"
+                                            onclick="
+                                                let note = prompt('یادداشت (اختیاری):');
+                                                if (note !== null) {
+                                                    this.form.admin_note.value = note;
+                                                    return confirm('آیا از تأیید این درخواست اطمینان دارید؟');
+                                                }
+                                                return false;
+                                            ">
+                                        <i class="bi bi-check-lg"></i> تأیید
+                                    </button>
+                                </form>
+                                <!-- Reject -->
+                                <form method="post" action="/admin/wallets/withdrawals/{{ wr.id }}/reject"
+                                      style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <input type="hidden" name="admin_note" value="">
+                                    <button type="submit" class="btn btn-sm btn-tm-danger"
+                                            onclick="
+                                                let note = prompt('دلیل رد درخواست:');
+                                                if (note !== null) {
+                                                    this.form.admin_note.value = note;
+                                                    return confirm('آیا از رد این درخواست اطمینان دارید؟');
+                                                }
+                                                return false;
+                                            ">
+                                        <i class="bi bi-x-lg"></i> رد
+                                    </button>
+                                </form>
+                            </div>
+                            {% elif wr.status == 'Paid' %}
+                            <span class="text-success small"><i class="bi bi-check-circle"></i> پرداخت شده</span>
+                            {% else %}
+                            <span class="text-danger small"><i class="bi bi-x-circle"></i> رد شده</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if total_pages > 1 %}
+        <nav class="d-flex justify-content-center py-3">
+            <ul class="pagination pagination-tm pagination-sm mb-0">
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {{ 'active' if p == page else '' }}">
+                    <a class="page-link" href="/admin/wallets/withdrawals/list?page={{ p }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-inbox" style="font-size:2rem;"></i>
+            <p class="mt-2">هنوز درخواست برداشتی ثبت نشده</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

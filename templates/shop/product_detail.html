@@ -1,0 +1,200 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}{{ p.name }} - طلامالا{% endblock %}
+
+{% block shop_css %}
+<style>
+    .detail-gallery img {
+        width: 100%;
+        height: 350px;
+        object-fit: cover;
+        border-radius: 12px;
+    }
+    .gallery-thumbs img {
+        width: 70px;
+        height: 70px;
+        object-fit: cover;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: border-color 0.2s;
+    }
+    .gallery-thumbs img:hover,
+    .gallery-thumbs img.active {
+        border-color: var(--tm-primary);
+    }
+    .invoice-table td {
+        padding: 0.4rem 0;
+    }
+    .invoice-table .total-row td {
+        border-top: 2px solid var(--tm-primary);
+        font-weight: bold;
+        font-size: 1.1rem;
+        padding-top: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block shop_content %}
+<!-- Breadcrumb -->
+<nav class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="/" class="text-decoration-none">فروشگاه</a></li>
+        <li class="breadcrumb-item active">{{ p.name }}</li>
+    </ol>
+</nav>
+
+<div class="row g-4">
+    <!-- Gallery -->
+    <div class="col-md-5">
+        <div class="detail-gallery">
+            {% if p.images %}
+            <img src="/{{ p.images[0].file_path }}" id="mainImage" alt="{{ p.name }}">
+            {% if p.images|length > 1 %}
+            <div class="gallery-thumbs d-flex gap-2 mt-2">
+                {% for img in p.images %}
+                <img src="/{{ img.file_path }}"
+                     class="{% if loop.first %}active{% endif %}"
+                     onclick="document.getElementById('mainImage').src=this.src; document.querySelectorAll('.gallery-thumbs img').forEach(i=>i.classList.remove('active')); this.classList.add('active');">
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="bg-light d-flex align-items-center justify-content-center" style="height:350px;border-radius:12px;">
+                <i class="bi bi-image text-muted" style="font-size:5rem;"></i>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Product Info -->
+    <div class="col-md-7">
+        <h3 class="fw-bold">{{ p.name }}</h3>
+
+        <div class="d-flex gap-3 mt-2 mb-3">
+            <span class="badge bg-light text-dark border">{{ p.weight }} گرم</span>
+            <span class="badge bg-light text-dark border">عیار {{ p.purity }}</span>
+            {% if p.design %}
+            <span class="badge bg-light text-dark border">{{ p.design }}</span>
+            {% endif %}
+        </div>
+
+        <!-- Stock -->
+        <div class="mb-3">
+            {% if inventory > 0 %}
+            <span class="badge-tm badge-tm-success"><i class="bi bi-check-circle me-1"></i>{{ inventory }} عدد موجود</span>
+            {% else %}
+            <span class="badge-tm badge-tm-info"><i class="bi bi-x-circle me-1"></i>ناموجود</span>
+            {% endif %}
+        </div>
+
+        <!-- Location Availability -->
+        {% if location_inventory %}
+        <div class="mb-3">
+            <h6 class="fw-bold small"><i class="bi bi-geo-alt me-1"></i>محل موجودی:</h6>
+            <div class="d-flex flex-wrap gap-2">
+                {% for loc in location_inventory %}
+                <div class="border rounded-3 p-2 small" style="min-width:140px;">
+                    <div class="fw-bold">{{ loc.name }}</div>
+                    {% if loc.city %}<div class="text-muted">{{ loc.city }}</div>{% endif %}
+                    <span class="badge-tm badge-tm-success mt-1">{{ loc.count }} عدد</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Price Breakdown -->
+        {% if invoice and not invoice.get('error') %}
+        <div class="card-tm no-hover">
+            <h6 class="fw-bold mb-3"><i class="bi bi-receipt me-1"></i>ریز قیمت</h6>
+            <table class="table table-tm table-borderless invoice-table mb-0">
+                <tr>
+                    <td class="text-muted">ارزش طلای خام</td>
+                    <td class="text-start">{{ invoice.raw_gold | toman }} <small>تومان</small></td>
+                </tr>
+                {% if invoice.wage %}
+                <tr>
+                    <td class="text-muted">اجرت ساخت</td>
+                    <td class="text-start">{{ invoice.wage | toman }} <small>تومان</small></td>
+                </tr>
+                {% endif %}
+                {% if invoice.profit %}
+                <tr>
+                    <td class="text-muted">سود ({{ invoice.audit.profit_percent_str }}%)</td>
+                    <td class="text-start">{{ invoice.profit | toman }} <small>تومان</small></td>
+                </tr>
+                {% endif %}
+                {% if invoice.commission %}
+                <tr>
+                    <td class="text-muted">کمیسیون</td>
+                    <td class="text-start">{{ invoice.commission | toman }} <small>تومان</small></td>
+                </tr>
+                {% endif %}
+                {% if invoice.stone %}
+                <tr>
+                    <td class="text-muted">سنگ</td>
+                    <td class="text-start">{{ invoice.stone | toman }} <small>تومان</small></td>
+                </tr>
+                {% endif %}
+                {% if invoice.accessory %}
+                <tr>
+                    <td class="text-muted">متفرقه</td>
+                    <td class="text-start">{{ invoice.accessory | toman }} <small>تومان</small></td>
+                </tr>
+                {% endif %}
+                {% if invoice.tax %}
+                <tr>
+                    <td class="text-muted">مالیات ({{ tax_percent }}%)</td>
+                    <td class="text-start">{{ invoice.tax | toman }} <small>تومان</small></td>
+                </tr>
+                {% endif %}
+                <tr class="total-row">
+                    <td class="text-tm-primary">جمع کل</td>
+                    <td class="text-start text-tm-primary">{{ invoice.total | toman }} <small>تومان</small></td>
+                </tr>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Add to Cart -->
+        <div class="mt-3">
+            {% if inventory > 0 and gold_price %}
+                {% set in_cart = cart_map.get(p.id, 0) %}
+                {% if in_cart %}
+                <div class="d-flex align-items-center gap-3">
+                    <form method="POST" action="/cart/update">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="product_id" value="{{ p.id }}">
+                        <input type="hidden" name="action" value="decrease">
+                        <button class="btn btn-lg btn-tm-danger"><i class="bi bi-dash-lg"></i></button>
+                    </form>
+                    <span class="fs-4 fw-bold">{{ in_cart }}</span>
+                    <form method="POST" action="/cart/update">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="product_id" value="{{ p.id }}">
+                        <input type="hidden" name="action" value="increase">
+                        <button class="btn btn-lg btn-tm-success"><i class="bi bi-plus-lg"></i></button>
+                    </form>
+                    <a href="/cart" class="btn btn-lg btn-tm-primary me-2">
+                        <i class="bi bi-cart-check me-1"></i> مشاهده سبد
+                    </a>
+                </div>
+                {% else %}
+                <form method="POST" action="/cart/update">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="product_id" value="{{ p.id }}">
+                    <input type="hidden" name="action" value="increase">
+                    <button class="btn btn-lg btn-tm-primary">
+                        <i class="bi bi-cart-plus me-1"></i> افزودن به سبد خرید
+                    </button>
+                </form>
+                {% endif %}
+            {% else %}
+            <button class="btn btn-lg btn-tm-outline" disabled>
+                <i class="bi bi-x-circle me-1"></i> ناموجود
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

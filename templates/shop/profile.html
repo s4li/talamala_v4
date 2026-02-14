@@ -1,0 +1,76 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}پروفایل - طلامالا{% endblock %}
+
+{% block shop_content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+        <h4 class="fw-bold mb-4"><i class="bi bi-person-circle me-2"></i>پروفایل من</h4>
+
+        {% if msg %}<div class="alert-tm-success py-2">{{ msg }}</div>{% endif %}
+        {% if error %}<div class="alert-tm-danger py-2">{{ error }}</div>{% endif %}
+
+        <!-- Identity (read-only — will be verified via Shahkar) -->
+        <div class="card-tm no-hover mb-3">
+            <div class="border-bottom pb-3 mb-3 fw-bold small">
+                <i class="bi bi-shield-lock me-1"></i>اطلاعات هویتی
+                <span class="badge-tm badge-tm-info float-start">غیرقابل تغییر</span>
+            </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-tm small text-muted">نام و نام خانوادگی</label>
+                        <input type="text" class="form-control form-control-tm bg-light" value="{{ user.full_name or '—' }}" readonly disabled>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm small text-muted">شماره موبایل</label>
+                        <input type="text" class="form-control form-control-tm bg-light" dir="ltr" value="{{ user.mobile }}" readonly disabled>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm small text-muted">کد ملی</label>
+                        <input type="text" class="form-control form-control-tm bg-light" dir="ltr" value="{{ user.national_id or '—' }}" readonly disabled>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm small text-muted">تاریخ عضویت</label>
+                        <input type="text" class="form-control form-control-tm bg-light" value="{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '—' }}" readonly disabled>
+                    </div>
+                </div>
+                <p class="small text-muted mt-2 mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    این اطلاعات پس از احراز هویت (شاهکار) قابل تغییر نیست. در صورت نیاز به اصلاح با پشتیبانی تماس بگیرید.
+                </p>
+        </div>
+
+        <!-- Editable fields -->
+        <div class="card-tm no-hover mb-3">
+            <div class="border-bottom pb-3 mb-3 fw-bold small">
+                <i class="bi bi-pencil me-1"></i>اطلاعات تکمیلی
+            </div>
+                <form method="POST" action="/profile">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label-tm small fw-bold">تاریخ تولد</label>
+                            <input type="text" name="birth_date" class="form-control form-control-tm" dir="ltr"
+                                   value="{{ user.birth_date or '' }}" placeholder="1370/01/15">
+                        </div>
+                    </div>
+                    <button class="btn btn-tm-primary mt-3"><i class="bi bi-check-lg me-1"></i>ذخیره تغییرات</button>
+                </form>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="card-tm no-hover">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="/addresses" class="btn btn-sm btn-tm-outline">
+                        <i class="bi bi-geo-alt me-1"></i>آدرس‌های من
+                    </a>
+                    <a href="/wallet" class="btn btn-sm btn-tm-outline">
+                        <i class="bi bi-wallet2 me-1"></i>کیف پول
+                    </a>
+                    <a href="/orders" class="btn btn-sm btn-tm-outline">
+                        <i class="bi bi-bag me-1"></i>سفارشات
+                    </a>
+                </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

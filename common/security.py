@@ -1,0 +1,152 @@
+"""
+TalaMala v4 - Security Utilities
+==================================
+JWT tokens, CSRF protection, OTP hashing, and rate limiting.
+"""
+
+import hmac
+import hashlib
+import secrets
+from datetime import timedelta
+from typing import Optional
+from collections import defaultdict
+
+from fastapi import Request, HTTPException
+from jose import jwt
+
+from config.settings import (
+    SECRET_KEY, CUSTOMER_SECRET_KEY, DEALER_SECRET_KEY, OTP_SECRET, ALGORITHM,
+    ACCESS_TOKEN_EXPIRE_MINUTES, CSRF_ENABLED,
+    OTP_MAX_ATTEMPTS, OTP_RATE_LIMIT_WINDOW,
+)
+from common.helpers import now_utc
+
+
+# ==========================================
+# In-memory rate limiter storage
+# ==========================================
+_otp_attempts: dict[str, list] = defaultdict(list)
+
+
+# ==========================================
+# OTP
+# ==========================================
+
+def hash_otp(mobile: str, otp: str) -> str:
+    """Create HMAC-SHA256 hash of OTP combined with mobile and secret."""
+    msg = f"{mobile}:{otp}".encode("utf-8")
+    return hmac.new(OTP_SECRET.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+
+
+def generate_otp(length: int = 6) -> str:
+    """Generate a random numeric OTP code."""
+    lower = 10 ** (length - 1)
+    upper = 10 ** length - 1
+    return str(secrets.randbelow(upper - lower) + lower)
+
+
+def check_otp_rate_limit(mobile: str) -> bool:
+    """
+    Check if mobile number has exceeded OTP request limit.
+    Returns True if allowed, False if rate limited.
+    """
+    now = now_utc()
+    cutoff = now - timedelta(minutes=OTP_RATE_LIMIT_WINDOW)
+
+    # Clean old entries
+    _otp_attempts[mobile] = [t for t in _otp_attempts[mobile] if t > cutoff]
+
+    if len(_otp_attempts[mobile]) >= OTP_MAX_ATTEMPTS:
+        return False
+
+    _otp_attempts[mobile].append(now)
+    return True
+
+
+# ==========================================
+# JWT Tokens
+# ==========================================
+
+def create_staff_token(data: dict) -> str:
+    """Create JWT token for Staff/Admin users."""
+    to_encode = data.copy()
+    to_encode["exp"] = now_utc() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def create_customer_token(data: dict) -> str:
+    """Create JWT token for Customer users."""
+    to_encode = data.copy()
+    to_encode["exp"] = now_utc() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    return jwt.encode(to_encode, CUSTOMER_SECRET_KEY, algorithm=ALGORITHM)
+
+
+def decode_staff_token(token: str) -> Optional[dict]:
+    """Decode a staff JWT token. Returns payload or None."""
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except Exception:
+        return None
+
+
+def decode_customer_token(token: str) -> Optional[dict]:
+    """Decode a customer JWT token. Returns payload or None."""
+    try:
+        return jwt.decode(token, CUSTOMER_SECRET_KEY, algorithms=[ALGORITHM])
+    except Exception:
+        return None
+
+
+def create_dealer_token(data: dict) -> str:
+    """Create JWT token for Dealer users."""
+    to_encode = data.copy()
+    to_encode["exp"] = now_utc() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    return jwt.encode(to_encode, DEALER_SECRET_KEY, algorithm=ALGORITHM)
+
+
+def decode_dealer_token(token: str) -> Optional[dict]:
+    """Decode a dealer JWT token. Returns payload or None."""
+    try:
+        return jwt.decode(token, DEALER_SECRET_KEY, algorithms=[ALGORITHM])
+    except Exception:
+        return None
+
+
+# ==========================================
+# Cookie Helpers
+# ==========================================
+
+def get_cookie_kwargs() -> dict:
+    """Standard cookie settings for auth tokens."""
+    from config.settings import COOKIE_SECURE, COOKIE_SAMESITE
+    return dict(
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+
+
+# ==========================================
+# CSRF
+# ==========================================
+
+def new_csrf_token() -> str:
+    """Generate a new random CSRF token."""
+    return secrets.token_urlsafe(32)
+
+
+def csrf_check(request: Request, form_token: Optional[str] = None):
+    """
+    Verify CSRF token from cookie matches the one in header or form.
+    Raises HTTPException(403) on mismatch.
+    """
+    if not CSRF_ENABLED:
+        return
+
+    cookie_token = request.cookies.get("csrf_token")
+    header_token = request.headers.get("X-CSRF-Token")
+    token = header_token or form_token
+
+    if not cookie_token or not token or cookie_token != token:
+        raise HTTPException(403, "CSRF token missing or invalid")

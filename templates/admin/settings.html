@@ -1,0 +1,132 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "settings" %}
+{% block title %}تنظیمات - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4 class="fw-bold mb-0"><i class="bi bi-gear me-2"></i>تنظیمات سیستم</h4>
+</div>
+
+{% if request.query_params.get('msg') == 'saved' %}
+<div class="alert-tm-success py-2"><i class="bi bi-check-lg me-1"></i>تنظیمات ذخیره شد.</div>
+{% endif %}
+
+<div class="card-tm no-hover">
+    <form method="POST" action="/admin/settings/update">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-currency-exchange me-1"></i> قیمت‌گذاری</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label-tm">قیمت طلای ۱۸ عیار (ریال / هر گرم)</label>
+                <input type="text" name="gold_price" class="form-control form-control-tm form-control-lg"
+                       value="{{ settings.get('gold_price', {}).value if settings.get('gold_price') else '0' }}"
+                       dir="ltr" placeholder="مثال: 52000000">
+                <small class="text-muted">
+                    معادل تومانی:
+                    <strong id="tomanDisplay">—</strong>
+                </small>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label-tm">درصد مالیات بر ارزش افزوده</label>
+                <div class="input-group">
+                    <input type="text" name="tax_percent" class="form-control form-control-tm"
+                           value="{{ settings.get('tax_percent', {}).value if settings.get('tax_percent') else '9' }}">
+                    <span class="input-group-text">%</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label-tm">درصد سود پایه</label>
+                <div class="input-group">
+                    <input type="text" name="profit_percent" class="form-control form-control-tm"
+                           value="{{ settings.get('profit_percent', {}).value if settings.get('profit_percent') else '3' }}">
+                    <span class="input-group-text">%</span>
+                </div>
+            </div>
+        </div>
+
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-headset me-1"></i> پشتیبانی</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label-tm">شماره تلفن پشتیبانی</label>
+                <input type="text" name="support_phone" class="form-control form-control-tm" dir="ltr"
+                       value="{{ settings.get('support_phone', {}).value if settings.get('support_phone') else '' }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label-tm">آیدی تلگرام</label>
+                <input type="text" name="support_telegram" class="form-control form-control-tm" dir="ltr"
+                       value="{{ settings.get('support_telegram', {}).value if settings.get('support_telegram') else '' }}">
+            </div>
+        </div>
+
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-clock me-1"></i> سفارشات</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label-tm">مدت رزرو (دقیقه)</label>
+                <input type="text" name="reservation_minutes" class="form-control form-control-tm"
+                       value="{{ settings.get('reservation_minutes', {}).value if settings.get('reservation_minutes') else '15' }}">
+            </div>
+        </div>
+
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-truck me-1"></i> ارسال پستی</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label-tm">هزینه ارسال (ریال)</label>
+                <input type="text" name="shipping_cost" class="form-control form-control-tm" dir="ltr"
+                       value="{{ settings.get('shipping_cost', {}).value if settings.get('shipping_cost') else '500000' }}"
+                       placeholder="500000">
+                <small class="text-muted">
+                    معادل:
+                    <strong id="shippingToman">—</strong> تومان
+                </small>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label-tm">درصد بیمه</label>
+                <div class="input-group">
+                    <input type="text" name="insurance_percent" class="form-control form-control-tm"
+                           value="{{ settings.get('insurance_percent', {}).value if settings.get('insurance_percent') else '1.5' }}">
+                    <span class="input-group-text">%</span>
+                </div>
+                <small class="text-muted">از مبلغ کل سفارش محاسبه می‌شود</small>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label-tm">سقف بیمه پست (ریال)</label>
+                <input type="text" name="insurance_cap" class="form-control form-control-tm" dir="ltr"
+                       value="{{ settings.get('insurance_cap', {}).value if settings.get('insurance_cap') else '500000000' }}"
+                       placeholder="500000000">
+                <small class="text-muted">
+                    سفارشات بالای این مبلغ فقط تحویل حضوری
+                    (<strong id="capToman">—</strong> تومان)
+                </small>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-tm-primary btn btn-lg">
+            <i class="bi bi-check-lg me-1"></i> ذخیره تنظیمات
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+document.querySelector('input[name="gold_price"]').addEventListener('input', function() {
+    const val = parseInt(this.value) || 0;
+    const toman = Math.floor(val / 10).toLocaleString('fa-IR');
+    document.getElementById('tomanDisplay').textContent = toman + ' تومان';
+});
+// Init
+document.querySelector('input[name="gold_price"]').dispatchEvent(new Event('input'));
+
+// Shipping toman
+function toToman(el, displayId) {
+    el.addEventListener('input', function() {
+        const val = parseInt(this.value) || 0;
+        document.getElementById(displayId).textContent = Math.floor(val / 10).toLocaleString('fa-IR');
+    });
+    el.dispatchEvent(new Event('input'));
+}
+toToman(document.querySelector('input[name="shipping_cost"]'), 'shippingToman');
+toToman(document.querySelector('input[name="insurance_cap"]'), 'capToman');
+</script>
+{% endblock %}

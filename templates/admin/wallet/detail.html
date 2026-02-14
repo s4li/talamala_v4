@@ -1,0 +1,167 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}کیف پول {{ customer.full_name }} - مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h4 class="mb-1">
+            <i class="bi bi-wallet2 me-2"></i>
+            کیف پول: {{ customer.full_name }}
+        </h4>
+        <small class="text-muted">
+            <i class="bi bi-phone me-1"></i>{{ customer.mobile }}
+            <span class="mx-2">|</span>
+            <i class="bi bi-person-badge me-1"></i>{{ customer.national_id }}
+        </small>
+    </div>
+    <a href="/admin/wallets" class="btn btn-tm-outline">
+        <i class="bi bi-arrow-right me-1"></i> بازگشت
+    </a>
+</div>
+
+{% if msg %}
+<div class="alert alert-tm-success alert-dismissible fade show">
+    <i class="bi bi-check-circle me-1"></i> {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-tm-danger alert-dismissible fade show">
+    <i class="bi bi-exclamation-triangle me-1"></i> {{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <!-- Balance Summary -->
+    <div class="col-md-4">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3"><i class="bi bi-currency-exchange me-1"></i> خلاصه موجودی</div>
+            <div class="text-center">
+                <div class="mb-3">
+                    <div class="text-muted small">موجودی کل</div>
+                    <div class="fs-3 fw-bold text-success">{{ balance.balance | toman }}</div>
+                    <small class="text-muted">تومان</small>
+                </div>
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="text-muted small">قابل برداشت</div>
+                        <div class="fw-bold">{{ balance.withdrawable | toman }}</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-muted small">اعتبار فروشگاهی</div>
+                        <div class="fw-bold text-info">{{ balance.credit | toman }}</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-muted small">بلوکه</div>
+                        <div class="fw-bold text-warning">{{ balance.locked | toman }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Adjustment -->
+    <div class="col-md-8">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3"><i class="bi bi-gear me-1"></i> عملیات دستی</div>
+            <form method="post" action="/admin/wallets/{{ customer.id }}/adjust">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label-tm">نوع عملیات</label>
+                        <select name="direction" class="form-select form-select-tm" required>
+                            <option value="deposit">واریز (افزایش)</option>
+                            <option value="withdraw">برداشت (کاهش)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-tm">مبلغ (تومان)</label>
+                        <input type="number" name="amount_toman" class="form-control form-control-tm"
+                               min="1" required placeholder="مبلغ">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label-tm">توضیحات</label>
+                        <input type="text" name="description" class="form-control form-control-tm"
+                               placeholder="دلیل تغییر موجودی">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-tm-primary w-100"
+                                onclick="return confirm('آیا از انجام این عملیات اطمینان دارید؟');">
+                            <i class="bi bi-check2"></i> اعمال
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ledger Entries -->
+    <div class="col-12">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3">
+                <i class="bi bi-journal-text me-1"></i> دفتر کل ({{ total }} تراکنش)
+            </div>
+            <div class="p-0">
+                {% if entries %}
+                <div class="table-responsive">
+                    <table class="table table-tm table-sm mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;">#</th>
+                                <th>نوع</th>
+                                <th>شرح</th>
+                                <th>تغییر موجودی</th>
+                                <th>تغییر بلوکه</th>
+                                <th>موجودی بعد</th>
+                                <th>بلوکه بعد</th>
+                                <th>مرجع</th>
+                                <th>تاریخ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for e in entries %}
+                            <tr>
+                                <td class="text-muted small">{{ e.id }}</td>
+                                <td><span class="badge bg-{{ e.txn_type_color }}">{{ e.txn_type_label }}</span></td>
+                                <td class="small">{{ e.description or '—' }}</td>
+                                <td class="fw-bold {{ 'text-success' if e.delta_balance > 0 else 'text-danger' if e.delta_balance < 0 else '' }}">
+                                    {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }}
+                                </td>
+                                <td class="{{ 'text-warning' if e.delta_locked != 0 else 'text-muted' }}">
+                                    {% if e.delta_locked > 0 %}+{% endif %}{{ e.delta_locked | toman }}
+                                </td>
+                                <td>{{ e.balance_after | toman }}</td>
+                                <td>{{ e.locked_after | toman }}</td>
+                                <td class="small text-muted">
+                                    {% if e.reference_type %}{{ e.reference_type }}:{{ e.reference_id or '' }}{% else %}—{% endif %}
+                                </td>
+                                <td class="small text-muted">{{ e.created_at.strftime('%Y/%m/%d %H:%M') if e.created_at else '—' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if total_pages > 1 %}
+                <nav class="d-flex justify-content-center py-3">
+                    <ul class="pagination pagination-tm pagination-sm mb-0">
+                        {% for p in range(1, total_pages + 1) %}
+                        <li class="page-item {{ 'active' if p == page else '' }}">
+                            <a class="page-link" href="/admin/wallets/{{ customer.id }}?page={{ p }}">{{ p }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </nav>
+                {% endif %}
+
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-inbox"></i> هنوز تراکنشی ثبت نشده
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

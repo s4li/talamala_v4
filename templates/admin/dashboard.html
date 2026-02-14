@@ -1,0 +1,398 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "dashboard" %}
+{% block title %}داشبورد - پنل مدیریت{% endblock %}
+
+{% block page_css %}
+<style>
+    .stat-card-tm {
+        border-radius: 12px;
+        padding: 1.2rem;
+        background: #fff;
+        border: 1px solid #eee;
+        transition: transform 0.15s;
+    }
+    .stat-card-tm:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .stat-card-tm .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+    }
+    .stat-card-tm .stat-value { font-size: 1.4rem; font-weight: bold; color: var(--tm-dark); }
+    .stat-card-tm .stat-label { font-size: 0.78rem; color: #888; }
+    .chart-card {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+    .chart-card h6 { font-weight: bold; margin-bottom: 1rem; }
+    .order-row td { font-size: 0.85rem; }
+    .quick-link {
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0.7rem 1rem;
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 10px;
+        transition: all 0.15s;
+    }
+    .quick-link:hover {
+        background: var(--tm-primary-900);
+        border-color: var(--tm-primary);
+        color: inherit;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h4 class="fw-bold mb-0"><i class="bi bi-speedometer2 me-2 text-tm-primary"></i>داشبورد</h4>
+    <span class="text-muted">{{ user.full_name }}</span>
+</div>
+
+<!-- ========== ROW 1: Key Stats ========== -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card-tm">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon" style="background:rgba(212,168,67,0.15);">
+                    <i class="bi bi-cash-stack text-tm-primary"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ stats.total_revenue | toman }}</div>
+                    <div class="stat-label">درآمد کل (تومان)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card-tm">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon" style="background:rgba(25,135,84,0.12);">
+                    <i class="bi bi-bag-check text-success"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ stats.total_orders | persian_number }}</div>
+                    <div class="stat-label">کل سفارشات</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card-tm">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon" style="background:rgba(13,110,253,0.12);">
+                    <i class="bi bi-people text-primary"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ stats.total_customers | persian_number }}</div>
+                    <div class="stat-label">مشتریان</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card-tm">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon" style="background:rgba(220,53,69,0.12);">
+                    <i class="bi bi-upc-scan text-danger"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ stats.total_bars | persian_number }}</div>
+                    <div class="stat-label">کل شمش‌ها</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== ROW 2: Secondary Stats ========== -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card-tm text-center">
+            <div class="stat-value text-success">{{ stats.today_orders | persian_number }}</div>
+            <div class="stat-label">سفارش امروز</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card-tm text-center">
+            <div class="stat-value">{{ stats.today_revenue | toman }}</div>
+            <div class="stat-label">درآمد امروز</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card-tm text-center">
+            <div class="stat-value text-warning">{{ stats.pending_orders | persian_number }}</div>
+            <div class="stat-label">در انتظار پرداخت</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card-tm text-center">
+            <div class="stat-value text-info">{{ stats.available_bars | persian_number }}</div>
+            <div class="stat-label">شمش موجود</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card-tm text-center">
+            <div class="stat-value">{{ stats.active_dealers | persian_number }}</div>
+            <div class="stat-label">نماینده فعال</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="stat-card-tm text-center">
+            <div class="stat-value text-danger">{{ stats.pending_withdrawals | persian_number }}</div>
+            <div class="stat-label">درخواست برداشت</div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== ROW 3: Charts ========== -->
+<div class="row g-3 mb-4">
+    <!-- Revenue Chart -->
+    <div class="col-lg-8">
+        <div class="chart-card">
+            <h6><i class="bi bi-graph-up me-1 text-tm-primary"></i> درآمد ۳۰ روز اخیر</h6>
+            <canvas id="revenueChart" height="200"></canvas>
+        </div>
+    </div>
+    <!-- Inventory Pie -->
+    <div class="col-lg-4">
+        <div class="chart-card">
+            <h6><i class="bi bi-pie-chart me-1 text-tm-primary"></i> وضعیت موجودی</h6>
+            <canvas id="inventoryChart" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- ========== ROW 4: Recent Orders + Quick Links ========== -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="chart-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0"><i class="bi bi-clock-history me-1 text-tm-primary"></i> آخرین سفارشات</h6>
+                <a href="/admin/orders" class="btn btn-sm btn-tm-outline">مشاهده همه</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-tm table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>مشتری</th>
+                            <th>مبلغ</th>
+                            <th>وضعیت</th>
+                            <th>تاریخ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr class="order-row">
+                            <td>{{ order.id }}</td>
+                            <td>
+                                {% if order.customer %}
+                                {{ order.customer.full_name }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>{{ order.total_amount | toman }}</td>
+                            <td>
+                                {% if order.status == 'Paid' %}
+                                <span class="badge-tm badge-tm-success">پرداخت شده</span>
+                                {% elif order.status == 'Pending' %}
+                                <span class="badge-tm badge-tm-warning">در انتظار</span>
+                                {% elif order.status == 'Shipped' %}
+                                <span class="badge-tm badge-tm-info">ارسال شده</span>
+                                {% elif order.status == 'Delivered' %}
+                                <span class="badge-tm badge-tm-primary">تحویل شده</span>
+                                {% elif order.status == 'Cancelled' %}
+                                <span class="badge-tm badge-tm-danger">لغو شده</span>
+                                {% else %}
+                                <span class="badge-tm badge-tm-info">{{ order.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ order.created_at | jdate }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">سفارشی ثبت نشده</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="chart-card mb-3">
+            <h6><i class="bi bi-lightning me-1 text-tm-primary"></i> دسترسی سریع</h6>
+            <div class="d-flex flex-column gap-2">
+                <a href="/admin/products" class="quick-link">
+                    <i class="bi bi-box-seam text-tm-primary"></i>
+                    <span>محصولات ({{ stats.total_products }})</span>
+                </a>
+                <a href="/admin/bars" class="quick-link">
+                    <i class="bi bi-upc-scan text-tm-primary"></i>
+                    <span>شمش‌ها ({{ stats.total_bars }})</span>
+                </a>
+                <a href="/admin/orders" class="quick-link">
+                    <i class="bi bi-bag-check text-tm-primary"></i>
+                    <span>سفارشات ({{ stats.total_orders }})</span>
+                </a>
+                <a href="/admin/dealers" class="quick-link">
+                    <i class="bi bi-shop text-tm-primary"></i>
+                    <span>نمایندگان ({{ stats.total_dealers }})</span>
+                </a>
+                <a href="/admin/wallets" class="quick-link">
+                    <i class="bi bi-wallet2 text-tm-primary"></i>
+                    <span>کیف پول‌ها</span>
+                </a>
+                <a href="/admin/coupons" class="quick-link">
+                    <i class="bi bi-ticket-perforated text-tm-primary"></i>
+                    <span>کوپن‌ها</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Gold Price Card -->
+        <div class="chart-card">
+            <h6><i class="bi bi-gem me-1 text-tm-primary"></i> قیمت طلا</h6>
+            <div class="text-center py-2">
+                <div class="fs-3 fw-bold text-tm-primary">{{ stats.gold_price | toman }}</div>
+                <div class="text-muted">تومان / گرم ۱۸ عیار</div>
+                <a href="/admin/settings" class="btn btn-sm btn-tm-outline mt-2">
+                    <i class="bi bi-gear me-1"></i> تنظیمات
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== ROW 5: Alerts ========== -->
+{% if stats.pending_orders > 0 or stats.pending_withdrawals > 0 or stats.pending_buybacks > 0 %}
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="alert-tm-warning d-flex align-items-center gap-2 mb-0">
+            <i class="bi bi-bell-fill"></i>
+            <span>
+                {% if stats.pending_orders > 0 %}
+                <strong>{{ stats.pending_orders | persian_number }}</strong> سفارش در انتظار پرداخت
+                {% endif %}
+                {% if stats.pending_withdrawals > 0 %}
+                | <strong>{{ stats.pending_withdrawals | persian_number }}</strong> درخواست برداشت
+                {% endif %}
+                {% if stats.pending_buybacks > 0 %}
+                | <strong>{{ stats.pending_buybacks | persian_number }}</strong> درخواست بازخرید
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block page_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    // Revenue Chart (Line)
+    var revenueData = {{ daily_revenue | tojson }};
+    var labels = revenueData.map(function(d) { return d.date; });
+    var revenues = revenueData.map(function(d) { return d.revenue / 10; });
+    var counts = revenueData.map(function(d) { return d.count; });
+
+    if (document.getElementById('revenueChart')) {
+        new Chart(document.getElementById('revenueChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'درآمد (تومان)',
+                        data: revenues,
+                        borderColor: '#D4A843',
+                        backgroundColor: 'rgba(212,168,67,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        yAxisID: 'y',
+                    },
+                    {
+                        label: 'تعداد سفارش',
+                        data: counts,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13,110,253,0.1)',
+                        fill: false,
+                        tension: 0.4,
+                        yAxisID: 'y1',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                    y: { type: 'linear', position: 'right', title: { display: true, text: 'تومان' } },
+                    y1: { type: 'linear', position: 'left', title: { display: true, text: 'تعداد' }, grid: { drawOnChartArea: false } },
+                }
+            }
+        });
+    }
+
+    // Inventory Pie Chart
+    var invData = {{ inventory_status | tojson }};
+    var statusLabels = {
+        'Available': 'موجود',
+        'Assigned': 'تخصیص‌یافته',
+        'Reserved': 'رزرو',
+        'Sold': 'فروخته‌شده',
+        'Transferred': 'انتقال',
+        'Melted': 'ذوب',
+        'Raw': 'خام',
+    };
+    var statusColors = {
+        'Available': '#198754',
+        'Assigned': '#0d6efd',
+        'Reserved': '#ffc107',
+        'Sold': '#D4A843',
+        'Transferred': '#6f42c1',
+        'Melted': '#dc3545',
+        'Raw': '#6c757d',
+    };
+
+    var pieLabels = Object.keys(invData).map(function(k) { return statusLabels[k] || k; });
+    var pieValues = Object.values(invData);
+    var pieColors = Object.keys(invData).map(function(k) { return statusColors[k] || '#adb5bd'; });
+
+    if (document.getElementById('inventoryChart')) {
+        new Chart(document.getElementById('inventoryChart'), {
+            type: 'doughnut',
+            data: {
+                labels: pieLabels,
+                datasets: [{
+                    data: pieValues,
+                    backgroundColor: pieColors,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

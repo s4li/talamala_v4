@@ -1,0 +1,90 @@
+/* ═══════════════════════════════════════════════════════════════
+   Bootstrap → TalaMala Bridge CSS
+   Reskins Bootstrap 5 components to match the TalaMala Design System
+   palette. Ensures visual consistency even where Bootstrap classes
+   remain in templates during gradual migration.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Buttons ─── */
+.btn-primary { background-color: var(--tm-primary); border-color: var(--tm-primary); }
+.btn-primary:hover, .btn-primary:focus { background-color: var(--tm-primary-300); border-color: var(--tm-primary-300); }
+.btn-primary:active { background-color: var(--tm-primary-100); border-color: var(--tm-primary-100); }
+.btn-primary:disabled { background-color: var(--tm-info-700); border-color: var(--tm-info-700); }
+
+.btn-outline-primary { color: var(--tm-primary); border-color: var(--tm-primary); }
+.btn-outline-primary:hover, .btn-outline-primary:focus { background-color: var(--tm-primary); border-color: var(--tm-primary); color: white; }
+
+.btn-outline-secondary { color: var(--tm-info-300); border-color: var(--tm-info-800); }
+.btn-outline-secondary:hover { background-color: var(--tm-info-900); border-color: var(--tm-info-700); color: var(--tm-dark); }
+
+.btn-danger { background-color: var(--tm-negative); border-color: var(--tm-negative); }
+.btn-danger:hover { background-color: #E8434A; border-color: #E8434A; }
+
+.btn-success { background-color: var(--tm-positive); border-color: var(--tm-positive); }
+.btn-success:hover { background-color: #2DB584; border-color: #2DB584; }
+
+.btn-warning { background-color: var(--tm-warning); border-color: var(--tm-warning); color: #383026; }
+.btn-warning:hover { background-color: #E69E00; border-color: #E69E00; color: #383026; }
+
+.btn-info { background-color: var(--tm-info-900); border-color: var(--tm-info-800); color: var(--tm-info-300); }
+.btn-info:hover { background-color: var(--tm-info-800); color: var(--tm-dark); }
+
+.btn-gold { background-color: var(--tm-primary); border-color: var(--tm-primary); color: white; }
+.btn-gold:hover { background-color: var(--tm-primary-300); border-color: var(--tm-primary-300); color: white; }
+
+/* ─── Forms ─── */
+.form-control:focus { border-color: var(--tm-primary); box-shadow: 0 0 0 0.2rem rgba(107,0,45,0.15); }
+.form-select:focus { border-color: var(--tm-primary); box-shadow: 0 0 0 0.2rem rgba(107,0,45,0.15); }
+.form-check-input:checked { background-color: var(--tm-primary); border-color: var(--tm-primary); }
+
+/* ─── Badges ─── */
+.badge.bg-primary { background-color: var(--tm-primary) !important; }
+.badge.bg-success { background-color: var(--tm-positive) !important; }
+.badge.bg-danger { background-color: var(--tm-negative) !important; }
+.badge.bg-warning { background-color: var(--tm-warning) !important; color: #383026 !important; }
+.badge.bg-info { background-color: var(--tm-info-900) !important; color: var(--tm-info-300) !important; }
+.badge.bg-secondary { background-color: var(--tm-info-900) !important; color: var(--tm-info-300) !important; }
+.badge.bg-dark { background-color: var(--tm-dark) !important; }
+
+/* ─── Alerts ─── */
+.alert-success { background-color: var(--tm-positive-light); border-color: var(--tm-positive); color: var(--tm-positive); }
+.alert-danger { background-color: var(--tm-negative-light); border-color: var(--tm-negative); color: var(--tm-negative); }
+.alert-warning { background-color: var(--tm-warning-light); border-color: var(--tm-warning); color: #B07A00; }
+.alert-info { background-color: var(--tm-info-900); border-color: var(--tm-info-800); color: var(--tm-info-300); }
+
+/* ─── Pagination ─── */
+.page-item.active .page-link { background-color: var(--tm-primary); border-color: var(--tm-primary); }
+.page-link { color: var(--tm-primary); }
+.page-link:hover { color: var(--tm-primary-300); }
+
+/* ─── Tables ─── */
+.table-hover > tbody > tr:hover { --bs-table-hover-bg: var(--tm-info-900); }
+
+/* ─── Links ─── */
+a { color: var(--tm-primary); }
+a:hover { color: var(--tm-primary-300); }
+
+/* ─── Cards ─── */
+.card { border-color: var(--tm-border); }
+
+/* ─── Navs ─── */
+.nav-link.active { color: var(--tm-primary); }
+.nav-pills .nav-link.active { background-color: var(--tm-primary); color: white; }
+.nav-tabs .nav-link.active { color: var(--tm-primary); border-bottom-color: var(--tm-primary); }
+
+/* ─── Progress ─── */
+.progress-bar { background-color: var(--tm-primary); }
+
+/* ─── Dropdown ─── */
+.dropdown-item.active, .dropdown-item:active { background-color: var(--tm-primary); }
+
+/* ─── Legacy class mapping ─── */
+.bg-gold { background-color: var(--tm-primary) !important; }
+.text-gold { color: var(--tm-primary) !important; }
+
+/* ─── Spinner ─── */
+.spinner-border { color: var(--tm-primary); }
+
+/* ─── Modal ─── */
+.modal-header { border-bottom-color: var(--tm-border); }
+.modal-footer { border-top-color: var(--tm-border); }

@@ -1,0 +1,277 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "bars" %}
+{% block title %}مدیریت شمش‌ها - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4 class="fw-bold mb-0"><i class="bi bi-upc-scan me-2"></i>مدیریت شمش‌ها <small class="text-muted fw-normal">({{ total }})</small></h4>
+    <div class="d-flex gap-2">
+        <!-- Generate Button -->
+        <button class="btn btn-tm-primary" data-bs-toggle="modal" data-bs-target="#generateModal">
+            <i class="bi bi-plus-lg me-1"></i> ایجاد شمش
+        </button>
+        <!-- Bulk Action Button -->
+        <button class="btn btn-tm-outline" data-bs-toggle="modal" data-bs-target="#bulkModal" id="bulkBtn" disabled>
+            <i class="bi bi-gear me-1"></i> عملیات گروهی (<span id="selectedCount">0</span>)
+        </button>
+    </div>
+</div>
+
+<!-- Messages -->
+{% if msg %}<div class="alert-tm-success py-2">{{ msg }}</div>{% endif %}
+{% if error %}<div class="alert-tm-danger py-2">{{ error }}</div>{% endif %}
+
+<!-- Filters -->
+<div class="card-tm no-hover mb-3">
+    <div class="py-2">
+        <form method="GET" action="/admin/bars" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <input type="text" name="search" class="form-control form-control-tm form-control-sm" placeholder="🔍 جستجو سریال..."
+                       value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-tm form-select-sm">
+                    <option value="">همه وضعیت‌ها</option>
+                    {% for s in bar_statuses %}
+                    <option value="{{ s.value }}" {% if status_filter == s.value %}selected{% endif %}>{{ s.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="product_id" class="form-select form-select-tm form-select-sm">
+                    <option value="">همه محصولات</option>
+                    {% for p in all_products %}
+                    <option value="{{ p.id }}" {% if product_filter|string == p.id|string %}selected{% endif %}>{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="location_id" class="form-select form-select-tm form-select-sm">
+                    <option value="">همه مکان‌ها</option>
+                    {% for l in all_locations %}
+                    <option value="{{ l.id }}" {% if location_filter|string == l.id|string %}selected{% endif %}>{{ l.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-sm btn-tm-primary"><i class="bi bi-funnel"></i> فیلتر</button>
+                <a href="/admin/bars" class="btn btn-sm btn-light">پاک</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if filter_customer %}
+<div class="alert-tm-info py-2">
+    <i class="bi bi-person me-1"></i> فیلتر مشتری: <strong>{{ filter_customer.full_name }}</strong>
+    <a href="/admin/bars" class="me-2">(حذف فیلتر)</a>
+</div>
+{% endif %}
+
+<!-- Bars Table -->
+<form id="bulkForm" method="POST" action="/admin/bars/bulk_action">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+<input type="hidden" name="selected_ids" id="selectedIdsInput">
+<input type="hidden" name="action" id="bulkActionInput">
+
+<div class="card-tm no-hover">
+    <div class="p-0">
+        <div class="table-responsive">
+            <table class="table table-tm table-sm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAll" class="form-check-input"></th>
+                        <th>#</th>
+                        <th>سریال</th>
+                        <th>وضعیت</th>
+                        <th>محصول</th>
+                        <th>بچ</th>
+                        <th>مکان</th>
+                        <th>مالک</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bar in bars %}
+                    <tr>
+                        <td><input type="checkbox" class="form-check-input bar-check" value="{{ bar.id }}"></td>
+                        <td>{{ bar.id }}</td>
+                        <td>
+                            <code class="fw-bold text-dark" style="font-size:0.9rem;">{{ bar.serial_code }}</code>
+                        </td>
+                        <td><span class="badge bg-{{ bar.status_color }}">{{ bar.status_label }}</span></td>
+                        <td>{{ bar.product.name if bar.product else '—' }}</td>
+                        <td>{{ bar.batch.batch_number if bar.batch else '—' }}</td>
+                        <td>
+                            {% if bar.location %}
+                            <span class="badge bg-{{ bar.location.type_color }}">
+                                <i class="{{ bar.location.type_icon }} me-1"></i>{{ bar.location.name }}
+                            </span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if bar.customer %}
+                            <a href="/admin/bars?customer_id={{ bar.customer.id }}">{{ bar.customer.full_name }}</a>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            <a href="/admin/bars/edit/{{ bar.id }}" class="btn btn-sm btn-tm-outline">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" class="text-center text-muted py-4">شمشی یافت نشد</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</form>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<nav class="mt-3">
+    <ul class="pagination pagination-tm pagination-sm justify-content-center">
+        {% for p in range(1, total_pages + 1) %}
+        <li class="page-item {% if p == page %}active{% endif %}">
+            <a class="page-link" href="/admin/bars?page={{ p }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ p }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Generate Modal -->
+<div class="modal fade" id="generateModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form method="POST" action="/admin/bars/generate">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">ایجاد شمش جدید</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label-tm">تعداد</label>
+                    <input type="number" name="count" class="form-control form-control-tm" value="10" min="1" max="500" required>
+                    <small class="text-muted">حداکثر ۵۰۰ عدد</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-tm-primary w-100">ایجاد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Action Modal -->
+<div class="modal fade" id="bulkModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">عملیات گروهی</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>تعداد انتخاب شده: <strong id="bulkCount">0</strong></p>
+
+                <h6 class="mt-3 fw-bold">تخصیص:</h6>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label-tm small">محصول</label>
+                        <select id="bulk_product" class="form-select form-select-tm form-select-sm">
+                            <option value="">بدون تغییر</option>
+                            <option value="0">حذف محصول</option>
+                            {% for p in all_products %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm small">مالک</label>
+                        <select id="bulk_customer" class="form-select form-select-tm form-select-sm">
+                            <option value="">بدون تغییر</option>
+                            <option value="0">حذف مالک</option>
+                            {% for c in all_customers %}<option value="{{ c.id }}">{{ c.full_name }} ({{ c.mobile }})</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label-tm small">بچ</label>
+                        <select id="bulk_batch" class="form-select form-select-tm form-select-sm">
+                            <option value="">بدون تغییر</option>
+                            <option value="0">حذف</option>
+                            {% for b in all_batches %}<option value="{{ b.id }}">{{ b.batch_number }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label-tm small">مکان</label>
+                        <select id="bulk_location" class="form-select form-select-tm form-select-sm">
+                            <option value="">بدون تغییر</option>
+                            <option value="0">حذف</option>
+                            {% for l in all_locations %}<option value="{{ l.id }}">{{ l.name }} ({{ l.type_label }})</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer d-flex gap-2">
+                <button class="btn btn-tm-danger" onclick="doBulk('delete')"
+                        title="فقط مدیر سیستم">
+                    <i class="bi bi-trash me-1"></i> حذف
+                </button>
+                <button class="btn btn-tm-primary flex-grow-1" onclick="doBulk('update')">
+                    <i class="bi bi-check-lg me-1"></i> اعمال تغییرات
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+(function(){
+    const checks = document.querySelectorAll('.bar-check');
+    const selectAll = document.getElementById('selectAll');
+    const bulkBtn = document.getElementById('bulkBtn');
+    const countSpan = document.getElementById('selectedCount');
+    const bulkCount = document.getElementById('bulkCount');
+
+    function updateCount() {
+        const c = document.querySelectorAll('.bar-check:checked').length;
+        countSpan.textContent = c;
+        bulkCount.textContent = c;
+        bulkBtn.disabled = c === 0;
+    }
+
+    selectAll.addEventListener('change', () => {
+        checks.forEach(ch => ch.checked = selectAll.checked);
+        updateCount();
+    });
+    checks.forEach(ch => ch.addEventListener('change', updateCount));
+
+    window.doBulk = function(action) {
+        const selected = [...document.querySelectorAll('.bar-check:checked')].map(c => c.value);
+        if (!selected.length) return alert('موردی انتخاب نشده');
+        if (action === 'delete' && !confirm('آیا از حذف مطمئنید؟')) return;
+
+        const form = document.getElementById('bulkForm');
+        document.getElementById('selectedIdsInput').value = selected.join(',');
+        document.getElementById('bulkActionInput').value = action;
+
+        // Add bulk field values as hidden inputs
+        const fields = {
+            'target_product_id': document.getElementById('bulk_product').value,
+            'target_customer_id': document.getElementById('bulk_customer').value,
+            'target_batch_id': document.getElementById('bulk_batch').value,
+            'target_location_id': document.getElementById('bulk_location').value,
+        };
+        for (const [k, v] of Object.entries(fields)) {
+            let inp = form.querySelector(`input[name="${k}"]`);
+            if (!inp) { inp = document.createElement('input'); inp.type='hidden'; inp.name=k; form.appendChild(inp); }
+            inp.value = v;
+        }
+        form.submit();
+    };
+})();
+</script>
+{% endblock %}

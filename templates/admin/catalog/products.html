@@ -1,0 +1,187 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "products" %}
+{% block title %}محصولات - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i>محصولات</h4>
+    <button class="btn btn-tm-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-plus-lg me-1"></i> افزودن محصول
+    </button>
+</div>
+
+<!-- Products Table -->
+<div class="card-tm no-hover">
+    <div class="p-0">
+        <div class="table-responsive">
+            <table class="table table-tm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>تصویر</th>
+                        <th>نام</th>
+                        <th>دسته‌بندی</th>
+                        <th>وزن (گرم)</th>
+                        <th>عیار</th>
+                        <th>اجرت</th>
+                        <th>سود %</th>
+                        <th>طرح کارت</th>
+                        <th>بسته‌بندی</th>
+                        <th>وضعیت</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in products %}
+                    <tr>
+                        <td>{{ p.id }}</td>
+                        <td>
+                            {% if p.default_image %}
+                            <img src="/{{ p.default_image }}" class="img-thumb" alt="">
+                            {% else %}
+                            <div class="img-thumb bg-light d-flex align-items-center justify-content-center">
+                                <i class="bi bi-image text-muted"></i>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold">{{ p.name }}</td>
+                        <td><small class="text-muted">{{ p.category.name if p.category else '—' }}</small></td>
+                        <td>{{ p.weight }}</td>
+                        <td>{{ p.purity }}</td>
+                        <td>{{ p.wage }}{% if p.is_wage_percent %}%{% endif %}</td>
+                        <td>{{ p.profit_percent }}%</td>
+                        <td><small>{{ p.card_design.name if p.card_design else '—' }}</small></td>
+                        <td><small>{{ p.package_type.name if p.package_type else '—' }}</small></td>
+                        <td>
+                            {% if p.is_active %}
+                            <span class="badge-tm badge-tm-success">فعال</span>
+                            {% else %}
+                            <span class="badge-tm badge-tm-info">غیرفعال</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="/admin/products/edit/{{ p.id }}" class="btn btn-sm btn-tm-outline">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="12" class="text-center text-muted py-4">هنوز محصولی ثبت نشده</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Product Modal -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="/admin/products/add" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">افزودن محصول جدید</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label-tm">نام محصول *</label>
+                            <input type="text" name="name" class="form-control form-control-tm" required placeholder="مثال: شمش ۱ گرمی">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label-tm">وزن (گرم) *</label>
+                            <input type="text" name="weight" class="form-control form-control-tm" required placeholder="1.000">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label-tm">دسته‌بندی</label>
+                            <select name="category_id" class="form-select form-select-tm">
+                                <option value="">بدون دسته‌بندی</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label-tm">عیار</label>
+                            <select name="purity" class="form-select form-select-tm">
+                                <option value="999">999 (24K)</option>
+                                <option value="750" selected>750 (18K)</option>
+                                <option value="585">585 (14K)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-tm">اجرت ساخت</label>
+                            <div class="input-group">
+                                <input type="text" name="wage" class="form-control form-control-tm" value="0">
+                                <div class="input-group-text">
+                                    <input type="checkbox" name="is_wage_percent" class="form-check-input me-1" checked>
+                                    <small>درصدی</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-tm">سود %</label>
+                            <input type="text" name="profit_percent" class="form-control form-control-tm" value="7">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-tm">کمیسیون %</label>
+                            <input type="text" name="commission_percent" class="form-control form-control-tm" value="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-tm">قیمت سنگ (ریال)</label>
+                            <input type="text" name="stone_price" class="form-control form-control-tm" value="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-tm">هزینه متفرقه (ریال)</label>
+                            <input type="text" name="accessory_cost" class="form-control form-control-tm" value="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-tm">سود متفرقه %</label>
+                            <input type="text" name="accessory_profit_percent" class="form-control form-control-tm" value="15">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-tm">طرح</label>
+                            <input type="text" name="design" class="form-control form-control-tm" placeholder="اختیاری">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label-tm">طرح کارت</label>
+                            <select name="card_design_id" class="form-select form-select-tm">
+                                <option value="">بدون طرح کارت</option>
+                                {% for d in designs %}
+                                <option value="{{ d.id }}">{{ d.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label-tm">بسته‌بندی</label>
+                            <select name="package_type_id" class="form-select form-select-tm">
+                                <option value="">بدون بسته‌بندی</option>
+                                {% for pkg in packages %}
+                                <option value="{{ pkg.id }}">{{ pkg.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label-tm">وضعیت</label>
+                            <div class="form-check form-switch mt-2">
+                                <input type="checkbox" name="is_active" class="form-check-input" checked>
+                                <label class="form-check-label">فعال</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label-tm">تصاویر</label>
+                            <input type="file" name="files" class="form-control form-control-tm" multiple accept="image/*">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-tm-primary">ذخیره محصول</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

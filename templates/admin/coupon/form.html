@@ -1,0 +1,272 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}{{ 'ویرایش' if coupon else 'ایجاد' }} کوپن - طلامالا{% endblock %}
+
+{% block page_css %}
+<style>
+    .field-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .field-section h6 {
+        border-bottom: 2px solid var(--tm-primary);
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4>
+        <i class="bi bi-ticket-perforated me-2"></i>
+        {{ 'ویرایش کوپن: ' + coupon.code if coupon else 'کوپن جدید' }}
+    </h4>
+    <a href="/admin/coupons{{ '/' + coupon.id|string if coupon else '' }}" class="btn btn-tm-outline">
+        <i class="bi bi-arrow-right me-1"></i> بازگشت
+    </a>
+</div>
+
+{% if request.query_params.get('error') %}
+<div class="alert-tm-danger"><i class="bi bi-exclamation-triangle me-1"></i>{{ request.query_params.get('error') }}</div>
+{% endif %}
+
+<form method="POST" action="/admin/coupons{{ '/' + coupon.id|string + '/edit' if coupon else '/new' }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <!-- Basic Info -->
+        <div class="field-section">
+            <h6><i class="bi bi-info-circle me-1"></i> اطلاعات پایه</h6>
+            <div class="row g-3">
+                {% if not coupon %}
+                <div class="col-md-4">
+                    <label class="form-label-tm">کد تخفیف <span class="text-danger">*</span></label>
+                    <input type="text" name="code" class="form-control form-control-tm" dir="ltr" required
+                           placeholder="مثال: SUMMER2026" style="text-transform:uppercase;">
+                </div>
+                {% endif %}
+                <div class="{{ 'col-md-8' if not coupon else 'col-12' }}">
+                    <label class="form-label-tm">عنوان <span class="text-danger">*</span></label>
+                    <input type="text" name="title" class="form-control form-control-tm" required
+                           value="{{ coupon.title if coupon else '' }}"
+                           placeholder="مثال: تخفیف ویژه تابستانه">
+                </div>
+                <div class="col-12">
+                    <label class="form-label-tm">توضیحات</label>
+                    <textarea name="description" class="form-control form-control-tm" rows="2">{{ coupon.description if coupon else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Discount Config -->
+        <div class="field-section">
+            <h6><i class="bi bi-percent me-1"></i> تنظیمات تخفیف</h6>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label-tm">نوع</label>
+                    <select name="coupon_type" class="form-select form-select-tm">
+                        <option value="DISCOUNT" {{ 'selected' if coupon and coupon.coupon_type == 'DISCOUNT' }}>تخفیف مستقیم</option>
+                        <option value="CASHBACK" {{ 'selected' if coupon and coupon.coupon_type == 'CASHBACK' }}>کشبک (کیف پول)</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label-tm">حالت محاسبه</label>
+                    <select name="discount_mode" class="form-select form-select-tm" id="discountMode" onchange="toggleMode()">
+                        <option value="PERCENT" {{ 'selected' if coupon and coupon.discount_mode == 'PERCENT' }}>درصدی</option>
+                        <option value="FIXED" {{ 'selected' if coupon and coupon.discount_mode == 'FIXED' }}>مبلغ ثابت</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label-tm" id="valueLabel">مقدار <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="number" name="discount_value" class="form-control form-control-tm" required
+                               value="{{ coupon.discount_value if coupon and coupon.discount_mode == 'PERCENT' else (coupon.discount_value // 10 if coupon else '') }}"
+                               id="discountValue">
+                        <span class="input-group-text" id="valueUnit">٪</span>
+                    </div>
+                </div>
+                <div class="col-md-4" id="capRow">
+                    <label class="form-label-tm">سقف تخفیف (تومان)</label>
+                    <input type="number" name="max_discount_amount" class="form-control form-control-tm"
+                           value="{{ coupon.max_discount_amount // 10 if coupon and coupon.max_discount_amount else '' }}"
+                           placeholder="بدون سقف">
+                </div>
+            </div>
+        </div>
+
+        <!-- Scope -->
+        <div class="field-section">
+            <h6><i class="bi bi-bullseye me-1"></i> دامنه اعمال</h6>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label-tm">دامنه</label>
+                    <select name="scope" class="form-select form-select-tm" id="scopeSelect" onchange="toggleScope()">
+                        <option value="GLOBAL" {{ 'selected' if not coupon or coupon.scope == 'GLOBAL' }}>کل سفارش</option>
+                        <option value="PRODUCT" {{ 'selected' if coupon and coupon.scope == 'PRODUCT' }}>محصول خاص</option>
+                        <option value="CATEGORY" {{ 'selected' if coupon and coupon.scope == 'CATEGORY' }}>دسته‌بندی</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-none" id="productScope">
+                    <label class="form-label-tm">محصول</label>
+                    <select name="scope_product_id" class="form-select form-select-tm">
+                        <option value="">انتخاب کنید</option>
+                        {% for p in products %}
+                        <option value="{{ p.id }}" {{ 'selected' if coupon and coupon.scope_product_id == p.id }}>{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-8 d-none" id="categoryScope">
+                    <label class="form-label-tm">دسته‌بندی‌ها</label>
+                    <div class="border rounded p-2" style="max-height:200px; overflow-y:auto;">
+                        {% for cat in product_categories %}
+                        <div class="form-check mb-1">
+                            <input type="checkbox" name="category_ids" value="{{ cat.id }}"
+                                   class="form-check-input"
+                                   id="cat_{{ cat.id }}"
+                                   {{ 'checked' if coupon and cat.id in coupon.categories|map(attribute='category_id')|list }}>
+                            <label class="form-check-label" for="cat_{{ cat.id }}">{{ cat.name }}</label>
+                        </div>
+                        {% endfor %}
+                        {% if not product_categories %}
+                        <p class="text-muted small mb-0">هیچ دسته‌بندی فعالی یافت نشد</p>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">دسته‌بندی‌هایی که کوپن برای آنها معتبر است</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Constraints -->
+        <div class="field-section">
+            <h6><i class="bi bi-sliders me-1"></i> محدودیت‌ها</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label-tm">حداقل سفارش (تومان)</label>
+                    <input type="number" name="min_order_amount" class="form-control form-control-tm"
+                           value="{{ coupon.min_order_amount // 10 if coupon and coupon.min_order_amount else '0' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label-tm">حداکثر سفارش (تومان)</label>
+                    <input type="number" name="max_order_amount" class="form-control form-control-tm"
+                           value="{{ coupon.max_order_amount // 10 if coupon and coupon.max_order_amount else '' }}"
+                           placeholder="بدون سقف">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label-tm">حداقل تعداد اقلام</label>
+                    <input type="number" name="min_quantity" class="form-control form-control-tm" min="0"
+                           value="{{ coupon.min_quantity if coupon else '0' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label-tm">سقف هر مشتری</label>
+                    <input type="number" name="max_per_customer" class="form-control form-control-tm" min="1"
+                           value="{{ coupon.max_per_customer if coupon else '1' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label-tm">سقف کل استفاده</label>
+                    <input type="number" name="max_total_uses" class="form-control form-control-tm"
+                           value="{{ coupon.max_total_uses if coupon and coupon.max_total_uses else '' }}"
+                           placeholder="نامحدود">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label-tm">شروع از</label>
+                    <input type="datetime-local" name="starts_at" class="form-control form-control-tm"
+                           value="{{ coupon.starts_at.strftime('%Y-%m-%dT%H:%M') if coupon and coupon.starts_at else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label-tm">انقضا</label>
+                    <input type="datetime-local" name="expires_at" class="form-control form-control-tm"
+                           value="{{ coupon.expires_at.strftime('%Y-%m-%dT%H:%M') if coupon and coupon.expires_at else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile whitelist (only for create) -->
+        {% if not coupon %}
+        <div class="field-section">
+            <h6><i class="bi bi-phone me-1"></i> شماره‌های مجاز (اختیاری)</h6>
+            <p class="text-muted small mb-2">
+                اگر خالی بگذارید، کوپن برای همه فعال خواهد بود.
+                شماره‌ها را با کاما یا هر کدام در یک خط وارد کنید.
+            </p>
+            <textarea name="mobiles_text" class="form-control form-control-tm" rows="3" dir="ltr"
+                      placeholder="09121234567&#10;09131234567&#10;09141234567"></textarea>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="col-lg-4">
+        <div class="card-tm no-hover sticky-top" style="top:20px;">
+            <!-- Status -->
+            <div class="mb-3">
+                <label class="form-label-tm fw-bold">وضعیت</label>
+                <select name="status" class="form-select form-select-tm">
+                    <option value="ACTIVE" {{ 'selected' if not coupon or coupon.status == 'ACTIVE' }}>فعال</option>
+                    <option value="INACTIVE" {{ 'selected' if coupon and coupon.status == 'INACTIVE' }}>غیرفعال</option>
+                    <option value="EXPIRED" {{ 'selected' if coupon and coupon.status == 'EXPIRED' }}>منقضی</option>
+                </select>
+            </div>
+
+            <!-- Flags -->
+            <div class="mb-3">
+                <label class="form-label-tm fw-bold">ویژگی‌ها</label>
+                <div class="form-check mb-2">
+                    <input type="checkbox" name="first_purchase_only" value="1" class="form-check-input"
+                           {{ 'checked' if coupon and coupon.first_purchase_only }}>
+                    <label class="form-check-label">فقط اولین خرید</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input type="checkbox" name="is_combinable" value="1" class="form-check-input"
+                           {{ 'checked' if coupon and coupon.is_combinable }}>
+                    <label class="form-check-label">قابل ترکیب با سایر کوپن‌ها</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" name="is_private" value="1" class="form-check-input"
+                           {{ 'checked' if coupon and coupon.is_private }}>
+                    <label class="form-check-label">خصوصی (فقط با کد)</label>
+                </div>
+            </div>
+
+            <hr>
+            <button type="submit" class="btn-tm-primary w-100 btn btn-lg">
+                <i class="bi bi-check-circle me-1"></i>
+                {{ 'بروزرسانی' if coupon else 'ایجاد کوپن' }}
+            </button>
+        </div>
+    </div>
+</div>
+</form>
+{% endblock %}
+
+{% block page_js %}
+<script>
+function toggleMode() {
+    const mode = document.getElementById('discountMode').value;
+    const unit = document.getElementById('valueUnit');
+    const label = document.getElementById('valueLabel');
+    const capRow = document.getElementById('capRow');
+    if (mode === 'PERCENT') {
+        unit.textContent = '٪';
+        label.innerHTML = 'درصد <span class="text-danger">*</span>';
+        capRow.classList.remove('d-none');
+    } else {
+        unit.textContent = 'تومان';
+        label.innerHTML = 'مبلغ (تومان) <span class="text-danger">*</span>';
+        capRow.classList.add('d-none');
+    }
+}
+
+function toggleScope() {
+    const scope = document.getElementById('scopeSelect').value;
+    document.getElementById('productScope').classList.toggle('d-none', scope !== 'PRODUCT');
+    document.getElementById('categoryScope').classList.toggle('d-none', scope !== 'CATEGORY');
+}
+
+// Init
+toggleMode();
+toggleScope();
+</script>
+{% endblock %}

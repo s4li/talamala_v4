@@ -1,0 +1,132 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "categories" %}
+{% block title %}دسته‌بندی محصولات - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4 class="fw-bold mb-0"><i class="bi bi-folder me-2"></i>دسته‌بندی محصولات</h4>
+    <button class="btn btn-tm-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-plus-lg me-1"></i> افزودن دسته‌بندی
+    </button>
+</div>
+
+<div class="card-tm no-hover">
+    <div class="p-0">
+        <div class="table-responsive">
+            <table class="table table-tm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>نام</th>
+                        <th>اسلاگ</th>
+                        <th>ترتیب</th>
+                        <th>تعداد محصول</th>
+                        <th>وضعیت</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                    <tr>
+                        <td>{{ cat.id }}</td>
+                        <td class="fw-bold">{{ cat.name }}</td>
+                        <td><code>{{ cat.slug }}</code></td>
+                        <td>{{ cat.sort_order }}</td>
+                        <td>{{ cat.products|length }}</td>
+                        <td>
+                            {% if cat.is_active %}
+                            <span class="badge-tm badge-tm-success">فعال</span>
+                            {% else %}
+                            <span class="badge-tm badge-tm-info">غیرفعال</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <button class="btn btn-sm btn-tm-outline" data-bs-toggle="modal"
+                                        data-bs-target="#editModal{{ cat.id }}" title="ویرایش">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="POST" action="/admin/categories/delete/{{ cat.id }}"
+                                      onsubmit="return confirm('حذف دسته‌بندی «{{ cat.name }}»؟')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button class="btn btn-sm btn-tm-danger" title="حذف"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Edit Modal -->
+                    <div class="modal fade" id="editModal{{ cat.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <form method="POST" action="/admin/categories/edit/{{ cat.id }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <div class="modal-header"><h5 class="modal-title">ویرایش «{{ cat.name }}»</h5></div>
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label-tm">نام</label>
+                                            <input type="text" name="name" class="form-control form-control-tm" value="{{ cat.name }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label-tm">اسلاگ (انگلیسی)</label>
+                                            <input type="text" name="slug" class="form-control form-control-tm" dir="ltr" value="{{ cat.slug }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label-tm">ترتیب نمایش</label>
+                                            <input type="number" name="sort_order" class="form-control form-control-tm" value="{{ cat.sort_order }}">
+                                        </div>
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" name="is_active" value="true"
+                                                   {% if cat.is_active %}checked{% endif %}>
+                                            <label class="form-check-label">فعال</label>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button class="btn btn-tm-primary" type="submit">ذخیره</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center text-muted py-4">دسته‌بندی‌ای تعریف نشده</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="/admin/categories/add">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header"><h5 class="modal-title">افزودن دسته‌بندی</h5></div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label-tm">نام</label>
+                        <input type="text" name="name" class="form-control form-control-tm" required placeholder="مثال: شمش گرمی">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-tm">اسلاگ (انگلیسی)</label>
+                        <input type="text" name="slug" class="form-control form-control-tm" dir="ltr" required placeholder="مثال: shamsh-gerami">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-tm">ترتیب نمایش</label>
+                        <input type="number" name="sort_order" class="form-control form-control-tm" value="0">
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" name="is_active" value="true" checked>
+                        <label class="form-check-label">فعال</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-tm-primary" type="submit"><i class="bi bi-plus-lg me-1"></i>افزودن</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

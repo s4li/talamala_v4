@@ -1,0 +1,90 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "packages" %}
+{% block title %}بسته‌بندی‌ها - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4 class="fw-bold mb-0"><i class="bi bi-gift me-2"></i>انواع بسته‌بندی</h4>
+    <button class="btn btn-tm-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-plus-lg me-1"></i> افزودن بسته‌بندی
+    </button>
+</div>
+
+<div class="row g-3">
+    {% for pkg in packages %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card-tm no-hover h-100">
+            <form method="POST" action="/admin/packages/update/{{ pkg.id }}" enctype="multipart/form-data" class="mb-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="input-group">
+                    <input type="text" name="name" class="form-control form-control-tm fw-bold" value="{{ pkg.name }}">
+                    <button class="btn btn-sm btn-tm-outline"><i class="bi bi-check-lg"></i></button>
+                </div>
+                <input type="file" name="files" class="form-control form-control-tm form-control-sm mt-2" multiple accept="image/*">
+                <button type="submit" class="btn btn-sm btn-tm-primary mt-2 w-100">ذخیره</button>
+            </form>
+            {% if pkg.images %}
+            <div class="d-flex flex-wrap gap-2">
+                {% for img in pkg.images %}
+                <div class="position-relative">
+                    <img src="/{{ img.file_path }}" class="img-thumb" alt="">
+                    {% if img.is_default %}<span class="default-badge">✓</span>{% endif %}
+                    <div class="d-flex gap-1 mt-1">
+                        {% if not img.is_default %}
+                        <form method="POST" action="/admin/packages/image/default/{{ img.id }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button class="btn btn-tm-warning" style="padding:1px 5px;font-size:0.65rem;"><i class="bi bi-star"></i></button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="/admin/packages/image/delete/{{ img.id }}" onsubmit="return confirm('حذف؟')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button class="btn btn-tm-danger" style="padding:1px 5px;font-size:0.65rem;"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="border-top pt-3 mt-3 text-end">
+                <form method="POST" action="/admin/packages/delete/{{ pkg.id }}" class="d-inline"
+                      onsubmit="return confirm('آیا از حذف «{{ pkg.name }}» مطمئن هستید؟')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash me-1"></i>حذف</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center text-muted py-5">هنوز بسته‌بندی ثبت نشده</div>
+    {% endfor %}
+</div>
+
+<!-- Add Modal -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="/admin/packages/add" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">افزودن بسته‌بندی</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label-tm">نام بسته‌بندی *</label>
+                        <input type="text" name="name" class="form-control form-control-tm" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-tm">تصاویر</label>
+                        <input type="file" name="files" class="form-control form-control-tm" multiple accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-tm-primary">ذخیره</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

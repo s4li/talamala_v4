@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+env1/
+
+# Environment
+.env
+
+# Uploads
+static/uploads/*
+!static/uploads/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+nul

@@ -1,0 +1,65 @@
+"""
+TalaMala v4 - Template Configuration
+======================================
+Jinja2 templates setup with custom filters and global functions.
+"""
+
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+
+from config.database import SessionLocal
+from common.helpers import format_toman, format_weight, format_jdate, persian_number, format_gold_gram
+
+# Initialize templates
+templates = Jinja2Templates(directory="templates")
+
+
+# ==========================================
+# Template Helper: System Settings
+# ==========================================
+
+def get_setting_value(key: str, default: str = "") -> str:
+    """
+    Fetch a system setting value from DB.
+    Used inside Jinja2 templates as a global function.
+    Creates its own DB session (templates don't have access to request's session).
+    """
+    db = SessionLocal()
+    try:
+        # Import here to avoid circular imports at module load time
+        from modules.admin.models import SystemSetting
+        setting = db.query(SystemSetting).filter(SystemSetting.key == key).first()
+        return setting.value if setting else default
+    finally:
+        db.close()
+
+
+def get_setting_from_db(db: Session, key: str, default: str = "") -> str:
+    """Fetch a system setting using an existing DB session (for use in routes)."""
+    from modules.admin.models import SystemSetting
+    setting = db.query(SystemSetting).filter(SystemSetting.key == key).first()
+    return setting.value if setting else default
+
+
+def parse_int_setting(db: Session, key: str, default: int = 0) -> int:
+    """Fetch a system setting and parse it as integer."""
+    val = get_setting_from_db(db, key, str(default))
+    try:
+        return int(str(val).strip())
+    except (ValueError, TypeError):
+        return default
+
+
+# ==========================================
+# Register Filters & Globals
+# ==========================================
+
+# Filters (usage in template: {{ value | toman }})
+templates.env.filters["toman"] = format_toman
+templates.env.filters["weight_format"] = format_weight
+templates.env.filters["jdate"] = format_jdate
+templates.env.filters["persian_number"] = persian_number
+templates.env.filters["gold_gram"] = format_gold_gram
+
+# Globals (usage in template: {{ get_setting_value('key') }})
+templates.env.globals["get_setting_value"] = get_setting_value
