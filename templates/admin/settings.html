@@ -28,6 +28,16 @@
                 </small>
             </div>
             <div class="col-md-4">
+                <label class="form-label-tm">قیمت نقره خالص (ریال / هر گرم)</label>
+                <input type="text" name="silver_price" class="form-control form-control-tm form-control-lg"
+                       value="{{ settings.get('silver_price', {}).value if settings.get('silver_price') else '0' }}"
+                       dir="ltr" placeholder="مثال: 550000">
+                <small class="text-muted">
+                    معادل تومانی:
+                    <strong id="silverTomanDisplay">—</strong>
+                </small>
+            </div>
+            <div class="col-md-4">
                 <label class="form-label-tm">درصد مالیات بر ارزش افزوده</label>
                 <div class="input-group">
                     <input type="text" name="tax_percent" class="form-control form-control-tm"
@@ -109,6 +119,13 @@ document.querySelector('input[name="gold_price"]').addEventListener('input', fun
 });
 // Init
 document.querySelector('input[name="gold_price"]').dispatchEvent(new Event('input'));
+
+document.querySelector('input[name="silver_price"]').addEventListener('input', function() {
+    const val = parseInt(this.value) || 0;
+    const toman = Math.floor(val / 10).toLocaleString('fa-IR');
+    document.getElementById('silverTomanDisplay').textContent = toman + ' تومان';
+});
+document.querySelector('input[name="silver_price"]').dispatchEvent(new Event('input'));
 
 // Shipping toman
 function toToman(el, displayId) {

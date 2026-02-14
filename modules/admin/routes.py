@@ -40,6 +40,7 @@ async def update_settings(
     request: Request,
     csrf_token: Optional[str] = Form(None),
     gold_price: str = Form("0"),
+    silver_price: str = Form("0"),
     tax_percent: str = Form("9"),
     support_phone: str = Form(""),
     support_telegram: str = Form(""),
@@ -54,6 +55,7 @@ async def update_settings(
 
     updates = {
         "gold_price": gold_price,
+        "silver_price": silver_price,
         "tax_percent": tax_percent,
         "support_phone": support_phone,
         "support_telegram": support_telegram,
