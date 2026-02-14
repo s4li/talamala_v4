@@ -688,9 +688,9 @@ def seed():
         print("\n[9.5] Dealer Tiers")
 
         tiers_data = [
-            {"name": "عامل", "slug": "amel", "sort_order": 1, "is_end_customer": False},
+            {"name": "پخش", "slug": "pakhsh", "sort_order": 1, "is_end_customer": False},
             {"name": "بنکدار", "slug": "bankdar", "sort_order": 2, "is_end_customer": False},
-            {"name": "نماینده", "slug": "namayandeh", "sort_order": 3, "is_end_customer": False},
+            {"name": "فروشگاه", "slug": "forushgah", "sort_order": 3, "is_end_customer": False},
             {"name": "مشتری نهایی", "slug": "end_customer", "sort_order": 4, "is_end_customer": True},
         ]
 
@@ -718,18 +718,18 @@ def seed():
         # Wage percentages: {product_weight: {tier_slug: wage%}}
         # Lower weight = higher wage, lower tier = lower wage
         tier_wage_config = {
-            0.1:   {"amel": 3.0, "bankdar": 5.0, "namayandeh": 7.0, "end_customer": 10.0},
-            0.2:   {"amel": 3.0, "bankdar": 5.0, "namayandeh": 7.0, "end_customer": 10.0},
-            0.25:  {"amel": 3.0, "bankdar": 5.0, "namayandeh": 7.0, "end_customer": 10.0},
-            0.5:   {"amel": 3.0, "bankdar": 5.0, "namayandeh": 7.0, "end_customer": 10.0},
-            1.0:   {"amel": 3.0, "bankdar": 5.0, "namayandeh": 7.0, "end_customer": 10.0},
-            1.5:   {"amel": 2.5, "bankdar": 4.0, "namayandeh": 6.0, "end_customer": 8.0},
-            2.0:   {"amel": 2.5, "bankdar": 4.0, "namayandeh": 6.0, "end_customer": 8.0},
-            2.5:   {"amel": 2.5, "bankdar": 4.0, "namayandeh": 6.0, "end_customer": 8.0},
-            5.0:   {"amel": 2.0, "bankdar": 3.0, "namayandeh": 5.0, "end_customer": 7.0},
-            10.0:  {"amel": 2.0, "bankdar": 3.0, "namayandeh": 5.0, "end_customer": 7.0},
-            50.0:  {"amel": 1.5, "bankdar": 2.5, "namayandeh": 4.0, "end_customer": 5.0},
-            100.0: {"amel": 1.0, "bankdar": 2.0, "namayandeh": 3.0, "end_customer": 4.0},
+            0.1:   {"pakhsh": 3.0, "bankdar": 5.0, "forushgah": 7.0, "end_customer": 10.0},
+            0.2:   {"pakhsh": 3.0, "bankdar": 5.0, "forushgah": 7.0, "end_customer": 10.0},
+            0.25:  {"pakhsh": 3.0, "bankdar": 5.0, "forushgah": 7.0, "end_customer": 10.0},
+            0.5:   {"pakhsh": 3.0, "bankdar": 5.0, "forushgah": 7.0, "end_customer": 10.0},
+            1.0:   {"pakhsh": 3.0, "bankdar": 5.0, "forushgah": 7.0, "end_customer": 10.0},
+            1.5:   {"pakhsh": 2.5, "bankdar": 4.0, "forushgah": 6.0, "end_customer": 8.0},
+            2.0:   {"pakhsh": 2.5, "bankdar": 4.0, "forushgah": 6.0, "end_customer": 8.0},
+            2.5:   {"pakhsh": 2.5, "bankdar": 4.0, "forushgah": 6.0, "end_customer": 8.0},
+            5.0:   {"pakhsh": 2.0, "bankdar": 3.0, "forushgah": 5.0, "end_customer": 7.0},
+            10.0:  {"pakhsh": 2.0, "bankdar": 3.0, "forushgah": 5.0, "end_customer": 7.0},
+            50.0:  {"pakhsh": 1.5, "bankdar": 2.5, "forushgah": 4.0, "end_customer": 5.0},
+            100.0: {"pakhsh": 1.0, "bankdar": 2.0, "forushgah": 3.0, "end_customer": 4.0},
         }
 
         existing_tw = db.query(ProductTierWage).count()
@@ -765,9 +765,9 @@ def seed():
         branch_shiraz = db.query(Location).filter(Location.name == "نمایندگی شیراز").first()
         branch_mashhad = db.query(Location).filter(Location.name == "نمایندگی مشهد").first()
 
-        tier_amel = tier_map.get("amel")
+        tier_pakhsh = tier_map.get("pakhsh")
         tier_bankdar = tier_map.get("bankdar")
-        tier_namayandeh = tier_map.get("namayandeh")
+        tier_forushgah = tier_map.get("forushgah")
 
         dealers_data = [
             {
@@ -776,7 +776,7 @@ def seed():
                 "national_id": "1111111111",
                 "location_id": branch_esfahan.id if branch_esfahan else None,
                 "api_key": "test_esfahan_key_0000000000000000",
-                "tier_id": tier_amel.id if tier_amel else None,
+                "tier_id": tier_pakhsh.id if tier_pakhsh else None,
             },
             {
                 "mobile": "09171234567",
@@ -792,7 +792,7 @@ def seed():
                 "national_id": "3333333333",
                 "location_id": branch_mashhad.id if branch_mashhad else None,
                 "api_key": "test_mashhad_key_2222222222222222",
-                "tier_id": tier_namayandeh.id if tier_namayandeh else None,
+                "tier_id": tier_forushgah.id if tier_forushgah else None,
             },
         ]
 
@@ -979,9 +979,9 @@ def seed():
         print(f"  Customer: 09351234567 (wallet: 10M toman)")
         print(f"  Customer: 09359876543")
         print(f"  Customer: 09131112233")
-        print(f"  Dealer:   09161234567 (esfahan, tier: amel)")
+        print(f"  Dealer:   09161234567 (esfahan, tier: pakhsh)")
         print(f"  Dealer:   09171234567 (shiraz, tier: bankdar)")
-        print(f"  Dealer:   09181234567 (mashhad, tier: namayandeh)")
+        print(f"  Dealer:   09181234567 (mashhad, tier: forushgah)")
 
         print(f"\n--- Dealer API Keys (for POS) ---")
         for dd in dealers_data:
