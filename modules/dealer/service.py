@@ -1,7 +1,7 @@
 """
 Dealer Service - Business Logic
 ==================================
-POS sales, buyback processing, commission calculations.
+POS sales, buyback processing, gold profit calculations.
 """
 
 import secrets
@@ -67,14 +67,14 @@ class DealerService:
     def create_dealer(
         self, db: Session, mobile: str, full_name: str,
         national_id: str = "", location_id: int = None,
-        commission_percent: float = 2.0,
+        tier_id: int = None,
     ) -> Dealer:
         dealer = Dealer(
             mobile=mobile,
             full_name=full_name,
             national_id=national_id or None,
             location_id=location_id,
-            commission_percent=Decimal(str(commission_percent)),
+            tier_id=tier_id,
         )
         db.add(dealer)
         db.flush()
@@ -83,7 +83,7 @@ class DealerService:
     def update_dealer(
         self, db: Session, dealer_id: int,
         full_name: str = None, location_id: int = None,
-        commission_percent: float = None, is_active: bool = None,
+        tier_id: int = None, is_active: bool = None,
     ) -> Optional[Dealer]:
         dealer = self.get_dealer(db, dealer_id)
         if not dealer:
@@ -92,8 +92,8 @@ class DealerService:
             dealer.full_name = full_name
         if location_id is not None:
             dealer.location_id = location_id
-        if commission_percent is not None:
-            dealer.commission_percent = Decimal(str(commission_percent))
+        if tier_id is not None:
+            dealer.tier_id = tier_id
         if is_active is not None:
             dealer.is_active = is_active
         db.flush()
@@ -138,9 +138,6 @@ class DealerService:
         if bar.location_id != dealer.location_id:
             return {"success": False, "message": "این شمش در محل نمایندگی شما نیست"}
 
-        # Calculate commission
-        commission = int(sale_price * float(dealer.commission_percent) / 100)
-
         # Mark bar as sold + generate claim code for POS receipt
         bar.status = BarStatus.SOLD
         bar.claim_code = generate_unique_claim_code(db)
@@ -169,7 +166,7 @@ class DealerService:
             customer_mobile=customer_mobile,
             customer_national_id=customer_national_id,
             sale_price=sale_price,
-            commission_amount=commission,
+            commission_amount=0,
             description=description,
         )
         db.add(sale)
@@ -217,7 +214,6 @@ class DealerService:
             "success": True,
             "message": f"فروش شمش {bar.serial_code} ثبت شد",
             "sale": sale,
-            "commission": commission,
             "gold_profit_mg": gold_profit_mg,
             "claim_code": bar.claim_code,
         }
@@ -358,11 +354,6 @@ class DealerService:
             .filter(DealerSale.dealer_id == dealer_id)
             .scalar()
         )
-        total_commission = (
-            db.query(sa_func.coalesce(sa_func.sum(DealerSale.commission_amount), 0))
-            .filter(DealerSale.dealer_id == dealer_id)
-            .scalar()
-        )
         total_gold_profit_mg = (
             db.query(sa_func.coalesce(sa_func.sum(DealerSale.gold_profit_mg), 0))
             .filter(DealerSale.dealer_id == dealer_id)
@@ -376,7 +367,6 @@ class DealerService:
         return {
             "total_sales": total_sales,
             "total_revenue": total_revenue,
-            "total_commission": total_commission,
             "total_gold_profit_mg": total_gold_profit_mg,
             "pending_buybacks": pending_buybacks,
         }
@@ -509,8 +499,8 @@ class DealerService:
         total_revenue = (
             db.query(sa_func.coalesce(sa_func.sum(DealerSale.sale_price), 0)).scalar()
         )
-        total_commission = (
-            db.query(sa_func.coalesce(sa_func.sum(DealerSale.commission_amount), 0)).scalar()
+        total_gold_profit_mg = (
+            db.query(sa_func.coalesce(sa_func.sum(DealerSale.gold_profit_mg), 0)).scalar()
         )
         pending_buybacks = (
             db.query(BuybackRequest).filter(BuybackRequest.status == BuybackStatus.PENDING).count()
@@ -520,7 +510,7 @@ class DealerService:
             "active_dealers": active_dealers,
             "total_sales": total_sales,
             "total_revenue": total_revenue,
-            "total_commission": total_commission,
+            "total_gold_profit_mg": total_gold_profit_mg,
             "pending_buybacks": pending_buybacks,
         }
 

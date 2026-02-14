@@ -59,9 +59,16 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label-tm fw-bold">درصد کمیسیون</label>
-                <input type="number" name="commission_percent" class="form-control form-control-tm" step="0.01"
-                       min="0" max="100" value="{{ dealer.commission_percent if dealer else '2.00' }}">
+                <label class="form-label-tm fw-bold">سطح نمایندگی</label>
+                <select name="tier_id" class="form-select form-select-tm">
+                    <option value="">-- بدون سطح --</option>
+                    {% for tier in tiers %}
+                    <option value="{{ tier.id }}" {% if dealer and dealer.tier_id == tier.id %}selected{% endif %}>
+                        {{ tier.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted">سود نماینده بر اساس اختلاف اجرت سطح نمایندگی و مشتری نهایی محاسبه می‌شود</small>
             </div>
 
             {% if dealer %}

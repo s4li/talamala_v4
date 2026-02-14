@@ -21,7 +21,7 @@
                     <th>کد ثبت</th>
                     <th>مشتری</th>
                     <th>مبلغ فروش</th>
-                    <th>کمیسیون</th>
+                    <th>سود طلایی</th>
                     <th>تاریخ</th>
                 </tr>
             </thead>
@@ -54,7 +54,7 @@
                         {% endif %}
                     </td>
                     <td class="fw-bold">{{ sale.sale_price | toman }} <small class="text-muted">تومان</small></td>
-                    <td class="text-success">{{ sale.commission_amount | toman }} <small class="text-muted">تومان</small></td>
+                    <td class="text-success">{{ sale.gold_profit_mg | gold_gram }}</td>
                     <td>{{ sale.created_at | jdate }}</td>
                 </tr>
                 {% else %}

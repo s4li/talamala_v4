@@ -87,7 +87,6 @@ async def dealer_create_submit(
     national_id: str = Form(""),
     location_id: str = Form(""),
     tier_id: str = Form(""),
-    commission_percent: float = Form(2.0),
     csrf_token: str = Form(""),
     user=Depends(require_operator_or_admin),
     db: Session = Depends(get_db),
@@ -123,10 +122,8 @@ async def dealer_create_submit(
         db, mobile.strip(), full_name.strip(),
         national_id=national_id.strip(),
         location_id=loc_id,
-        commission_percent=commission_percent,
+        tier_id=t_id,
     )
-    if t_id:
-        dealer.tier_id = t_id
     db.commit()
 
     return RedirectResponse("/admin/dealers", status_code=302)
@@ -175,7 +172,6 @@ async def dealer_edit_submit(
     full_name: str = Form(...),
     location_id: str = Form(""),
     tier_id: str = Form(""),
-    commission_percent: float = Form(2.0),
     is_active: str = Form("off"),
     csrf_token: str = Form(""),
     user=Depends(require_operator_or_admin),
@@ -189,11 +185,9 @@ async def dealer_edit_submit(
         db, dealer_id,
         full_name=full_name.strip(),
         location_id=loc_id,
-        commission_percent=commission_percent,
+        tier_id=t_id,
         is_active=(is_active == "on"),
     )
-    if dealer and t_id is not None:
-        dealer.tier_id = t_id
     db.commit()
 
     return RedirectResponse("/admin/dealers", status_code=302)

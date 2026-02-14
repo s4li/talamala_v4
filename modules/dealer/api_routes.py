@@ -130,7 +130,7 @@ async def dealer_sale(
         "sale_id": sale.id,
         "bar_serial": body.serial_code.upper(),
         "claim_code": result.get("claim_code"),
-        "commission": result["commission"],
+        "gold_profit_mg": result.get("gold_profit_mg", 0),
         "message": result["message"],
     }
 
@@ -163,7 +163,7 @@ async def dealer_sales(
                 "customer_name": s.customer_name,
                 "customer_mobile": s.customer_mobile,
                 "sale_price": s.sale_price,
-                "commission": s.commission_amount,
+                "gold_profit_mg": s.gold_profit_mg,
                 "created_at": s.created_at.isoformat() if s.created_at else None,
             }
             for s in sales
