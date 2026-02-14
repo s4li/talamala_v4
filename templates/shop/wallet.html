@@ -37,11 +37,15 @@
     .wallet-balance {
         font-size: 2rem;
         font-weight: bold;
-        color: var(--tm-primary-900);
+        color: #fff;
     }
     .wallet-label {
         font-size: 0.85rem;
         color: rgba(255,255,255,0.6);
+    }
+    .wallet-card .wallet-unit {
+        font-size: 0.78rem;
+        color: rgba(255,255,255,0.5);
     }
     .action-card {
         border: none;
@@ -112,35 +116,35 @@
 
         <div class="wallet-card">
             <div class="d-flex align-items-center mb-3">
-                <i class="bi bi-wallet2 me-2" style="font-size:1.5rem;color:var(--tm-primary-900);"></i>
+                <i class="bi bi-wallet2 me-2" style="font-size:1.5rem;color:rgba(255,255,255,0.85);"></i>
                 <span style="font-size:1.1rem;">کیف پول من</span>
             </div>
             <div class="row">
                 <div class="col">
                     <div class="wallet-label">موجودی ریالی</div>
                     <div class="wallet-balance">{{ balance.balance | toman }}</div>
-                    <small class="text-muted">تومان</small>
+                    <small class="wallet-unit">تومان</small>
                 </div>
                 <div class="col">
                     <div class="wallet-label">قابل برداشت</div>
-                    <div style="font-size:1.3rem;font-weight:bold;color:#4ade80;">{{ balance.withdrawable | toman }}</div>
-                    <small class="text-muted">تومان</small>
+                    <div style="font-size:1.3rem;font-weight:bold;color:#86efac;">{{ balance.withdrawable | toman }}</div>
+                    <small class="wallet-unit">تومان</small>
                 </div>
                 {% if balance.credit > 0 %}
                 <div class="col">
                     <div class="wallet-label">اعتبار فروشگاهی</div>
-                    <div style="font-size:1.3rem;font-weight:bold;color:#a78bfa;">{{ balance.credit | toman }}</div>
-                    <small class="text-muted">تومان</small>
+                    <div style="font-size:1.3rem;font-weight:bold;color:#c4b5fd;">{{ balance.credit | toman }}</div>
+                    <small class="wallet-unit">تومان</small>
                 </div>
                 {% endif %}
                 <div class="col">
                     <div class="wallet-label">موجودی طلا</div>
-                    <div style="font-size:1.3rem;font-weight:bold;color:#fbbf24;">{{ gold_balance.balance | gold_gram }}</div>
+                    <div style="font-size:1.3rem;font-weight:bold;color:#fde68a;">{{ gold_balance.balance | gold_gram }}</div>
                 </div>
                 <div class="col">
                     <div class="wallet-label">بلوکه شده</div>
-                    <div style="font-size:1.3rem;font-weight:bold;color:#f97316;">{{ balance.locked | toman }}</div>
-                    <small class="text-muted">تومان</small>
+                    <div style="font-size:1.3rem;font-weight:bold;color:#fdba74;">{{ balance.locked | toman }}</div>
+                    <small class="wallet-unit">تومان</small>
                 </div>
             </div>
             {% if balance.credit > 0 %}
