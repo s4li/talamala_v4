@@ -310,9 +310,10 @@ class TicketService:
             return {"success": False, "message": "تیکت یافت نشد"}
 
         ticket.status = new_status
-        ticket.updated_at = now_utc()
         if new_status == TicketStatus.CLOSED:
             ticket.closed_at = now_utc()
+        else:
+            ticket.updated_at = now_utc()
 
         db.flush()
 
