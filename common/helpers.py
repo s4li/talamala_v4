@@ -165,7 +165,7 @@ def format_jdate(value, fmt=None) -> str:
             month = months[jd.month]
             year = persian_number(str(jd.year))
             time_str = persian_number(jd.strftime("%H:%M"))
-            return f"{day} {month} {year}  {time_str}"
+            return f"{time_str} - {day} {month} {year}"
         return str(value)
     except Exception:
         return str(value)
