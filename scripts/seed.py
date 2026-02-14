@@ -24,6 +24,7 @@ import os
 import io
 import random
 import string
+import shutil
 
 # Fix Windows console encoding for Persian text
 if sys.stdout.encoding != "utf-8":
@@ -178,13 +179,10 @@ def seed():
         print("\n[4.5] Product Categories")
 
         categories_data = [
-            ("طلا-995", "gold-995", 1),
-            ("طلا-750", "gold-750", 2),
-            ("نقره", "silver", 3),
-            ("سرمایه ای", "investment", 4),
-            ("وکیوم", "vacuum", 5),
-            ("پلاتین", "platinum", 6),
-            ("1گرمی", "one-gram", 7),
+            ("شمش طلا طلاملا", "gold-talamala", 1),
+            ("شمش طلا سرمایه‌ای", "gold-investment", 2),
+            ("شمش نقره طلاملا", "silver-talamala", 3),
+            ("شمش نقره سرمایه‌ای", "silver-investment", 4),
         ]
 
         cat_map = {}
@@ -203,55 +201,205 @@ def seed():
         db.flush()
 
         # ==========================================
-        # 5. Products (TalaMala v2 weights)
+        # 5. Products (Real products from _private data)
         # ==========================================
-        print("\n[5/9] Products (TalaMala v2)")
+        print("\n[5/9] Products (44 = 11 weights × 4 types)")
 
-        #                    name                 weight  purity  wage%
-        products_data = [
-            ("شمش طلای ۱۰۰ میلی‌گرم",            0.100, 750, 10),
-            ("شمش طلای ۲۰۰ میلی‌گرم",            0.200, 750, 10),
-            ("شمش طلای ۲۵۰ میلی‌گرم",            0.250, 750, 10),
-            ("شمش طلای ۵۰۰ میلی‌گرم",            0.500, 750, 10),
-            ("شمش طلای ۱ گرم",                    1.000, 750, 10),
-            ("شمش طلای ۱.۵ گرم",                  1.500, 750, 8),
-            ("شمش طلای ۲ گرم",                    2.000, 750, 8),
-            ("شمش طلای ۲.۵ گرم",                  2.500, 750, 8),
-            ("شمش طلای ۵ گرم",                    5.000, 750, 7),
-            ("شمش طلای ۱۰ گرم",                  10.000, 750, 7),
-            ("شمش طلای ۵۰ گرم",                  50.000, 750, 5),
-            ("شمش طلای ۱۰۰ گرم",                100.000, 750, 4),
+        PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        IMG_SRC_BASE = os.path.join(PROJECT_ROOT, "_private", "عکس محصولات")
+        IMG_DST_BASE = os.path.join(PROJECT_ROOT, "static", "uploads", "products")
+        os.makedirs(IMG_DST_BASE, exist_ok=True)
+
+        # Product type definitions (folder → Excel sheet mapping)
+        product_types = [
+            {
+                "folder": "شمش طلا با بسته بندی",
+                "slug": "gold-talamala",
+                "category_slug": "gold-talamala",
+                "name_prefix": "شمش طلا طلاملا",
+                "purity": 750,
+            },
+            {
+                "folder": "شمش طلا بدون بسته بندی",
+                "slug": "gold-investment",
+                "category_slug": "gold-investment",
+                "name_prefix": "شمش طلا سرمایه‌ای",
+                "purity": 750,
+            },
+            {
+                "folder": "شمش نقره با بسته بندی",
+                "slug": "silver-talamala",
+                "category_slug": "silver-talamala",
+                "name_prefix": "شمش نقره طلاملا",
+                "purity": 999,
+            },
+            {
+                "folder": "شمش نقره بدون بسته بندی",
+                "slug": "silver-investment",
+                "category_slug": "silver-investment",
+                "name_prefix": "شمش نقره سرمایه‌ای",
+                "purity": 999,
+            },
         ]
 
-        product_map = {}
-        cat_gold750 = cat_map.get("gold-750")
-        cat_investment = cat_map.get("investment")
+        # Weight definitions: (grams, persian_label, {folder overrides for non-standard names})
+        weights_def = [
+            (0.1,  "۱۰۰ سوت",  {"شمش نقره با بسته بندی": "0.1 g"}),
+            (0.2,  "۲۰۰ سوت",  {}),
+            (0.5,  "۵۰۰ سوت",  {}),
+            (1.0,  "۱ گرم",     {}),
+            (2.5,  "۲.۵ گرم",   {}),
+            (5.0,  "۵ گرم",     {}),
+            (10.0, "۱۰ گرم",    {}),
+            (20.0, "۲۰ گرم",    {}),
+            (31.1, "۱ اونس",    {
+                "شمش طلا با بسته بندی": "1ounce",
+                "شمش طلا بدون بسته بندی": "1ounce",
+                "شمش نقره با بسته بندی": "1onuce",
+                "شمش نقره بدون بسته بندی": "1onuce",
+            }),
+            (50.0, "۵۰ گرم",    {"شمش طلا بدون بسته بندی": "50G"}),
+            (100.0,"۱۰۰ گرم",   {}),
+        ]
 
-        # Get first design and package for product assignment
+        def weight_to_folder(weight_grams, ptype_folder, overrides):
+            """Convert weight to image folder name."""
+            if ptype_folder in overrides:
+                return overrides[ptype_folder]
+            if weight_grams == 31.1:
+                return "1ounce"
+            if weight_grams == int(weight_grams):
+                return f"{int(weight_grams)}g"
+            return f"{weight_grams}g"
+
+        # Wage data from Excel (× 100 = percentages)
+        # {type_slug: {weight: [distributor%, wholesaler%, store%, end_customer%]}}
+        wage_data = {
+            "gold-talamala": {
+                0.1:  [14.0, 17.0, 18.5, 42.0],
+                0.2:  [7.0,  8.4,  9.2,  25.0],
+                0.5:  [5.0,  6.3,  6.5,  16.0],
+                1.0:  [3.8,  5.1,  5.3,  13.0],
+                2.5:  [2.8,  4.1,  4.3,  11.0],
+                5.0:  [2.4,  3.7,  3.9,  9.0],
+                10.0: [1.3,  2.1,  2.3,  8.7],
+                20.0: [1.0,  1.8,  2.0,  5.8],
+                31.1: [0.6,  1.3,  1.5,  5.6],
+                50.0: [0.4,  0.6,  0.9,  4.8],
+                100.0:[0.2,  0.4,  0.7,  3.8],
+            },
+            "gold-investment": {
+                0.1:  [3.5,  5.0,  7.0,  11.0],
+                0.2:  [3.5,  5.0,  7.0,  11.0],
+                0.5:  [2.0,  2.8,  4.0,  7.0],
+                1.0:  [1.5,  2.3,  3.0,  6.0],
+                2.5:  [1.5,  2.3,  3.0,  6.0],
+                5.0:  [1.3,  1.7,  2.5,  4.5],
+                10.0: [1.0,  1.5,  2.1,  4.0],
+                20.0: [1.0,  1.2,  1.9,  3.5],
+                31.1: [0.6,  1.2,  1.7,  3.0],
+                50.0: [0.4,  0.8,  1.0,  2.5],
+                100.0:[0.2,  0.6,  0.8,  1.5],
+            },
+            "silver-talamala": {
+                0.1:  [56.0,  68.0,  74.0,  168.0],
+                0.2:  [28.0,  33.6,  36.8,  100.0],
+                0.5:  [20.0,  25.2,  26.0,  64.0],
+                1.0:  [15.2,  20.4,  21.2,  52.0],
+                2.5:  [11.2,  16.4,  17.2,  44.0],
+                5.0:  [9.6,   14.8,  15.6,  36.0],
+                10.0: [5.2,   8.4,   9.2,   34.8],
+                20.0: [4.0,   7.2,   8.0,   23.2],
+                31.1: [2.4,   5.2,   6.0,   22.4],
+                50.0: [1.5,   2.4,   3.6,   19.2],
+                100.0:[0.8,   1.6,   2.8,   15.2],
+            },
+            "silver-investment": {
+                0.1:  [42.0,  51.0,  55.5,  126.0],
+                0.2:  [21.0,  25.2,  27.6,  75.0],
+                0.5:  [15.0,  18.9,  19.5,  48.0],
+                1.0:  [11.4,  15.3,  15.9,  39.0],
+                2.5:  [8.4,   12.3,  12.9,  33.0],
+                5.0:  [7.2,   11.1,  11.7,  27.0],
+                10.0: [3.9,   6.3,   6.9,   26.1],
+                20.0: [3.0,   5.4,   6.0,   17.4],
+                31.1: [2.4,   3.9,   4.5,   16.8],
+                50.0: [1.6,   1.8,   2.7,   14.4],
+                100.0:[0.8,   1.2,   2.1,   11.4],
+            },
+        }
+
+        product_map = {}
         default_design = db.query(CardDesign).first()
         default_package = db.query(PackageType).first()
 
-        for name, weight, purity, wage in products_data:
-            existing = db.query(Product).filter(Product.name == name).first()
-            if not existing:
+        for ptype in product_types:
+            cat = cat_map.get(ptype["category_slug"])
+            type_wages = wage_data.get(ptype["slug"], {})
+
+            for weight_grams, weight_label, folder_overrides in weights_def:
+                name = f"{ptype['name_prefix']} {weight_label}"
+                existing = db.query(Product).filter(Product.name == name).first()
+                if existing:
+                    product_map[name] = existing
+                    print(f"  = exists: {name}")
+                    continue
+
+                # End-customer wage (index 3) for product.wage
+                tier_wages_list = type_wages.get(weight_grams, [0, 0, 0, 0])
+                end_customer_wage = tier_wages_list[3]
+
                 p = Product(
-                    name=name, weight=weight, purity=purity,
+                    name=name,
+                    weight=weight_grams,
+                    purity=ptype["purity"],
                     card_design_id=default_design.id if default_design else None,
                     package_type_id=default_package.id if default_package else None,
-                    wage=wage, is_wage_percent=True,
+                    wage=end_customer_wage,
+                    is_wage_percent=True,
                     is_active=True,
                 )
                 db.add(p)
                 db.flush()
-                # Assign categories via M2M: ≤ 2.5g = طلا-750, > 2.5g = سرمایه ای
-                cat = cat_gold750 if weight <= 2.5 else cat_investment
+
+                # M2M category link
                 if cat:
                     db.add(ProductCategoryLink(product_id=p.id, category_id=cat.id))
+
+                # Copy images from _private to static/uploads/products/
+                folder_name = weight_to_folder(weight_grams, ptype["folder"], folder_overrides)
+                img_src_dir = os.path.join(IMG_SRC_BASE, ptype["folder"], folder_name)
+                if os.path.isdir(img_src_dir):
+                    # Prefer website-sized images if available
+                    site_dir = os.path.join(img_src_dir, "ابعاد سایت")
+                    if os.path.isdir(site_dir):
+                        src_files = [
+                            os.path.join(site_dir, f)
+                            for f in sorted(os.listdir(site_dir))
+                            if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))
+                        ]
+                    else:
+                        src_files = [
+                            os.path.join(img_src_dir, f)
+                            for f in sorted(os.listdir(img_src_dir))
+                            if os.path.isfile(os.path.join(img_src_dir, f))
+                            and f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))
+                        ]
+
+                    for idx, src_path in enumerate(src_files):
+                        ext = os.path.splitext(src_path)[1].lower()
+                        clean_name = f"{ptype['slug']}_{folder_name}_{idx + 1}{ext}"
+                        dst_path = os.path.join(IMG_DST_BASE, clean_name)
+                        shutil.copy2(src_path, dst_path)
+                        rel_path = f"static/uploads/products/{clean_name}"
+                        db.add(ProductImage(
+                            product_id=p.id,
+                            file_path=rel_path,
+                            is_default=(idx == 0),
+                        ))
+
                 product_map[name] = p
-                print(f"  + {name} ({weight}g)")
-            else:
-                product_map[name] = existing
-                print(f"  = exists: {name}")
+                print(f"  + {name} ({weight_grams}g, purity={ptype['purity']}, wage={end_customer_wage}%)")
 
         db.flush()
 
@@ -317,21 +465,6 @@ def seed():
         else:
             batch1 = db.query(Batch).filter(Batch.batch_number == "B-1403-001").first()
 
-            stock_per_location = {
-                "شمش طلای ۱۰۰ میلی‌گرم": 10,
-                "شمش طلای ۲۰۰ میلی‌گرم": 8,
-                "شمش طلای ۲۵۰ میلی‌گرم": 8,
-                "شمش طلای ۵۰۰ میلی‌گرم": 6,
-                "شمش طلای ۱ گرم": 10,
-                "شمش طلای ۱.۵ گرم": 6,
-                "شمش طلای ۲ گرم": 6,
-                "شمش طلای ۲.۵ گرم": 5,
-                "شمش طلای ۵ گرم": 5,
-                "شمش طلای ۱۰ گرم": 4,
-                "شمش طلای ۵۰ گرم": 2,
-                "شمش طلای ۱۰۰ گرم": 2,
-            }
-
             locations = list(location_map.values())
             if not locations:
                 locations = db.query(Location).filter(Location.is_active == True).all()
@@ -339,12 +472,18 @@ def seed():
             total_bars = 0
             used_serials = set()
 
-            for prod_name, count_per_loc in stock_per_location.items():
-                product = product_map.get(prod_name)
-                if not product:
-                    product = db.query(Product).filter(Product.name == prod_name).first()
-                if not product:
-                    continue
+            # Create bars for all active products, quantity based on weight
+            all_products = db.query(Product).filter(Product.is_active == True).all()
+            for product in all_products:
+                w = float(product.weight)
+                if w <= 1:
+                    count_per_loc = 5
+                elif w <= 5:
+                    count_per_loc = 3
+                elif w <= 50:
+                    count_per_loc = 2
+                else:
+                    count_per_loc = 1
 
                 for loc in locations:
                     for _ in range(count_per_loc):
@@ -363,7 +502,7 @@ def seed():
                         total_bars += 1
 
             db.flush()
-            print(f"  + {total_bars} bars across {len(locations)} locations")
+            print(f"  + {total_bars} bars for {len(all_products)} products across {len(locations)} locations")
 
             # --- Test bars for claim & transfer testing ---
             first_product = db.query(Product).first()
@@ -452,7 +591,7 @@ def seed():
                 "coupon_type": "DISCOUNT", "discount_mode": "PERCENT",
                 "discount_value": 10, "max_discount_amount": 80_000_000,
                 "scope": "CATEGORY", "max_per_customer": 2,
-                "_category_slugs": ["gold-750"],
+                "_category_slugs": ["gold-talamala", "gold-investment"],
             },
         ]
 
@@ -739,39 +878,41 @@ def seed():
         # ==========================================
         print("\n[9.6] Product Tier Wages")
 
-        # Wage percentages: {product_weight: {tier_slug: wage%}}
-        # Lower weight = higher wage, lower tier = lower wage
-        tier_wage_config = {
-            0.1:   {"distributor": 3.0, "wholesaler": 5.0, "store": 7.0, "end_customer": 10.0},
-            0.2:   {"distributor": 3.0, "wholesaler": 5.0, "store": 7.0, "end_customer": 10.0},
-            0.25:  {"distributor": 3.0, "wholesaler": 5.0, "store": 7.0, "end_customer": 10.0},
-            0.5:   {"distributor": 3.0, "wholesaler": 5.0, "store": 7.0, "end_customer": 10.0},
-            1.0:   {"distributor": 3.0, "wholesaler": 5.0, "store": 7.0, "end_customer": 10.0},
-            1.5:   {"distributor": 2.5, "wholesaler": 4.0, "store": 6.0, "end_customer": 8.0},
-            2.0:   {"distributor": 2.5, "wholesaler": 4.0, "store": 6.0, "end_customer": 8.0},
-            2.5:   {"distributor": 2.5, "wholesaler": 4.0, "store": 6.0, "end_customer": 8.0},
-            5.0:   {"distributor": 2.0, "wholesaler": 3.0, "store": 5.0, "end_customer": 7.0},
-            10.0:  {"distributor": 2.0, "wholesaler": 3.0, "store": 5.0, "end_customer": 7.0},
-            50.0:  {"distributor": 1.5, "wholesaler": 2.5, "store": 4.0, "end_customer": 5.0},
-            100.0: {"distributor": 1.0, "wholesaler": 2.0, "store": 3.0, "end_customer": 4.0},
-        }
+        # Wage data from Excel (same as section 5, reused for tier wages)
+        # {type_slug: {weight: [distributor%, wholesaler%, store%, end_customer%]}}
+        tier_slugs_order = ["distributor", "wholesaler", "store", "end_customer"]
 
         existing_tw = db.query(ProductTierWage).count()
         if existing_tw == 0:
             tw_count = 0
+            # Build category_id → type_slug lookup
+            cat_id_to_slug = {}
+            for slug, cat_obj in cat_map.items():
+                cat_id_to_slug[cat_obj.id] = slug
+
             all_products = db.query(Product).filter(Product.is_active == True).all()
             for p in all_products:
-                weight_key = float(p.weight)
-                wage_map = tier_wage_config.get(weight_key)
-                if not wage_map:
+                # Determine product type from category
+                type_slug = None
+                for cid in p.category_ids:
+                    if cid in cat_id_to_slug:
+                        type_slug = cat_id_to_slug[cid]
+                        break
+                if not type_slug or type_slug not in wage_data:
                     continue
-                for slug, wage_pct in wage_map.items():
-                    tier = tier_map.get(slug)
+
+                weight_key = float(p.weight)
+                wages = wage_data[type_slug].get(weight_key)
+                if not wages:
+                    continue
+
+                for idx, tier_slug in enumerate(tier_slugs_order):
+                    tier = tier_map.get(tier_slug)
                     if tier:
                         db.add(ProductTierWage(
                             product_id=p.id,
                             tier_id=tier.id,
-                            wage_percent=wage_pct,
+                            wage_percent=wages[idx],
                         ))
                         tw_count += 1
             db.flush()
@@ -1121,7 +1262,7 @@ def seed():
         print(f"  CASHBACK5 : 5% cashback")
         print(f"  FIXED500  : 500K toman off (min 5M order)")
         print(f"  VIP2026   : 15% off (mobile: 09351234567, 09359876543)")
-        print(f"  GOLD10    : 10% off (category: gold-750 only)")
+        print(f"  GOLD10    : 10% off (category: gold-talamala + gold-investment)")
 
     except Exception as e:
         db.rollback()
