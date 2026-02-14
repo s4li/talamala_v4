@@ -105,7 +105,7 @@ images = ImageManager()
 class ProductService:
 
     def list_all(self, db: Session) -> List[Product]:
-        return db.query(Product).order_by(Product.id.desc()).all()
+        return db.query(Product).order_by(Product.weight.asc()).all()
 
     def get_by_id(self, db: Session, product_id: int) -> Optional[Product]:
         return db.query(Product).filter(Product.id == product_id).first()
