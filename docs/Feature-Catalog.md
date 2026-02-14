@@ -1,7 +1,7 @@
 # کاتالوگ قابلیت‌های سیستم طلامالا v4
 
 > این سند تمام ماژول‌ها، قابلیت‌ها، نقش‌های کاربری و فرمول قیمت‌گذاری سیستم TalaMala v4 را شرح می‌دهد.
-> آخرین به‌روزرسانی: فازهای ۱ تا ۱۴ تکمیل‌شده + قابلیت بازگشت اجرت بازخرید + بهبود سیستم تیکتینگ + صفحات ثابت و فوتر (Static Pages & Footer) + ثبت مالکیت و انتقال شمش (Bar Claim & Gifting + Ownership Transfer).
+> آخرین به‌روزرسانی: فازهای ۱ تا ۱۴ تکمیل‌شده + قابلیت بازگشت اجرت بازخرید + بهبود سیستم تیکتینگ + صفحات ثابت و فوتر (Static Pages & Footer) + ثبت مالکیت و انتقال شمش (Bar Claim & Gifting + Ownership Transfer) + ساده‌سازی فرمول قیمت‌گذاری.
 
 ---
 
@@ -86,9 +86,9 @@
 - خروج (logout) با حذف کوکی مربوطه
 
 ### جریان لاگین
-1. کاربر شماره موبایل وارد می‌کند → `POST /auth/login/request-otp`
+1. کاربر شماره موبایل وارد می‌کند → `POST /auth/send-otp`
 2. سیستم OTP ارسال می‌کند (در محیط توسعه: کد ثابت `111111`)
-3. کاربر OTP وارد می‌کند → `POST /auth/login/verify-otp`
+3. کاربر OTP وارد می‌کند → `POST /auth/verify-otp`
 4. سیستم نقش را تشخیص داده و ریدایرکت می‌کند:
    - ادمین/اپراتور → `/admin/dashboard`
    - نماینده → `/dealer/dashboard`
@@ -98,8 +98,8 @@
 | متد | مسیر | توضیح |
 |------|------|--------|
 | GET | `/auth/login` | صفحه ورود |
-| POST | `/auth/login/request-otp` | ارسال OTP |
-| POST | `/auth/login/verify-otp` | تایید OTP |
+| POST | `/auth/send-otp` | ارسال OTP |
+| POST | `/auth/verify-otp` | تایید OTP |
 | GET | `/auth/logout` | خروج |
 
 ---
@@ -117,8 +117,7 @@
 #### Product (محصول = شمش طلا)
 - نام، وزن (گرم)، عیار (750=18K)
 - **دسته‌بندی‌ها**: رابطه Many-to-Many با ProductCategory از طریق جدول واسط `ProductCategoryLink` — هر محصول می‌تواند در **چند دسته‌بندی** قرار بگیرد
-- اجرت ساخت (درصدی یا ریالی)، درصد سود، درصد کمیسیون
-- هزینه سنگ، هزینه لوازم جانبی
+- اجرت ساخت (درصدی)
 - تصاویر محصول (ProductImage)
 - Property `categories`: لیست اشیاء ProductCategory مرتبط
 - Property `category_ids`: لیست شناسه‌های دسته‌بندی‌ها (List[int])
@@ -207,7 +206,7 @@
 قیمت هر محصول **لحظه‌ای** محاسبه می‌شود بر اساس:
 - قیمت طلای ۱۸ عیار (از تنظیمات سیستم)
 - وزن و عیار محصول
-- اجرت + سود + مالیات
+- اجرت + مالیات (مالیات فقط روی اجرت)
 
 ### آدرس‌ها
 | متد | مسیر | توضیح |
@@ -343,11 +342,12 @@
 ### آدرس‌های ادمین
 | متد | مسیر | توضیح |
 |------|------|--------|
-| GET | `/admin/wallet/accounts` | لیست حساب‌ها |
-| GET | `/admin/wallet/accounts/{id}` | جزئیات حساب |
-| GET | `/admin/wallet/withdrawals` | درخواست‌های برداشت |
-| POST | `/admin/wallet/withdrawals/{id}/approve` | تایید برداشت |
-| POST | `/admin/wallet/withdrawals/{id}/reject` | رد برداشت |
+| GET | `/admin/wallets` | لیست حساب‌ها |
+| GET | `/admin/wallets/customer/{id}` | جزئیات حساب مشتری |
+| GET | `/admin/wallets/dealer/{id}` | جزئیات حساب نماینده |
+| GET | `/admin/wallets/withdrawals/list` | درخواست‌های برداشت |
+| POST | `/admin/wallets/withdrawals/{id}/approve` | تایید برداشت |
+| POST | `/admin/wallets/withdrawals/{id}/reject` | رد برداشت |
 
 ---
 
@@ -762,7 +762,7 @@
 | صفحه | تغییر |
 |-------|--------|
 | کیف پول مشتری (`/wallet`) | نمایش موجودی اعتبار + مبلغ قابل‌برداشت |
-| جزئیات حساب ادمین (`/admin/wallet/accounts/{id}`) | نمایش تفکیک: موجودی کل، اعتبار، قابل‌برداشت |
+| جزئیات حساب ادمین (`/admin/wallets/customer/{id}` یا `/admin/wallets/dealer/{id}`) | نمایش تفکیک: موجودی کل، اعتبار، قابل‌برداشت |
 | لیست بازخریدها ادمین (`/admin/dealers/buybacks`) | نمایش مبلغ بازگشت اجرت در هر درخواست |
 
 ### فایل‌های مرتبط
@@ -786,13 +786,7 @@
 |----------|--------|------|
 | weight | وزن شمش (گرم) | 1.000 |
 | purity | عیار (در هزار) | 750 (= 18 عیار) |
-| wage | اجرت ساخت | 7 (درصد) یا مبلغ ریالی |
-| is_wage_percent | آیا اجرت درصدی است | True/False |
-| profit_percent | درصد سود | 7 |
-| commission_percent | درصد کمیسیون | 0 |
-| stone_price | قیمت سنگ (ریال) | 0 |
-| accessory_cost | هزینه لوازم جانبی (ریال) | 0 |
-| accessory_profit_percent | سود لوازم جانبی | 0 |
+| wage_percent | اجرت ساخت (درصد) | 7 |
 | base_gold_price_18k | قیمت طلای ۱۸ عیار (ریال/گرم) | 52,000,000 |
 | tax_percent | درصد مالیات | 10 |
 
@@ -805,37 +799,20 @@
 ۲. ارزش طلای خام:
    raw_gold = weight × price_per_gram
 
-۳. اجرت ساخت:
-   اگر درصدی: wage_amount = raw_gold × (wage / 100)
-   اگر ثابت:  wage_amount = weight × wage
+۳. اجرت ساخت (درصدی از ارزش طلا):
+   wage = raw_gold × (wage_percent / 100)
 
-۴. پایه سود و کمیسیون:
-   base = raw_gold + wage_amount
+۴. مالیات (فقط روی اجرت):
+   tax = wage × (tax_percent / 100)
 
-۵. سود:
-   profit = base × (profit_percent / 100)
-
-۶. کمیسیون:
-   commission = base × (commission_percent / 100)
-
-۷. لوازم جانبی:
-   accessory = accessory_cost × (1 + accessory_profit_percent / 100)
-
-۸. پایه مالیات‌پذیر:
-   taxable = wage_amount + profit + commission + accessory
-
-۹. مالیات:
-   tax = taxable × (tax_percent / 100)
-
-۱۰. قیمت نهایی:
-    total = raw_gold + wage_amount + profit + commission
-          + stone_price + accessory + tax
+۵. قیمت نهایی:
+   total = raw_gold + wage + tax
 ```
 
 ### نکته مهم
 - تمام گِردکردن‌ها به **پایین** (FLOOR) انجام می‌شود
-- طلای خام و سنگ **معاف از مالیات** هستند
-- مالیات فقط روی خدمات (اجرت + سود + کمیسیون) و کالا (لوازم جانبی) اعمال می‌شود
+- مالیات فقط روی اجرت (خدمات) اعمال می‌شود — طلای خام معاف از مالیات است
+- فیلدهای سود، کمیسیون، سنگ و لوازم جانبی از فرمول حذف شده‌اند (سیستم فقط شمش طلا می‌فروشد)
 
 ---
 
