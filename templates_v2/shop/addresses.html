@@ -1,0 +1,151 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}آدرس‌های من - طلامالا{% endblock %}
+
+{% block shop_content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4 tm-animate-fade-in">
+            <h4 class="fw-bold mb-0"><i class="bi bi-geo-alt me-2"></i>آدرس‌های من</h4>
+            <button class="btn btn-sm btn-tm-primary" data-bs-toggle="collapse" data-bs-target="#addAddressForm">
+                <i class="bi bi-plus-lg me-1"></i>آدرس جدید
+            </button>
+        </div>
+
+        {% if msg %}<div class="alert-tm-success py-2">{{ msg }}</div>{% endif %}
+
+        <!-- Add Address Form (collapsed) -->
+        <div class="collapse mb-4" id="addAddressForm">
+            <div class="card-tm no-hover">
+                    <h6 class="fw-bold mb-3">افزودن آدرس جدید</h6>
+                    <form method="POST" action="/addresses">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label-tm small fw-bold">عنوان <span class="text-danger">*</span></label>
+                                <input type="text" name="title" class="form-control form-control-tm" placeholder="مثلاً: خانه، محل کار" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-tm small fw-bold">استان <span class="text-danger">*</span></label>
+                                <select name="province_id" id="addrProvince" class="form-select form-select-tm" required onchange="loadCities(this.value)">
+                                    <option value="">انتخاب...</option>
+                                    {% for p in provinces %}
+                                    <option value="{{ p.id }}">{{ p.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-tm small fw-bold">شهر <span class="text-danger">*</span></label>
+                                <select name="city_id" id="addrCity" class="form-select form-select-tm" required onchange="loadDistricts(this.value)" disabled>
+                                    <option value="">ابتدا استان...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-tm small fw-bold">محله</label>
+                                <select name="district_id" id="addrDistrict" class="form-select form-select-tm" disabled>
+                                    <option value="">ابتدا شهر...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label-tm small fw-bold">آدرس کامل <span class="text-danger">*</span></label>
+                                <textarea name="address" class="form-control form-control-tm" rows="2" placeholder="خیابان، کوچه، پلاک، واحد" required></textarea>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-tm small fw-bold">کد پستی</label>
+                                <input type="text" name="postal_code" class="form-control form-control-tm" dir="ltr" maxlength="10" placeholder="1234567890">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-tm small fw-bold">نام گیرنده</label>
+                                <input type="text" name="receiver_name" class="form-control form-control-tm" placeholder="(خالی = خودتان)">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-tm small fw-bold">تلفن گیرنده</label>
+                                <input type="text" name="receiver_phone" class="form-control form-control-tm" dir="ltr" placeholder="09...">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <div class="form-check">
+                                    <input type="checkbox" name="is_default" class="form-check-input" id="isDefaultCheck">
+                                    <label class="form-check-label small" for="isDefaultCheck">پیش‌فرض</label>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-tm-primary mt-3"><i class="bi bi-check-lg me-1"></i>ذخیره آدرس</button>
+                    </form>
+            </div>
+        </div>
+
+        <!-- Existing Addresses -->
+        {% if addresses %}
+        <div class="row g-3">
+            {% for addr in addresses %}
+            <div class="col-md-6 tm-animate-fade-in-up tm-delay-{{ loop.index if loop.index <= 12 else 12 }}">
+                <div class="card-tm no-hover h-100 {% if addr.is_default %}border-start border-3 border-success{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="fw-bold mb-0">
+                                {{ addr.title }}
+                                {% if addr.is_default %}<span class="badge-tm badge-tm-success ms-1">پیش‌فرض</span>{% endif %}
+                            </h6>
+                            <div class="d-flex gap-1">
+                                {% if not addr.is_default %}
+                                <form method="POST" action="/addresses/{{ addr.id }}/default" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button class="btn btn-sm btn-tm-outline" title="پیش‌فرض"><i class="bi bi-star"></i></button>
+                                </form>
+                                {% endif %}
+                                <form method="POST" action="/addresses/{{ addr.id }}/delete"
+                                      onsubmit="return confirm('حذف این آدرس؟')" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button class="btn btn-sm btn-tm-danger" title="حذف"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="small text-muted">
+                            <div><i class="bi bi-geo me-1"></i>{{ addr.province.name if addr.province else '' }}، {{ addr.city.name if addr.city else '' }}{% if addr.district %}، {{ addr.district.name }}{% endif %}</div>
+                            <div class="mt-1">{{ addr.address }}</div>
+                            {% if addr.postal_code %}<div class="mt-1" dir="ltr">📮 {{ addr.postal_code }}</div>{% endif %}
+                            {% if addr.receiver_name %}<div class="mt-1">👤 {{ addr.receiver_name }}{% if addr.receiver_phone %} — {{ addr.receiver_phone }}{% endif %}</div>{% endif %}
+                        </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-geo-alt" style="font-size:3rem;"></i>
+            <p class="mt-2">هنوز آدرسی ثبت نکرده‌اید.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block shop_js %}
+<script>
+async function loadCities(provinceId) {
+    const citySelect = document.getElementById('addrCity');
+    const distSelect = document.getElementById('addrDistrict');
+    citySelect.innerHTML = '<option value="">در حال بارگذاری...</option>';
+    distSelect.innerHTML = '<option value="">ابتدا شهر...</option>';
+    distSelect.disabled = true;
+    if (!provinceId) { citySelect.disabled = true; return; }
+    try {
+        const r = await fetch(`/api/geo/cities?province_id=${provinceId}`);
+        const cities = await r.json();
+        citySelect.innerHTML = '<option value="">انتخاب شهر...</option>';
+        cities.forEach(c => { citySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
+        citySelect.disabled = false;
+    } catch(e) { console.error(e); }
+}
+async function loadDistricts(cityId) {
+    const distSelect = document.getElementById('addrDistrict');
+    distSelect.innerHTML = '<option value="">در حال بارگذاری...</option>';
+    if (!cityId) { distSelect.disabled = true; return; }
+    try {
+        const r = await fetch(`/api/geo/districts?city_id=${cityId}`);
+        const districts = await r.json();
+        distSelect.innerHTML = '<option value="">همه محله‌ها</option>';
+        districts.forEach(d => { distSelect.innerHTML += `<option value="${d.id}">${d.name}</option>`; });
+        distSelect.disabled = false;
+    } catch(e) { console.error(e); }
+}
+</script>
+{% endblock %}

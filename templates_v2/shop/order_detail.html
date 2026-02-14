@@ -1,0 +1,401 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}سفارش #{{ order.id }} - طلامالا{% endblock %}
+
+{% block shop_css %}
+<style>
+    .invoice-card { border-radius: 12px; }
+    .item-row { border-bottom: 1px solid #f0f0f0; }
+    .item-row:last-child { border-bottom: none; }
+    @media print {
+        .no-print { display: none !important; }
+        .shop-navbar, footer, .gold-price-banner { display: none !important; }
+    }
+</style>
+{% endblock %}
+
+{% block shop_content %}
+<!-- Breadcrumb -->
+<nav class="mb-3 no-print">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="/orders" class="text-decoration-none">سفارشات</a></li>
+        <li class="breadcrumb-item active">سفارش #{{ order.id }}</li>
+    </ol>
+</nav>
+
+{% if msg %}<div class="alert-tm-success py-2 no-print">{{ msg }}</div>{% endif %}
+{% if error %}<div class="alert-tm-danger py-2 no-print"><i class="bi bi-exclamation-triangle me-1"></i>{{ error }}</div>{% endif %}
+
+<div class="row g-4">
+    <!-- Order Info -->
+    <div class="col-lg-8 tm-animate-fade-in-up">
+        <div class="card-tm no-hover invoice-card">
+            <div class="border-bottom pb-3 mb-3 d-flex justify-content-between align-items-center py-3">
+                <div>
+                    <h5 class="fw-bold mb-0">فاکتور سفارش #{{ order.id }}</h5>
+                    <small class="text-muted">{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '' }}</small>
+                </div>
+                <span class="badge-tm badge-tm-{{ order.status_color }} fs-6">{{ order.status_label }}</span>
+            </div>
+
+            <!-- Header Row -->
+            <div class="d-flex px-3 py-2 bg-light fw-bold small text-muted">
+                <div style="flex:3;">محصول</div>
+                <div style="flex:1;" class="text-center">وزن</div>
+                <div style="flex:1;" class="text-center">عیار</div>
+                <div style="flex:2;" class="text-end">مبلغ</div>
+            </div>
+
+            <!-- Items -->
+            {% for item in order.items %}
+            <div class="d-flex align-items-center px-3 py-3 item-row">
+                <div style="flex:3;">
+                    <div class="fw-bold">{{ item.product.name if item.product else 'محصول حذف‌شده' }}</div>
+                    {% if item.bar %}
+                    <small class="text-muted">
+                        <code>{{ item.bar.serial_code }}</code>
+                        {% if item.bar.location %}
+                        <span class="ms-1"><i class="bi bi-geo-alt"></i> {{ item.bar.location.name }}{% if item.bar.location.city %} - {{ item.bar.location.city }}{% endif %}</span>
+                        {% endif %}
+                    </small>
+                    {% endif %}
+                </div>
+                <div style="flex:1;" class="text-center">{{ item.applied_weight }}g</div>
+                <div style="flex:1;" class="text-center">{{ item.applied_purity }}</div>
+                <div style="flex:2;" class="text-end">
+                    <div class="fw-bold">{{ item.line_total | toman }} <small class="text-muted">تومان</small></div>
+                </div>
+            </div>
+
+            <!-- Detailed breakdown (collapsed) -->
+            <div class="px-3 pb-2">
+                <button class="btn-sm btn-link text-muted p-0 no-print"
+                        type="button" data-bs-toggle="collapse" data-bs-target="#detail-{{ item.id }}">
+                    <i class="bi bi-chevron-down me-1"></i>ریز قیمت
+                </button>
+                <div class="collapse" id="detail-{{ item.id }}">
+                    <div class="row g-1 mt-1 small text-muted">
+                        <div class="col-6">طلای خام: {{ item.final_gold_amount | toman }} ت</div>
+                        <div class="col-6">اجرت: {{ item.final_wage_amount | toman }} ت</div>
+                        <div class="col-6">سود ({{ item.applied_profit_percent }}%): {{ item.final_profit_amount | toman }} ت</div>
+                        {% if item.final_commission_amount %}
+                        <div class="col-6">کمیسیون: {{ item.final_commission_amount | toman }} ت</div>
+                        {% endif %}
+                        {% if item.final_stone_amount %}
+                        <div class="col-6">سنگ: {{ item.final_stone_amount | toman }} ت</div>
+                        {% endif %}
+                        {% if item.final_accessory_amount %}
+                        <div class="col-6">متفرقه: {{ item.final_accessory_amount | toman }} ت</div>
+                        {% endif %}
+                        <div class="col-6">مالیات ({{ item.applied_tax_percent }}%): {{ item.final_tax_amount | toman }} ت</div>
+                        <div class="col-6">قیمت طلا: {{ item.applied_gold_price | toman }} ت/گرم</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Totals -->
+            <div class="border-top pt-3 mt-3">
+                {% if order.promo_amount %}
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">
+                        {% if order.promo_choice == 'DISCOUNT' %}تخفیف{% else %}کشبک{% endif %}
+                        {% if order.coupon_code %}<small>({{ order.coupon_code }})</small>{% endif %}
+                    </span>
+                    <span class="text-success">−{{ order.promo_amount | toman }} تومان</span>
+                </div>
+                {% endif %}
+                {% if order.shipping_cost %}
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">هزینه ارسال</span>
+                    <span>{{ order.shipping_cost | toman }} تومان</span>
+                </div>
+                {% endif %}
+                {% if order.insurance_cost %}
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">بیمه</span>
+                    <span>{{ order.insurance_cost | toman }} تومان</span>
+                </div>
+                {% endif %}
+                <div class="d-flex justify-content-between">
+                    <span class="fw-bold fs-5">جمع قابل پرداخت</span>
+                    <span class="fw-bold fs-5 text-tm-primary">{{ order.grand_total | toman }} <small>تومان</small></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side Panel -->
+    <div class="col-lg-4 tm-animate-slide-right tm-delay-3">
+        <!-- Actions -->
+        <div class="card-tm no-hover no-print">
+            {% if order.status == 'Pending' %}
+            <div class="alert-tm-warning py-2 small mb-3">
+                <i class="bi bi-clock me-1"></i>
+                این سفارش در انتظار پرداخت است. شمش‌ها به مدت محدود رزرو شده‌اند.
+            </div>
+
+            <!-- Pay from Wallet -->
+            {% if wallet_balance and wallet_balance.available >= order.grand_total %}
+            <form method="POST" action="/payment/{{ order.id }}/wallet"
+                  onsubmit="return confirm('آیا از پرداخت {{ order.grand_total | toman }} تومان از کیف پول مطمئنید؟')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-lg btn-tm-primary w-100 mb-2">
+                    <i class="bi bi-wallet2 me-1"></i> پرداخت از کیف پول
+                    <small class="d-block" style="font-size:0.7rem;">
+                        موجودی: {{ wallet_balance.available | toman }} تومان
+                    </small>
+                </button>
+            </form>
+            {% else %}
+            <div class="mb-2">
+                <button class="btn btn-lg btn-tm-outline w-100" disabled>
+                    <i class="bi bi-wallet2 me-1"></i> پرداخت از کیف پول
+                    <small class="d-block text-danger" style="font-size:0.7rem;">
+                        {% if wallet_balance %}
+                        موجودی: {{ wallet_balance.available | toman }} تومان
+                        (کسری: {{ (order.grand_total - wallet_balance.available) | toman }} تومان)
+                        {% else %}
+                        کیف پول خالی است
+                        {% endif %}
+                    </small>
+                </button>
+                <a href="/wallet" class="btn btn-sm btn-tm-success w-100 mt-1">
+                    <i class="bi bi-plus-circle me-1"></i> شارژ کیف پول
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Gateway Payment -->
+            <form method="POST" action="/payment/{{ order.id }}/zibal">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-tm-outline w-100 mb-2">
+                    <i class="bi bi-credit-card me-1"></i> پرداخت آنلاین (درگاه بانکی)
+                </button>
+            </form>
+
+            <hr class="my-2">
+
+            <form method="POST" action="/orders/{{ order.id }}/cancel"
+                  onsubmit="return confirm('آیا از لغو سفارش مطمئنید؟ شمش‌ها آزاد خواهند شد.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-tm-danger w-100">
+                    <i class="bi bi-x-lg me-1"></i> لغو سفارش
+                </button>
+            </form>
+
+            {% elif order.status == 'Paid' %}
+            <div class="alert-tm-success py-2 small mb-3">
+                <i class="bi bi-check-circle me-1"></i>
+                پرداخت موفق. شمش‌ها به نام شما ثبت شده‌اند.
+            </div>
+            {% if order.payment_method %}
+            <div class="small text-muted mb-2">
+                <div><strong>روش پرداخت:</strong>
+                    {% if order.payment_method == 'wallet' %}کیف پول
+                    {% elif 'zibal' in (order.payment_method or '') %}درگاه زیبال
+                    {% elif 'sepehr' in (order.payment_method or '') %}درگاه سپهر
+                    {% else %}{{ order.payment_method }}{% endif %}
+                </div>
+                {% if order.payment_ref %}<div><strong>شماره مرجع:</strong> <code>{{ order.payment_ref }}</code></div>{% endif %}
+                {% if order.paid_at %}<div><strong>تاریخ پرداخت:</strong> {{ order.paid_at.strftime('%Y-%m-%d %H:%M') }}</div>{% endif %}
+            </div>
+            {% endif %}
+            <button class="btn btn-tm-outline w-100" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> چاپ فاکتور
+            </button>
+
+            {% elif order.status == 'Cancelled' %}
+            <div class="alert-tm-danger py-2 small mb-0">
+                <i class="bi bi-x-circle me-1"></i>
+                سفارش لغو شده و شمش‌ها آزاد شده‌اند.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Customer Info (for admin) -->
+        {% if user.is_staff %}
+        <div class="card-tm no-hover mt-3">
+            <div class="border-bottom pb-3 mb-3 fw-bold small">اطلاعات مشتری</div>
+            <table class="table table-tm table-borderless mb-0">
+                <tr><td class="text-muted">نام</td><td>{{ order.customer.full_name if order.customer else '—' }}</td></tr>
+                <tr><td class="text-muted">موبایل</td><td dir="ltr">{{ order.customer.mobile if order.customer else '—' }}</td></tr>
+                <tr><td class="text-muted">کد ملی</td><td dir="ltr">{{ order.customer.national_id if order.customer else '—' }}</td></tr>
+            </table>
+        </div>
+
+        <!-- Admin Delivery Management -->
+        {% if order.status == 'Paid' and order.delivery_method %}
+        <div class="card-tm no-hover mt-3 border-start border-4 border-warning">
+            <div class="border-bottom pb-3 mb-3 fw-bold small">
+                <i class="bi bi-gear me-1"></i>مدیریت تحویل
+            </div>
+            {% if order.delivery_method == 'Pickup' and order.delivery_status != 'Delivered' %}
+            <!-- Pickup: verify code -->
+            <form method="POST" action="/admin/orders/{{ order.id }}/confirm-pickup" class="mb-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <label class="form-label-tm small fw-bold">تأیید تحویل حضوری</label>
+                <div class="input-group">
+                    <input type="text" name="delivery_code" class="form-control form-control-tm" dir="ltr"
+                           placeholder="کد ۶ رقمی تحویل" maxlength="6" required>
+                    <button class="btn btn-tm-success" type="submit">
+                        <i class="bi bi-check-lg me-1"></i>تأیید
+                    </button>
+                </div>
+                <small class="text-muted">کد تحویل به مشتری پیامک شده است.</small>
+            </form>
+            {% endif %}
+
+            {% if order.delivery_method == 'Postal' or order.delivery_status != 'Delivered' %}
+            <!-- Update delivery status -->
+            <form method="POST" action="/admin/orders/{{ order.id }}/delivery-status">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="mb-2">
+                    <label class="form-label-tm small fw-bold">وضعیت تحویل</label>
+                    <select name="delivery_status" class="form-select form-select-tm form-select-sm">
+                        <option value="Waiting" {% if order.delivery_status == 'Waiting' %}selected{% endif %}>
+                            {{ 'منتظر مراجعه' if order.delivery_method == 'Pickup' else 'در حال آماده‌سازی' }}
+                        </option>
+                        <option value="Preparing" {% if order.delivery_status == 'Preparing' %}selected{% endif %}>در حال بسته‌بندی</option>
+                        {% if order.delivery_method == 'Postal' %}
+                        <option value="Shipped" {% if order.delivery_status == 'Shipped' %}selected{% endif %}>ارسال شده</option>
+                        {% endif %}
+                        <option value="Delivered" {% if order.delivery_status == 'Delivered' %}selected{% endif %}>تحویل داده شده</option>
+                        <option value="Returned" {% if order.delivery_status == 'Returned' %}selected{% endif %}>مرجوعی</option>
+                    </select>
+                </div>
+                {% if order.delivery_method == 'Postal' %}
+                <div class="mb-2">
+                    <label class="form-label-tm small fw-bold">کد رهگیری پست</label>
+                    <input type="text" name="postal_tracking_code" class="form-control form-control-tm form-control-sm" dir="ltr"
+                           value="{{ order.postal_tracking_code or '' }}" placeholder="کد رهگیری پست">
+                </div>
+                {% endif %}
+                <button class="btn btn-sm btn-tm-warning w-100" type="submit">
+                    <i class="bi bi-arrow-repeat me-1"></i>بروزرسانی
+                </button>
+            </form>
+            {% endif %}
+
+            {% if order.delivery_status == 'Delivered' %}
+            <div class="alert-tm-success py-2 mt-2 mb-0 small">
+                <i class="bi bi-check-circle me-1"></i>تحویل تکمیل شده
+                {% if order.delivered_at %}
+                <br><small>{{ order.delivered_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Admin: Refund -->
+        {% if user.is_staff and order.status == 'Paid' %}
+        <div class="card-tm no-hover mt-3 border-start border-4 border-danger">
+            <div class="border-bottom pb-3 mb-3 fw-bold small text-danger">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>استرداد سفارش
+            </div>
+            <p class="small text-muted mb-2">مبلغ {{ order.grand_total | toman }} تومان به کیف پول مشتری بازگشت داده می‌شود و شمش‌ها آزاد می‌شوند.</p>
+            <form method="POST" action="/payment/{{ order.id }}/refund"
+                  onsubmit="return confirm('آیا از استرداد وجه و لغو سفارش مطمئنید؟')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="mb-2">
+                    <input type="text" name="admin_note" class="form-control form-control-tm form-control-sm" placeholder="یادداشت (اختیاری)">
+                </div>
+                <button class="btn btn-sm btn-tm-danger w-100">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>استرداد به کیف پول
+                </button>
+            </form>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <!-- Delivery Info -->
+        {% if order.delivery_method %}
+        <div class="card-tm no-hover mt-3">
+            <div class="border-bottom pb-3 mb-3 fw-bold small">
+                <i class="bi bi-truck me-1"></i>اطلاعات تحویل
+            </div>
+            <table class="table table-tm table-borderless mb-0">
+                <tr>
+                    <td class="text-muted">روش تحویل</td>
+                    <td class="fw-bold">{{ order.delivery_method_label }}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">وضعیت</td>
+                    <td><span class="badge-tm badge-tm-{{ order.delivery_status_color }}">{{ order.delivery_status_label }}</span></td>
+                </tr>
+
+                {% if order.delivery_method == 'Pickup' %}
+                <tr>
+                    <td class="text-muted">نمایندگی</td>
+                    <td>
+                        {% if order.pickup_location %}
+                        <strong>{{ order.pickup_location.name }}</strong>
+                        {% if order.pickup_location.city %}<br><small>{{ order.pickup_location.city }}{% if order.pickup_location.province %} - {{ order.pickup_location.province }}{% endif %}</small>{% endif %}
+                        {% if order.pickup_location.address %}<br><small class="text-muted">{{ order.pickup_location.address }}</small>{% endif %}
+                        {% if order.pickup_location.phone %}<br><small dir="ltr">📞 {{ order.pickup_location.phone }}</small>{% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if order.status == 'Paid' and not user.is_staff %}
+                <tr>
+                    <td class="text-muted">راهنما</td>
+                    <td class="small">
+                        <i class="bi bi-info-circle text-primary me-1"></i>
+                        با <strong>کارت ملی</strong> و <strong>کد تحویل</strong> (ارسال‌شده به موبایل) به نمایندگی مراجعه کنید.
+                    </td>
+                </tr>
+                {% endif %}
+
+                {% elif order.delivery_method == 'Postal' %}
+                <tr>
+                    <td class="text-muted">آدرس</td>
+                    <td>
+                        {{ order.shipping_address or '' }}
+                        <br><small>{{ order.shipping_city or '' }}{% if order.shipping_province %} - {{ order.shipping_province }}{% endif %}</small>
+                        {% if order.shipping_postal_code %}<br><small dir="ltr">📮 {{ order.shipping_postal_code }}</small>{% endif %}
+                    </td>
+                </tr>
+                {% if order.shipping_cost %}
+                <tr>
+                    <td class="text-muted">هزینه ارسال</td>
+                    <td>{{ order.shipping_cost | toman }} تومان</td>
+                </tr>
+                {% endif %}
+                {% if order.insurance_cost %}
+                <tr>
+                    <td class="text-muted">بیمه</td>
+                    <td>{{ order.insurance_cost | toman }} تومان</td>
+                </tr>
+                {% endif %}
+                {% if order.postal_tracking_code %}
+                <tr>
+                    <td class="text-muted">کد رهگیری پست</td>
+                    <td><code class="fw-bold">{{ order.postal_tracking_code }}</code></td>
+                </tr>
+                {% endif %}
+                {% endif %}
+
+                {% if order.delivered_at %}
+                <tr>
+                    <td class="text-muted">تاریخ تحویل</td>
+                    <td>{{ order.delivered_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Order Meta -->
+        <div class="card-tm no-hover mt-3">
+            <table class="table table-tm table-borderless mb-0">
+                <tr><td class="text-muted">شماره سفارش</td><td class="fw-bold">#{{ order.id }}</td></tr>
+                <tr><td class="text-muted">تاریخ</td><td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '' }}</td></tr>
+                {% if order.track_id %}
+                <tr><td class="text-muted">کد پیگیری</td><td dir="ltr"><code>{{ order.track_id }}</code></td></tr>
+                {% endif %}
+                <tr><td class="text-muted">تعداد</td><td>{{ order.items|length }} شمش</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,203 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "bars" %}
+{% block title %}ویرایش شمش {{ bar.serial_code }} - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4 class="fw-bold mb-0">
+        <a href="/admin/bars" class="text-decoration-none text-muted"><i class="bi bi-arrow-right me-2"></i></a>
+        شمش: <code class="text-dark">{{ bar.serial_code }}</code>
+        <span class="badge bg-{{ bar.status_color }} ms-2">{{ bar.status_label }}</span>
+    </h4>
+</div>
+
+<div class="row g-4">
+    <!-- Edit Form -->
+    <div class="col-lg-7">
+        <div class="card-tm no-hover">
+            <form method="POST" action="/admin/bars/update/{{ bar.id }}" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-tm">وضعیت</label>
+                        <select name="status" class="form-select form-select-tm">
+                            {% for s in bar_statuses %}
+                            <option value="{{ s.value }}" {% if bar.status == s.value %}selected{% endif %}>{{ s.value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm">محصول</label>
+                        <select name="product_id" class="form-select form-select-tm">
+                            <option value="0">— بدون محصول —</option>
+                            {% for p in products %}
+                            <option value="{{ p.id }}" {% if bar.product_id == p.id %}selected{% endif %}>{{ p.name }} ({{ p.weight }}g)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm">مالک (مشتری)</label>
+                        <select name="customer_id" class="form-select form-select-tm">
+                            <option value="0">— بدون مالک —</option>
+                            {% for c in customers %}
+                            <option value="{{ c.id }}" {% if bar.customer_id == c.id %}selected{% endif %}>{{ c.full_name }} ({{ c.mobile }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm">بچ</label>
+                        <select name="batch_id" class="form-select form-select-tm">
+                            <option value="0">— بدون بچ —</option>
+                            {% for b in batches %}
+                            <option value="{{ b.id }}" {% if bar.batch_id == b.id %}selected{% endif %}>{{ b.batch_number }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm"><i class="bi bi-geo-alt me-1"></i>مکان</label>
+                        <select name="location_id" class="form-select form-select-tm" id="locationSelect">
+                            <option value="0">— بدون مکان —</option>
+                            {% for l in locations %}
+                            <option value="{{ l.id }}" {% if bar.location_id == l.id %}selected{% endif %}>
+                                {{ l.name }} ({{ l.type_label }}{% if l.city %} - {{ l.city }}{% endif %})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12" id="transferNoteBox" style="display:none;">
+                        <label class="form-label-tm">توضیح انتقال</label>
+                        <input type="text" name="transfer_note" class="form-control form-control-tm"
+                               placeholder="مثال: ارسال با پست پیشتاز">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-tm">افزودن تصاویر</label>
+                        <input type="file" name="new_files" class="form-control form-control-tm" multiple accept="image/*">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-tm-primary">
+                            <i class="bi bi-check-lg me-1"></i> ذخیره تغییرات
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Ownership History -->
+        {% if bar.history %}
+        <div class="card-tm no-hover mt-3">
+            <div class="border-bottom pb-3 mb-3">
+                <i class="bi bi-clock-history me-1"></i> تاریخچه مالکیت
+            </div>
+            <div class="p-0">
+                <table class="table table-tm table-sm mb-0">
+                    <thead><tr><th>تاریخ</th><th>مالک قبلی</th><th>مالک جدید</th><th>توضیح</th></tr></thead>
+                    <tbody>
+                        {% for h in bar.history %}
+                        <tr>
+                            <td><small>{{ h.transfer_date.strftime('%Y-%m-%d %H:%M') if h.transfer_date else '' }}</small></td>
+                            <td>{{ h.previous_owner.full_name if h.previous_owner else '—' }}</td>
+                            <td>{{ h.new_owner.full_name if h.new_owner else '—' }}</td>
+                            <td><small class="text-muted">{{ h.description or '' }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Location Transfer History -->
+        {% if bar.transfers %}
+        <div class="card-tm no-hover mt-3">
+            <div class="border-bottom pb-3 mb-3">
+                <i class="bi bi-truck me-1"></i> تاریخچه جابجایی
+            </div>
+            <div class="p-0">
+                <table class="table table-tm table-sm mb-0">
+                    <thead><tr><th>تاریخ</th><th>از</th><th>به</th><th>توسط</th><th>توضیح</th></tr></thead>
+                    <tbody>
+                        {% for t in bar.transfers %}
+                        <tr>
+                            <td><small>{{ t.transferred_at.strftime('%Y-%m-%d %H:%M') if t.transferred_at else '' }}</small></td>
+                            <td>
+                                {% if t.from_location %}
+                                <span class="badge bg-{{ t.from_location.type_color }}">{{ t.from_location.name }}</span>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td>
+                                {% if t.to_location %}
+                                <span class="badge bg-{{ t.to_location.type_color }}">{{ t.to_location.name }}</span>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td><small>{{ t.transferred_by or '—' }}</small></td>
+                            <td><small class="text-muted">{{ t.description or '' }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Images + Info -->
+    <div class="col-lg-5">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3">
+                <i class="bi bi-images me-1"></i> تصاویر ({{ bar.images|length }})
+            </div>
+            {% if bar.images %}
+            <div class="row g-2">
+                {% for img in bar.images %}
+                <div class="col-6">
+                    <div class="position-relative">
+                        <img src="/{{ img.file_path }}" class="img-thumb-lg w-100" alt="">
+                        <form method="POST" action="/admin/bars/delete_image/{{ img.id }}" class="mt-1"
+                              onsubmit="return confirm('حذف تصویر؟')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button class="btn btn-sm btn-tm-danger w-100"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted text-center py-3">بدون تصویر</p>
+            {% endif %}
+        </div>
+
+        <!-- Quick Info -->
+        <div class="card-tm no-hover mt-3">
+            <table class="table table-tm table-borderless table-sm mb-0">
+                <tr><td class="text-muted">شناسه</td><td class="fw-bold">{{ bar.id }}</td></tr>
+                <tr><td class="text-muted">سریال</td><td><code class="fw-bold text-dark">{{ bar.serial_code }}</code></td></tr>
+                <tr><td class="text-muted">تاریخ ایجاد</td><td>{{ bar.created_at.strftime('%Y-%m-%d %H:%M') if bar.created_at else '' }}</td></tr>
+                {% if bar.location %}
+                <tr><td class="text-muted">مکان فعلی</td><td>
+                    <span class="badge bg-{{ bar.location.type_color }}">
+                        <i class="{{ bar.location.type_icon }} me-1"></i>{{ bar.location.name }}
+                    </span>
+                    {% if bar.location.city %}<small class="text-muted d-block">{{ bar.location.city }}</small>{% endif %}
+                </td></tr>
+                {% endif %}
+                {% if bar.reserved_until %}
+                <tr><td class="text-muted">رزرو تا</td><td class="text-warning">{{ bar.reserved_until.strftime('%H:%M:%S') }}</td></tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+(function(){
+    const locSelect = document.getElementById('locationSelect');
+    const noteBox = document.getElementById('transferNoteBox');
+    const origVal = locSelect.value;
+    locSelect.addEventListener('change', function(){
+        noteBox.style.display = (this.value !== origVal) ? 'block' : 'none';
+    });
+})();
+</script>
+{% endblock %}

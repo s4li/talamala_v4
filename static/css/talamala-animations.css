@@ -1,0 +1,306 @@
+/* ═══════════════════════════════════════════════════════════════
+   TalaMala Animations v1.0
+   CSS-only animations, micro-interactions, scroll reveal
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── 1. KEYFRAMES ─── */
+@keyframes tm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes tm-fade-in-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tm-fade-in-down {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tm-slide-in-right {
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes tm-slide-in-left {
+  from { opacity: 0; transform: translateX(-30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes tm-scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes tm-shimmer {
+  0%   { left: -100%; }
+  100% { left: 200%; }
+}
+
+@keyframes tm-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+@keyframes tm-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+
+@keyframes tm-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.7); }
+}
+
+@keyframes tm-gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes tm-skeleton {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes tm-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes tm-badge-pop {
+  0%   { transform: scale(0); }
+  60%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes tm-shine {
+  0%   { left: -100%; }
+  20%  { left: 100%; }
+  100% { left: 100%; }
+}
+
+@keyframes tm-bounce-in {
+  0%   { opacity: 0; transform: scale(0.3); }
+  50%  { opacity: 1; transform: scale(1.05); }
+  70%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* ─── 2. ANIMATION UTILITY CLASSES ─── */
+.tm-animate-fade-in      { animation: tm-fade-in 0.5s var(--tm-ease-out) both; }
+.tm-animate-fade-in-up   { animation: tm-fade-in-up 0.6s var(--tm-ease-out) both; }
+.tm-animate-fade-in-down { animation: tm-fade-in-down 0.5s var(--tm-ease-out) both; }
+.tm-animate-slide-right  { animation: tm-slide-in-right 0.5s var(--tm-ease-out) both; }
+.tm-animate-slide-left   { animation: tm-slide-in-left 0.5s var(--tm-ease-out) both; }
+.tm-animate-scale-in     { animation: tm-scale-in 0.4s var(--tm-ease-out) both; }
+.tm-animate-bounce-in    { animation: tm-bounce-in 0.6s var(--tm-ease-out) both; }
+.tm-animate-pulse        { animation: tm-pulse 2s ease-in-out infinite; }
+.tm-animate-float        { animation: tm-float 3s ease-in-out infinite; }
+.tm-animate-spin         { animation: tm-spin 1s linear infinite; }
+
+/* ─── 3. STAGGER DELAYS ─── */
+.tm-delay-1  { animation-delay: 0.05s; }
+.tm-delay-2  { animation-delay: 0.1s;  }
+.tm-delay-3  { animation-delay: 0.15s; }
+.tm-delay-4  { animation-delay: 0.2s;  }
+.tm-delay-5  { animation-delay: 0.25s; }
+.tm-delay-6  { animation-delay: 0.3s;  }
+.tm-delay-7  { animation-delay: 0.35s; }
+.tm-delay-8  { animation-delay: 0.4s;  }
+.tm-delay-9  { animation-delay: 0.45s; }
+.tm-delay-10 { animation-delay: 0.5s;  }
+.tm-delay-11 { animation-delay: 0.55s; }
+.tm-delay-12 { animation-delay: 0.6s;  }
+
+/* ─── 4. SCROLL REVEAL ─── */
+.tm-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s var(--tm-ease-out),
+              transform 0.6s var(--tm-ease-out);
+}
+.tm-reveal.tm-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tm-reveal-left {
+  opacity: 0;
+  transform: translateX(-24px);
+  transition: opacity 0.6s var(--tm-ease-out),
+              transform 0.6s var(--tm-ease-out);
+}
+.tm-reveal-left.tm-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.tm-reveal-right {
+  opacity: 0;
+  transform: translateX(24px);
+  transition: opacity 0.6s var(--tm-ease-out),
+              transform 0.6s var(--tm-ease-out);
+}
+.tm-reveal-right.tm-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.tm-reveal-scale {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.6s var(--tm-ease-out),
+              transform 0.6s var(--tm-ease-out);
+}
+.tm-reveal-scale.tm-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ─── 5. SKELETON LOADING PLACEHOLDERS ─── */
+.tm-skeleton {
+  background: linear-gradient(90deg,
+    var(--tm-info-900) 25%,
+    #e8e8e8 50%,
+    var(--tm-info-900) 75%);
+  background-size: 400% 100%;
+  animation: tm-skeleton 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+.tm-skeleton-text   { height: 14px; margin-bottom: 8px; }
+.tm-skeleton-title  { height: 22px; width: 60%; margin-bottom: 12px; }
+.tm-skeleton-img    { height: 200px; width: 100%; border-radius: 12px; }
+.tm-skeleton-circle { width: 48px; height: 48px; border-radius: 50%; }
+.tm-skeleton-card   { height: 300px; width: 100%; border-radius: 12px; }
+
+/* ─── 6. STOCK INDICATOR PULSE DOT ─── */
+.tm-stock-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.tm-stock-dot.in-stock {
+  background: var(--tm-positive);
+  animation: tm-pulse-dot 1.5s ease-in-out infinite;
+}
+.tm-stock-dot.out-of-stock {
+  background: var(--tm-info-600);
+}
+
+/* ─── 7. CART BADGE POP-IN ─── */
+.cart-badge-animated {
+  animation: tm-badge-pop 0.4s var(--tm-ease-out);
+}
+
+/* ─── 8. IMAGE SHIMMER OVERLAY ─── */
+.tm-img-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.tm-img-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+  animation: tm-shimmer 2.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ─── 9. SHINE SWEEP EFFECT ─── */
+.tm-shine {
+  position: relative;
+  overflow: hidden;
+}
+.tm-shine::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 40%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  animation: tm-shine 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ─── 10. HOVER GLOW EFFECT ─── */
+.tm-hover-glow {
+  transition: box-shadow var(--tm-duration-normal) var(--tm-ease-out);
+}
+.tm-hover-glow:hover {
+  box-shadow: var(--tm-shadow-glow);
+}
+
+/* ─── 11. IMAGE ZOOM ON HOVER ─── */
+.tm-img-zoom {
+  overflow: hidden;
+}
+.tm-img-zoom img, .tm-img-zoom .card-img-top {
+  transition: transform var(--tm-duration-slow) var(--tm-ease-out);
+}
+.tm-img-zoom:hover img, .tm-img-zoom:hover .card-img-top {
+  transform: scale(1.05);
+}
+
+/* ─── 12. NOTIFICATION DOT ─── */
+.tm-notify-dot {
+  position: relative;
+}
+.tm-notify-dot::after {
+  content: '';
+  position: absolute;
+  top: -2px; right: -2px;
+  width: 10px; height: 10px;
+  background: var(--tm-negative);
+  border-radius: 50%;
+  border: 2px solid white;
+  animation: tm-pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* ─── 13. GRADIENT TEXT ─── */
+.tm-text-gradient {
+  background: linear-gradient(135deg, var(--tm-primary), var(--tm-gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── 14. HOVER LIFT FOR GENERIC ELEMENTS ─── */
+.tm-hover-lift {
+  transition: transform var(--tm-duration-normal) var(--tm-ease-out),
+              box-shadow var(--tm-duration-normal) var(--tm-ease-out);
+}
+.tm-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--tm-shadow-lg);
+}
+
+/* ─── 15. LOADING SPINNER ─── */
+.tm-loader {
+  width: 32px; height: 32px;
+  border: 3px solid var(--tm-info-800);
+  border-top-color: var(--tm-primary);
+  border-radius: 50%;
+  animation: tm-spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+.tm-loader-sm { width: 20px; height: 20px; border-width: 2px; }
+.tm-loader-lg { width: 48px; height: 48px; border-width: 4px; }
+
+/* ─── 16. REDUCED MOTION ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .tm-reveal, .tm-reveal-left, .tm-reveal-right, .tm-reveal-scale {
+    opacity: 1;
+    transform: none;
+  }
+}

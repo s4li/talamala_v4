@@ -1,0 +1,84 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "batches" %}
+{% block title %}ویرایش بچ {{ batch.batch_number }} - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4 class="fw-bold mb-0">
+        <a href="/admin/batches" class="text-decoration-none text-muted"><i class="bi bi-arrow-right me-2"></i></a>
+        ویرایش بچ: {{ batch.batch_number }}
+    </h4>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card-tm no-hover">
+            <form method="POST" action="/admin/batches/update/{{ batch.id }}" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-tm">شماره بچ *</label>
+                        <input type="text" name="batch_number" class="form-control form-control-tm" value="{{ batch.batch_number }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm">شماره ذوب</label>
+                        <input type="text" name="melt_number" class="form-control form-control-tm" value="{{ batch.melt_number or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm">اپراتور</label>
+                        <input type="text" name="operator" class="form-control form-control-tm" value="{{ batch.operator or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm">عیار</label>
+                        <input type="text" name="purity" class="form-control form-control-tm" value="{{ batch.purity or '' }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-tm">افزودن تصاویر جدید</label>
+                        <input type="file" name="new_files" class="form-control form-control-tm" multiple accept="image/*">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-tm-primary">
+                            <i class="bi bi-check-lg me-1"></i> ذخیره تغییرات
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3 fw-bold">
+                <i class="bi bi-images me-1"></i> تصاویر ({{ batch.images|length }})
+            </div>
+            {% if batch.images %}
+            <div class="row g-2">
+                {% for img in batch.images %}
+                <div class="col-6">
+                    <div class="position-relative">
+                        <img src="/{{ img.file_path }}" class="img-thumb-lg w-100" alt="">
+                        {% if img.is_default %}<span class="default-badge">پیش‌فرض</span>{% endif %}
+                        <div class="mt-1 d-flex gap-1">
+                            {% if not img.is_default %}
+                            <form method="POST" action="/admin/batches/image/default/{{ img.id }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button class="btn btn-sm btn-tm-warning"><i class="bi bi-star"></i></button>
+                            </form>
+                            {% endif %}
+                            <form method="POST" action="/admin/batches/image/delete/{{ img.id }}"
+                                  onsubmit="return confirm('حذف تصویر؟')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted text-center py-3">بدون تصویر</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

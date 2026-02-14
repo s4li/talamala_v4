@@ -1,0 +1,75 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}تیکت جدید - طلامالا{% endblock %}
+
+{% block shop_content %}
+<nav class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="/tickets" class="text-decoration-none">تیکت‌ها</a></li>
+        <li class="breadcrumb-item active">تیکت جدید</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 tm-animate-fade-in-up">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-plus-circle me-2"></i>ارسال تیکت جدید</h5>
+            </div>
+                {% if error %}
+                <div class="alert-tm-danger py-2"><i class="bi bi-exclamation-triangle me-1"></i>{{ error }}</div>
+                {% endif %}
+
+                <form method="POST" action="/tickets/new" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                    <div class="mb-3">
+                        <label class="form-label-tm fw-bold">موضوع <span class="text-danger">*</span></label>
+                        <input type="text" name="subject" class="form-control form-control-tm" maxlength="300"
+                               placeholder="موضوع تیکت را وارد کنید" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label-tm fw-bold">دپارتمان</label>
+                            <select name="category" class="form-select form-select-tm">
+                                <option value="Financial">مالی</option>
+                                <option value="Technical">فنی</option>
+                                <option value="Sales">فروش</option>
+                                <option value="Complaints">شکایات</option>
+                                <option value="Other" selected>سایر</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-tm fw-bold">اولویت</label>
+                            <select name="priority" class="form-select form-select-tm">
+                                <option value="Low">کم</option>
+                                <option value="Medium" selected>متوسط</option>
+                                <option value="High">بالا</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label-tm fw-bold">توضیحات <span class="text-danger">*</span></label>
+                        <textarea name="body" class="form-control form-control-tm" rows="6" required
+                                  placeholder="مشکل یا سوال خود را شرح دهید..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label-tm fw-bold">پیوست تصویر</label>
+                        <input type="file" name="files" class="form-control form-control-tm" multiple
+                               accept=".jpg,.jpeg,.png,.webp">
+                        <small class="text-muted">حداکثر ۱۰ مگابایت - فقط تصاویر (JPG, PNG, WEBP)</small>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-tm-primary">
+                            <i class="bi bi-send me-1"></i> ارسال تیکت
+                        </button>
+                        <a href="/tickets" class="btn btn-tm-outline">انصراف</a>
+                    </div>
+                </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

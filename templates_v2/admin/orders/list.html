@@ -1,0 +1,127 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "orders" %}
+{% block title %}مدیریت سفارشات - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header tm-animate-fade-in">
+    <h4 class="fw-bold mb-0"><i class="bi bi-bag-check me-2"></i>مدیریت سفارشات</h4>
+</div>
+
+{% if msg %}<div class="alert-tm-success py-2">{{ msg }}</div>{% endif %}
+{% if error %}<div class="alert-tm-danger py-2">{{ error }}</div>{% endif %}
+
+<!-- Filter -->
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-1">
+    <div class="py-2">
+        <form method="GET" action="/admin/orders" class="d-flex gap-2 align-items-center">
+            <select name="status" class="form-select form-select-tm form-select-sm" style="max-width:200px;">
+                <option value="">همه وضعیت‌ها</option>
+                {% for s in order_statuses %}
+                <option value="{{ s.value }}" {% if status_filter == s.value %}selected{% endif %}>{{ s.value }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-tm-primary"><i class="bi bi-funnel"></i> فیلتر</button>
+            <a href="/admin/orders" class="btn btn-sm btn-light">پاک</a>
+        </form>
+    </div>
+</div>
+
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+    <div class="p-0">
+        <div class="table-responsive">
+            <table class="table table-tm table-sm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>مشتری</th>
+                        <th>تعداد</th>
+                        <th>مبلغ (تومان)</th>
+                        <th>تحویل</th>
+                        <th>وضعیت سفارش</th>
+                        <th>وضعیت تحویل</th>
+                        <th>تاریخ</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>
+                            <strong>{{ order.id }}</strong>
+                            {% if order.is_gift %}<span class="badge-tm badge-tm-info ms-1" title="سفارش هدیه"><i class="bi bi-gift"></i></span>{% endif %}
+                        </td>
+                        <td>
+                            {% if order.customer %}
+                            {{ order.customer.full_name }}
+                            <small class="text-muted d-block" dir="ltr">{{ order.customer.mobile }}</small>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>{{ order.items|length }}</td>
+                        <td class="fw-bold">{{ order.grand_total | toman }}</td>
+                        <td>
+                            {% if order.delivery_method %}
+                            <span class="badge-tm badge-tm-{{ 'info' if order.delivery_method == 'Pickup' else 'primary' }}">
+                                <i class="bi bi-{{ 'shop' if order.delivery_method == 'Pickup' else 'envelope' }} me-1"></i>{{ order.delivery_method_label }}
+                            </span>
+                            {% if order.delivery_method == 'Pickup' and order.pickup_location %}
+                            <small class="d-block text-muted">{{ order.pickup_location.name }}</small>
+                            {% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ order.status_color }}">{{ order.status_label }}</span>
+                            {% if order.is_gift and order.status == 'Paid' %}
+                            <div class="mt-1">
+                                {% for oi in order.items %}
+                                {% if oi.bar and oi.bar.claim_code %}
+                                <small class="d-block font-monospace" dir="ltr" style="color:var(--tm-primary);">{{ oi.bar.serial_code }}: {{ oi.bar.claim_code }}</small>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.delivery_status and order.status == 'Paid' %}
+                            <span class="badge bg-{{ order.delivery_status_color }}">{{ order.delivery_status_label }}</span>
+                            {% if order.postal_tracking_code %}
+                            <small class="d-block text-muted" dir="ltr">{{ order.postal_tracking_code }}</small>
+                            {% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td><small>{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '' }}</small></td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="/orders/{{ order.id }}" class="btn btn-sm btn-tm-outline" title="مشاهده">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if order.status == 'Pending' %}
+                                <form method="POST" action="/admin/orders/{{ order.id }}/approve"
+                                      onsubmit="return confirm('تأیید سفارش و انتقال مالکیت شمش‌ها؟')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button class="btn btn-sm btn-tm-success" title="تأیید"><i class="bi bi-check-lg"></i></button>
+                                </form>
+                                <form method="POST" action="/admin/orders/{{ order.id }}/cancel"
+                                      onsubmit="return confirm('لغو سفارش و آزادسازی شمش‌ها؟')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button class="btn btn-sm btn-tm-danger" title="لغو"><i class="bi bi-x-lg"></i></button>
+                                </form>
+                                {% endif %}
+                                {% if order.status == 'Paid' %}
+                                <form method="POST" action="/payment/{{ order.id }}/refund"
+                                      onsubmit="return confirm('استرداد وجه به کیف پول مشتری و لغو سفارش؟')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button class="btn btn-sm btn-tm-danger" title="استرداد"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" class="text-center text-muted py-4">سفارشی یافت نشد</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

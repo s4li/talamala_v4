@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .dealer-sidebar {
+        width: 240px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8f7f6 100%);
+        border-left: 1px solid var(--tm-border);
+        height: 100vh;
+        position: fixed;
+        right: 0;
+        top: 0;
+        padding: 24px 16px;
+        overflow-y: auto;
+        z-index: 1040;
+        transition: transform 0.3s var(--tm-ease-out);
+    }
+    .dealer-sidebar .sidebar-logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px 20px;
+        border-bottom: 1px solid var(--tm-border);
+        margin-bottom: 16px;
+    }
+    .dealer-sidebar .sidebar-logo img.logomark { width: 30px; }
+    .dealer-sidebar .sidebar-logo img.wordmark { width: 65px; }
+    .dealer-sidebar .nav-link {
+        height: 44px;
+        border-radius: 8px;
+        padding: 0 14px;
+        font-size: 14px;
+        font-weight: 400;
+        color: var(--tm-info-300);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all var(--tm-duration-fast) var(--tm-ease-out);
+        margin-bottom: 4px;
+        text-decoration: none;
+    }
+    .dealer-sidebar .nav-link i { font-size: 18px; width: 20px; text-align: center; transition: transform var(--tm-duration-fast); }
+    .dealer-sidebar .nav-link:hover { background: var(--tm-info-900); color: var(--tm-dark); }
+    .dealer-sidebar .nav-link:hover i { transform: scale(1.1); }
+    .dealer-sidebar .nav-link.active {
+        background: linear-gradient(135deg, var(--tm-primary), var(--tm-primary-300));
+        color: white; font-weight: 500;
+        box-shadow: 0 4px 12px rgba(107,0,45,0.2);
+    }
+    .dealer-content {
+        margin-right: 240px;
+        padding: 24px 32px;
+        background: var(--tm-info-900);
+        min-height: 100vh;
+    }
+    @media (max-width: 991px) {
+        .dealer-sidebar { transform: translateX(100%); }
+        .dealer-sidebar.show { transform: translateX(0); }
+        .dealer-content { margin-right: 0; padding: 16px; }
+    }
+</style>
+{% block page_css %}{% endblock %}
+{% endblock %}
+
+{% block body %}
+<!-- Sidebar -->
+<nav class="dealer-sidebar" id="dealerSidebar">
+    <div class="sidebar-logo">
+        <img src="/static/assets/img/logomark-primary.svg" alt="طلامالا" class="logomark">
+        <img src="/static/assets/img/wordmark-primary.svg" alt="طلامالا" class="wordmark">
+    </div>
+    <div class="mb-3 px-2">
+        <div class="font-bold text-body-md" style="color:var(--tm-subtitle);">{{ dealer.full_name }}</div>
+        <span class="badge-tm badge-tm-primary mt-1">نماینده فروش</span>
+    </div>
+    <div>
+        <a href="/dealer/dashboard" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i> داشبورد
+        </a>
+        <a href="/dealer/pos" class="nav-link {% if active_page == 'pos' %}active{% endif %}">
+            <i class="bi bi-cart-plus"></i> فروش حضوری
+        </a>
+        <a href="/dealer/buyback" class="nav-link {% if active_page == 'buyback' %}active{% endif %}">
+            <i class="bi bi-arrow-return-left"></i> بازخرید
+        </a>
+        <a href="/dealer/sales" class="nav-link {% if active_page == 'sales' %}active{% endif %}">
+            <i class="bi bi-receipt"></i> تاریخچه فروش
+        </a>
+        <a href="/dealer/buybacks" class="nav-link {% if active_page == 'buybacks' %}active{% endif %}">
+            <i class="bi bi-clock-history"></i> درخواست‌های بازخرید
+        </a>
+        <a href="/tickets" class="nav-link {% if active_page == 'tickets' %}active{% endif %}">
+            <i class="bi bi-headset"></i> پشتیبانی
+        </a>
+        <div style="border-top:1px solid var(--tm-border);margin:8px 14px;"></div>
+        <a href="/auth/logout" class="nav-link" style="color:var(--tm-negative);">
+            <i class="bi bi-box-arrow-right"></i> خروج
+        </a>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<div class="dealer-content">
+    <!-- Mobile toggle -->
+    <button class="btn btn-sm btn-tm-primary d-lg-none mb-3" onclick="document.getElementById('dealerSidebar').classList.toggle('show')">
+        <i class="bi bi-list"></i> منو
+    </button>
+
+    {% block content %}{% endblock %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% block page_js %}{% endblock %}
+{% endblock %}

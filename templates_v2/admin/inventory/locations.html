@@ -1,0 +1,163 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "locations" %}
+{% block title %}مدیریت مکان‌ها - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center tm-animate-fade-in">
+    <h4 class="fw-bold mb-0"><i class="bi bi-geo-alt me-2"></i>مدیریت مکان‌ها</h4>
+    <button class="btn btn-sm btn-tm-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-plus-lg me-1"></i> افزودن مکان
+    </button>
+</div>
+
+{% if msg %}<div class="alert-tm-success py-2"><i class="bi bi-check-lg me-1"></i>{{ msg }}</div>{% endif %}
+
+<div class="row g-3 tm-animate-fade-in-up tm-delay-2">
+    {% for loc in locations %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card-tm no-hover h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <h6 class="fw-bold mb-0">
+                        <i class="{{ loc.type_icon }} me-1"></i>{{ loc.name }}
+                    </h6>
+                    <span class="badge bg-{{ loc.type_color }} mt-1">{{ loc.type_label }}</span>
+                    {% if not loc.is_active %}
+                    <span class="badge-tm badge-tm-danger mt-1">غیرفعال</span>
+                    {% endif %}
+                    {% if loc.is_postal_hub %}
+                    <span class="badge-tm badge-tm-info mt-1"><i class="bi bi-envelope me-1"></i>ارسال پستی</span>
+                    {% endif %}
+                </div>
+                <span class="badge bg-light text-dark border">
+                    {{ bar_counts.get(loc.id, 0) }} شمش
+                </span>
+            </div>
+
+            {% if loc.province %}
+            <div class="small text-muted"><i class="bi bi-map me-1"></i>{{ loc.province }}</div>
+            {% endif %}
+            {% if loc.city %}
+            <div class="small text-muted"><i class="bi bi-pin-map me-1"></i>{{ loc.city }}</div>
+            {% endif %}
+            {% if loc.address %}
+            <div class="small text-muted mt-1"><i class="bi bi-geo me-1"></i>{{ loc.address }}</div>
+            {% endif %}
+            {% if loc.phone %}
+            <div class="small text-muted mt-1" dir="ltr"><i class="bi bi-telephone me-1"></i>{{ loc.phone }}</div>
+            {% endif %}
+
+            <div class="border-top mt-3 pt-3 d-flex gap-1">
+                <button class="btn btn-sm btn-tm-outline flex-grow-1"
+                        data-bs-toggle="modal" data-bs-target="#editModal-{{ loc.id }}">
+                    <i class="bi bi-pencil me-1"></i>ویرایش
+                </button>
+                <a href="/admin/bars?location_id={{ loc.id }}" class="btn btn-sm btn-tm-outline">
+                    <i class="bi bi-upc-scan"></i>
+                </a>
+                {% if bar_counts.get(loc.id, 0) == 0 %}
+                <form method="POST" action="/admin/locations/delete/{{ loc.id }}"
+                      onsubmit="return confirm('حذف مکان «{{ loc.name }}»؟')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash"></i></button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal-{{ loc.id }}">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" action="/admin/locations/update/{{ loc.id }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="modal-header"><h6 class="modal-title fw-bold">ویرایش مکان</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body">
+                        <div class="mb-3"><label class="form-label-tm">نام</label>
+                            <input name="name" class="form-control form-control-tm" value="{{ loc.name }}" required></div>
+                        <div class="mb-3"><label class="form-label-tm">نوع</label>
+                            <select name="location_type" class="form-select form-select-tm">
+                                {% for t in location_types %}
+                                <option value="{{ t.value }}" {% if loc.location_type == t.value %}selected{% endif %}>
+                                    {{ {"Factory":"کارخانه","Warehouse":"انبار مرکزی","Branch":"نمایندگی","InTransit":"در حال انتقال","OnlinePlatform":"پلتفرم آنلاین"}[t.value] }}
+                                </option>
+                                {% endfor %}
+                            </select></div>
+                        <div class="mb-3"><label class="form-label-tm">استان</label>
+                            <input name="province" class="form-control form-control-tm" value="{{ loc.province or '' }}"></div>
+                        <div class="mb-3"><label class="form-label-tm">شهر</label>
+                            <input name="city" class="form-control form-control-tm" value="{{ loc.city or '' }}"></div>
+                        <div class="mb-3"><label class="form-label-tm">آدرس</label>
+                            <textarea name="address" class="form-control form-control-tm" rows="2">{{ loc.address or '' }}</textarea></div>
+                        <div class="mb-3"><label class="form-label-tm">تلفن</label>
+                            <input name="phone" class="form-control form-control-tm" dir="ltr" value="{{ loc.phone or '' }}"></div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="is_postal_hub" value="true" class="form-check-input"
+                                   {% if loc.is_postal_hub %}checked{% endif %}>
+                            <label class="form-check-label"><i class="bi bi-envelope me-1"></i>انبار ارسال پستی</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" name="is_active" value="true" class="form-check-input"
+                                   {% if loc.is_active %}checked{% endif %}>
+                            <label class="form-check-label">فعال</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-tm-primary">ذخیره</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+        <div style="font-size:4rem;">📍</div>
+        <h5 class="text-muted mt-3">هنوز مکانی ثبت نشده</h5>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Add Modal -->
+<div class="modal fade" id="addModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="/admin/locations/create">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header"><h6 class="modal-title fw-bold">افزودن مکان جدید</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-3"><label class="form-label-tm">نام <span class="text-danger">*</span></label>
+                        <input name="name" class="form-control form-control-tm" required placeholder="مثال: نمایندگی اصفهان"></div>
+                    <div class="mb-3"><label class="form-label-tm">نوع</label>
+                        <select name="location_type" class="form-select form-select-tm">
+                            {% for t in location_types %}
+                            <option value="{{ t.value }}">
+                                {{ {"Factory":"کارخانه","Warehouse":"انبار مرکزی","Branch":"نمایندگی","InTransit":"در حال انتقال","OnlinePlatform":"پلتفرم آنلاین"}[t.value] }}
+                            </option>
+                            {% endfor %}
+                        </select></div>
+                    <div class="mb-3"><label class="form-label-tm">استان</label>
+                        <input name="province" class="form-control form-control-tm" placeholder="اصفهان"></div>
+                    <div class="mb-3"><label class="form-label-tm">شهر</label>
+                        <input name="city" class="form-control form-control-tm" placeholder="اصفهان"></div>
+                    <div class="mb-3"><label class="form-label-tm">آدرس</label>
+                        <textarea name="address" class="form-control form-control-tm" rows="2" placeholder="خیابان ..."></textarea></div>
+                    <div class="mb-3"><label class="form-label-tm">تلفن</label>
+                        <input name="phone" class="form-control form-control-tm" dir="ltr" placeholder="021-12345678"></div>
+                    <div class="form-check mb-2">
+                        <input type="checkbox" name="is_postal_hub" value="true" class="form-check-input" id="addPostalHub">
+                        <label class="form-check-label" for="addPostalHub">
+                            <i class="bi bi-envelope me-1"></i>انبار ارسال پستی
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-tm-primary">ایجاد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

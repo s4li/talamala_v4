@@ -1,0 +1,138 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}مدیریت کوپن‌ها - طلامالا{% endblock %}
+
+{% block content %}
+<div class="page-header tm-animate-fade-in">
+    <h4><i class="bi bi-ticket-perforated me-2"></i>مدیریت کوپن‌ها</h4>
+    <a href="/admin/coupons/new" class="btn btn-tm-primary">
+        <i class="bi bi-plus-circle me-1"></i> کوپن جدید
+    </a>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 tm-animate-fade-in-up tm-delay-1">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">کل کوپن‌ها</div>
+            <div class="fw-bold fs-4">{{ stats.total_coupons }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 tm-animate-fade-in-up tm-delay-2">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">فعال</div>
+            <div class="fw-bold fs-4 text-success">{{ stats.active_coupons }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 tm-animate-fade-in-up tm-delay-3">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">کل استفاده</div>
+            <div class="fw-bold fs-4 text-primary">{{ stats.total_usages }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 tm-animate-fade-in-up tm-delay-4">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">مجموع تخفیف</div>
+            <div class="fw-bold fs-4 text-danger">{{ stats.total_discount | toman }}</div>
+            <small class="text-muted">تومان</small>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-5">
+    <div class="py-2">
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+            <input type="text" name="search" class="form-control form-control-tm form-control-sm" style="width:200px;"
+                   placeholder="جستجو کد / عنوان..." value="{{ search }}">
+            <select name="status" class="form-select form-select-tm form-select-sm" style="width:140px;">
+                <option value="">همه وضعیت‌ها</option>
+                <option value="ACTIVE" {{ 'selected' if status_filter == 'ACTIVE' }}>فعال</option>
+                <option value="INACTIVE" {{ 'selected' if status_filter == 'INACTIVE' }}>غیرفعال</option>
+                <option value="EXPIRED" {{ 'selected' if status_filter == 'EXPIRED' }}>منقضی</option>
+            </select>
+            <button type="submit" class="btn btn-sm btn-tm-outline">
+                <i class="bi bi-search"></i> فیلتر
+            </button>
+            {% if search or status_filter %}
+            <a href="/admin/coupons" class="btn btn-sm btn-tm-outline">پاک کردن</a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Coupon Table -->
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-6">
+    <div class="p-0">
+        {% if coupons %}
+        <div class="table-responsive">
+            <table class="table table-tm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th style="width:40px;">#</th>
+                        <th>کد</th>
+                        <th>عنوان</th>
+                        <th>نوع</th>
+                        <th>مقدار تخفیف</th>
+                        <th>دامنه</th>
+                        <th>استفاده</th>
+                        <th>وضعیت</th>
+                        <th>انقضا</th>
+                        <th style="width:80px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in coupons %}
+                    <tr>
+                        <td class="text-muted">{{ c.id }}</td>
+                        <td><code class="fs-6">{{ c.code }}</code></td>
+                        <td>
+                            {{ c.title }}
+                            {% if c.is_private %}<i class="bi bi-lock-fill text-muted ms-1" title="خصوصی"></i>{% endif %}
+                            {% if c.is_mobile_restricted %}<i class="bi bi-phone-fill text-info ms-1" title="محدود به موبایل"></i>{% endif %}
+                        </td>
+                        <td>
+                            <span class="badge-tm badge-tm-{{ 'success' if c.coupon_type == 'DISCOUNT' else 'info' }}">
+                                {{ c.coupon_type_label }}
+                            </span>
+                        </td>
+                        <td>{{ c.discount_display }}</td>
+                        <td><span class="badge-tm badge-tm-info">{{ c.scope_label }}</span></td>
+                        <td>
+                            {{ c.current_uses }}{% if c.max_total_uses %}/{{ c.max_total_uses }}{% endif %}
+                        </td>
+                        <td><span class="badge bg-{{ c.status_color }}">{{ c.status_label }}</span></td>
+                        <td class="small text-muted">
+                            {% if c.expires_at %}{{ c.expires_at.strftime('%Y/%m/%d') }}{% else %}—{% endif %}
+                        </td>
+                        <td>
+                            <a href="/admin/coupons/{{ c.id }}" class="btn btn-sm btn-tm-outline">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if total_pages > 1 %}
+        <nav class="d-flex justify-content-center py-3">
+            <ul class="pagination pagination-tm pagination-sm mb-0">
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {{ 'active' if p == page else '' }}">
+                    <a class="page-link" href="/admin/coupons?page={{ p }}&status={{ status_filter or '' }}&search={{ search }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-ticket-perforated" style="font-size:2rem;"></i>
+            <p class="mt-2">هنوز کوپنی تعریف نشده</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

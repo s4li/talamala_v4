@@ -1,0 +1,71 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}سفارشات من - طلامالا{% endblock %}
+
+{% block shop_content %}
+<h4 class="fw-bold mb-4 tm-animate-fade-in"><i class="bi bi-bag me-2"></i>سفارشات من</h4>
+
+{% if request.query_params.get('msg') %}
+<div class="alert-tm-success py-2">{{ request.query_params.get('msg') }}</div>
+{% endif %}
+
+{% if orders %}
+<div class="table-responsive tm-animate-fade-in-up tm-delay-2">
+    <table class="table table-tm align-middle">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>تاریخ</th>
+                <th>تعداد اقلام</th>
+                <th>مبلغ کل</th>
+                <th>تحویل</th>
+                <th>وضعیت</th>
+                <th>عملیات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td><strong>{{ order.id }}</strong></td>
+                <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '' }}</td>
+                <td>{{ order.items|length }} قلم</td>
+                <td class="fw-bold">{{ order.grand_total | toman }} <small class="text-muted">تومان</small></td>
+                <td>
+                    {% if order.delivery_method %}
+                    <span class="badge-tm badge-tm-{{ 'info' if order.delivery_method == 'Pickup' else 'primary' }}">
+                        <i class="bi bi-{{ 'shop' if order.delivery_method == 'Pickup' else 'envelope' }} me-1"></i>{{ order.delivery_method_label }}
+                    </span>
+                    {% if order.status == 'Paid' and order.delivery_status %}
+                    <br><small class="badge-tm badge-tm-{{ order.delivery_status_color }} mt-1">{{ order.delivery_status_label }}</small>
+                    {% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td><span class="badge-tm badge-tm-{{ order.status_color }}">{{ order.status_label }}</span></td>
+                <td>
+                    <a href="/orders/{{ order.id }}" class="btn btn-sm btn-tm-outline">
+                        <i class="bi bi-eye me-1"></i>جزئیات
+                    </a>
+                    {% if order.status == 'Pending' %}
+                    <form method="POST" action="/orders/{{ order.id }}/cancel" class="d-inline"
+                          onsubmit="return confirm('آیا از لغو سفارش مطمئنید؟')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button class="btn btn-sm btn-tm-danger">
+                            <i class="bi bi-x-lg me-1"></i>لغو
+                        </button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <div style="font-size:5rem;">📦</div>
+    <h5 class="text-muted mt-3">هنوز سفارشی ثبت نکرده‌اید</h5>
+    <a href="/" class="btn btn-tm-primary mt-2">
+        <i class="bi bi-arrow-right me-1"></i> مشاهده محصولات
+    </a>
+</div>
+{% endif %}
+{% endblock %}

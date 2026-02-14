@@ -11,7 +11,9 @@ from config.database import SessionLocal
 from common.helpers import format_toman, format_weight, format_jdate, persian_number, format_gold_gram
 
 # Initialize templates
-templates = Jinja2Templates(directory="templates")
+# 🔄 Switch template folder: "templates" (original) ↔ "templates_v2" (experimental)
+TEMPLATE_DIR = "templates_v2"
+templates = Jinja2Templates(directory=TEMPLATE_DIR)
 
 
 # ==========================================

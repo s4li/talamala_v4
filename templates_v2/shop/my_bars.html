@@ -1,0 +1,83 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}شمش‌های من - طلامالا{% endblock %}
+
+{% block shop_content %}
+<nav class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="/" class="text-decoration-none">فروشگاه</a></li>
+        <li class="breadcrumb-item active">شمش‌های من</li>
+    </ol>
+</nav>
+
+{% if msg %}
+<div class="alert alert-tm-success alert-dismissible py-2">
+    <i class="bi bi-check-circle me-1"></i>{{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-tm-danger alert-dismissible py-2">
+    <i class="bi bi-exclamation-triangle me-1"></i>{{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="fw-bold mb-0"><i class="bi bi-gem me-2 text-tm-primary"></i>شمش‌های من</h4>
+    <a href="/claim-bar" class="btn btn-tm-primary btn btn-sm">
+        <i class="bi bi-plus-circle me-1"></i> ثبت شمش جدید
+    </a>
+</div>
+
+{% if bars %}
+<div class="row g-3">
+    {% for bar in bars %}
+    <div class="col-md-6 col-lg-4 tm-animate-fade-in-up tm-delay-{{ loop.index if loop.index <= 12 else 12 }}">
+        <div class="card-tm no-hover h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <h6 class="fw-bold mb-1">{{ bar.product.name if bar.product else 'نامشخص' }}</h6>
+                    <small class="font-monospace text-muted" dir="ltr">{{ bar.serial_code }}</small>
+                </div>
+                <span class="badge-tm badge-tm-success">{{ bar.status_label }}</span>
+            </div>
+
+            {% if bar.product %}
+            <div class="small text-muted mb-2">
+                <i class="bi bi-scale me-1"></i>وزن: {{ bar.product.weight }}g
+                &bull; عیار: {{ bar.product.purity }}
+            </div>
+            {% endif %}
+
+            {% if bar.location %}
+            <div class="small text-muted mb-2">
+                <i class="bi bi-geo-alt me-1"></i>{{ bar.location.name }}
+            </div>
+            {% endif %}
+
+            <div class="small text-muted mb-3">
+                <i class="bi bi-calendar me-1"></i>{{ bar.created_at | jdate }}
+            </div>
+
+            <div class="d-flex gap-2 mt-auto">
+                <a href="/verify/check?code={{ bar.serial_code }}" class="btn btn-sm btn-tm-outline flex-fill">
+                    <i class="bi bi-qr-code me-1"></i> اصالت‌سنجی
+                </a>
+                <a href="/my-bars/{{ bar.id }}/transfer" class="btn btn-sm btn-tm-outline flex-fill">
+                    <i class="bi bi-arrow-left-right me-1"></i> انتقال
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card-tm no-hover text-center py-5">
+    <i class="bi bi-gem" style="font-size:3rem; color: var(--tm-primary); opacity:0.3;"></i>
+    <p class="text-muted mt-3 mb-0">هنوز شمشی به نام شما ثبت نشده است.</p>
+    <a href="/claim-bar" class="btn btn-tm-primary btn mt-3">
+        <i class="bi bi-plus-circle me-1"></i> ثبت شمش با کد
+    </a>
+</div>
+{% endif %}
+{% endblock %}

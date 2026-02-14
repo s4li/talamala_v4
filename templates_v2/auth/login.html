@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}ورود - طلامالا{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-wrapper {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--tm-primary-100) 0%, var(--tm-primary) 50%, var(--tm-primary-300) 100%);
+        background-size: 200% 200%;
+        animation: tm-gradient-shift 8s ease infinite;
+        position: relative;
+        overflow: hidden;
+    }
+    .login-wrapper::before {
+        content: '';
+        position: absolute;
+        width: 350px; height: 350px;
+        top: -100px; right: -100px;
+        background: rgba(212,168,67,0.06);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .login-wrapper::after {
+        content: '';
+        position: absolute;
+        width: 450px; height: 450px;
+        bottom: -150px; left: -150px;
+        background: rgba(255,255,255,0.04);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .login-card {
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-radius: 24px;
+        padding: 2.5rem;
+        width: 100%;
+        max-width: 420px;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+        animation: tm-scale-in 0.5s var(--tm-ease-out);
+        border: 1px solid rgba(255,255,255,0.2);
+        position: relative;
+        z-index: 1;
+    }
+    .login-logo {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, var(--tm-primary) 0%, var(--tm-primary-300) 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+        color: #fff;
+        box-shadow: 0 8px 24px rgba(107,0,45,0.25);
+        animation: tm-float 3s ease-in-out infinite;
+    }
+    .otp-inputs {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        direction: ltr;
+    }
+    .otp-inputs input {
+        width: 48px;
+        height: 56px;
+        text-align: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+        border: 2px solid #ddd;
+        border-radius: 12px;
+        outline: none;
+        transition: border-color var(--tm-duration-fast),
+                    box-shadow var(--tm-duration-fast),
+                    transform var(--tm-duration-fast);
+        background: rgba(255,255,255,0.8);
+    }
+    .otp-inputs input:focus {
+        border-color: var(--tm-primary);
+        box-shadow: 0 0 0 3px rgba(107,0,45,0.1);
+        transform: translateY(-2px);
+    }
+    .timer-text {
+        color: #888;
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="login-logo">
+            <i class="bi bi-gem"></i>
+        </div>
+        <h4 class="text-center mb-1 fw-bold">طلامالا</h4>
+        <p class="text-center text-muted mb-4">سیستم مدیریت شمش طلا</p>
+
+        {% if error %}
+        <div class="alert-tm-danger py-2 text-center" role="alert">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        {% if step == "mobile" %}
+        <!-- ========== STEP 1: Mobile Number ========== -->
+        <form method="POST" action="/auth/send-otp">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="mb-3">
+                <label class="form-label-tm fw-bold">شماره موبایل</label>
+                <input type="tel"
+                       name="mobile"
+                       class="form-control form-control-tm form-control-lg text-center"
+                       dir="ltr"
+                       placeholder="09xxxxxxxxx"
+                       value="{{ mobile or '' }}"
+                       maxlength="11"
+                       pattern="09[0-9]{9}"
+                       required
+                       autofocus>
+            </div>
+
+            <button type="submit" class="btn-tm-primary btn btn-lg w-100 mt-2">
+                <i class="bi bi-send-fill me-1"></i>
+                ارسال کد تأیید
+            </button>
+        </form>
+
+        {% elif step == "verify" %}
+        <!-- ========== STEP 2: OTP Verification ========== -->
+        <p class="text-center text-muted mb-3">
+            کد تأیید به <strong dir="ltr">{{ mobile }}</strong> ارسال شد
+        </p>
+
+        <form method="POST" action="/auth/verify-otp" id="otpForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="mobile" value="{{ mobile }}">
+            <input type="hidden" name="code" id="otpHidden">
+
+            <div class="otp-inputs mb-4">
+                {% for i in range(6) %}
+                <input type="text"
+                       class="otp-digit"
+                       maxlength="1"
+                       inputmode="numeric"
+                       pattern="[0-9]"
+                       autocomplete="one-time-code"
+                       data-index="{{ i }}">
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="btn-tm-primary btn btn-lg w-100" id="verifyBtn" disabled>
+                <i class="bi bi-check-circle-fill me-1"></i>
+                تأیید و ورود
+            </button>
+        </form>
+
+        <div class="text-center mt-3">
+            <span class="timer-text" id="timerText">ارسال مجدد تا <span id="countdown">120</span> ثانیه</span>
+            <a href="/auth/login" class="d-none" id="resendLink">ارسال مجدد کد</a>
+        </div>
+
+        <div class="text-center mt-2">
+            <a href="/auth/login" class="text-muted small">
+                <i class="bi bi-arrow-right me-1"></i>
+                تغییر شماره
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if step == "verify" %}
+<script>
+(function() {
+    const digits = document.querySelectorAll('.otp-digit');
+    const hidden = document.getElementById('otpHidden');
+    const form = document.getElementById('otpForm');
+    const btn = document.getElementById('verifyBtn');
+
+    function collectOTP() {
+        let code = '';
+        digits.forEach(d => code += d.value);
+        hidden.value = code;
+        btn.disabled = code.length < 6;
+    }
+
+    digits.forEach((input, idx) => {
+        input.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value && idx < digits.length - 1) {
+                digits[idx + 1].focus();
+            }
+            collectOTP();
+            // Auto-submit when all filled
+            if (hidden.value.length === 6) {
+                form.submit();
+            }
+        });
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace' && !this.value && idx > 0) {
+                digits[idx - 1].focus();
+            }
+        });
+
+        // Handle paste
+        input.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+            for (let i = 0; i < Math.min(text.length, 6); i++) {
+                digits[i].value = text[i];
+            }
+            collectOTP();
+            if (hidden.value.length === 6) {
+                form.submit();
+            }
+        });
+    });
+
+    // Focus first input
+    digits[0].focus();
+
+    // Countdown timer
+    let seconds = 120;
+    const countdownEl = document.getElementById('countdown');
+    const timerText = document.getElementById('timerText');
+    const resendLink = document.getElementById('resendLink');
+
+    const timer = setInterval(() => {
+        seconds--;
+        countdownEl.textContent = seconds;
+        if (seconds <= 0) {
+            clearInterval(timer);
+            timerText.classList.add('d-none');
+            resendLink.classList.remove('d-none');
+        }
+    }, 1000);
+})();
+</script>
+{% endif %}
+{% endblock %}
