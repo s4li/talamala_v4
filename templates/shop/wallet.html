@@ -62,13 +62,34 @@
     .action-card:hover i {
         transform: scale(1.15);
     }
-    .txn-row {
-        border-bottom: 1px solid #f0f0f0;
-        padding: 0.75rem 0;
+    .txn-item {
+        background: #fff;
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        margin-bottom: 0.5rem;
+        border: 1px solid #f0f0f0;
+        transition: background 0.2s, box-shadow 0.2s;
     }
-    .txn-row:last-child { border-bottom: none; }
-    .txn-amount.positive { color: #198754; }
-    .txn-amount.negative { color: #dc3545; }
+    .txn-item:hover {
+        background: #fafafa;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .txn-item:last-child { margin-bottom: 0; }
+    .txn-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    .txn-icon.positive { background: rgba(25,135,84,0.1); color: #198754; }
+    .txn-icon.negative { background: rgba(220,53,69,0.1); color: #dc3545; }
+    .txn-icon.neutral  { background: rgba(108,117,125,0.1); color: #6c757d; }
+    .txn-amount-val.positive { color: #198754; }
+    .txn-amount-val.negative { color: #dc3545; }
 </style>
 {% endblock %}
 
@@ -214,7 +235,7 @@
                             <td>{{ wr.id }}</td>
                             <td class="fw-bold">{{ wr.amount_irr | toman }}</td>
                             <td><code class="small">{{ wr.shaba_number }}</code></td>
-                            <td class="small">{{ wr.created_at.strftime('%Y/%m/%d %H:%M') if wr.created_at else '—' }}</td>
+                            <td class="small">{{ wr.created_at | jdate if wr.created_at else '—' }}</td>
                             <td><span class="badge-tm badge-tm-{{ wr.status_color }}">{{ wr.status_label }}</span></td>
                         </tr>
                         {% endfor %}
@@ -232,20 +253,30 @@
                 <a href="/wallet/transactions" class="btn btn-sm btn-tm-outline">مشاهده همه</a>
             </div>
                 {% if entries %}
-                <div class="px-3">
+                <div>
                     {% for e in entries %}
-                    <div class="txn-row d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="badge-tm badge-tm-{{ e.txn_type_color }} me-1">{{ e.txn_type_label }}</span>
-                            <small class="text-muted">{{ e.description or '' }}</small>
+                    {% set sign = 'positive' if e.delta_balance > 0 else 'negative' if e.delta_balance < 0 else 'neutral' %}
+                    <div class="txn-item d-flex align-items-center gap-3">
+                        <div class="txn-icon {{ sign }}">
+                            {% if e.delta_balance > 0 %}
+                            <i class="bi bi-arrow-down-left"></i>
+                            {% elif e.delta_balance < 0 %}
+                            <i class="bi bi-arrow-up-right"></i>
+                            {% else %}
+                            <i class="bi bi-arrow-left-right"></i>
+                            {% endif %}
                         </div>
-                        <div class="text-start" style="min-width:140px;">
-                            <div class="txn-amount fw-bold {{ 'positive' if e.delta_balance > 0 else 'negative' if e.delta_balance < 0 else '' }}">
-                                {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }} ت
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold small">{{ e.txn_type_label }}</span>
+                                <span class="txn-amount-val fw-bold {{ sign }}">
+                                    {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }} تومان
+                                </span>
                             </div>
-                            <small class="text-muted">
-                                {{ e.created_at.strftime('%m/%d %H:%M') if e.created_at else '' }}
-                            </small>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <small class="text-muted">{{ e.description or '' }}</small>
+                                <small class="text-muted">{{ e.created_at | jdate if e.created_at else '' }}</small>
+                            </div>
                         </div>
                     </div>
                     {% endfor %}

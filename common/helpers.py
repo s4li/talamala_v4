@@ -105,15 +105,28 @@ def generate_unique_claim_code(db, length: int = 6, max_retries: int = 10) -> st
     raise RuntimeError("Failed to generate unique claim code after retries")
 
 
-def format_jdate(value) -> str:
-    """Convert a datetime to Jalali (Shamsi) date string."""
+def format_jdate(value, fmt=None) -> str:
+    """Convert a datetime to Jalali (Shamsi) date string.
+
+    Default format: '۲۵ بهمن ۱۴۰۴  ۱۴:۳۰'
+    """
     if value is None:
         return ""
     try:
         import jdatetime
         if isinstance(value, datetime):
             jd = jdatetime.datetime.fromgregorian(datetime=value)
-            return jd.strftime("%Y/%m/%d")
+            if fmt:
+                return persian_number(jd.strftime(fmt))
+            day = persian_number(str(jd.day))
+            months = [
+                '', 'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+                'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند',
+            ]
+            month = months[jd.month]
+            year = persian_number(str(jd.year))
+            time_str = persian_number(jd.strftime("%H:%M"))
+            return f"{day} {month} {year}  {time_str}"
         return str(value)
     except Exception:
         return str(value)
