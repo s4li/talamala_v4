@@ -13,7 +13,7 @@
 - **UI**: فارسی (RTL) با Bootstrap 5 RTL + Vazirmatn font + Bootstrap Icons
 - **Auth**: OTP-based (SMS) برای مشتری‌ها + JWT cookie برای ادمین
 - **Payment**: کیف پول + درگاه زیبال (sandbox فعال)
-- **Pricing**: فرمول محاسبه قیمت طلا بر اساس وزن، عیار، اجرت، سود، مالیات
+- **Pricing**: فرمول ساده قیمت شمش: طلای خام + اجرت + مالیات (روی اجرت)
 
 ---
 
@@ -423,8 +423,8 @@ total    = raw_gold + wage + tax
 
 ### Auth
 - `GET /auth/login` — Login page
-- `POST /auth/login/request-otp` — Send OTP
-- `POST /auth/login/verify-otp` — Verify → JWT cookie
+- `POST /auth/send-otp` — Send OTP
+- `POST /auth/verify-otp` — Verify → JWT cookie
 - `GET /auth/logout` — Clear cookie
 
 ### Customer
@@ -436,7 +436,7 @@ total    = raw_gold + wage + tax
 
 ### Cart & Orders
 - `GET /cart` — Cart page
-- `POST /cart/add|update/{pid}|remove/{pid}`
+- `POST /cart/update` — افزودن/حذف آیتم (با product_id + action)
 - `GET /checkout` — Checkout
 - `POST /cart/checkout` — Place order
 - `GET /orders` — My orders
@@ -489,7 +489,7 @@ total    = raw_gold + wage + tax
 ### Admin
 - `/admin/dashboard|products|categories|designs|packages|batches`
 - `/admin/bars|locations|orders|settings`
-- `/admin/wallet/accounts|withdrawals`
+- `/admin/wallets` — حساب‌ها, `/admin/wallets/withdrawals/list` — برداشت‌ها
 - `/admin/coupons`
 - `/admin/dealers` — Dealer list + create/edit
 - `POST /admin/dealers/{id}/generate-api-key` — Generate POS API key
