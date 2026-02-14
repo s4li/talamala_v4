@@ -74,7 +74,7 @@
             <div class="border-bottom pb-3 mb-3 d-flex justify-content-between align-items-center py-3">
                 <div>
                     <h5 class="fw-bold mb-0">فاکتور سفارش #{{ order.id }}</h5>
-                    <small class="text-muted">{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '' }}</small>
+                    <small class="text-muted">{{ order.created_at | jdate if order.created_at else '' }}</small>
                 </div>
                 <span class="badge-tm badge-tm-{{ order.status_color }} fs-6">{{ order.status_label }}</span>
             </div>
@@ -265,7 +265,7 @@
                     {% else %}{{ order.payment_method }}{% endif %}
                 </div>
                 {% if order.payment_ref %}<div><strong>شماره مرجع:</strong> <code>{{ order.payment_ref }}</code></div>{% endif %}
-                {% if order.paid_at %}<div><strong>تاریخ پرداخت:</strong> {{ order.paid_at.strftime('%Y-%m-%d %H:%M') }}</div>{% endif %}
+                {% if order.paid_at %}<div><strong>تاریخ پرداخت:</strong> {{ order.paid_at | jdate }}</div>{% endif %}
             </div>
             {% endif %}
             <button class="btn btn-tm-outline w-100" onclick="window.print()">
@@ -273,10 +273,22 @@
             </button>
 
             {% elif order.status == 'Cancelled' %}
-            <div class="alert-tm-danger py-2 small mb-0">
+            <div class="alert-tm-danger py-2 small mb-3">
                 <i class="bi bi-x-circle me-1"></i>
                 سفارش لغو شده و شمش‌ها آزاد شده‌اند.
             </div>
+            {% if order.cancellation_reason %}
+            <div class="p-2 bg-light rounded small mb-2">
+                <i class="bi bi-info-circle text-muted me-1"></i>
+                <strong>دلیل لغو:</strong> {{ order.cancellation_reason }}
+            </div>
+            {% endif %}
+            {% if order.cancelled_at %}
+            <div class="text-muted small mb-0">
+                <i class="bi bi-clock me-1"></i>
+                تاریخ لغو: {{ order.cancelled_at | jdate }}
+            </div>
+            {% endif %}
             {% endif %}
         </div>
 
@@ -348,7 +360,7 @@
             <div class="alert-tm-success py-2 mt-2 mb-0 small">
                 <i class="bi bi-check-circle me-1"></i>تحویل تکمیل شده
                 {% if order.delivered_at %}
-                <br><small>{{ order.delivered_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                <br><small>{{ order.delivered_at | jdate }}</small>
                 {% endif %}
             </div>
             {% endif %}
@@ -446,7 +458,7 @@
                 {% if order.delivered_at %}
                 <tr>
                     <td class="text-muted">تاریخ تحویل</td>
-                    <td>{{ order.delivered_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ order.delivered_at | jdate }}</td>
                 </tr>
                 {% endif %}
             </table>
@@ -457,7 +469,7 @@
         <div class="card-tm no-hover mt-3">
             <table class="table table-tm table-borderless mb-0">
                 <tr><td class="text-muted">شماره سفارش</td><td class="fw-bold">#{{ order.id }}</td></tr>
-                <tr><td class="text-muted">تاریخ</td><td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '' }}</td></tr>
+                <tr><td class="text-muted">تاریخ</td><td>{{ order.created_at | jdate if order.created_at else '' }}</td></tr>
                 {% if order.track_id %}
                 <tr><td class="text-muted">کد پیگیری</td><td dir="ltr"><code>{{ order.track_id }}</code></td></tr>
                 {% endif %}

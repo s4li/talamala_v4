@@ -110,7 +110,7 @@
                             {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }} تومان
                         {% endif %}
                     </td>
-                    <td class="small">{{ e.created_at.strftime('%m/%d %H:%M') if e.created_at else '' }}</td>
+                    <td class="small">{{ e.created_at | time_ago if e.created_at else '' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

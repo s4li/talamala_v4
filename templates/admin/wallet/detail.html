@@ -136,7 +136,7 @@
                                 <td class="small text-muted">
                                     {% if e.reference_type %}{{ e.reference_type }}:{{ e.reference_id or '' }}{% else %}—{% endif %}
                                 </td>
-                                <td class="small text-muted">{{ e.created_at.strftime('%Y/%m/%d %H:%M') if e.created_at else '—' }}</td>
+                                <td class="small text-muted">{{ e.created_at | jdate if e.created_at else '—' }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

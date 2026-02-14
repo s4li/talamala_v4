@@ -54,7 +54,7 @@
                                 {{ e.balance_after | toman }} تومان
                             {% endif %}
                         </td>
-                        <td class="small">{{ e.created_at.strftime('%Y/%m/%d %H:%M') if e.created_at else '' }}</td>
+                        <td class="small">{{ e.created_at | jdate if e.created_at else '' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

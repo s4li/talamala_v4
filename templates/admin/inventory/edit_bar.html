@@ -94,7 +94,7 @@
                     <tbody>
                         {% for h in bar.history %}
                         <tr>
-                            <td><small>{{ h.transfer_date.strftime('%Y-%m-%d %H:%M') if h.transfer_date else '' }}</small></td>
+                            <td><small>{{ h.transfer_date | jdate if h.transfer_date else '' }}</small></td>
                             <td>{{ h.previous_owner.full_name if h.previous_owner else '—' }}</td>
                             <td>{{ h.new_owner.full_name if h.new_owner else '—' }}</td>
                             <td><small class="text-muted">{{ h.description or '' }}</small></td>
@@ -118,7 +118,7 @@
                     <tbody>
                         {% for t in bar.transfers %}
                         <tr>
-                            <td><small>{{ t.transferred_at.strftime('%Y-%m-%d %H:%M') if t.transferred_at else '' }}</small></td>
+                            <td><small>{{ t.transferred_at | jdate if t.transferred_at else '' }}</small></td>
                             <td>
                                 {% if t.from_location %}
                                 <span class="badge bg-{{ t.from_location.type_color }}">{{ t.from_location.name }}</span>
@@ -171,7 +171,7 @@
             <table class="table table-tm table-borderless table-sm mb-0">
                 <tr><td class="text-muted">شناسه</td><td class="fw-bold">{{ bar.id }}</td></tr>
                 <tr><td class="text-muted">سریال</td><td><code class="fw-bold text-dark">{{ bar.serial_code }}</code></td></tr>
-                <tr><td class="text-muted">تاریخ ایجاد</td><td>{{ bar.created_at.strftime('%Y-%m-%d %H:%M') if bar.created_at else '' }}</td></tr>
+                <tr><td class="text-muted">تاریخ ایجاد</td><td>{{ bar.created_at | jdate if bar.created_at else '' }}</td></tr>
                 {% if bar.location %}
                 <tr><td class="text-muted">مکان فعلی</td><td>
                     <span class="badge bg-{{ bar.location.type_color }}">
@@ -181,7 +181,7 @@
                 </td></tr>
                 {% endif %}
                 {% if bar.reserved_until %}
-                <tr><td class="text-muted">رزرو تا</td><td class="text-warning">{{ bar.reserved_until.strftime('%H:%M:%S') }}</td></tr>
+                <tr><td class="text-muted">رزرو تا</td><td class="text-warning">{{ bar.reserved_until | jdate }}</td></tr>
                 {% endif %}
             </table>
         </div>

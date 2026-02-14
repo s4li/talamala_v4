@@ -43,7 +43,7 @@
                         <td>{{ b.melt_number or '—' }}</td>
                         <td>{{ b.operator or '—' }}</td>
                         <td>{{ b.purity or '—' }}</td>
-                        <td><small class="text-muted">{{ b.created_at.strftime('%Y-%m-%d') if b.created_at else '' }}</small></td>
+                        <td><small class="text-muted">{{ b.created_at | jdate if b.created_at else '' }}</small></td>
                         <td>
                             <a href="/admin/batches/edit/{{ b.id }}" class="btn btn-sm btn-tm-outline me-1">
                                 <i class="bi bi-pencil"></i>

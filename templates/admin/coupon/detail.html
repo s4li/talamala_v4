@@ -88,11 +88,11 @@
                     {% endif %}
                     <tr>
                         <td class="text-muted">شروع</td>
-                        <td>{% if coupon.starts_at %}{{ coupon.starts_at.strftime('%Y/%m/%d %H:%M') }}{% else %}فوری{% endif %}</td>
+                        <td>{% if coupon.starts_at %}{{ coupon.starts_at | jdate }}{% else %}فوری{% endif %}</td>
                     </tr>
                     <tr>
                         <td class="text-muted">انقضا</td>
-                        <td>{% if coupon.expires_at %}{{ coupon.expires_at.strftime('%Y/%m/%d %H:%M') }}{% else %}بدون انقضا{% endif %}</td>
+                        <td>{% if coupon.expires_at %}{{ coupon.expires_at | jdate }}{% else %}بدون انقضا{% endif %}</td>
                     </tr>
                     <tr>
                         <td class="text-muted">ویژگی‌ها</td>
@@ -231,7 +231,7 @@
                                 <span class="badge-tm badge-tm-info">—</span>
                                 {% endif %}
                             </td>
-                            <td class="small text-muted">{{ u.created_at.strftime('%Y/%m/%d %H:%M') if u.created_at else '—' }}</td>
+                            <td class="small text-muted">{{ u.created_at | jdate if u.created_at else '—' }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
