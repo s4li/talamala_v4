@@ -483,8 +483,13 @@ async def tier_wages_save(
     if not product:
         return RedirectResponse("/admin/products", status_code=302)
 
+    max_wage = float(product.wage)
+
     tiers = db.query(DealerTier).filter(DealerTier.is_active == True).all()
     for t in tiers:
+        if t.is_end_customer:
+            continue  # end_customer wage is auto-synced from product.wage
+
         wage_val = form.get(f"wage_{t.id}", "").strip()
         existing = db.query(ProductTierWage).filter(
             ProductTierWage.product_id == product_id,
@@ -493,6 +498,11 @@ async def tier_wages_save(
 
         if wage_val:
             wage_pct = float(wage_val)
+            if wage_pct > max_wage:
+                return RedirectResponse(
+                    f"/admin/dealers/tier-wages/{product_id}?msg=اجرت+سطح+{t.name}+نمی‌تواند+بیشتر+از+اجرت+محصول+({max_wage}%)+باشد&error=1",
+                    status_code=302,
+                )
             if existing:
                 existing.wage_percent = wage_pct
             else:

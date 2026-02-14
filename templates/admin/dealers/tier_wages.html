@@ -13,8 +13,8 @@
 </div>
 
 {% if msg %}
-<div class="alert alert-tm-success alert-dismissible fade show">
-    <i class="bi bi-check-circle me-1"></i> {{ msg }}
+<div class="alert {% if request.query_params.get('error') %}alert-tm-danger{% else %}alert-tm-success{% endif %} alert-dismissible fade show">
+    <i class="bi bi-{% if request.query_params.get('error') %}exclamation-triangle{% else %}check-circle{% endif %} me-1"></i> {{ msg }}
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 {% endif %}
@@ -52,9 +52,10 @@
                                    value="{{ item.wage_percent }}" readonly disabled style="max-width:150px; background:#f0f0f0;">
                             <small class="text-muted">از اجرت محصول (خودکار)</small>
                             {% else %}
-                            <input type="number" name="wage_{{ item.tier.id }}" class="form-control form-control-tm form-control-sm"
-                                   step="0.01" min="0" max="100"
+                            <input type="number" name="wage_{{ item.tier.id }}" class="form-control form-control-tm form-control-sm tier-wage-input"
+                                   step="0.01" min="0" max="{{ product.wage }}"
                                    value="{{ item.wage_percent }}" style="max-width:150px;">
+                            <small class="text-danger d-none wage-error">حداکثر {{ product.wage }}%</small>
                             {% endif %}
                         </td>
                     </tr>
@@ -66,4 +67,35 @@
             </button>
         </form>
 </div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+(function(){
+    const maxWage = {{ product.wage }};
+    const inputs = document.querySelectorAll('.tier-wage-input');
+    const submitBtn = document.querySelector('button[type="submit"]');
+
+    inputs.forEach(function(input){
+        const errorEl = input.parentElement.querySelector('.wage-error');
+        input.addEventListener('input', function(){
+            const val = parseFloat(this.value);
+            if (!isNaN(val) && val > maxWage) {
+                this.classList.add('is-invalid');
+                if (errorEl) errorEl.classList.remove('d-none');
+            } else {
+                this.classList.remove('is-invalid');
+                if (errorEl) errorEl.classList.add('d-none');
+            }
+            // Enable submit only if all inputs valid
+            let allValid = true;
+            inputs.forEach(function(inp){
+                const v = parseFloat(inp.value);
+                if (!isNaN(v) && v > maxWage) allValid = false;
+            });
+            submitBtn.disabled = !allValid;
+        });
+    });
+})();
+</script>
 {% endblock %}
