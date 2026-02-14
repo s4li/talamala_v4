@@ -118,7 +118,6 @@ def seed():
             "gold_price":           ("52000000", "قیمت طلای ۱۸ عیار هر گرم (ریال)"),
             "gold_price_source":    ("tgju", "منبع قیمت طلا"),
             "tax_percent":          ("10", "درصد مالیات بر ارزش افزوده"),
-            "profit_percent":       ("7", "درصد سود پیش‌فرض"),
             "min_order_amount":     ("10000000", "حداقل مبلغ سفارش (ریال)"),
             "reservation_minutes":  ("15", "مدت زمان رزرو (دقیقه)"),
             "shipping_cost":        ("500000", "هزینه ارسال پستی (ریال)"),
@@ -196,20 +195,20 @@ def seed():
         # ==========================================
         print("\n[5/9] Products (TalaMala v2)")
 
-        #                    name                 weight  purity  wage%  profit%  comm%
+        #                    name                 weight  purity  wage%
         products_data = [
-            ("شمش طلای ۱۰۰ میلی‌گرم",            0.100, 750, 7,  7.0, 0.0),
-            ("شمش طلای ۲۰۰ میلی‌گرم",            0.200, 750, 7,  7.0, 0.0),
-            ("شمش طلای ۲۵۰ میلی‌گرم",            0.250, 750, 7,  7.0, 0.0),
-            ("شمش طلای ۵۰۰ میلی‌گرم",            0.500, 750, 7,  7.0, 0.0),
-            ("شمش طلای ۱ گرم",                    1.000, 750, 7,  7.0, 0.0),
-            ("شمش طلای ۱.۵ گرم",                  1.500, 750, 6,  7.0, 0.0),
-            ("شمش طلای ۲ گرم",                    2.000, 750, 6,  7.0, 0.0),
-            ("شمش طلای ۲.۵ گرم",                  2.500, 750, 6,  7.0, 0.0),
-            ("شمش طلای ۵ گرم",                    5.000, 750, 5,  7.0, 0.0),
-            ("شمش طلای ۱۰ گرم",                  10.000, 750, 5,  7.0, 0.0),
-            ("شمش طلای ۵۰ گرم",                  50.000, 750, 4,  7.0, 0.0),
-            ("شمش طلای ۱۰۰ گرم",                100.000, 750, 3,  7.0, 0.0),
+            ("شمش طلای ۱۰۰ میلی‌گرم",            0.100, 750, 10),
+            ("شمش طلای ۲۰۰ میلی‌گرم",            0.200, 750, 10),
+            ("شمش طلای ۲۵۰ میلی‌گرم",            0.250, 750, 10),
+            ("شمش طلای ۵۰۰ میلی‌گرم",            0.500, 750, 10),
+            ("شمش طلای ۱ گرم",                    1.000, 750, 10),
+            ("شمش طلای ۱.۵ گرم",                  1.500, 750, 8),
+            ("شمش طلای ۲ گرم",                    2.000, 750, 8),
+            ("شمش طلای ۲.۵ گرم",                  2.500, 750, 8),
+            ("شمش طلای ۵ گرم",                    5.000, 750, 7),
+            ("شمش طلای ۱۰ گرم",                  10.000, 750, 7),
+            ("شمش طلای ۵۰ گرم",                  50.000, 750, 5),
+            ("شمش طلای ۱۰۰ گرم",                100.000, 750, 4),
         ]
 
         product_map = {}
@@ -220,7 +219,7 @@ def seed():
         default_design = db.query(CardDesign).first()
         default_package = db.query(PackageType).first()
 
-        for name, weight, purity, wage, profit, comm in products_data:
+        for name, weight, purity, wage in products_data:
             existing = db.query(Product).filter(Product.name == name).first()
             if not existing:
                 p = Product(
@@ -228,8 +227,6 @@ def seed():
                     card_design_id=default_design.id if default_design else None,
                     package_type_id=default_package.id if default_package else None,
                     wage=wage, is_wage_percent=True,
-                    profit_percent=profit, commission_percent=comm,
-                    stone_price=0, accessory_cost=0, accessory_profit_percent=0,
                     is_active=True,
                 )
                 db.add(p)
@@ -778,7 +775,6 @@ def seed():
                 "full_name": "احمد نوری",
                 "national_id": "1111111111",
                 "location_id": branch_esfahan.id if branch_esfahan else None,
-                "commission_percent": 2.0,
                 "api_key": "test_esfahan_key_0000000000000000",
                 "tier_id": tier_amel.id if tier_amel else None,
             },
@@ -787,7 +783,6 @@ def seed():
                 "full_name": "سارا کریمی",
                 "national_id": "2222222222",
                 "location_id": branch_shiraz.id if branch_shiraz else None,
-                "commission_percent": 2.5,
                 "api_key": "test_shiraz__key_1111111111111111",
                 "tier_id": tier_bankdar.id if tier_bankdar else None,
             },
@@ -796,7 +791,6 @@ def seed():
                 "full_name": "حسین موسوی",
                 "national_id": "3333333333",
                 "location_id": branch_mashhad.id if branch_mashhad else None,
-                "commission_percent": 3.0,
                 "api_key": "test_mashhad_key_2222222222222222",
                 "tier_id": tier_namayandeh.id if tier_namayandeh else None,
             },
@@ -805,13 +799,11 @@ def seed():
         for dd in dealers_data:
             existing = db.query(Dealer).filter(Dealer.mobile == dd["mobile"]).first()
             if not existing:
-                from decimal import Decimal
                 dealer = Dealer(
                     mobile=dd["mobile"],
                     full_name=dd["full_name"],
                     national_id=dd["national_id"],
                     location_id=dd["location_id"],
-                    commission_percent=Decimal(str(dd["commission_percent"])),
                     api_key=dd["api_key"],
                     tier_id=dd["tier_id"],
                 )
@@ -987,9 +979,9 @@ def seed():
         print(f"  Customer: 09351234567 (wallet: 10M toman)")
         print(f"  Customer: 09359876543")
         print(f"  Customer: 09131112233")
-        print(f"  Dealer:   09161234567 (esfahan, 2%)")
-        print(f"  Dealer:   09171234567 (shiraz, 2.5%)")
-        print(f"  Dealer:   09181234567 (mashhad, 3%)")
+        print(f"  Dealer:   09161234567 (esfahan, tier: amel)")
+        print(f"  Dealer:   09171234567 (shiraz, tier: bankdar)")
+        print(f"  Dealer:   09181234567 (mashhad, tier: namayandeh)")
 
         print(f"\n--- Dealer API Keys (for POS) ---")
         for dd in dealers_data:

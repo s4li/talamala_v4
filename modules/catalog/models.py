@@ -62,13 +62,8 @@ class Product(Base):
     name = Column(String, nullable=False)
     weight = Column(Numeric(10, 3), nullable=False)           # گرم
     purity = Column(Integer, default=750, nullable=False)      # عیار (750 = 18K)
-    wage = Column(BigInteger, default=0, nullable=False)       # اجرت ساخت
-    is_wage_percent = Column(Boolean, default=True, nullable=False)  # اجرت درصدی یا ریالی
-    profit_percent = Column(Numeric(5, 2), default=7.0, nullable=False)
-    commission_percent = Column(Numeric(5, 2), default=0.0, nullable=False)
-    stone_price = Column(BigInteger, default=0, nullable=False)          # قیمت سنگ
-    accessory_cost = Column(BigInteger, default=0, nullable=False)       # هزینه متفرقه
-    accessory_profit_percent = Column(Numeric(5, 2), default=15.0, nullable=False)
+    wage = Column(Numeric(5, 2), default=0, nullable=False)     # اجرت ساخت (درصدی)
+    is_wage_percent = Column(Boolean, default=True, nullable=False)  # همیشه True برای شمش
     design = Column(String, nullable=True)
     card_design_id = Column(Integer, ForeignKey("card_designs.id", ondelete="SET NULL"), nullable=True)
     package_type_id = Column(Integer, ForeignKey("package_types.id", ondelete="SET NULL"), nullable=True)

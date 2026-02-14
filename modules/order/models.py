@@ -154,21 +154,13 @@ class OrderItem(Base):
     applied_unit_price = Column(BigInteger, nullable=False)
     applied_weight = Column(Numeric(10, 3), nullable=False)
     applied_purity = Column(Integer, nullable=False)
-    applied_profit_percent = Column(Numeric(5, 2), nullable=False)
-    applied_commission_percent = Column(Numeric(5, 2), nullable=False)
+    applied_wage_percent = Column(Numeric(5, 2), nullable=False)
     applied_tax_percent = Column(Numeric(5, 2), nullable=False)
 
     # Calculated amounts
     final_gold_amount = Column(BigInteger, nullable=False)
     final_wage_amount = Column(BigInteger, nullable=False)
-    final_profit_amount = Column(BigInteger, nullable=False)
-    final_commission_amount = Column(BigInteger, nullable=False)
-    final_stone_amount = Column(BigInteger, default=0, nullable=False)
-    final_accessory_amount = Column(BigInteger, default=0, nullable=False)
     final_tax_amount = Column(BigInteger, default=0, nullable=False)
-    final_exempt_amount = Column(BigInteger, default=0, nullable=False)
-    taxable_services_base = Column(BigInteger, default=0, nullable=False)
-    taxable_goods_base = Column(BigInteger, default=0, nullable=False)
     line_total = Column(BigInteger, nullable=False)
 
     # Relationships

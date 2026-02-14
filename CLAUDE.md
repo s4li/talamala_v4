@@ -112,7 +112,7 @@ talamala_v4/
 ### catalog/models.py
 - **ProductCategory**: id, name (unique), slug (unique), sort_order, is_active
 - **ProductCategoryLink**: id, product_id (FK → products), category_id (FK → product_categories) — M2M junction (UniqueConstraint)
-- **Product**: id, name, weight (Decimal), purity (int: 750=18K), wage, is_wage_percent, profit_percent, commission_percent, stone_price, accessory_cost, accessory_profit_percent, design, is_active
+- **Product**: id, name, weight (Decimal), purity (int: 750=18K), wage (Numeric 5,2 — percent), is_wage_percent, design, card_design_id, package_type_id, is_active
   - Properties: `categories` (list of ProductCategory), `category_ids` (list of int)
 - **ProductImage**: id, product_id, path, is_default
 - **CardDesign / CardDesignImage**: طرح کارت‌های هدیه
@@ -133,7 +133,7 @@ talamala_v4/
 
 ### order/models.py
 - **Order**: id, customer_id, status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_location_id, shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at
-- **OrderItem**: id, order_id, product_id, bar_id, unit_price, tax_amount, total_price, gold_price_snapshot, tax_rate_snapshot
+- **OrderItem**: id, order_id, product_id, bar_id, applied_gold_price, applied_unit_price, applied_weight, applied_purity, applied_wage_percent, applied_tax_percent, final_gold_amount, final_wage_amount, final_tax_amount, line_total
 
 ### wallet/models.py
 - **Account**: id, customer_id, asset_code (IRR/XAU_MG), owner_type, owner_id, balance, locked_balance, credit_balance (non-withdrawable store credit)
@@ -211,7 +211,7 @@ return response
 - `require_operator_or_admin` — Either role
 
 ### Pricing
-`modules/pricing/calculator.py` → `calculate_jewelry_price()`
+`modules/pricing/calculator.py` → `calculate_bar_price()`
 - Gold price from SystemSetting key `gold_price_per_gram_18k` (rial)
 - Tax from SystemSetting key `tax_percent`
 
@@ -385,20 +385,18 @@ uvicorn main:app --reload
 
 ---
 
-## 10. فرمول قیمت‌گذاری طلا
+## 10. فرمول قیمت‌گذاری طلا (ساده‌شده)
 
 ```
-base_gold_value = weight × (purity / 750) × gold_price_18k
-wage_amount     = base_gold_value × (wage% / 100)   [if percent]
-subtotal        = base_gold_value + wage_amount
-profit          = subtotal × (profit% / 100)
-commission      = subtotal × (commission% / 100)
-before_tax      = subtotal + profit + commission + stone_price + accessory_total
-tax             = before_tax × (tax% / 100)
-total           = before_tax + tax
+raw_gold = weight × (purity / 750) × gold_price_18k
+wage     = raw_gold × (wage% / 100)
+tax      = wage × (tax% / 100)          ← مالیات فقط روی اجرت
+total    = raw_gold + wage + tax
 ```
 
-فایل: `modules/pricing/calculator.py`
+- تابع: `calculate_bar_price()` در `modules/pricing/calculator.py`
+- product.wage = اجرت مشتری نهایی (auto-sync به ProductTierWage)
+- سطوح نمایندگان: هر سطح اجرت کمتری دارد → اختلاف = سود نماینده (به طلا)
 
 ---
 

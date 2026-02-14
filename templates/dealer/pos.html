@@ -71,7 +71,6 @@
                 <div class="row small text-muted">
                     <div class="col">ارزش طلا: <span id="rawGoldDisplay">-</span></div>
                     <div class="col">اجرت: <span id="wageDisplay">-</span></div>
-                    <div class="col">سود: <span id="profitDisplay">-</span></div>
                     <div class="col">مالیات: <span id="taxDisplay">-</span></div>
                 </div>
             </div>
@@ -142,7 +141,6 @@
                 document.getElementById('systemPriceDisplay').textContent = fmt(p.total_toman);
                 document.getElementById('rawGoldDisplay').textContent = fmt(p.raw_gold_toman);
                 document.getElementById('wageDisplay').textContent = fmt(p.wage_toman);
-                document.getElementById('profitDisplay').textContent = fmt(p.profit_toman);
                 document.getElementById('taxDisplay').textContent = fmt(p.tax_toman);
                 priceBox.style.display = 'block';
             } else {
