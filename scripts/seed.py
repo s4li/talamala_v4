@@ -217,14 +217,14 @@ def seed():
                 "slug": "gold-talamala",
                 "category_slug": "gold-talamala",
                 "name_prefix": "شمش طلا طلاملا",
-                "purity": 750,
+                "purity": 995,
             },
             {
                 "folder": "شمش طلا بدون بسته بندی",
                 "slug": "gold-investment",
                 "category_slug": "gold-investment",
                 "name_prefix": "شمش طلا سرمایه‌ای",
-                "purity": 750,
+                "purity": 995,
             },
             {
                 "folder": "شمش نقره با بسته بندی",
