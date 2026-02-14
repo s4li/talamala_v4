@@ -2,7 +2,7 @@
 {% block title %}درخواست‌های برداشت - مدیریت{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="page-header tm-animate-fade-in">
     <div>
         <h4 class="mb-1"><i class="bi bi-bank me-2"></i>درخواست‌های برداشت</h4>
         {% if pending_count > 0 %}
@@ -29,7 +29,7 @@
 </div>
 {% endif %}
 
-<div class="card-tm no-hover">
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
     <div class="p-0">
         {% if withdrawals %}
         <div class="table-responsive">

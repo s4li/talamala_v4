@@ -2,7 +2,7 @@
 {% block title %}مدیریت کوپن‌ها - طلامالا{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="page-header tm-animate-fade-in">
     <h4><i class="bi bi-ticket-perforated me-2"></i>مدیریت کوپن‌ها</h4>
     <a href="/admin/coupons/new" class="btn btn-tm-primary">
         <i class="bi bi-plus-circle me-1"></i> کوپن جدید
@@ -11,25 +11,25 @@
 
 <!-- Stats -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
+    <div class="col-md-3 tm-animate-fade-in-up tm-delay-1">
         <div class="card-tm no-hover text-center p-3">
             <div class="text-muted small">کل کوپن‌ها</div>
             <div class="fw-bold fs-4">{{ stats.total_coupons }}</div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-3 tm-animate-fade-in-up tm-delay-2">
         <div class="card-tm no-hover text-center p-3">
             <div class="text-muted small">فعال</div>
             <div class="fw-bold fs-4 text-success">{{ stats.active_coupons }}</div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-3 tm-animate-fade-in-up tm-delay-3">
         <div class="card-tm no-hover text-center p-3">
             <div class="text-muted small">کل استفاده</div>
             <div class="fw-bold fs-4 text-primary">{{ stats.total_usages }}</div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-3 tm-animate-fade-in-up tm-delay-4">
         <div class="card-tm no-hover text-center p-3">
             <div class="text-muted small">مجموع تخفیف</div>
             <div class="fw-bold fs-4 text-danger">{{ stats.total_discount | toman }}</div>
@@ -39,7 +39,7 @@
 </div>
 
 <!-- Filters -->
-<div class="card-tm no-hover mb-3">
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-5">
     <div class="py-2">
         <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
             <input type="text" name="search" class="form-control form-control-tm form-control-sm" style="width:200px;"
@@ -61,7 +61,7 @@
 </div>
 
 <!-- Coupon Table -->
-<div class="card-tm no-hover">
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-6">
     <div class="p-0">
         {% if coupons %}
         <div class="table-responsive">

@@ -45,7 +45,7 @@
 
 <div class="row g-4">
     <!-- Gallery -->
-    <div class="col-md-5">
+    <div class="col-md-5 tm-animate-fade-in">
         <div class="detail-gallery">
             {% if p.images %}
             <img src="/{{ p.images[0].file_path }}" id="mainImage" alt="{{ p.name }}">
@@ -67,7 +67,7 @@
     </div>
 
     <!-- Product Info -->
-    <div class="col-md-7">
+    <div class="col-md-7 tm-animate-slide-right tm-delay-2">
         <h3 class="fw-bold">{{ p.name }}</h3>
 
         <div class="d-flex gap-3 mt-2 mb-3">

@@ -10,6 +10,7 @@
         padding: 2rem;
         position: relative;
         overflow: hidden;
+        animation: tm-fade-in-up 0.5s var(--tm-ease-out);
     }
     .wallet-card::after {
         content: '';
@@ -21,6 +22,17 @@
         background: var(--tm-primary-900);
         opacity: 0.08;
         border-radius: 50%;
+    }
+    .wallet-card::before {
+        content: '';
+        position: absolute;
+        bottom: -60px;
+        right: -60px;
+        width: 250px;
+        height: 250px;
+        background: rgba(212,168,67,0.06);
+        border-radius: 50%;
+        pointer-events: none;
     }
     .wallet-balance {
         font-size: 2rem;
@@ -34,14 +46,21 @@
     .action-card {
         border: none;
         border-radius: 12px;
-        transition: transform 0.2s;
+        transition: transform var(--tm-duration-normal) var(--tm-ease-out),
+                    box-shadow var(--tm-duration-normal) var(--tm-ease-out);
         cursor: pointer;
         text-decoration: none;
         color: inherit;
     }
     .action-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        transform: translateY(-5px);
+        box-shadow: var(--tm-shadow-lg);
+    }
+    .action-card i {
+        transition: transform var(--tm-duration-normal) var(--tm-ease-out);
+    }
+    .action-card:hover i {
+        transform: scale(1.15);
     }
     .txn-row {
         border-bottom: 1px solid #f0f0f0;

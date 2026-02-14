@@ -3,7 +3,7 @@
 
 {% block shop_content %}
 <!-- Header + Sort -->
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2 tm-animate-fade-in">
     <div>
         <h4 class="fw-bold mb-0">فروشگاه شمش طلا</h4>
         <small class="text-muted">{{ products|length }} محصول فعال</small>
@@ -50,8 +50,8 @@
 <!-- Product Grid -->
 <div class="row g-3">
     {% for p in products %}
-    <div class="col-6 col-md-4 col-lg-3">
-        <div class="card-tm product-card h-100">
+    <div class="col-6 col-md-4 col-lg-3 tm-animate-fade-in-up tm-delay-{{ loop.index if loop.index <= 12 else 12 }}">
+        <div class="card-tm product-card h-100 tm-img-zoom">
             <a href="/product/{{ p.id }}">
                 {% if p.default_image %}
                 <img src="/{{ p.default_image }}" class="card-img-top" alt="{{ p.name }}">
@@ -81,9 +81,9 @@
 
                 <div class="mt-2">
                     {% if p.inventory > 0 %}
-                    <span class="badge-tm badge-tm-success stock-badge">{{ p.inventory }} موجود</span>
+                    <span class="badge-tm badge-tm-success stock-badge"><span class="tm-stock-dot in-stock"></span> {{ p.inventory }} موجود</span>
                     {% else %}
-                    <span class="badge-tm badge-tm-info stock-badge">ناموجود</span>
+                    <span class="badge-tm badge-tm-info stock-badge"><span class="tm-stock-dot out-of-stock"></span> ناموجود</span>
                     {% endif %}
                 </div>
             </div>

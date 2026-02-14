@@ -19,6 +19,10 @@ static/uploads/*
 
 # Claude Code
 .claude/
+templates_v2/
+
+# Screenshots (dev only)
+screenshots/
 
 # OS
 .DS_Store

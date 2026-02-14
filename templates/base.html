@@ -17,13 +17,26 @@
     <!-- Bootstrap Bridge (reskins Bootstrap to match DS palette) -->
     <link rel="stylesheet" href="/static/css/bootstrap-bridge.css">
 
+    <!-- TalaMala Animations -->
+    <link rel="stylesheet" href="/static/css/talamala-animations.css">
+
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
     {% block body %}{% endblock %}
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Scroll Reveal + Navbar Shadow -->
+    <script>
+    (function(){
+      var els=document.querySelectorAll('.tm-reveal,.tm-reveal-left,.tm-reveal-right,.tm-reveal-scale');
+      if(els.length){var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('tm-visible');obs.unobserve(e.target);}});},{threshold:0.1,rootMargin:'0px 0px -40px 0px'});els.forEach(function(el){obs.observe(el);});}
+      var nav=document.querySelector('.shop-navbar.sticky-top');
+      if(nav){window.addEventListener('scroll',function(){nav.classList.toggle('scrolled',window.scrollY>10);},{passive:true});}
+    })();
+    </script>
 
     {% block extra_js %}{% endblock %}
 </body>

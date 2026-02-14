@@ -3,7 +3,7 @@
 {% block title %}فروش حضوری - طلامالا{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4">
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
     <h4 class="mb-0 fw-bold">
         <i class="bi bi-cart-plus text-tm-primary"></i>
         فروش حضوری (POS)
@@ -35,7 +35,7 @@
 </div>
 {% endif %}
 
-<div class="card-tm no-hover">
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
     <form method="POST" action="/dealer/pos">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 

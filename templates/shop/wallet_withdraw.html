@@ -4,7 +4,7 @@
 {% block shop_content %}
 <div class="row justify-content-center">
     <div class="col-md-7 col-lg-6">
-        <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
             <h4 class="mb-0"><i class="bi bi-bank me-2"></i>درخواست برداشت</h4>
             <a href="/wallet" class="btn btn-sm btn-tm-outline">
                 <i class="bi bi-arrow-right me-1"></i> بازگشت
@@ -27,7 +27,7 @@
             </span>
         </div>
 
-        <div class="card-tm no-hover">
+        <div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
                 <form method="post" action="/wallet/withdraw" id="withdrawForm">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 

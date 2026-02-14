@@ -3,7 +3,7 @@
 {% block title %}تنظیمات - پنل مدیریت{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="page-header tm-animate-fade-in">
     <h4 class="fw-bold mb-0"><i class="bi bi-gear me-2"></i>تنظیمات سیستم</h4>
 </div>
 
@@ -11,7 +11,7 @@
 <div class="alert-tm-success py-2"><i class="bi bi-check-lg me-1"></i>تنظیمات ذخیره شد.</div>
 {% endif %}
 
-<div class="card-tm no-hover">
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
     <form method="POST" action="/admin/settings/update">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 

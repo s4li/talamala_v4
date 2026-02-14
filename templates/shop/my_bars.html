@@ -22,7 +22,7 @@
 </div>
 {% endif %}
 
-<div class="d-flex align-items-center justify-content-between mb-4">
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
     <h4 class="fw-bold mb-0"><i class="bi bi-gem me-2 text-tm-primary"></i>شمش‌های من</h4>
     <a href="/claim-bar" class="btn btn-tm-primary btn btn-sm">
         <i class="bi bi-plus-circle me-1"></i> ثبت شمش جدید
@@ -32,7 +32,7 @@
 {% if bars %}
 <div class="row g-3">
     {% for bar in bars %}
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tm-animate-fade-in-up tm-delay-{{ loop.index if loop.index <= 12 else 12 }}">
         <div class="card-tm no-hover h-100">
             <div class="d-flex justify-content-between align-items-start mb-2">
                 <div>

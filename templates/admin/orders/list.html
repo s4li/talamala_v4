@@ -3,7 +3,7 @@
 {% block title %}مدیریت سفارشات - پنل مدیریت{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="page-header tm-animate-fade-in">
     <h4 class="fw-bold mb-0"><i class="bi bi-bag-check me-2"></i>مدیریت سفارشات</h4>
 </div>
 
@@ -11,7 +11,7 @@
 {% if error %}<div class="alert-tm-danger py-2">{{ error }}</div>{% endif %}
 
 <!-- Filter -->
-<div class="card-tm no-hover mb-3">
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-1">
     <div class="py-2">
         <form method="GET" action="/admin/orders" class="d-flex gap-2 align-items-center">
             <select name="status" class="form-select form-select-tm form-select-sm" style="max-width:200px;">
@@ -26,7 +26,7 @@
     </div>
 </div>
 
-<div class="card-tm no-hover">
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
     <div class="p-0">
         <div class="table-responsive">
             <table class="table table-tm table-sm mb-0 align-middle">

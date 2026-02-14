@@ -4,7 +4,7 @@
 <style>
     .dealer-sidebar {
         width: 240px;
-        background: white;
+        background: linear-gradient(180deg, #ffffff 0%, #f8f7f6 100%);
         border-left: 1px solid var(--tm-border);
         height: 100vh;
         position: fixed;
@@ -13,7 +13,7 @@
         padding: 24px 16px;
         overflow-y: auto;
         z-index: 1040;
-        transition: transform 0.3s ease;
+        transition: transform 0.3s var(--tm-ease-out);
     }
     .dealer-sidebar .sidebar-logo {
         display: flex;
@@ -35,13 +35,18 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        transition: all 0.2s;
+        transition: all var(--tm-duration-fast) var(--tm-ease-out);
         margin-bottom: 4px;
         text-decoration: none;
     }
-    .dealer-sidebar .nav-link i { font-size: 18px; width: 20px; text-align: center; }
+    .dealer-sidebar .nav-link i { font-size: 18px; width: 20px; text-align: center; transition: transform var(--tm-duration-fast); }
     .dealer-sidebar .nav-link:hover { background: var(--tm-info-900); color: var(--tm-dark); }
-    .dealer-sidebar .nav-link.active { background: var(--tm-primary); color: white; font-weight: 500; }
+    .dealer-sidebar .nav-link:hover i { transform: scale(1.1); }
+    .dealer-sidebar .nav-link.active {
+        background: linear-gradient(135deg, var(--tm-primary), var(--tm-primary-300));
+        color: white; font-weight: 500;
+        box-shadow: 0 4px 12px rgba(107,0,45,0.2);
+    }
     .dealer-content {
         margin-right: 240px;
         padding: 24px 32px;

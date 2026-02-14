@@ -18,22 +18,29 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        animation: tm-badge-pop 0.4s var(--tm-ease-out);
+        box-shadow: 0 2px 6px rgba(107,0,45,0.3);
     }
     .product-card {
         border: 1px solid var(--tm-border);
         border-radius: 12px;
         overflow: hidden;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: transform var(--tm-duration-normal) var(--tm-ease-out),
+                    box-shadow var(--tm-duration-normal) var(--tm-ease-out);
         background: white;
     }
     .product-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        transform: translateY(-6px);
+        box-shadow: var(--tm-shadow-xl);
     }
     .product-card .card-img-top {
         height: 200px;
         object-fit: cover;
         background: var(--tm-info-900);
+        transition: transform var(--tm-duration-slow) var(--tm-ease-out);
+    }
+    .product-card:hover .card-img-top {
+        transform: scale(1.04);
     }
     .product-card .price-tag {
         font-size: 1.1rem;
@@ -113,12 +120,12 @@
 </nav>
 
 <!-- Content -->
-<div class="container py-4">
+<div class="container py-4 flex-grow-1">
     {% block shop_content %}{% endblock %}
 </div>
 
 <!-- Footer -->
-<footer class="shop-footer mt-5">
+<footer class="shop-footer mt-auto">
     <div class="container">
         <div class="row g-4">
             <div class="col-lg-4 col-md-6">

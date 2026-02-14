@@ -11,8 +11,8 @@
 
 <div class="row g-4">
     <div class="col-lg-8">
-        <div class="card-tm no-hover">
-            <div class="border-bottom pb-3 mb-3 d-flex justify-content-between align-items-center">
+        <div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+            <div class="border-bottom pb-3 mb-3 d-flex justify-content-between align-items-center tm-animate-fade-in">
                 <h5 class="fw-bold mb-0">{{ ticket.subject }}</h5>
                 <div>
                     <span class="badge bg-{{ ticket.status_color }}">{{ ticket.status_label }}</span>
@@ -98,7 +98,7 @@
 
     <!-- Side -->
     <div class="col-lg-4">
-        <div class="card-tm no-hover">
+        <div class="card-tm no-hover tm-animate-slide-right tm-delay-3">
                 <table class="table table-tm table-sm table-borderless mb-0">
                     <tr><td class="text-muted">شماره تیکت</td><td class="fw-bold">#{{ ticket.id }}</td></tr>
                     <tr><td class="text-muted">وضعیت</td><td><span class="badge bg-{{ ticket.status_color }}">{{ ticket.status_label }}</span></td></tr>
@@ -110,7 +110,7 @@
         </div>
 
         {% if ticket.status != 'Closed' %}
-        <div class="card-tm no-hover mt-3">
+        <div class="card-tm no-hover mt-3 tm-animate-slide-right tm-delay-4">
                 <form method="POST" action="/tickets/{{ ticket.id }}/close"
                       onsubmit="return confirm('آیا از بستن تیکت مطمئنید؟')">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

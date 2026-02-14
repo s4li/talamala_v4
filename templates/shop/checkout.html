@@ -8,13 +8,17 @@
         border-radius: 12px;
         padding: 20px;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all var(--tm-duration-normal) var(--tm-ease-out);
     }
-    .delivery-option:hover { border-color: #c9a03a; }
+    .delivery-option:hover {
+        border-color: var(--tm-gold);
+        transform: translateY(-3px);
+        box-shadow: var(--tm-shadow-md);
+    }
     .delivery-option.active {
-        border-color: #c9a03a;
+        border-color: var(--tm-gold);
         background: #fffdf5;
-        box-shadow: 0 0 0 3px rgba(201,160,58,0.15);
+        box-shadow: 0 0 0 3px rgba(212,168,67,0.15);
     }
     .delivery-option .option-icon { font-size: 2.5rem; }
     .location-card {
@@ -22,11 +26,15 @@
         border-radius: 10px;
         padding: 12px;
         cursor: pointer;
-        transition: all 0.15s;
+        transition: all var(--tm-duration-fast) var(--tm-ease-out);
     }
-    .location-card:hover { border-color: #c9a03a; }
+    .location-card:hover {
+        border-color: var(--tm-gold);
+        transform: translateY(-2px);
+        box-shadow: var(--tm-shadow-sm);
+    }
     .location-card.selected {
-        border-color: #c9a03a;
+        border-color: var(--tm-gold);
         background: #fffdf5;
     }
     .location-card.no-stock {
@@ -66,7 +74,7 @@
         <!-- Step 1: Choose delivery method -->
         <div class="row g-3 mb-4">
             <!-- Pickup Option -->
-            <div class="col-md-6">
+            <div class="col-md-6 tm-animate-fade-in-up tm-delay-1">
                 <div class="delivery-option" id="optPickup" onclick="selectMethod('Pickup')">
                     <div class="text-center mb-2">
                         <div class="option-icon">🏪</div>
@@ -77,7 +85,7 @@
             </div>
 
             <!-- Postal Option -->
-            <div class="col-md-6">
+            <div class="col-md-6 tm-animate-fade-in-up tm-delay-2">
                 <div class="delivery-option {% if not postal_info.is_available %}opacity-50{% endif %}"
                      id="optPostal"
                      {% if postal_info.is_available and postal_stock > 0 %}onclick="selectMethod('Postal')"{% endif %}>

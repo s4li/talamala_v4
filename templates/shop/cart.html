@@ -1,8 +1,172 @@
 {% extends "shop/base_shop.html" %}
 {% block title %}سبد خرید - طلامالا{% endblock %}
 
+{% block shop_css %}
+<style>
+    .cart-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        background: white;
+        border: 1px solid var(--tm-border);
+        border-radius: 12px;
+        margin-bottom: 12px;
+        transition: box-shadow var(--tm-duration-normal) var(--tm-ease-out);
+    }
+    .cart-item:hover {
+        box-shadow: var(--tm-shadow-sm);
+    }
+    .cart-item-img {
+        width: 72px;
+        height: 72px;
+        border-radius: 10px;
+        object-fit: cover;
+        flex-shrink: 0;
+        border: 1px solid var(--tm-border);
+    }
+    .cart-item-img-placeholder {
+        width: 72px;
+        height: 72px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        background: var(--tm-info-900);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--tm-info-600);
+        font-size: 1.5rem;
+    }
+    .cart-item-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .cart-item-info h6 {
+        margin: 0 0 4px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .cart-item-info h6 a {
+        color: var(--tm-dark);
+        text-decoration: none;
+    }
+    .cart-item-info h6 a:hover {
+        color: var(--tm-primary);
+    }
+    .cart-item-specs {
+        font-size: 0.8rem;
+        color: var(--tm-info);
+    }
+    .cart-item-unit-price {
+        font-size: 0.8rem;
+        color: var(--tm-primary);
+        font-weight: 600;
+        margin-top: 2px;
+    }
+    .qty-controls {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        border: 1px solid var(--tm-border);
+        border-radius: 8px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .qty-controls button {
+        width: 34px;
+        height: 34px;
+        border: none;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background var(--tm-duration-fast);
+        color: var(--tm-dark);
+        font-size: 0.85rem;
+    }
+    .qty-controls button:hover:not(:disabled) {
+        background: var(--tm-info-900);
+    }
+    .qty-controls button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+    .qty-controls .qty-value {
+        width: 36px;
+        text-align: center;
+        font-weight: 700;
+        font-size: 0.95rem;
+        border-right: 1px solid var(--tm-border);
+        border-left: 1px solid var(--tm-border);
+        line-height: 34px;
+    }
+    .cart-item-total {
+        text-align: left;
+        flex-shrink: 0;
+        min-width: 100px;
+    }
+    .cart-item-total .price {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--tm-primary);
+    }
+    .cart-item-total .currency {
+        font-size: 0.75rem;
+        color: var(--tm-info);
+    }
+    .cart-item-remove {
+        flex-shrink: 0;
+    }
+    .cart-item-remove button {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        color: var(--tm-info-600);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all var(--tm-duration-fast);
+    }
+    .cart-item-remove button:hover {
+        background: var(--tm-negative-light);
+        color: var(--tm-negative);
+    }
+
+    /* Summary card */
+    .cart-summary {
+        position: sticky;
+        top: 100px;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 576px) {
+        .cart-item {
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .cart-item-info {
+            flex: 1 1 calc(100% - 88px);
+        }
+        .qty-controls {
+            margin-right: auto;
+        }
+        .cart-item-total {
+            text-align: right;
+            min-width: auto;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block shop_content %}
-<h4 class="fw-bold mb-4"><i class="bi bi-cart3 me-2"></i>سبد خرید</h4>
+<h4 class="fw-bold mb-4 tm-animate-fade-in"><i class="bi bi-cart3 me-2"></i>سبد خرید</h4>
 
 {% if msg %}<div class="alert-tm-success py-2">{{ msg }}</div>{% endif %}
 {% if error %}<div class="alert-tm-danger py-2">{{ error }}</div>{% endif %}
@@ -12,103 +176,117 @@
     <!-- Cart Items -->
     <div class="col-lg-8">
         {% for item in items %}
-        <div class="card-tm no-hover mb-3">
-            <div class="d-flex gap-3 align-items-center">
-                <!-- Image -->
-                {% if item.product.default_image %}
-                <img src="/{{ item.product.default_image }}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;" alt="">
-                {% else %}
-                <div style="width:80px;height:80px;border-radius:8px;" class="bg-light d-flex align-items-center justify-content-center">
-                    <i class="bi bi-image text-muted"></i>
-                </div>
-                {% endif %}
-
-                <!-- Info -->
-                <div class="flex-grow-1">
-                    <h6 class="fw-bold mb-1">
-                        <a href="/product/{{ item.product.id }}" class="text-decoration-none text-dark">{{ item.product.name }}</a>
-                    </h6>
-                    <div class="text-muted small">
-                        {{ item.product.weight }} گرم | عیار {{ item.product.purity }}
-                    </div>
-                    <div class="small mt-1">
-                        <span class="text-tm-primary fw-bold">{{ item.unit_price | toman }} تومان</span>
-                        <span class="text-muted me-1">× {{ item.quantity }}</span>
-                    </div>
-                </div>
-
-                <!-- Quantity Controls -->
-                <div class="d-flex align-items-center gap-2">
-                    <form method="POST" action="/cart/update">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <input type="hidden" name="product_id" value="{{ item.product.id }}">
-                        <input type="hidden" name="action" value="decrease">
-                        <button class="btn btn-sm btn-tm-danger"><i class="bi bi-dash-lg"></i></button>
-                    </form>
-                    <span class="fw-bold fs-5" style="min-width:30px;text-align:center;">{{ item.quantity }}</span>
-                    <form method="POST" action="/cart/update">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <input type="hidden" name="product_id" value="{{ item.product.id }}">
-                        <input type="hidden" name="action" value="increase">
-                        <button class="btn btn-sm btn-tm-success"
-                                {% if item.quantity >= item.inventory %}disabled{% endif %}>
-                            <i class="bi bi-plus-lg"></i>
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Line Total -->
-                <div class="text-end" style="min-width:120px;">
-                    <div class="fw-bold text-tm-primary">{{ item.line_total | toman }}</div>
-                    <small class="text-muted">تومان</small>
-                </div>
-            </div>
-
-            {% if item.inventory < item.quantity %}
-            <div class="alert-tm-warning py-1 px-2 mt-2 mb-0 small">
-                <i class="bi bi-exclamation-triangle me-1"></i>
-                موجودی: {{ item.inventory }} عدد (کمتر از تعداد درخواستی)
+        <div class="cart-item tm-animate-fade-in-up tm-delay-{{ loop.index if loop.index <= 6 else 6 }}">
+            <!-- Image -->
+            {% if item.product.default_image %}
+            <img src="/{{ item.product.default_image }}" class="cart-item-img" alt="{{ item.product.name }}">
+            {% else %}
+            <div class="cart-item-img-placeholder">
+                <i class="bi bi-image"></i>
             </div>
             {% endif %}
+
+            <!-- Info -->
+            <div class="cart-item-info">
+                <h6><a href="/product/{{ item.product.id }}">{{ item.product.name }}</a></h6>
+                <div class="cart-item-specs">{{ item.product.weight }} گرم | عیار {{ item.product.purity }}</div>
+                <div class="cart-item-unit-price">{{ item.unit_price | toman }} تومان</div>
+            </div>
+
+            <!-- Quantity Controls -->
+            <div class="qty-controls">
+                <form method="POST" action="/cart/update" style="margin:0;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="product_id" value="{{ item.product.id }}">
+                    <input type="hidden" name="action" value="increase">
+                    <button type="submit" {% if item.quantity >= item.inventory %}disabled{% endif %}>
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </form>
+                <span class="qty-value">{{ item.quantity }}</span>
+                <form method="POST" action="/cart/update" style="margin:0;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="product_id" value="{{ item.product.id }}">
+                    <input type="hidden" name="action" value="decrease">
+                    <button type="submit">
+                        <i class="bi bi-dash"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Line Total -->
+            <div class="cart-item-total">
+                <div class="price">{{ item.line_total | toman }}</div>
+                <div class="currency">تومان</div>
+            </div>
+
+            <!-- Remove -->
+            <div class="cart-item-remove">
+                <form method="POST" action="/cart/update" style="margin:0;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="product_id" value="{{ item.product.id }}">
+                    <input type="hidden" name="action" value="remove">
+                    <button type="submit" title="حذف از سبد">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                </form>
+            </div>
+
         </div>
+        {% if item.inventory < item.quantity %}
+        <div class="alert-tm-warning py-1 px-2 mb-0 small" style="border-radius: 0 0 12px 12px; margin-top: -12px; margin-bottom: 12px !important;">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            موجودی: {{ item.inventory }} عدد (کمتر از تعداد درخواستی)
+        </div>
+        {% endif %}
         {% endfor %}
     </div>
 
     <!-- Summary -->
     <div class="col-lg-4">
-        <div class="card-tm no-hover">
-            <h6 class="fw-bold mb-3"><i class="bi bi-receipt me-1"></i>خلاصه سفارش</h6>
+        <div class="cart-summary tm-animate-slide-right tm-delay-3">
+            <div class="card-tm no-hover">
+                <h6 class="fw-bold mb-3 pb-3" style="border-bottom: 1px solid var(--tm-border);">
+                    <i class="bi bi-receipt me-1"></i>خلاصه سفارش
+                </h6>
 
-            <div class="d-flex justify-content-between mb-2">
-                <span class="text-muted">تعداد اقلام</span>
-                <span>{{ items|length }} محصول</span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-                <span class="text-muted">تعداد کل</span>
-                <span>{{ cart_count }} عدد</span>
-            </div>
-            <hr>
-            <div class="d-flex justify-content-between mb-3">
-                <span class="fw-bold">جمع کل</span>
-                <span class="fw-bold text-tm-primary fs-5">{{ total_price | toman }} <small>تومان</small></span>
-            </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">تعداد اقلام</span>
+                    <span>{{ items|length }} محصول</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted">تعداد کل</span>
+                    <span>{{ cart_count }} عدد</span>
+                </div>
 
-            <a href="/checkout" class="btn btn-lg btn-tm-primary w-100">
-                <i class="bi bi-bag-check me-1"></i> اقدام به پرداخت
-            </a>
+                <div class="d-flex justify-content-between align-items-center pt-3" style="border-top: 2px solid var(--tm-border);">
+                    <span class="fw-bold">جمع کل</span>
+                    <div class="text-start">
+                        <span class="fw-bold text-tm-primary fs-5">{{ total_price | toman }}</span>
+                        <small class="text-muted d-block">تومان</small>
+                    </div>
+                </div>
 
-            <a href="/" class="btn btn-sm btn-tm-outline w-100 mt-2">
-                <i class="bi bi-arrow-right me-1"></i> ادامه خرید
-            </a>
+                <a href="/checkout" class="btn btn-lg btn-tm-primary w-100 mt-4">
+                    <i class="bi bi-bag-check me-1"></i> اقدام به پرداخت
+                </a>
+
+                <a href="/" class="btn btn-sm btn-tm-outline w-100 mt-2">
+                    <i class="bi bi-arrow-right me-1"></i> ادامه خرید
+                </a>
+            </div>
         </div>
     </div>
 </div>
 
 {% else %}
-<div class="text-center py-5">
-    <div style="font-size:5rem;">🛒</div>
-    <h5 class="text-muted mt-3">سبد خرید خالی است</h5>
-    <a href="/" class="btn btn-tm-primary mt-2">
+<div class="text-center py-5 tm-animate-fade-in">
+    <div class="mb-3">
+        <i class="bi bi-cart-x" style="font-size: 4rem; color: var(--tm-info-700);"></i>
+    </div>
+    <h5 class="text-muted mt-2">سبد خرید خالی است</h5>
+    <p class="text-muted small mb-3">هنوز محصولی به سبد خرید اضافه نکردید</p>
+    <a href="/" class="btn btn-tm-primary">
         <i class="bi bi-arrow-right me-1"></i> مشاهده محصولات
     </a>
 </div>

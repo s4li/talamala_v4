@@ -9,20 +9,48 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, var(--tm-primary-100) 0%, var(--tm-primary) 100%);
+        background: linear-gradient(135deg, var(--tm-primary-100) 0%, var(--tm-primary) 50%, var(--tm-primary-300) 100%);
+        background-size: 200% 200%;
+        animation: tm-gradient-shift 8s ease infinite;
+        position: relative;
+        overflow: hidden;
+    }
+    .login-wrapper::before {
+        content: '';
+        position: absolute;
+        width: 350px; height: 350px;
+        top: -100px; right: -100px;
+        background: rgba(212,168,67,0.06);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .login-wrapper::after {
+        content: '';
+        position: absolute;
+        width: 450px; height: 450px;
+        bottom: -150px; left: -150px;
+        background: rgba(255,255,255,0.04);
+        border-radius: 50%;
+        pointer-events: none;
     }
     .login-card {
-        background: #fff;
-        border-radius: 20px;
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-radius: 24px;
         padding: 2.5rem;
         width: 100%;
         max-width: 420px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+        animation: tm-scale-in 0.5s var(--tm-ease-out);
+        border: 1px solid rgba(255,255,255,0.2);
+        position: relative;
+        z-index: 1;
     }
     .login-logo {
         width: 80px;
         height: 80px;
-        background: var(--tm-primary);
+        background: linear-gradient(135deg, var(--tm-primary) 0%, var(--tm-primary-300) 100%);
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -30,6 +58,8 @@
         margin: 0 auto 1.5rem;
         font-size: 2rem;
         color: #fff;
+        box-shadow: 0 8px 24px rgba(107,0,45,0.25);
+        animation: tm-float 3s ease-in-out infinite;
     }
     .otp-inputs {
         display: flex;
@@ -46,10 +76,15 @@
         border: 2px solid #ddd;
         border-radius: 12px;
         outline: none;
-        transition: border-color 0.2s;
+        transition: border-color var(--tm-duration-fast),
+                    box-shadow var(--tm-duration-fast),
+                    transform var(--tm-duration-fast);
+        background: rgba(255,255,255,0.8);
     }
     .otp-inputs input:focus {
         border-color: var(--tm-primary);
+        box-shadow: 0 0 0 3px rgba(107,0,45,0.1);
+        transform: translateY(-2px);
     }
     .timer-text {
         color: #888;

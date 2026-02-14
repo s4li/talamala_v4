@@ -3,7 +3,7 @@
 {% block title %}مدیریت شمش‌ها - پنل مدیریت{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="page-header tm-animate-fade-in">
     <h4 class="fw-bold mb-0"><i class="bi bi-upc-scan me-2"></i>مدیریت شمش‌ها <small class="text-muted fw-normal">({{ total }})</small></h4>
     <div class="d-flex gap-2">
         <!-- Generate Button -->
@@ -22,7 +22,7 @@
 {% if error %}<div class="alert-tm-danger py-2">{{ error }}</div>{% endif %}
 
 <!-- Filters -->
-<div class="card-tm no-hover mb-3">
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-1">
     <div class="py-2">
         <form method="GET" action="/admin/bars" class="row g-2 align-items-end">
             <div class="col-md-3">
@@ -74,7 +74,7 @@
 <input type="hidden" name="selected_ids" id="selectedIdsInput">
 <input type="hidden" name="action" id="bulkActionInput">
 
-<div class="card-tm no-hover">
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
     <div class="p-0">
         <div class="table-responsive">
             <table class="table table-tm table-sm mb-0 align-middle">
