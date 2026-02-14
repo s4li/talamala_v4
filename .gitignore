@@ -9,9 +9,10 @@ env1/
 # Environment
 .env
 
-# Uploads
+# Uploads (dynamic user content ignored, product images tracked)
 static/uploads/*
 !static/uploads/.gitkeep
+!static/uploads/products/
 
 # IDE
 .vscode/
