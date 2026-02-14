@@ -105,6 +105,45 @@ def generate_unique_claim_code(db, length: int = 6, max_retries: int = 10) -> st
     raise RuntimeError("Failed to generate unique claim code after retries")
 
 
+def format_time_ago(value) -> str:
+    """Relative time display in Persian.
+
+    < 10s  → لحظاتی پیش
+    < 1m   → X ثانیه قبل
+    < 1h   → X دقیقه قبل
+    < 1d   → X ساعت قبل
+    < 7d   → X روز قبل
+    >= 7d  → full Jalali date
+    """
+    if value is None:
+        return ""
+    try:
+        now = datetime.now(timezone.utc)
+        # Make value timezone-aware if naive
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        diff = now - value
+        seconds = int(diff.total_seconds())
+
+        if seconds < 10:
+            return "لحظاتی پیش"
+        if seconds < 60:
+            return persian_number(str(seconds)) + " ثانیه قبل"
+        minutes = seconds // 60
+        if minutes < 60:
+            return persian_number(str(minutes)) + " دقیقه قبل"
+        hours = minutes // 60
+        if hours < 24:
+            return persian_number(str(hours)) + " ساعت قبل"
+        days = hours // 24
+        if days < 7:
+            return persian_number(str(days)) + " روز قبل"
+        # More than a week → full Jalali date
+        return format_jdate(value)
+    except Exception:
+        return format_jdate(value)
+
+
 def format_jdate(value, fmt=None) -> str:
     """Convert a datetime to Jalali (Shamsi) date string.
 
