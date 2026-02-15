@@ -691,6 +691,11 @@
 |------|------|-------|
 | GET | `/admin/logs` | لیست لاگ‌ها + فیلتر (متد، وضعیت، مسیر، نوع کاربر، IP) + pagination |
 
+### Middleware: جلوگیری از کش مرورگر (No-Cache)
+
+- در `main.py` — هدرهای `Cache-Control: no-cache, no-store, must-revalidate`، `Pragma: no-cache` و `Expires: 0` برای تمام مسیرهای `/admin/*` و `/dealer/*` ست می‌شود
+- هدف: جلوگیری از نمایش صفحات قدیمی کش‌شده هنگام ناوبری (back/forward) — آمار و داده‌ها همیشه تازه از دیتابیس بارگذاری می‌شوند
+
 ---
 
 ## 16. API نماینده (Dealer POS API)
