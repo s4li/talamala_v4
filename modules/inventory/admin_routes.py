@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
+from common.helpers import safe_int
 from modules.auth.deps import require_operator_or_admin, require_super_admin
 from modules.inventory.models import BarStatus, Location, LocationType
 from modules.inventory.service import inventory_service, location_service
@@ -36,24 +37,29 @@ def ctx(request, user, **extra):
 async def list_bars(
     request: Request,
     page: int = 1,
-    search: str = None,
-    customer_id: int = Query(None),
+    search: str = Query(None),
+    customer_id: str = Query(None),
     status: str = Query(None),
-    product_id: int = Query(None),
-    location_id: int = Query(None),
+    product_id: str = Query(None),
+    location_id: str = Query(None),
     msg: str = Query(None),
     error: str = Query(None),
     db: Session = Depends(get_db),
     user=Depends(require_operator_or_admin),
 ):
+    _customer_id = safe_int(customer_id)
+    _product_id = safe_int(product_id)
+    _location_id = safe_int(location_id)
+    _status = status if status else None
+
     bars, total, total_pages = inventory_service.list_bars(
-        db, page=page, search=search, customer_id=customer_id,
-        status=status, product_id=product_id, location_id=location_id,
+        db, page=page, search=search or None, customer_id=_customer_id,
+        status=_status, product_id=_product_id, location_id=_location_id,
     )
 
     filter_customer = None
-    if customer_id:
-        filter_customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if _customer_id:
+        filter_customer = db.query(Customer).filter(Customer.id == _customer_id).first()
 
     data, csrf = ctx(
         request, user,

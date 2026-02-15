@@ -139,7 +139,7 @@
     <ul class="pagination pagination-tm pagination-sm justify-content-center">
         {% for p in range(1, total_pages + 1) %}
         <li class="page-item {% if p == page %}active{% endif %}">
-            <a class="page-link" href="/admin/bars?page={{ p }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ p }}</a>
+            <a class="page-link" href="/admin/bars?page={{ p }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if product_filter %}&product_id={{ product_filter }}{% endif %}{% if location_filter %}&location_id={{ location_filter }}{% endif %}">{{ p }}</a>
         </li>
         {% endfor %}
     </ul>
