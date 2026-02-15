@@ -86,7 +86,13 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <div class="mb-3">
                         <label class="form-label-tm">مبلغ (تومان)</label>
-                        <input type="number" name="amount_toman" class="form-control form-control-tm" min="10000" step="1000" required>
+                        <input type="number" id="buy-toman" name="amount_toman" class="form-control form-control-tm" min="10000" step="1000" required>
+                        <div id="buy-toman-words" class="form-text text-muted small mt-1"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-tm">معادل طلا (گرم)</label>
+                        <input type="number" id="buy-grams" class="form-control form-control-tm" min="0.001" step="0.001">
+                        <div id="buy-grams-info" class="form-text text-muted small mt-1"></div>
                     </div>
                     <button type="submit" class="btn btn-tm-success w-100">
                         <i class="bi bi-coin me-1"></i> خرید طلا
@@ -105,7 +111,13 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <div class="mb-3">
                         <label class="form-label-tm">مقدار (گرم)</label>
-                        <input type="number" name="gold_grams" class="form-control form-control-tm" min="0.001" step="0.001" required>
+                        <input type="number" id="sell-grams" name="gold_grams" class="form-control form-control-tm" min="0.001" step="0.001" required>
+                        <div id="sell-grams-info" class="form-text text-muted small mt-1"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-tm">معادل ریالی (تومان)</label>
+                        <input type="number" id="sell-toman" class="form-control form-control-tm" min="10000" step="1000">
+                        <div id="sell-toman-words" class="form-text text-muted small mt-1"></div>
                     </div>
                     <button type="submit" class="btn btn-tm-danger w-100">
                         <i class="bi bi-cash-stack me-1"></i> فروش طلا
@@ -119,4 +131,132 @@
         <a href="/wallet" class="btn btn-tm-outline"><i class="bi bi-arrow-right me-1"></i> بازگشت به کیف پول</a>
     </div>
 </div>
+{% endblock %}
+
+{% block shop_js %}
+<script>
+// نرخ‌ها (ریال)
+const BUY_PER_GRAM  = {{ rates.buy_per_gram }};
+const SELL_PER_GRAM = {{ rates.sell_per_gram }};
+
+// تبدیل عدد به حروف فارسی
+function numberToWordsFa(num) {
+    if (!num || num <= 0) return '';
+    num = Math.floor(num);
+    const yekan  = ['', 'یک', 'دو', 'سه', 'چهار', 'پنج', 'شش', 'هفت', 'هشت', 'نه'];
+    const dahgan = ['', '', 'بیست', 'سی', 'چهل', 'پنجاه', 'شصت', 'هفتاد', 'هشتاد', 'نود'];
+    const dahyek = ['ده', 'یازده', 'دوازده', 'سیزده', 'چهارده', 'پانزده', 'شانزده', 'هفده', 'هجده', 'نوزده'];
+    const sadgan = ['', 'یکصد', 'دویست', 'سیصد', 'چهارصد', 'پانصد', 'ششصد', 'هفتصد', 'هشتصد', 'نهصد'];
+    const scale  = ['', 'هزار', 'میلیون', 'میلیارد', 'تریلیون'];
+    function threeDigits(n) {
+        if (n === 0) return '';
+        let parts = [];
+        let s = Math.floor(n / 100), d = Math.floor((n % 100) / 10), y = n % 10;
+        if (s > 0) parts.push(sadgan[s]);
+        if (d === 1) { parts.push(dahyek[y]); return parts.join(' و '); }
+        if (d > 1) parts.push(dahgan[d]);
+        if (y > 0) parts.push(yekan[y]);
+        return parts.join(' و ');
+    }
+    let chunks = [], i = 0;
+    while (num > 0) {
+        let rem = num % 1000;
+        if (rem > 0) { let w = threeDigits(rem); if (scale[i]) w += ' ' + scale[i]; chunks.unshift(w); }
+        num = Math.floor(num / 1000); i++;
+    }
+    return chunks.join(' و ');
+}
+
+function formatGrams(g) {
+    return g.toFixed(3) + ' گرم';
+}
+
+// === خرید طلا ===
+const buyToman = document.getElementById('buy-toman');
+const buyGrams = document.getElementById('buy-grams');
+const buyTomanWords = document.getElementById('buy-toman-words');
+const buyGramsInfo = document.getElementById('buy-grams-info');
+let buyLock = false;
+
+buyToman.addEventListener('input', function() {
+    if (buyLock) return;
+    buyLock = true;
+    const toman = parseFloat(this.value) || 0;
+    if (toman > 0) {
+        buyTomanWords.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + numberToWordsFa(toman) + ' تومان';
+    } else {
+        buyTomanWords.textContent = '';
+    }
+    if (toman > 0 && BUY_PER_GRAM > 0) {
+        const grams = (toman * 10) / BUY_PER_GRAM;
+        buyGrams.value = grams.toFixed(3);
+        buyGramsInfo.innerHTML = '<i class="bi bi-arrow-left-right me-1"></i>' + formatGrams(grams);
+    } else {
+        buyGrams.value = '';
+        buyGramsInfo.textContent = '';
+    }
+    buyLock = false;
+});
+
+buyGrams.addEventListener('input', function() {
+    if (buyLock) return;
+    buyLock = true;
+    const grams = parseFloat(this.value) || 0;
+    if (grams > 0 && BUY_PER_GRAM > 0) {
+        const toman = Math.round((grams * BUY_PER_GRAM) / 10);
+        buyToman.value = toman;
+        buyTomanWords.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + numberToWordsFa(toman) + ' تومان';
+        buyGramsInfo.innerHTML = '<i class="bi bi-arrow-left-right me-1"></i>' + formatGrams(grams);
+    } else {
+        buyToman.value = '';
+        buyTomanWords.textContent = '';
+        buyGramsInfo.textContent = '';
+    }
+    buyLock = false;
+});
+
+// === فروش طلا ===
+const sellGrams = document.getElementById('sell-grams');
+const sellToman = document.getElementById('sell-toman');
+const sellGramsInfo = document.getElementById('sell-grams-info');
+const sellTomanWords = document.getElementById('sell-toman-words');
+let sellLock = false;
+
+sellGrams.addEventListener('input', function() {
+    if (sellLock) return;
+    sellLock = true;
+    const grams = parseFloat(this.value) || 0;
+    if (grams > 0 && SELL_PER_GRAM > 0) {
+        const toman = Math.round((grams * SELL_PER_GRAM) / 10);
+        sellToman.value = toman;
+        sellTomanWords.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + numberToWordsFa(toman) + ' تومان';
+        sellGramsInfo.innerHTML = '<i class="bi bi-arrow-left-right me-1"></i>' + formatGrams(grams);
+    } else {
+        sellToman.value = '';
+        sellTomanWords.textContent = '';
+        sellGramsInfo.textContent = '';
+    }
+    sellLock = false;
+});
+
+sellToman.addEventListener('input', function() {
+    if (sellLock) return;
+    sellLock = true;
+    const toman = parseFloat(this.value) || 0;
+    if (toman > 0) {
+        sellTomanWords.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + numberToWordsFa(toman) + ' تومان';
+    } else {
+        sellTomanWords.textContent = '';
+    }
+    if (toman > 0 && SELL_PER_GRAM > 0) {
+        const grams = (toman * 10) / SELL_PER_GRAM;
+        sellGrams.value = grams.toFixed(3);
+        sellGramsInfo.innerHTML = '<i class="bi bi-arrow-left-right me-1"></i>' + formatGrams(grams);
+    } else {
+        sellGrams.value = '';
+        sellGramsInfo.textContent = '';
+    }
+    sellLock = false;
+});
+</script>
 {% endblock %}
