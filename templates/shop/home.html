@@ -73,7 +73,7 @@
                     <a href="/product/{{ p.id }}" class="text-decoration-none text-dark">{{ p.name }}</a>
                 </h6>
                 <div class="text-muted small mb-2" style="font-size:0.75rem;">
-                    {{ p.weight }} گرم | عیار {{ p.purity }}
+                    {{ p.weight }} گرم | عیار {{ p.purity|purity }}
                 </div>
 
                 {% if p.final_price %}

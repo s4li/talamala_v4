@@ -53,10 +53,10 @@ async def list_products(request: Request, db: Session = Depends(get_db), user=De
 @router.post("/admin/products/add")
 async def add_product(
     request: Request,
-    name: str = Form(...), weight: str = Form(...), purity: str = Form("750"),
+    name: str = Form(...), weight: str = Form(...), purity: str = Form("995"),
     design: str = Form(None),
     card_design_id: str = Form(""), package_type_id: str = Form(""),
-    wage: str = Form("0"), is_wage_percent: bool = Form(False),
+    wage: str = Form("0"),
     is_active: bool = Form(True),
     files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
@@ -70,7 +70,7 @@ async def add_product(
     product_service.create(db, {
         "name": name, "weight": weight, "purity": purity, "design": design,
         "category_ids": category_ids, "card_design_id": cd_id, "package_type_id": pt_id,
-        "wage": wage, "is_wage_percent": is_wage_percent,
+        "wage": wage,
         "is_active": is_active,
     }, files)
     return RedirectResponse("/admin/products", status_code=303)
@@ -96,7 +96,7 @@ async def update_product(
     name: str = Form(...), weight: str = Form(...), purity: str = Form(...),
     design: str = Form(None),
     card_design_id: str = Form(""), package_type_id: str = Form(""),
-    wage: str = Form(...), is_wage_percent: bool = Form(False),
+    wage: str = Form(...),
     is_active: bool = Form(False),
     new_files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
@@ -110,7 +110,7 @@ async def update_product(
     product_service.update(db, p_id, {
         "name": name, "weight": weight, "purity": purity, "design": design,
         "category_ids": category_ids, "card_design_id": cd_id, "package_type_id": pt_id,
-        "wage": wage, "is_wage_percent": is_wage_percent,
+        "wage": wage,
         "is_active": is_active,
     }, new_files)
     return RedirectResponse("/admin/products", status_code=303)

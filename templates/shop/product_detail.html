@@ -73,7 +73,7 @@
 
         <div class="d-flex gap-3 mt-2 mb-3">
             <span class="badge bg-light text-dark border">{{ p.weight }} گرم</span>
-            <span class="badge bg-light text-dark border">عیار {{ p.purity }}</span>
+            <span class="badge bg-light text-dark border">عیار {{ p.purity|purity }}</span>
             {% if p.design %}
             <span class="badge bg-light text-dark border">{{ p.design }}</span>
             {% endif %}

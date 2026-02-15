@@ -102,7 +102,7 @@
                     {% endif %}
                 </div>
                 <div style="flex:1;" class="text-center">{{ item.applied_weight }}g</div>
-                <div style="flex:1;" class="text-center">{{ item.applied_purity }}</div>
+                <div style="flex:1;" class="text-center">{{ item.applied_purity|purity }}</div>
                 <div style="flex:2;" class="text-end">
                     <div class="fw-bold">{{ item.line_total | toman }} <small class="text-muted">تومان</small></div>
                 </div>

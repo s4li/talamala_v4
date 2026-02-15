@@ -462,7 +462,7 @@ class DealerService:
                 "product_id": p.id,
                 "name": p.name,
                 "weight": str(p.weight),
-                "purity": p.purity,
+                "purity": float(p.purity),
                 "categories": [c.name for c in p.categories],
                 "final_price": price_info.get("total", 0),
                 "price_breakdown": {

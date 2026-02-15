@@ -62,6 +62,7 @@ templates.env.filters["jdate"] = format_jdate
 templates.env.filters["persian_number"] = persian_number
 templates.env.filters["gold_gram"] = format_gold_gram
 templates.env.filters["time_ago"] = format_time_ago
+templates.env.filters["purity"] = lambda v: str(v).rstrip('0').rstrip('.') if v else "—"
 
 # Globals (usage in template: {{ get_setting_value('key') }})
 templates.env.globals["get_setting_value"] = get_setting_value

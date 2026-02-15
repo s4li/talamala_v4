@@ -340,7 +340,7 @@ async def buyback_lookup(
         "serial_code": bar.serial_code,
         "product_name": product.name,
         "weight": str(product.weight),
-        "purity": product.purity,
+        "purity": float(product.purity),
         "raw_gold_toman": raw_gold_toman,
         "retail_toman": retail_toman,
         "owner_name": bar.customer.full_name if bar.customer_id and bar.customer else "نامشخص",

@@ -189,7 +189,7 @@
             <!-- Info -->
             <div class="cart-item-info">
                 <h6><a href="/product/{{ item.product.id }}">{{ item.product.name }}</a></h6>
-                <div class="cart-item-specs">{{ item.product.weight }} گرم | عیار {{ item.product.purity }}</div>
+                <div class="cart-item-specs">{{ item.product.weight }} گرم | عیار {{ item.product.purity|purity }}</div>
                 <div class="cart-item-unit-price">{{ item.unit_price | toman }} تومان</div>
             </div>
 

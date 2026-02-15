@@ -232,14 +232,14 @@ def seed():
                 "slug": "silver-talamala",
                 "category_slug": "silver-talamala",
                 "name_prefix": "شمش نقره طلاملا",
-                "purity": 999,
+                "purity": 999.9,
             },
             {
                 "folder": "شمش نقره بدون بسته بندی",
                 "slug": "silver-investment",
                 "category_slug": "silver-investment",
                 "name_prefix": "شمش نقره سرمایه‌ای",
-                "purity": 999,
+                "purity": 999.9,
             },
         ]
 

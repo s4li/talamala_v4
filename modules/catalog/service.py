@@ -158,12 +158,12 @@ class ProductService:
 
         p.name = data["name"]
         p.weight = data["weight"]
-        p.purity = safe_int(data.get("purity", "750")) or 750
+        p.purity = safe_decimal(data.get("purity", "750"), Decimal("750"))
         p.design = data.get("design")
         p.card_design_id = data.get("card_design_id")
         p.package_type_id = data.get("package_type_id")
         p.wage = data.get("wage", 0)
-        p.is_wage_percent = data.get("is_wage_percent", False)
+        p.is_wage_percent = True
         p.is_active = data.get("is_active", False)
 
         # Sync M2M categories
