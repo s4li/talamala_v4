@@ -245,6 +245,9 @@ return response
 ### BUG-4: CSRF ارور بعد از idle — ✅ FIXED
 **فیکس**: Middleware `csrf_cookie_refresh` در `main.py` اضافه شد که در هر GET request بدون cookie، CSRF cookie تازه ست میکنه.
 
+### BUG-5: آمار ادمین بعد از idle قدیمی نشان داده می‌شود — ✅ FIXED
+**فیکس**: Middleware `no_cache_admin` در `main.py` اضافه شد که هدرهای `Cache-Control: no-cache, no-store, must-revalidate` برای همه صفحات `/admin/*` و `/dealer/*` ست میکنه. مرورگر دیگر صفحات ادمین را کش نمیکنه.
+
 ---
 
 ## 6. فازهای تکمیل‌شده

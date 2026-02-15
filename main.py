@@ -219,6 +219,25 @@ async def csrf_cookie_refresh(request: Request, call_next):
 
 
 # ==========================================
+# Middleware: No-Cache for Admin/Dealer pages
+# ==========================================
+_NO_CACHE_PREFIXES = ("/admin/", "/dealer/")
+
+@app.middleware("http")
+async def no_cache_admin(request: Request, call_next):
+    """Prevent browser caching on admin/dealer panel pages so stats are always fresh."""
+    response = await call_next(request)
+    path = request.url.path
+    if any(path.startswith(p) for p in _NO_CACHE_PREFIXES):
+        ct = response.headers.get("content-type", "")
+        if "text/html" in ct or "application/json" in ct:
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+    return response
+
+
+# ==========================================
 # Middleware: Maintenance Mode
 # ==========================================
 @app.middleware("http")
