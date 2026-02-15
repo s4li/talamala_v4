@@ -177,14 +177,14 @@ async def api_delivery_locations(
     cart_map, _ = cart_service.get_cart_map(db, me.id)
     product_ids = list(cart_map.keys())
 
-    # Get locations with stock info
-    locations = delivery_service.get_pickup_locations(
+    # Get dealers with stock info
+    dealers = delivery_service.get_pickup_dealers(
         db, province=province, city=city, product_ids=product_ids,
     )
 
     return JSONResponse({
         "cities": cities,
-        "locations": locations,
+        "locations": dealers,
     })
 
 
@@ -196,7 +196,7 @@ async def api_delivery_locations(
 async def checkout(
     request: Request,
     delivery_method: str = Form(...),
-    pickup_location_id: str = Form(""),
+    pickup_dealer_id: str = Form(""),
     shipping_province: str = Form(""),
     shipping_city: str = Form(""),
     shipping_address: str = Form(""),
@@ -211,10 +211,16 @@ async def checkout(
     csrf_check(request, csrf_token)
 
     # Validate
-    pickup_loc_id = int(pickup_location_id) if pickup_location_id.strip().isdigit() else None
+    pickup_loc_id = int(pickup_dealer_id) if pickup_dealer_id.strip().isdigit() else None
     if delivery_method == "Pickup":
         if not pickup_loc_id:
             error = urllib.parse.quote("لطفاً نمایندگی تحویل را انتخاب کنید.")
+            return RedirectResponse(f"/checkout?error={error}", status_code=303)
+        # Server-side: verify dealer exists, is active, and is a retail point
+        from modules.dealer.models import Dealer
+        dlr = db.query(Dealer).filter(Dealer.id == pickup_loc_id).first()
+        if not dlr or not dlr.is_active or dlr.is_warehouse:
+            error = urllib.parse.quote("نمایندگی انتخابی نامعتبر است.")
             return RedirectResponse(f"/checkout?error={error}", status_code=303)
         if not commitment:
             error = urllib.parse.quote("تأیید تعهد تحویل حضوری الزامی است.")
@@ -230,7 +236,7 @@ async def checkout(
     try:
         order = order_service.checkout(db, me.id, {
             "delivery_method": delivery_method,
-            "pickup_location_id": pickup_loc_id,
+            "pickup_dealer_id": pickup_loc_id,
             "shipping_province": shipping_province,
             "shipping_city": shipping_city,
             "shipping_address": shipping_address,
