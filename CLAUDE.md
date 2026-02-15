@@ -435,6 +435,7 @@ total    = raw_gold + wage + tax
 - `POST /addresses/{id}/delete|default`
 - `GET /api/geo/cities?province_id=X`
 - `GET /api/geo/districts?city_id=X`
+- `GET /api/geo/dealers?province_id=X&city_id=X&district_id=X` — فیلتر نمایندگان بر اساس موقعیت (همه optional)
 
 ### Cart & Orders
 - `GET /cart` — Cart page

@@ -45,17 +45,44 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2">
-                <select name="dealer_id" class="form-select form-select-tm form-select-sm">
-                    <option value="">همه نمایندگان</option>
-                    {% for d in all_dealers %}
-                    <option value="{{ d.id }}" {% if dealer_filter|string == d.id|string %}selected{% endif %}>{{ d.full_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
             <div class="col-auto">
                 <button class="btn btn-sm btn-tm-primary"><i class="bi bi-funnel"></i> فیلتر</button>
                 <a href="/admin/bars" class="btn btn-sm btn-light">پاک</a>
+            </div>
+            <!-- Geo cascade + dealer filter row -->
+            <div class="col-12 mt-2">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label-tm small mb-0"><i class="bi bi-geo-alt me-1"></i>استان</label>
+                        <select class="form-select form-select-sm" id="filterProvince">
+                            <option value="">همه استان‌ها</option>
+                            {% for p in all_provinces %}
+                            <option value="{{ p.id }}">{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-tm small mb-0">شهر</label>
+                        <select class="form-select form-select-sm" id="filterCity" disabled>
+                            <option value="">همه شهرها</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-tm small mb-0">محله</label>
+                        <select class="form-select form-select-sm" id="filterDistrict" disabled>
+                            <option value="">همه محله‌ها</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-tm small mb-0">نمایندگی</label>
+                        <select name="dealer_id" class="form-select form-select-sm" id="filterDealer">
+                            <option value="">همه نمایندگان</option>
+                            {% for d in all_dealers %}
+                            <option value="{{ d.id }}" {% if dealer_filter|string == d.id|string %}selected{% endif %}>{{ d.full_name }} ({{ d.type_label }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
             </div>
         </form>
     </div>
@@ -198,6 +225,28 @@
                             {% for b in all_batches %}<option value="{{ b.id }}">{{ b.batch_number }}</option>{% endfor %}
                         </select>
                     </div>
+                    <!-- Cascade geo filter for dealer in bulk -->
+                    <div class="col-12 mt-2">
+                        <label class="form-label-tm small fw-bold"><i class="bi bi-geo-alt me-1"></i>فیلتر نمایندگی بر اساس موقعیت</label>
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <select class="form-select form-select-sm" id="bulkProvince">
+                                    <option value="">همه استان‌ها</option>
+                                    {% for p in all_provinces %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select form-select-sm" id="bulkCity" disabled>
+                                    <option value="">همه شهرها</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select form-select-sm" id="bulkDistrict" disabled>
+                                    <option value="">همه محله‌ها</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                     <div class="col-md-4">
                         <label class="form-label-tm small">نمایندگی</label>
                         <select id="bulk_dealer" class="form-select form-select-tm form-select-sm">
@@ -225,6 +274,7 @@
 {% block page_js %}
 <script>
 (function(){
+    // ====== Checkbox / Bulk Selection ======
     const checks = document.querySelectorAll('.bar-check');
     const selectAll = document.getElementById('selectAll');
     const bulkBtn = document.getElementById('bulkBtn');
@@ -253,7 +303,6 @@
         document.getElementById('selectedIdsInput').value = selected.join(',');
         document.getElementById('bulkActionInput').value = action;
 
-        // Add bulk field values as hidden inputs
         const fields = {
             'target_product_id': document.getElementById('bulk_product').value,
             'target_customer_id': document.getElementById('bulk_customer').value,
@@ -267,6 +316,67 @@
         }
         form.submit();
     };
+
+    // ====== Reusable Cascade Dealer Filter ======
+    function setupCascade(provId, cityId, distId, dealerId, extraOptions) {
+        const provSel = document.getElementById(provId);
+        const citySel = document.getElementById(cityId);
+        const distSel = document.getElementById(distId);
+        const dealerSel = document.getElementById(dealerId);
+        if (!provSel || !citySel || !distSel || !dealerSel) return;
+
+        const curDealerVal = dealerSel.value;
+
+        provSel.addEventListener('change', async function(){
+            citySel.innerHTML = '<option value="">همه شهرها</option>';
+            distSel.innerHTML = '<option value="">همه محله‌ها</option>';
+            citySel.disabled = !this.value;
+            distSel.disabled = true;
+            if(this.value){
+                const res = await fetch('/api/geo/cities?province_id='+this.value);
+                const cities = await res.json();
+                cities.forEach(c => { citySel.innerHTML += '<option value="'+c.id+'">'+c.name+'</option>'; });
+            }
+            loadDealers();
+        });
+
+        citySel.addEventListener('change', async function(){
+            distSel.innerHTML = '<option value="">همه محله‌ها</option>';
+            distSel.disabled = !this.value;
+            if(this.value){
+                const res = await fetch('/api/geo/districts?city_id='+this.value);
+                const districts = await res.json();
+                districts.forEach(d => { distSel.innerHTML += '<option value="'+d.id+'">'+d.name+'</option>'; });
+            }
+            loadDealers();
+        });
+
+        distSel.addEventListener('change', function(){ loadDealers(); });
+
+        async function loadDealers(){
+            const params = new URLSearchParams();
+            if(provSel.value) params.set('province_id', provSel.value);
+            if(citySel.value) params.set('city_id', citySel.value);
+            if(distSel.value) params.set('district_id', distSel.value);
+            const res = await fetch('/api/geo/dealers?'+params.toString());
+            const dealers = await res.json();
+            let html = '';
+            if(extraOptions) html = extraOptions;
+            else html = '<option value="">همه نمایندگان</option>';
+            dealers.forEach(d => {
+                const sel = (String(d.id) === curDealerVal) ? ' selected' : '';
+                html += '<option value="'+d.id+'"'+sel+'>'+d.full_name+' ('+d.type_label+')</option>';
+            });
+            dealerSel.innerHTML = html;
+        }
+    }
+
+    // Filter section cascade
+    setupCascade('filterProvince', 'filterCity', 'filterDistrict', 'filterDealer', null);
+
+    // Bulk modal cascade
+    setupCascade('bulkProvince', 'bulkCity', 'bulkDistrict', 'bulk_dealer',
+        '<option value="">بدون تغییر</option><option value="0">حذف</option>');
 })();
 </script>
 {% endblock %}

@@ -53,8 +53,32 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <!-- Cascade Geo Filter for Dealer -->
+                    <div class="col-12">
+                        <label class="form-label-tm"><i class="bi bi-geo-alt me-1"></i>فیلتر نمایندگی بر اساس موقعیت</label>
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <select class="form-select form-select-sm" id="filterProvince">
+                                    <option value="">همه استان‌ها</option>
+                                    {% for p in provinces %}
+                                    <option value="{{ p.id }}">{{ p.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select form-select-sm" id="filterCity" disabled>
+                                    <option value="">همه شهرها</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select form-select-sm" id="filterDistrict" disabled>
+                                    <option value="">همه محله‌ها</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                     <div class="col-md-6">
-                        <label class="form-label-tm"><i class="bi bi-geo-alt me-1"></i>نمایندگی</label>
+                        <label class="form-label-tm">نمایندگی</label>
                         <select name="dealer_id" class="form-select form-select-tm" id="dealerSelect">
                             <option value="0">— بدون نمایندگی —</option>
                             {% for d in dealers %}
@@ -194,12 +218,65 @@
 {% block page_js %}
 <script>
 (function(){
-    const locSelect = document.getElementById('dealerSelect');
+    const dealerSelect = document.getElementById('dealerSelect');
     const noteBox = document.getElementById('transferNoteBox');
-    const origVal = locSelect.value;
-    locSelect.addEventListener('change', function(){
+    const origVal = dealerSelect.value;
+    dealerSelect.addEventListener('change', function(){
         noteBox.style.display = (this.value !== origVal) ? 'block' : 'none';
     });
+
+    // --- Cascade Geo Filter ---
+    const provSel = document.getElementById('filterProvince');
+    const citySel = document.getElementById('filterCity');
+    const distSel = document.getElementById('filterDistrict');
+
+    provSel.addEventListener('change', async function(){
+        citySel.innerHTML = '<option value="">همه شهرها</option>';
+        distSel.innerHTML = '<option value="">همه محله‌ها</option>';
+        citySel.disabled = !this.value;
+        distSel.disabled = true;
+        if(this.value){
+            const res = await fetch('/api/geo/cities?province_id='+this.value);
+            const cities = await res.json();
+            cities.forEach(c => {
+                citySel.innerHTML += '<option value="'+c.id+'">'+c.name+'</option>';
+            });
+        }
+        loadDealers();
+    });
+
+    citySel.addEventListener('change', async function(){
+        distSel.innerHTML = '<option value="">همه محله‌ها</option>';
+        distSel.disabled = !this.value;
+        if(this.value){
+            const res = await fetch('/api/geo/districts?city_id='+this.value);
+            const districts = await res.json();
+            districts.forEach(d => {
+                distSel.innerHTML += '<option value="'+d.id+'">'+d.name+'</option>';
+            });
+        }
+        loadDealers();
+    });
+
+    distSel.addEventListener('change', function(){ loadDealers(); });
+
+    async function loadDealers(){
+        const params = new URLSearchParams();
+        if(provSel.value) params.set('province_id', provSel.value);
+        if(citySel.value) params.set('city_id', citySel.value);
+        if(distSel.value) params.set('district_id', distSel.value);
+        const res = await fetch('/api/geo/dealers?'+params.toString());
+        const dealers = await res.json();
+        const curVal = dealerSelect.value;
+        dealerSelect.innerHTML = '<option value="0">— بدون نمایندگی —</option>';
+        dealers.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = d.full_name + ' (' + d.type_label + ')';
+            if(String(d.id) === curVal) opt.selected = true;
+            dealerSelect.appendChild(opt);
+        });
+    }
 })();
 </script>
 {% endblock %}

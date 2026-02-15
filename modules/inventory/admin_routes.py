@@ -21,6 +21,7 @@ from modules.inventory.service import inventory_service
 from modules.catalog.models import Product, Batch
 from modules.customer.models import Customer
 from modules.dealer.models import Dealer
+from modules.customer.address_models import GeoProvince
 
 router = APIRouter(tags=["inventory-admin"])
 
@@ -63,6 +64,7 @@ async def list_bars(
         filter_customer = db.query(Customer).filter(Customer.id == _customer_id).first()
 
     all_dealers = db.query(Dealer).filter(Dealer.is_active == True).order_by(Dealer.full_name).all()
+    all_provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
 
     data, csrf = ctx(
         request, user,
@@ -79,6 +81,7 @@ async def list_bars(
         all_customers=db.query(Customer).all(),
         all_batches=db.query(Batch).all(),
         all_dealers=all_dealers,
+        all_provinces=all_provinces,
         bar_statuses=BarStatus,
         msg=msg,
         error=error,
@@ -128,6 +131,7 @@ async def edit_bar_form(
         batches=db.query(Batch).all(),
         customers=db.query(Customer).all(),
         dealers=db.query(Dealer).filter(Dealer.is_active == True).order_by(Dealer.full_name).all(),
+        provinces=db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all(),
         bar_statuses=BarStatus,
     )
     response = templates.TemplateResponse("admin/inventory/edit_bar.html", data)

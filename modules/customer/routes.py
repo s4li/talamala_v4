@@ -190,3 +190,23 @@ async def api_geo_cities(province_id: int, db: Session = Depends(get_db)):
 async def api_geo_districts(city_id: int, db: Session = Depends(get_db)):
     districts = db.query(GeoDistrict).filter(GeoDistrict.city_id == city_id).order_by(GeoDistrict.name).all()
     return [{"id": d.id, "name": d.name} for d in districts]
+
+
+@router.get("/api/geo/dealers")
+async def api_geo_dealers(
+    province_id: Optional[int] = None,
+    city_id: Optional[int] = None,
+    district_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    """Return active dealers filtered by province/city/district (all optional)."""
+    from modules.dealer.models import Dealer
+    q = db.query(Dealer).filter(Dealer.is_active == True)
+    if province_id:
+        q = q.filter(Dealer.province_id == province_id)
+    if city_id:
+        q = q.filter(Dealer.city_id == city_id)
+    if district_id:
+        q = q.filter(Dealer.district_id == district_id)
+    dealers = q.order_by(Dealer.full_name).all()
+    return [{"id": d.id, "full_name": d.full_name, "type_label": d.type_label} for d in dealers]

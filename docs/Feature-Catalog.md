@@ -509,6 +509,7 @@
 | POST | `/addresses/{id}/default` | تعیین آدرس پیش‌فرض |
 | GET | `/api/geo/cities?province_id=X` | لیست شهرها (AJAX) |
 | GET | `/api/geo/districts?city_id=X` | لیست مناطق (AJAX) |
+| GET | `/api/geo/dealers?province_id&city_id&district_id` | فیلتر نمایندگان بر اساس موقعیت (AJAX) |
 
 ---
 
