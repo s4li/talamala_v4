@@ -479,14 +479,17 @@
         const container = document.getElementById('locationsList');
         const noLoc = document.getElementById('noLocations');
 
-        if (!locations.length) {
+        // Only show dealers that have stock
+        const available = locations.filter(loc => loc.stock > 0);
+
+        if (!available.length) {
             container.innerHTML = '';
             noLoc.classList.remove('d-none');
             return;
         }
         noLoc.classList.add('d-none');
 
-        container.innerHTML = locations.map(loc => {
+        container.innerHTML = available.map(loc => {
             const hasStock = loc.stock > 0;
             return `
                 <div class="col-md-6">
