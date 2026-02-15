@@ -28,9 +28,9 @@ def notify_ticket_update(
         True if notification sent (or logged), False on error
     """
     messages = {
-        "new_reply": f"پاسخ جدیدی برای تیکت #{ticket_id} ارسال شده است. طلامالا",
-        "status_changed": f"وضعیت تیکت #{ticket_id} تغییر کرد. طلامالا",
-        "new_ticket": f"تیکت جدید #{ticket_id} ثبت شد. طلامالا",
+        "new_reply": f"پاسخ جدیدی برای تیکت #{ticket_id} ارسال شده است. طلاملا",
+        "status_changed": f"وضعیت تیکت #{ticket_id} تغییر کرد. طلاملا",
+        "new_ticket": f"تیکت جدید #{ticket_id} ثبت شد. طلاملا",
     }
 
     text = messages.get(event_type, f"بروزرسانی تیکت #{ticket_id}")

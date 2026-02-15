@@ -121,7 +121,7 @@ def seed():
         print("\n[3/9] System Settings")
 
         settings_data = {
-            "site_name":            ("طلامالا", "نام سایت"),
+            "site_name":            ("طلاملا", "نام سایت"),
             "site_logo":            ("", "لوگوی سایت"),
             "support_phone":        ("02112345678", "شماره پشتیبانی"),
             "support_telegram":     ("@talamala", "تلگرام پشتیبانی"),

@@ -31,7 +31,7 @@ def _bar_to_result(bar: Bar, db: Session) -> dict:
         history_list.append({
             "date": h.transfer_date,
             "description": h.description or "انتقال مالکیت",
-            "from_owner": h.previous_owner.full_name if h.previous_owner else "طلامالا",
+            "from_owner": h.previous_owner.full_name if h.previous_owner else "طلاملا",
             "to_owner": h.new_owner.full_name if h.new_owner else "—",
         })
 

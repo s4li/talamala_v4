@@ -107,7 +107,7 @@ class PaymentService:
                 "merchant": ZIBAL_MERCHANT,
                 "amount": amount,
                 "callbackUrl": callback_url,
-                "description": f"سفارش #{order_id} طلامالا",
+                "description": f"سفارش #{order_id} طلاملا",
                 "orderId": str(order_id),
             }, timeout=15)
             data = resp.json()
