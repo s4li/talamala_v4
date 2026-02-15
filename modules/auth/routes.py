@@ -20,14 +20,18 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request, user=Depends(get_current_active_user)):
+async def login_page(
+    request: Request,
+    next: str = "",
+    user=Depends(get_current_active_user),
+):
     """Show login page (redirect if already logged in)."""
     if user:
         if getattr(user, "is_staff", False):
             return RedirectResponse("/admin/dashboard", status_code=302)
         if getattr(user, "is_dealer", False):
             return RedirectResponse("/dealer/dashboard", status_code=302)
-        return RedirectResponse("/", status_code=302)
+        return RedirectResponse(next or "/", status_code=302)
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("auth/login.html", {
@@ -36,6 +40,7 @@ async def login_page(request: Request, user=Depends(get_current_active_user)):
         "step": "mobile",
         "error": None,
         "mobile": "",
+        "next_url": next,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
@@ -45,6 +50,7 @@ async def login_page(request: Request, user=Depends(get_current_active_user)):
 async def send_otp(
     request: Request,
     mobile: str = Form(...),
+    next_url: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
 ):
@@ -69,6 +75,7 @@ async def send_otp(
             "step": "verify",
             "mobile": mobile,
             "error": None,
+            "next_url": next_url,
         })
         response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
         return response
@@ -81,6 +88,7 @@ async def send_otp(
             "step": "mobile",
             "mobile": mobile,
             "error": e.message,
+            "next_url": next_url,
         })
         response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
         return response
@@ -91,6 +99,7 @@ async def verify_otp(
     request: Request,
     mobile: str = Form(...),
     code: str = Form(...),
+    next_url: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
 ):
@@ -99,6 +108,10 @@ async def verify_otp(
 
     try:
         token, cookie_name, redirect_url = auth_service.verify_otp(db, mobile, code)
+
+        # For customers, use next_url if provided (return to original page)
+        if next_url and cookie_name == "customer_token":
+            redirect_url = next_url
 
         response = RedirectResponse(redirect_url, status_code=302)
         response.set_cookie(cookie_name, token, **get_cookie_kwargs())
@@ -112,6 +125,7 @@ async def verify_otp(
             "step": "verify",
             "mobile": mobile,
             "error": e.message,
+            "next_url": next_url,
         })
         response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
         return response

@@ -112,6 +112,7 @@
         <!-- ========== STEP 1: Mobile Number ========== -->
         <form method="POST" action="/auth/send-otp">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="next_url" value="{{ next_url or '' }}">
 
             <div class="mb-3">
                 <label class="form-label-tm fw-bold">شماره موبایل</label>
@@ -142,6 +143,7 @@
         <form method="POST" action="/auth/verify-otp" id="otpForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input type="hidden" name="mobile" value="{{ mobile }}">
+            <input type="hidden" name="next_url" value="{{ next_url or '' }}">
             <input type="hidden" name="code" id="otpHidden">
 
             <div class="otp-inputs mb-4">

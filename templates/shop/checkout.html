@@ -332,6 +332,7 @@
 
         try {
             const resp = await fetch(`/api/coupon/check?code=${encodeURIComponent(code)}`);
+            if (resp.status === 401) { window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname); return; }
             const data = await resp.json();
 
             if (data.valid) {
@@ -435,6 +436,7 @@
 
         try {
             const resp = await fetch(`/api/delivery/locations?province=${encodeURIComponent(province)}`);
+            if (resp.status === 401) { window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname); return; }
             const data = await resp.json();
 
             // Fill cities
@@ -463,6 +465,7 @@
             let url = `/api/delivery/locations?province=${encodeURIComponent(province)}`;
             if (city) url += `&city=${encodeURIComponent(city)}`;
             const resp = await fetch(url);
+            if (resp.status === 401) { window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname); return; }
             const data = await resp.json();
             renderLocations(data.locations);
         } catch(e) {

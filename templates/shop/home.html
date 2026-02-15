@@ -208,8 +208,15 @@ document.addEventListener('click', function(e) {
         headers: {'Content-Type':'application/json', 'X-CSRF-Token': getCsrf()},
         body: JSON.stringify({product_id: pid, change: change})
     })
-    .then(r => r.json())
+    .then(r => {
+        if (r.status === 401) {
+            window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+            return null;
+        }
+        return r.json();
+    })
     .then(data => {
+        if (!data) return;
         if (data.status === 'success') {
             renderFooter(pid, data.new_quantity);
             const badge = document.querySelector('.cart-badge');
@@ -225,6 +232,8 @@ document.addEventListener('click', function(e) {
                     cartLink.appendChild(sp);
                 }
             }
+        } else {
+            btn.disabled = false;
         }
     })
     .catch(() => { btn.disabled = false; });

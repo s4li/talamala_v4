@@ -29,7 +29,21 @@ async def auth_exception_handler(request: Request, exc: StarletteHTTPException):
     """Redirect 401 to login, render custom 404 for browser requests."""
     is_html = "text/html" in request.headers.get("accept", "")
     if exc.status_code == 401 and is_html:
-        return RedirectResponse("/auth/login", status_code=302)
+        import urllib.parse
+        # For POST requests (form submissions), use Referer as return URL
+        if request.method == "POST":
+            referer = request.headers.get("referer", "/")
+            # Extract path from full referer URL
+            from urllib.parse import urlparse
+            parsed = urlparse(referer)
+            next_url = parsed.path
+            if parsed.query:
+                next_url += "?" + parsed.query
+        else:
+            next_url = str(request.url.path)
+            if request.url.query:
+                next_url += "?" + str(request.url.query)
+        return RedirectResponse(f"/auth/login?next={urllib.parse.quote(next_url, safe='')}", status_code=302)
     if exc.status_code == 404 and is_html:
         db = SessionLocal()
         try:
