@@ -39,7 +39,16 @@
                     <h6 class="fw-bold mb-1">{{ bar.product.name if bar.product else 'نامشخص' }}</h6>
                     <small class="font-monospace text-muted" dir="ltr">{{ bar.serial_code }}</small>
                 </div>
-                <span class="badge-tm badge-tm-success">{{ bar.status_label }}</span>
+                <div class="d-flex flex-column align-items-end gap-1">
+                    <span class="badge bg-{{ bar._delivery_color }}">
+                        {% if bar._delivery_color == 'success' %}<i class="bi bi-check-circle me-1"></i>
+                        {% elif bar._delivery_color == 'warning' %}<i class="bi bi-hourglass-split me-1"></i>
+                        {% elif bar._delivery_color == 'info' %}<i class="bi bi-box-seam me-1"></i>
+                        {% elif bar._delivery_color == 'primary' %}<i class="bi bi-truck me-1"></i>
+                        {% elif bar._delivery_color == 'danger' %}<i class="bi bi-arrow-return-left me-1"></i>
+                        {% endif %}{{ bar._delivery_label }}
+                    </span>
+                </div>
             </div>
 
             {% if bar.product %}

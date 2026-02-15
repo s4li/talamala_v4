@@ -22,13 +22,59 @@ class OwnershipService:
     # ------------------------------------------
 
     def get_customer_bars(self, db: Session, customer_id: int) -> List[Bar]:
-        """Get all bars owned by a customer."""
-        return (
+        """Get all bars owned by a customer, enriched with delivery status."""
+        from modules.order.models import OrderItem, Order, OrderStatus, DeliveryStatus, DeliveryMethod
+
+        bars = (
             db.query(Bar)
             .filter(Bar.customer_id == customer_id, Bar.status == BarStatus.SOLD)
             .order_by(Bar.id.desc())
             .all()
         )
+
+        # Fetch delivery info for all bars in one query
+        bar_ids = [b.id for b in bars]
+        delivery_map = {}
+        if bar_ids:
+            rows = (
+                db.query(
+                    OrderItem.bar_id,
+                    Order.delivery_status,
+                    Order.delivery_method,
+                )
+                .join(Order, OrderItem.order_id == Order.id)
+                .filter(
+                    OrderItem.bar_id.in_(bar_ids),
+                    Order.status == OrderStatus.PAID,
+                )
+                .all()
+            )
+            delivery_map = {r.bar_id: r for r in rows}
+
+        # Delivery label/color mapping
+        label_map = {
+            DeliveryStatus.WAITING: ("در انتظار تحویل", "warning"),
+            DeliveryStatus.PREPARING: ("در حال آماده‌سازی", "info"),
+            DeliveryStatus.SHIPPED: ("ارسال شده", "primary"),
+            DeliveryStatus.DELIVERED: ("تحویل شده", "success"),
+            DeliveryStatus.RETURNED: ("مرجوعی", "danger"),
+        }
+
+        for bar in bars:
+            di = delivery_map.get(bar.id)
+            if di and di.delivery_status:
+                lbl, clr = label_map.get(di.delivery_status, ("نامشخص", "secondary"))
+                # Pickup-specific label for WAITING
+                if di.delivery_status == DeliveryStatus.WAITING and di.delivery_method == DeliveryMethod.PICKUP:
+                    lbl = "منتظر مراجعه"
+                bar._delivery_label = lbl
+                bar._delivery_color = clr
+            else:
+                # POS / claim / transfer — already in customer's hands
+                bar._delivery_label = "تحویل شده"
+                bar._delivery_color = "success"
+
+        return bars
 
     # ------------------------------------------
     # Claim Bar
