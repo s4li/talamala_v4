@@ -14,7 +14,7 @@ from modules.order.models import Order, OrderItem
 from modules.inventory.models import Bar, BarStatus
 from modules.customer.models import Customer
 from modules.catalog.models import Product
-from modules.wallet.models import Account, WithdrawalRequest
+from modules.wallet.models import Account, WithdrawalRequest, WithdrawalStatus
 from modules.dealer.models import Dealer, DealerSale, BuybackRequest, BuybackStatus
 from modules.admin.models import SystemSetting
 from common.helpers import now_utc
@@ -70,7 +70,7 @@ class DashboardService:
         )
         pending_withdrawals = (
             db.query(WithdrawalRequest)
-            .filter(WithdrawalRequest.status == "PENDING")
+            .filter(WithdrawalRequest.status == WithdrawalStatus.PENDING)
             .count()
         )
 
