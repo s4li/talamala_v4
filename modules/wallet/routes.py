@@ -257,7 +257,7 @@ async def wallet_withdraw_submit(
         wr = wallet_service.create_withdrawal(db, me.id, amount_irr, shaba_number, account_holder)
         db.commit()
         return RedirectResponse(
-            f"/wallet?msg=درخواست+برداشت+#{wr.id}+ثبت+شد.+پس+از+تأیید+مدیر+به+حساب+شما+واریز+خواهد+شد.",
+            f"/wallet?msg=درخواست+برداشت+%23{wr.id}+ثبت+شد.+پس+از+تأیید+مدیر+به+حساب+شما+واریز+خواهد+شد.",
             status_code=302,
         )
     except ValueError as e:

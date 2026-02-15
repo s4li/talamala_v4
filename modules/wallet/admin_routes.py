@@ -236,7 +236,7 @@ async def admin_withdrawal_approve(
         wallet_service.approve_withdrawal(db, wr_id, admin_note)
         db.commit()
         return RedirectResponse(
-            f"/admin/wallets/withdrawals/list?msg=درخواست+#{wr_id}+تأیید+شد",
+            f"/admin/wallets/withdrawals/list?msg=درخواست+%23{wr_id}+تأیید+شد",
             status_code=302,
         )
     except ValueError as e:
@@ -261,7 +261,7 @@ async def admin_withdrawal_reject(
         wallet_service.reject_withdrawal(db, wr_id, admin_note)
         db.commit()
         return RedirectResponse(
-            f"/admin/wallets/withdrawals/list?msg=درخواست+#{wr_id}+رد+شد+و+مبلغ+آزاد+گردید",
+            f"/admin/wallets/withdrawals/list?msg=درخواست+%23{wr_id}+رد+شد+و+مبلغ+آزاد+گردید",
             status_code=302,
         )
     except ValueError as e:
