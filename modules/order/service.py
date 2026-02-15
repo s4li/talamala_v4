@@ -33,7 +33,7 @@ def build_order_item(product, bar, invoice: dict, gold_price_rial: int, tax_perc
         applied_gold_price=int(gold_price_rial),
         applied_unit_price=int(audit.get("unit_price_used", 0)),
         applied_weight=audit.get("weight_used") or product.weight,
-        applied_purity=int(product.purity),
+        applied_purity=product.purity,
         applied_wage_percent=product.wage,
         applied_tax_percent=tax_percent_str,
         final_gold_amount=int(invoice.get("raw_gold", 0)),
