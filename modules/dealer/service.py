@@ -66,17 +66,17 @@ class DealerService:
 
     def create_dealer(
         self, db: Session, mobile: str, full_name: str,
-        national_id: str = "", location_id: int = None,
+        national_id: str = "",
         tier_id: int = None,
         province_id: int = None, city_id: int = None,
         district_id: int = None, address: str = "",
         postal_code: str = "", landline_phone: str = "",
+        is_warehouse: bool = False, is_postal_hub: bool = False,
     ) -> Dealer:
         dealer = Dealer(
             mobile=mobile,
             full_name=full_name,
             national_id=national_id or None,
-            location_id=location_id,
             tier_id=tier_id,
             province_id=province_id,
             city_id=city_id,
@@ -84,6 +84,8 @@ class DealerService:
             address=address or None,
             postal_code=postal_code or None,
             landline_phone=landline_phone or None,
+            is_warehouse=is_warehouse,
+            is_postal_hub=is_postal_hub,
         )
         db.add(dealer)
         db.flush()
@@ -91,19 +93,18 @@ class DealerService:
 
     def update_dealer(
         self, db: Session, dealer_id: int,
-        full_name: str = None, location_id: int = None,
+        full_name: str = None,
         tier_id: int = None, is_active: bool = None,
         province_id: int = None, city_id: int = None,
         district_id: int = None, address: str = None,
         postal_code: str = None, landline_phone: str = None,
+        is_warehouse: bool = None, is_postal_hub: bool = None,
     ) -> Optional[Dealer]:
         dealer = self.get_dealer(db, dealer_id)
         if not dealer:
             return None
         if full_name is not None:
             dealer.full_name = full_name
-        if location_id is not None:
-            dealer.location_id = location_id
         if tier_id is not None:
             dealer.tier_id = tier_id
         if is_active is not None:
@@ -120,6 +121,10 @@ class DealerService:
             dealer.postal_code = postal_code or None
         if landline_phone is not None:
             dealer.landline_phone = landline_phone or None
+        if is_warehouse is not None:
+            dealer.is_warehouse = is_warehouse
+        if is_postal_hub is not None:
+            dealer.is_postal_hub = is_postal_hub
         db.flush()
         return dealer
 
@@ -127,12 +132,12 @@ class DealerService:
     # Available Bars at Dealer's Location
     # ------------------------------------------
 
-    def get_available_bars(self, db: Session, location_id: int) -> List[Bar]:
-        """Get bars at this location that are available for sale."""
+    def get_available_bars(self, db: Session, dealer_id: int) -> List[Bar]:
+        """Get bars at this dealer's location that are available for sale."""
         return (
             db.query(Bar)
             .filter(
-                Bar.location_id == location_id,
+                Bar.dealer_id == dealer_id,
                 Bar.status == BarStatus.ASSIGNED,
             )
             .order_by(Bar.serial_code)
@@ -159,7 +164,7 @@ class DealerService:
             return {"success": False, "message": "شمش یافت نشد"}
         if bar.status != BarStatus.ASSIGNED:
             return {"success": False, "message": "این شمش قابل فروش نیست"}
-        if bar.location_id != dealer.location_id:
+        if bar.dealer_id != dealer.id:
             return {"success": False, "message": "این شمش در محل نمایندگی شما نیست"}
 
         # Mark bar as sold + generate claim code for POS receipt
@@ -406,7 +411,7 @@ class DealerService:
         from modules.pricing.calculator import calculate_bar_price
 
         dealer = self.get_dealer(db, dealer_id)
-        if not dealer or not dealer.location_id:
+        if not dealer:
             return {"products": [], "gold_price_18k": 0, "tax_percent": "0"}
 
         # Get gold price + tax from system settings
@@ -415,11 +420,11 @@ class DealerService:
         gold_price = int(gold_setting.value) if gold_setting else 0
         tax_percent = tax_setting.value if tax_setting else "10"
 
-        # Get available bars at dealer's location, grouped by product
+        # Get available bars at dealer, grouped by product
         bars = (
             db.query(Bar)
             .filter(
-                Bar.location_id == dealer.location_id,
+                Bar.dealer_id == dealer.id,
                 Bar.status == BarStatus.ASSIGNED,
             )
             .order_by(Bar.product_id, Bar.serial_code)

@@ -4,8 +4,7 @@ Inventory Module - Models
 Bar: Physical gold bar with serial code and lifecycle status.
 BarImage: Photos of each bar.
 OwnershipHistory: Tracks ownership changes over time.
-Location: Physical places where bars are stored/sold.
-LocationTransfer: History of bar movements between locations.
+DealerTransfer: History of bar movements between dealers/warehouses.
 """
 
 import enum
@@ -15,79 +14,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from config.database import Base
-
-
-# ==========================================
-# Location
-# ==========================================
-
-class LocationType(str, enum.Enum):
-    FACTORY = "Factory"            # کارخانه
-    WAREHOUSE = "Warehouse"        # انبار مرکزی
-    BRANCH = "Branch"              # نمایندگی / شعبه
-    IN_TRANSIT = "InTransit"       # در حال انتقال
-    ONLINE_PLATFORM = "OnlinePlatform"  # انبار دیجیکالا / پلتفرم آنلاین
-
-
-class Location(Base):
-    __tablename__ = "locations"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)                    # مثل: نمایندگی اصفهان
-    location_type = Column(String, default=LocationType.WAREHOUSE, nullable=False)
-    province = Column(String, nullable=True)                 # استان
-    city = Column(String, nullable=True)                     # شهر
-    address = Column(Text, nullable=True)                    # آدرس کامل
-    phone = Column(String, nullable=True)                    # تلفن تماس
-    is_active = Column(Boolean, default=True, nullable=False)
-    is_postal_hub = Column(Boolean, default=False, nullable=False)  # انبار مخصوص ارسال پستی
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-
-    @property
-    def type_label(self) -> str:
-        labels = {
-            LocationType.FACTORY: "کارخانه",
-            LocationType.WAREHOUSE: "انبار مرکزی",
-            LocationType.BRANCH: "نمایندگی",
-            LocationType.IN_TRANSIT: "در حال انتقال",
-            LocationType.ONLINE_PLATFORM: "پلتفرم آنلاین",
-        }
-        return labels.get(self.location_type, self.location_type)
-
-    @property
-    def type_icon(self) -> str:
-        icons = {
-            LocationType.FACTORY: "bi-building",
-            LocationType.WAREHOUSE: "bi-box-seam",
-            LocationType.BRANCH: "bi-shop",
-            LocationType.IN_TRANSIT: "bi-truck",
-            LocationType.ONLINE_PLATFORM: "bi-globe",
-        }
-        return icons.get(self.location_type, "bi-geo-alt")
-
-    @property
-    def type_color(self) -> str:
-        colors = {
-            LocationType.FACTORY: "dark",
-            LocationType.WAREHOUSE: "primary",
-            LocationType.BRANCH: "success",
-            LocationType.IN_TRANSIT: "warning",
-            LocationType.ONLINE_PLATFORM: "info",
-        }
-        return colors.get(self.location_type, "secondary")
-
-    @property
-    def display_name(self) -> str:
-        """Full display: نمایندگی اصفهان - اصفهان"""
-        parts = [self.name]
-        if self.city:
-            parts.append(f"- {self.city}")
-        if self.province and self.province != self.city:
-            parts.append(f"({self.province})")
-        return " ".join(parts)
-
-    def __repr__(self):
-        return f"<Location {self.name} ({self.location_type})>"
 
 
 # ==========================================
@@ -117,8 +43,8 @@ class Bar(Base):
     customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
     batch_id = Column(Integer, ForeignKey("batches.id", ondelete="SET NULL"), nullable=True)
 
-    # Location tracking
-    location_id = Column(Integer, ForeignKey("locations.id", ondelete="SET NULL"), nullable=True)
+    # Dealer/warehouse tracking (dealer IS the location)
+    dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True)
 
     # Claim code (for POS sales and gift orders)
     claim_code = Column(String(8), unique=True, nullable=True, index=True)
@@ -133,13 +59,13 @@ class Bar(Base):
     product = relationship("Product", foreign_keys=[product_id])
     customer = relationship("Customer", foreign_keys=[customer_id])
     batch = relationship("Batch", foreign_keys=[batch_id])
-    location = relationship("Location", foreign_keys=[location_id])
+    dealer_location = relationship("Dealer", foreign_keys=[dealer_id])
 
     images = relationship("BarImage", back_populates="bar", cascade="all, delete-orphan")
     history = relationship("OwnershipHistory", back_populates="bar", cascade="all, delete-orphan",
                           order_by="OwnershipHistory.transfer_date.desc()")
-    transfers = relationship("LocationTransfer", back_populates="bar", cascade="all, delete-orphan",
-                            order_by="LocationTransfer.transferred_at.desc()")
+    transfers = relationship("DealerTransfer", back_populates="bar", cascade="all, delete-orphan",
+                            order_by="DealerTransfer.transferred_at.desc()")
 
     @property
     def first_image(self):
@@ -203,23 +129,23 @@ class OwnershipHistory(Base):
 
 
 # ==========================================
-# Location Transfer History
+# Dealer Transfer History (bar movement between dealers/warehouses)
 # ==========================================
 
-class LocationTransfer(Base):
-    __tablename__ = "location_transfers"
+class DealerTransfer(Base):
+    __tablename__ = "dealer_location_transfers"
 
     id = Column(Integer, primary_key=True)
     bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False)
-    from_location_id = Column(Integer, ForeignKey("locations.id", ondelete="SET NULL"), nullable=True)
-    to_location_id = Column(Integer, ForeignKey("locations.id", ondelete="SET NULL"), nullable=True)
+    from_dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True)
+    to_dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True)
     transferred_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     transferred_by = Column(String, nullable=True)   # نام اپراتور / سیستم
     description = Column(String, nullable=True)       # توضیح: "ارسال با پست پیشتاز"
 
     bar = relationship("Bar", back_populates="transfers")
-    from_location = relationship("Location", foreign_keys=[from_location_id])
-    to_location = relationship("Location", foreign_keys=[to_location_id])
+    from_dealer = relationship("Dealer", foreign_keys=[from_dealer_id])
+    to_dealer = relationship("Dealer", foreign_keys=[to_dealer_id])
 
 
 # ==========================================

@@ -63,8 +63,8 @@
                             <span class="badge-tm badge-tm-{{ 'info' if order.delivery_method == 'Pickup' else 'primary' }}">
                                 <i class="bi bi-{{ 'shop' if order.delivery_method == 'Pickup' else 'envelope' }} me-1"></i>{{ order.delivery_method_label }}
                             </span>
-                            {% if order.delivery_method == 'Pickup' and order.pickup_location %}
-                            <small class="d-block text-muted">{{ order.pickup_location.name }}</small>
+                            {% if order.delivery_method == 'Pickup' and order.pickup_dealer %}
+                            <small class="d-block text-muted">{{ order.pickup_dealer.full_name }}</small>
                             {% endif %}
                             {% else %}—{% endif %}
                         </td>

@@ -48,7 +48,7 @@ class Order(Base):
     delivery_status = Column(String, default=DeliveryStatus.WAITING, nullable=True)
 
     # Pickup delivery
-    pickup_location_id = Column(Integer, ForeignKey("locations.id", ondelete="SET NULL"), nullable=True)
+    pickup_dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True)
     delivery_code_hash = Column(String, nullable=True)                # Hashed 6-digit code
     delivered_at = Column(DateTime(timezone=True), nullable=True)
 
@@ -81,7 +81,7 @@ class Order(Base):
 
     # Relationships
     customer = relationship("Customer", foreign_keys=[customer_id])
-    pickup_location = relationship("Location", foreign_keys=[pickup_location_id])
+    pickup_dealer = relationship("Dealer", foreign_keys=[pickup_dealer_id])
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 
     @property

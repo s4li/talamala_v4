@@ -37,7 +37,7 @@ talamala_v4/
 │   ├── admin/                   # SystemUser, SystemSetting, admin settings page
 │   ├── auth/                    # Login (OTP), JWT, deps (require_customer etc.)
 │   ├── catalog/                 # Product, ProductCategory, CardDesign, PackageType, Batch
-│   ├── inventory/               # Bar, Location, BarImage, OwnershipHistory
+│   ├── inventory/               # Bar, BarImage, OwnershipHistory, DealerTransfer
 │   ├── shop/                    # Public storefront (product list + detail)
 │   ├── cart/                    # Cart, CartItem, checkout, delivery location API
 │   ├── order/                   # Order, OrderItem, delivery_service, admin order mgmt
@@ -72,7 +72,7 @@ talamala_v4/
 │   │   ├── dashboard.html
 │   │   ├── settings.html        # Gold price, tax, shipping config
 │   │   ├── catalog/             # products, categories, designs, packages, batches
-│   │   ├── inventory/           # bars, locations, edit_bar
+│   │   ├── inventory/           # bars, edit_bar
 │   │   ├── orders/list.html     # Order management + delivery status
 │   │   ├── wallet/              # accounts, detail, withdrawals
 │   │   ├── coupon/              # list, form, detail
@@ -120,11 +120,11 @@ talamala_v4/
 - **Batch / BatchImage**: بچ تولید (ذوب)
 
 ### inventory/models.py
-- **Location**: id, name, location_type (WAREHOUSE/BRANCH/CUSTOMER), province, city, address, phone, is_postal_hub, is_active
-- **Bar**: id, serial_code (unique), product_id, batch_id, location_id, customer_id, claim_code (unique, nullable — for POS/gift), status (RAW/ASSIGNED/RESERVED/SOLD), reserved_customer_id, reserved_until
+- **Bar**: id, serial_code (unique), product_id, batch_id, dealer_id (FK→dealers), customer_id, claim_code (unique, nullable — for POS/gift), status (RAW/ASSIGNED/RESERVED/SOLD), reserved_customer_id, reserved_until
+  - Relationship: `dealer_location` → Dealer (physical location of bar)
 - **BarImage**: id, bar_id, file_path
 - **OwnershipHistory**: id, bar_id, previous_owner_id, new_owner_id, transfer_date, description
-- **LocationTransfer**: id, bar_id, from_location_id, to_location_id, transferred_by, transferred_at, description
+- **DealerTransfer**: id, bar_id, from_dealer_id, to_dealer_id, transferred_by, transferred_at, description (table: dealer_location_transfers)
 - **BarTransfer**: id, bar_id, from_customer_id, to_mobile, otp_hash, otp_expiry, status (Pending/Completed/Cancelled/Expired), created_at
 
 ### cart/models.py
@@ -132,7 +132,7 @@ talamala_v4/
 - **CartItem**: id, cart_id, product_id, quantity
 
 ### order/models.py
-- **Order**: id, customer_id, status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_location_id, shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at
+- **Order**: id, customer_id, status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_dealer_id (FK→dealers), shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at
 - **OrderItem**: id, order_id, product_id, bar_id, applied_gold_price, applied_unit_price, applied_weight, applied_purity, applied_wage_percent, applied_tax_percent, final_gold_amount, final_wage_amount, final_tax_amount, line_total
 
 ### wallet/models.py
@@ -150,7 +150,9 @@ talamala_v4/
 - **CouponUsage**: id, coupon_id, customer_id, order_id, discount_applied
 
 ### dealer/models.py
-- **Dealer**: id, mobile (unique), full_name, national_id, location_id (FK→locations), tier_id (FK→dealer_tiers), province_id (FK→geo_provinces), city_id (FK→geo_cities), district_id (FK→geo_districts), address, postal_code, landline_phone, commission_percent, is_active, api_key (unique, for POS), otp_code, otp_expiry, created_at
+- **Dealer**: id, mobile (unique), full_name, national_id, tier_id (FK→dealer_tiers), province_id (FK→geo_provinces), city_id (FK→geo_cities), district_id (FK→geo_districts), address, postal_code, landline_phone, is_warehouse (bool), is_postal_hub (bool), commission_percent, is_active, api_key (unique, for POS), otp_code, otp_expiry, created_at
+  - Properties: `type_label`, `type_icon`, `type_color`, `display_name`
+  - Relationship: `bars_at_location` → list of Bar objects at this dealer
 - **DealerSale**: id, dealer_id, bar_id, customer_name/mobile/national_id, sale_price, commission_amount, description, created_at
 - **BuybackRequest**: id, dealer_id, bar_id, customer_name/mobile, buyback_price, status (Pending/Approved/Completed/Rejected), admin_note, description, wage_refund_amount (rial), wage_refund_customer_id, created_at, updated_at
 
@@ -455,7 +457,7 @@ total    = raw_gold + wage + tax
 - `GET/POST /wallet/withdraw` — Withdrawal
 
 ### AJAX APIs
-- `GET /api/delivery/locations?province=X&city=Y`
+- `GET /api/delivery/locations?province=X&city=Y` — returns pickup dealers for province/city
 - `GET /api/coupon/check?code=X`
 
 ### Dealer Panel (Web)
@@ -488,7 +490,7 @@ total    = raw_gold + wage + tax
 
 ### Admin
 - `/admin/dashboard|products|categories|designs|packages|batches`
-- `/admin/bars|locations|orders|settings`
+- `/admin/bars|orders|settings`
 - `/admin/wallets` — حساب‌ها, `/admin/wallets/withdrawals/list` — برداشت‌ها
 - `/admin/coupons`
 - `/admin/dealers` — Dealer list + create/edit

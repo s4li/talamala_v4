@@ -61,7 +61,7 @@ class OrderService:
 
         delivery_data keys:
             delivery_method: "Pickup" or "Postal"
-            pickup_location_id: int (for Pickup)
+            pickup_dealer_id: int (for Pickup)
             shipping_province, shipping_city, shipping_address,
             shipping_postal_code: str (for Postal)
 
@@ -95,10 +95,10 @@ class OrderService:
 
         # Delivery: Pickup
         if delivery_method == DeliveryMethod.PICKUP:
-            pickup_loc_id = delivery_data.get("pickup_location_id")
+            pickup_loc_id = delivery_data.get("pickup_dealer_id")
             if not pickup_loc_id:
                 raise ValueError("لطفاً نمایندگی تحویل را انتخاب کنید")
-            new_order.pickup_location_id = int(pickup_loc_id)
+            new_order.pickup_dealer_id = int(pickup_loc_id)
             # Generate delivery code
             plain_code, hashed_code = generate_delivery_code()
             new_order.delivery_code_hash = hashed_code
@@ -139,13 +139,13 @@ class OrderService:
                 Bar.reserved_customer_id.is_(None),
             )
 
-            # Location-aware reservation
-            if delivery_method == DeliveryMethod.PICKUP and new_order.pickup_location_id:
-                bar_filter = bar_filter.filter(Bar.location_id == new_order.pickup_location_id)
+            # Dealer-aware reservation
+            if delivery_method == DeliveryMethod.PICKUP and new_order.pickup_dealer_id:
+                bar_filter = bar_filter.filter(Bar.dealer_id == new_order.pickup_dealer_id)
             elif delivery_method == DeliveryMethod.POSTAL:
                 postal_hub = delivery_service.get_postal_hub(db)
                 if postal_hub:
-                    bar_filter = bar_filter.filter(Bar.location_id == postal_hub.id)
+                    bar_filter = bar_filter.filter(Bar.dealer_id == postal_hub.id)
 
             available_bars = (
                 bar_filter
@@ -157,10 +157,10 @@ class OrderService:
             if len(available_bars) < required_qty:
                 # Build helpful error message
                 location_name = ""
-                if delivery_method == DeliveryMethod.PICKUP and new_order.pickup_location_id:
-                    from modules.inventory.models import Location
-                    loc = db.query(Location).filter(Location.id == new_order.pickup_location_id).first()
-                    location_name = f" در {loc.name}" if loc else ""
+                if delivery_method == DeliveryMethod.PICKUP and new_order.pickup_dealer_id:
+                    from modules.dealer.models import Dealer
+                    dlr = db.query(Dealer).filter(Dealer.id == new_order.pickup_dealer_id).first()
+                    location_name = f" در {dlr.full_name}" if dlr else ""
                 elif delivery_method == DeliveryMethod.POSTAL:
                     location_name = " در انبار ارسال پستی"
                 db.rollback()

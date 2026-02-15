@@ -95,8 +95,8 @@
                     {% if item.bar %}
                     <small class="text-muted">
                         <code>{{ item.bar.serial_code }}</code>
-                        {% if item.bar.location %}
-                        <span class="ms-1"><i class="bi bi-geo-alt"></i> {{ item.bar.location.name }}{% if item.bar.location.city %} - {{ item.bar.location.city }}{% endif %}</span>
+                        {% if item.bar.dealer_location %}
+                        <span class="ms-1"><i class="bi bi-geo-alt"></i> {{ item.bar.dealer_location.full_name }}</span>
                         {% endif %}
                     </small>
                     {% endif %}
@@ -437,11 +437,11 @@
                 <tr>
                     <td class="text-muted">نمایندگی</td>
                     <td>
-                        {% if order.pickup_location %}
-                        <strong>{{ order.pickup_location.name }}</strong>
-                        {% if order.pickup_location.city %}<br><small>{{ order.pickup_location.city }}{% if order.pickup_location.province %} - {{ order.pickup_location.province }}{% endif %}</small>{% endif %}
-                        {% if order.pickup_location.address %}<br><small class="text-muted">{{ order.pickup_location.address }}</small>{% endif %}
-                        {% if order.pickup_location.phone %}<br><small dir="ltr">📞 {{ order.pickup_location.phone }}</small>{% endif %}
+                        {% if order.pickup_dealer %}
+                        <strong>{{ order.pickup_dealer.full_name }}</strong>
+                        {% if order.pickup_dealer.city %}<br><small>{{ order.pickup_dealer.city.name }}{% if order.pickup_dealer.province %} - {{ order.pickup_dealer.province.name }}{% endif %}</small>{% endif %}
+                        {% if order.pickup_dealer.address %}<br><small class="text-muted">{{ order.pickup_dealer.address }}</small>{% endif %}
+                        {% if order.pickup_dealer.landline_phone %}<br><small dir="ltr">📞 {{ order.pickup_dealer.landline_phone }}</small>{% endif %}
                         {% endif %}
                     </td>
                 </tr>

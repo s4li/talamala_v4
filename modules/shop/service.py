@@ -135,23 +135,26 @@ class ShopService:
             Bar.customer_id.is_(None),
         ).count()
 
-        # Location breakdown for customer display
-        from modules.inventory.models import Location
+        # Dealer breakdown for customer display (dealer = location)
+        from modules.dealer.models import Dealer
+        from modules.customer.address_models import GeoCity
         from sqlalchemy import func as sqlfunc
         loc_rows = db.query(
-            Location.name, Location.city, Location.location_type, sqlfunc.count(Bar.id)
+            Dealer, GeoCity.name, sqlfunc.count(Bar.id)
         ).join(
-            Bar, Bar.location_id == Location.id
+            Bar, Bar.dealer_id == Dealer.id
+        ).outerjoin(
+            GeoCity, Dealer.city_id == GeoCity.id
         ).filter(
             Bar.product_id == product_id,
             Bar.status == BarStatus.ASSIGNED,
             Bar.customer_id.is_(None),
-            Location.is_active == True,
-        ).group_by(Location.id, Location.name, Location.city, Location.location_type).all()
+            Dealer.is_active == True,
+        ).group_by(Dealer.id, GeoCity.name).all()
 
         location_inventory = [
-            {"name": name, "city": city, "type": ltype, "count": cnt}
-            for name, city, ltype, cnt in loc_rows
+            {"name": dlr.full_name, "city": city or "", "type": dlr.type_label, "count": cnt}
+            for dlr, city, cnt in loc_rows
         ]
 
         # Full invoice — always use end-customer tier wage

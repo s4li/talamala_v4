@@ -16,10 +16,11 @@ from common.templating import templates
 from common.security import csrf_check, new_csrf_token
 from common.helpers import safe_int
 from modules.auth.deps import require_operator_or_admin, require_super_admin
-from modules.inventory.models import BarStatus, Location, LocationType
-from modules.inventory.service import inventory_service, location_service
+from modules.inventory.models import BarStatus
+from modules.inventory.service import inventory_service
 from modules.catalog.models import Product, Batch
 from modules.customer.models import Customer
+from modules.dealer.models import Dealer
 
 router = APIRouter(tags=["inventory-admin"])
 
@@ -41,7 +42,7 @@ async def list_bars(
     customer_id: str = Query(None),
     status: str = Query(None),
     product_id: str = Query(None),
-    location_id: str = Query(None),
+    dealer_id: str = Query(None),
     msg: str = Query(None),
     error: str = Query(None),
     db: Session = Depends(get_db),
@@ -49,17 +50,19 @@ async def list_bars(
 ):
     _customer_id = safe_int(customer_id)
     _product_id = safe_int(product_id)
-    _location_id = safe_int(location_id)
+    _dealer_id = safe_int(dealer_id)
     _status = status if status else None
 
     bars, total, total_pages = inventory_service.list_bars(
         db, page=page, search=search or None, customer_id=_customer_id,
-        status=_status, product_id=_product_id, location_id=_location_id,
+        status=_status, product_id=_product_id, dealer_id=_dealer_id,
     )
 
     filter_customer = None
     if _customer_id:
         filter_customer = db.query(Customer).filter(Customer.id == _customer_id).first()
+
+    all_dealers = db.query(Dealer).filter(Dealer.is_active == True).order_by(Dealer.full_name).all()
 
     data, csrf = ctx(
         request, user,
@@ -71,11 +74,11 @@ async def list_bars(
         filter_customer=filter_customer,
         status_filter=status or "",
         product_filter=product_id or "",
-        location_filter=location_id or "",
+        dealer_filter=dealer_id or "",
         all_products=db.query(Product).all(),
         all_customers=db.query(Customer).all(),
         all_batches=db.query(Batch).all(),
-        all_locations=location_service.list_all(db),
+        all_dealers=all_dealers,
         bar_statuses=BarStatus,
         msg=msg,
         error=error,
@@ -124,7 +127,7 @@ async def edit_bar_form(
         products=db.query(Product).all(),
         batches=db.query(Batch).all(),
         customers=db.query(Customer).all(),
-        locations=location_service.list_all(db),
+        dealers=db.query(Dealer).filter(Dealer.is_active == True).order_by(Dealer.full_name).all(),
         bar_statuses=BarStatus,
     )
     response = templates.TemplateResponse("admin/inventory/edit_bar.html", data)
@@ -139,7 +142,7 @@ async def update_bar(
     product_id: str = Form(None),
     customer_id: str = Form(None),
     batch_id: str = Form(None),
-    location_id: str = Form(None),
+    dealer_id: str = Form(None),
     transfer_note: str = Form(""),
     new_files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
@@ -152,7 +155,7 @@ async def update_bar(
         "product_id": product_id,
         "customer_id": customer_id,
         "batch_id": batch_id,
-        "location_id": location_id,
+        "dealer_id": dealer_id,
         "transfer_note": transfer_note,
     }, new_files, updated_by=user.full_name)
     db.commit()
@@ -171,7 +174,7 @@ async def bulk_action(
     target_product_id: str = Form(None),
     target_customer_id: str = Form(None),
     target_batch_id: str = Form(None),
-    target_location_id: str = Form(None),
+    target_dealer_id: str = Form(None),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     user=Depends(require_operator_or_admin),
@@ -199,7 +202,7 @@ async def bulk_action(
             "target_product_id": target_product_id,
             "target_customer_id": target_customer_id,
             "target_batch_id": target_batch_id,
-            "target_location_id": target_location_id,
+            "target_dealer_id": target_dealer_id,
         })
         msg = urllib.parse.quote(f"{count} شمش بروزرسانی شد")
     else:
@@ -227,105 +230,3 @@ async def delete_bar_image(
         return RedirectResponse(f"/admin/bars/edit/{bar_id}", status_code=303)
     return RedirectResponse("/admin/bars", status_code=303)
 
-
-# ==========================================
-# 📍 Location Management
-# ==========================================
-
-@router.get("/admin/locations", response_class=HTMLResponse)
-async def list_locations(
-    request: Request,
-    msg: str = Query(None),
-    db: Session = Depends(get_db),
-    user=Depends(require_operator_or_admin),
-):
-    locations = location_service.list_all(db)
-    bar_counts = location_service.get_bar_count_by_location(db)
-
-    data, csrf = ctx(
-        request, user,
-        locations=locations,
-        bar_counts=bar_counts,
-        location_types=LocationType,
-        msg=msg,
-    )
-    response = templates.TemplateResponse("admin/inventory/locations.html", data)
-    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
-    return response
-
-
-@router.post("/admin/locations/create")
-async def create_location(
-    request: Request,
-    name: str = Form(...),
-    location_type: str = Form(...),
-    province: str = Form(""),
-    city: str = Form(""),
-    address: str = Form(""),
-    phone: str = Form(""),
-    is_postal_hub: bool = Form(False),
-    csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db),
-    user=Depends(require_super_admin),
-):
-    csrf_check(request, csrf_token)
-    location_service.create(db, {
-        "name": name,
-        "location_type": location_type,
-        "province": province,
-        "city": city,
-        "address": address,
-        "phone": phone,
-        "is_postal_hub": is_postal_hub,
-    })
-    db.commit()
-    msg = urllib.parse.quote(f"مکان «{name}» ایجاد شد")
-    return RedirectResponse(f"/admin/locations?msg={msg}", status_code=303)
-
-
-@router.post("/admin/locations/update/{loc_id}")
-async def update_location(
-    request: Request, loc_id: int,
-    name: str = Form(...),
-    location_type: str = Form(...),
-    province: str = Form(""),
-    city: str = Form(""),
-    address: str = Form(""),
-    phone: str = Form(""),
-    is_active: bool = Form(False),
-    is_postal_hub: bool = Form(False),
-    csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db),
-    user=Depends(require_super_admin),
-):
-    csrf_check(request, csrf_token)
-    location_service.update(db, loc_id, {
-        "name": name,
-        "location_type": location_type,
-        "province": province,
-        "city": city,
-        "address": address,
-        "phone": phone,
-        "is_active": is_active,
-        "is_postal_hub": is_postal_hub,
-    })
-    db.commit()
-    msg = urllib.parse.quote("مکان بروزرسانی شد")
-    return RedirectResponse(f"/admin/locations?msg={msg}", status_code=303)
-
-
-@router.post("/admin/locations/delete/{loc_id}")
-async def delete_location(
-    request: Request, loc_id: int,
-    csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db),
-    user=Depends(require_super_admin),
-):
-    csrf_check(request, csrf_token)
-    ok = location_service.delete(db, loc_id)
-    db.commit()
-    if ok:
-        msg = urllib.parse.quote("مکان حذف شد")
-    else:
-        msg = urllib.parse.quote("حذف ممکن نیست - شمش‌هایی به این مکان اختصاص دارند")
-    return RedirectResponse(f"/admin/locations?msg={msg}", status_code=303)

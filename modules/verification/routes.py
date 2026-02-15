@@ -44,7 +44,7 @@ def _bar_to_result(bar: Bar, db: Session) -> dict:
         "status": bar.status,
         "status_label": bar.status_label,
         "status_color": bar.status_color,
-        "location": bar.location.name if bar.location else "—",
+        "location": bar.dealer_location.full_name if bar.dealer_location else "—",
         "batch_code": bar.batch.batch_number if bar.batch else "—",
         "created_at": bar.created_at,
         "history": history_list,
@@ -133,7 +133,7 @@ async def api_verify_check(code: str = "", db: Session = Depends(get_db)):
         "purity": float(bar.product.purity) if bar.product else None,
         "status": bar.status,
         "status_label": bar.status_label,
-        "location": bar.location.name if bar.location else None,
+        "location": bar.dealer_location.full_name if bar.dealer_location else None,
         "batch": bar.batch.batch_number if bar.batch else None,
         "qr_url": f"/verify/qr/{bar.serial_code}.png",
         "history": [

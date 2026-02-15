@@ -28,7 +28,7 @@ from modules.catalog.models import (  # noqa: F401
     ProductCategory, ProductCategoryLink, Product, ProductImage, CardDesign, CardDesignImage,
     PackageType, PackageTypeImage, Batch, BatchImage, ProductTierWage,
 )
-from modules.inventory.models import Bar, BarImage, OwnershipHistory, Location, LocationTransfer, BarTransfer  # noqa: F401
+from modules.inventory.models import Bar, BarImage, OwnershipHistory, DealerTransfer, BarTransfer  # noqa: F401
 from modules.cart.models import Cart, CartItem  # noqa: F401
 from modules.order.models import Order, OrderItem  # noqa: F401
 from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest  # noqa: F401

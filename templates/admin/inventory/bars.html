@@ -46,10 +46,10 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <select name="location_id" class="form-select form-select-tm form-select-sm">
-                    <option value="">همه مکان‌ها</option>
-                    {% for l in all_locations %}
-                    <option value="{{ l.id }}" {% if location_filter|string == l.id|string %}selected{% endif %}>{{ l.name }}</option>
+                <select name="dealer_id" class="form-select form-select-tm form-select-sm">
+                    <option value="">همه نمایندگان</option>
+                    {% for d in all_dealers %}
+                    <option value="{{ d.id }}" {% if dealer_filter|string == d.id|string %}selected{% endif %}>{{ d.full_name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -86,7 +86,7 @@
                         <th>وضعیت</th>
                         <th>محصول</th>
                         <th>بچ</th>
-                        <th>مکان</th>
+                        <th>نمایندگی</th>
                         <th>مالک</th>
                         <th>عملیات</th>
                     </tr>
@@ -106,9 +106,9 @@
                         <td>{{ bar.product.name if bar.product else '—' }}</td>
                         <td>{{ bar.batch.batch_number if bar.batch else '—' }}</td>
                         <td>
-                            {% if bar.location %}
-                            <span class="badge bg-{{ bar.location.type_color }}">
-                                <i class="{{ bar.location.type_icon }} me-1"></i>{{ bar.location.name }}
+                            {% if bar.dealer_location %}
+                            <span class="badge bg-{{ bar.dealer_location.type_color }}">
+                                <i class="{{ bar.dealer_location.type_icon }} me-1"></i>{{ bar.dealer_location.full_name }}
                             </span>
                             {% else %}—{% endif %}
                         </td>
@@ -135,7 +135,7 @@
 
 <!-- Pagination -->
 {% from "components/pagination.html" import pagination %}
-{% set qs %}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if product_filter %}&product_id={{ product_filter }}{% endif %}{% if location_filter %}&location_id={{ location_filter }}{% endif %}{% endset %}
+{% set qs %}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if product_filter %}&product_id={{ product_filter }}{% endif %}{% if dealer_filter %}&dealer_id={{ dealer_filter }}{% endif %}{% endset %}
 {{ pagination(page, total_pages, '/admin/bars', qs) }}
 
 <!-- Generate Modal -->
@@ -199,11 +199,11 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label-tm small">مکان</label>
-                        <select id="bulk_location" class="form-select form-select-tm form-select-sm">
+                        <label class="form-label-tm small">نمایندگی</label>
+                        <select id="bulk_dealer" class="form-select form-select-tm form-select-sm">
                             <option value="">بدون تغییر</option>
                             <option value="0">حذف</option>
-                            {% for l in all_locations %}<option value="{{ l.id }}">{{ l.name }} ({{ l.type_label }})</option>{% endfor %}
+                            {% for d in all_dealers %}<option value="{{ d.id }}">{{ d.full_name }} ({{ d.type_label }})</option>{% endfor %}
                         </select>
                     </div>
                 </div>
@@ -258,7 +258,7 @@
             'target_product_id': document.getElementById('bulk_product').value,
             'target_customer_id': document.getElementById('bulk_customer').value,
             'target_batch_id': document.getElementById('bulk_batch').value,
-            'target_location_id': document.getElementById('bulk_location').value,
+            'target_dealer_id': document.getElementById('bulk_dealer').value,
         };
         for (const [k, v] of Object.entries(fields)) {
             let inp = form.querySelector(`input[name="${k}"]`);

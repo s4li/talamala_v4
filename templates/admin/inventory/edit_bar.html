@@ -54,12 +54,12 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label-tm"><i class="bi bi-geo-alt me-1"></i>مکان</label>
-                        <select name="location_id" class="form-select form-select-tm" id="locationSelect">
-                            <option value="0">— بدون مکان —</option>
-                            {% for l in locations %}
-                            <option value="{{ l.id }}" {% if bar.location_id == l.id %}selected{% endif %}>
-                                {{ l.name }} ({{ l.type_label }}{% if l.city %} - {{ l.city }}{% endif %})
+                        <label class="form-label-tm"><i class="bi bi-geo-alt me-1"></i>نمایندگی</label>
+                        <select name="dealer_id" class="form-select form-select-tm" id="dealerSelect">
+                            <option value="0">— بدون نمایندگی —</option>
+                            {% for d in dealers %}
+                            <option value="{{ d.id }}" {% if bar.dealer_id == d.id %}selected{% endif %}>
+                                {{ d.full_name }} ({{ d.type_label }})
                             </option>
                             {% endfor %}
                         </select>
@@ -120,13 +120,13 @@
                         <tr>
                             <td><small>{{ t.transferred_at | jdate if t.transferred_at else '' }}</small></td>
                             <td>
-                                {% if t.from_location %}
-                                <span class="badge bg-{{ t.from_location.type_color }}">{{ t.from_location.name }}</span>
+                                {% if t.from_dealer %}
+                                <span class="badge bg-{{ t.from_dealer.type_color }}">{{ t.from_dealer.full_name }}</span>
                                 {% else %}—{% endif %}
                             </td>
                             <td>
-                                {% if t.to_location %}
-                                <span class="badge bg-{{ t.to_location.type_color }}">{{ t.to_location.name }}</span>
+                                {% if t.to_dealer %}
+                                <span class="badge bg-{{ t.to_dealer.type_color }}">{{ t.to_dealer.full_name }}</span>
                                 {% else %}—{% endif %}
                             </td>
                             <td><small>{{ t.transferred_by or '—' }}</small></td>
@@ -175,12 +175,11 @@
                 <tr><td class="text-muted">کد ثبت مالکیت</td><td><code class="fw-bold" style="color:var(--tm-primary);">{{ bar.claim_code }}</code></td></tr>
                 {% endif %}
                 <tr><td class="text-muted">تاریخ ایجاد</td><td>{{ bar.created_at | jdate if bar.created_at else '' }}</td></tr>
-                {% if bar.location %}
-                <tr><td class="text-muted">مکان فعلی</td><td>
-                    <span class="badge bg-{{ bar.location.type_color }}">
-                        <i class="{{ bar.location.type_icon }} me-1"></i>{{ bar.location.name }}
+                {% if bar.dealer_location %}
+                <tr><td class="text-muted">نمایندگی فعلی</td><td>
+                    <span class="badge bg-{{ bar.dealer_location.type_color }}">
+                        <i class="{{ bar.dealer_location.type_icon }} me-1"></i>{{ bar.dealer_location.full_name }}
                     </span>
-                    {% if bar.location.city %}<small class="text-muted d-block">{{ bar.location.city }}</small>{% endif %}
                 </td></tr>
                 {% endif %}
                 {% if bar.reserved_until %}
@@ -195,7 +194,7 @@
 {% block page_js %}
 <script>
 (function(){
-    const locSelect = document.getElementById('locationSelect');
+    const locSelect = document.getElementById('dealerSelect');
     const noteBox = document.getElementById('transferNoteBox');
     const origVal = locSelect.value;
     locSelect.addEventListener('change', function(){

@@ -36,7 +36,7 @@ async def dealer_dashboard(
     db: Session = Depends(get_db),
 ):
     stats = dealer_service.get_dealer_stats(db, dealer.id)
-    available_bars = dealer_service.get_available_bars(db, dealer.location_id) if dealer.location_id else []
+    available_bars = dealer_service.get_available_bars(db, dealer.id)
 
     # Wallet balances
     irr_balance = wallet_service.get_balance(db, dealer.id, asset_code=AssetCode.IRR, owner_type=OwnerType.DEALER)
@@ -96,7 +96,7 @@ async def pos_page(
     dealer=Depends(require_dealer),
     db: Session = Depends(get_db),
 ):
-    bars = dealer_service.get_available_bars(db, dealer.location_id) if dealer.location_id else []
+    bars = dealer_service.get_available_bars(db, dealer.id)
     bar_prices = _calc_bar_prices(db, bars)
 
     csrf = new_csrf_token()
@@ -145,7 +145,7 @@ async def pos_submit(
     else:
         db.rollback()
 
-    bars = dealer_service.get_available_bars(db, dealer.location_id) if dealer.location_id else []
+    bars = dealer_service.get_available_bars(db, dealer.id)
     bar_prices = _calc_bar_prices(db, bars)
 
     # Build success message with claim code for POS receipt

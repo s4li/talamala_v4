@@ -15,8 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from common.helpers import safe_int, now_utc
 from common.upload import save_upload_file, delete_file
 from modules.inventory.models import (
-    Bar, BarImage, BarStatus, OwnershipHistory,
-    Location, LocationType, LocationTransfer,
+    Bar, BarImage, BarStatus, OwnershipHistory, DealerTransfer,
 )
 
 # Characters for serial codes (no ambiguous: 0, O, I, 1)
@@ -43,7 +42,7 @@ class InventoryService:
         customer_id: int = None,
         status: str = None,
         product_id: int = None,
-        location_id: int = None,
+        dealer_id: int = None,
     ) -> Tuple[List[Bar], int, int]:
         """
         List bars with pagination, search, and filters.
@@ -53,7 +52,7 @@ class InventoryService:
             joinedload(Bar.product),
             joinedload(Bar.customer),
             joinedload(Bar.batch),
-            joinedload(Bar.location),
+            joinedload(Bar.dealer_location),
         ).order_by(Bar.id.desc())
 
         if search:
@@ -64,8 +63,8 @@ class InventoryService:
             query = query.filter(Bar.status == status)
         if product_id:
             query = query.filter(Bar.product_id == product_id)
-        if location_id:
-            query = query.filter(Bar.location_id == location_id)
+        if dealer_id:
+            query = query.filter(Bar.dealer_id == dealer_id)
 
         total = query.count()
         total_pages = math.ceil(total / per_page) if total else 1
@@ -135,17 +134,17 @@ class InventoryService:
         bar.customer_id = new_cust
         bar.batch_id = safe_int(data.get("batch_id")) if data.get("batch_id") != "0" else None
 
-        # Track location change
-        new_loc = safe_int(data.get("location_id")) if data.get("location_id") != "0" else None
-        if bar.location_id != new_loc:
-            db.add(LocationTransfer(
+        # Track dealer (location) change
+        new_dealer = safe_int(data.get("dealer_id")) if data.get("dealer_id") != "0" else None
+        if bar.dealer_id != new_dealer:
+            db.add(DealerTransfer(
                 bar_id=bar.id,
-                from_location_id=bar.location_id,
-                to_location_id=new_loc,
+                from_dealer_id=bar.dealer_id,
+                to_dealer_id=new_dealer,
                 transferred_by=updated_by,
                 description=data.get("transfer_note", ""),
             ))
-            bar.location_id = new_loc
+            bar.dealer_id = new_dealer
 
         # Clear reservation if no longer reserved or if owner assigned
         if bar.status != BarStatus.RESERVED or new_cust is not None:
@@ -190,8 +189,8 @@ class InventoryService:
         # Other fields
         if data.get("target_batch_id") not in (None, ""):
             update_data[Bar.batch_id] = safe_int(data["target_batch_id"]) if data["target_batch_id"] != "0" else None
-        if data.get("target_location_id") not in (None, ""):
-            update_data[Bar.location_id] = safe_int(data["target_location_id"]) if data["target_location_id"] != "0" else None
+        if data.get("target_dealer_id") not in (None, ""):
+            update_data[Bar.dealer_id] = safe_int(data["target_dealer_id"]) if data["target_dealer_id"] != "0" else None
 
         if update_data:
             # Always clear reservation on bulk update
@@ -292,108 +291,51 @@ class InventoryService:
         db.flush()
         return count
 
+    # ==========================================
+    # Dealer Transfer History
+    # ==========================================
 
-# Singleton
-inventory_service = InventoryService()
-
-
-class LocationService:
-    """CRUD for locations and transfer operations."""
-
-    def list_all(self, db: Session, active_only: bool = False) -> List[Location]:
-        q = db.query(Location).order_by(Location.id)
-        if active_only:
-            q = q.filter(Location.is_active == True)
-        return q.all()
-
-    def get_by_id(self, db: Session, loc_id: int) -> Optional[Location]:
-        return db.query(Location).filter(Location.id == loc_id).first()
-
-    def create(self, db: Session, data: dict) -> Location:
-        loc = Location(
-            name=data["name"],
-            location_type=data.get("location_type", LocationType.WAREHOUSE),
-            province=data.get("province", ""),
-            city=data.get("city", ""),
-            address=data.get("address", ""),
-            phone=data.get("phone", ""),
-            is_active=True,
-            is_postal_hub=bool(data.get("is_postal_hub", False)),
-        )
-        db.add(loc)
-        db.flush()
-        return loc
-
-    def update(self, db: Session, loc_id: int, data: dict) -> Optional[Location]:
-        loc = self.get_by_id(db, loc_id)
-        if not loc:
-            return None
-        loc.name = data.get("name", loc.name)
-        loc.location_type = data.get("location_type", loc.location_type)
-        loc.province = data.get("province", loc.province)
-        loc.city = data.get("city", loc.city)
-        loc.address = data.get("address", loc.address)
-        loc.phone = data.get("phone", loc.phone)
-        if "is_active" in data:
-            loc.is_active = data["is_active"]
-        if "is_postal_hub" in data:
-            loc.is_postal_hub = data["is_postal_hub"]
-        db.flush()
-        return loc
-
-    def delete(self, db: Session, loc_id: int) -> bool:
-        loc = self.get_by_id(db, loc_id)
-        if not loc:
-            return False
-        # Don't delete if bars are assigned
-        bar_count = db.query(Bar).filter(Bar.location_id == loc_id).count()
-        if bar_count > 0:
-            return False
-        db.delete(loc)
-        db.flush()
-        return True
-
-    def get_bar_count_by_location(self, db: Session) -> dict:
-        """Returns {location_id: count} for inventory dashboard."""
+    def get_bar_count_by_dealer(self, db: Session) -> dict:
+        """Returns {dealer_id: count} for inventory dashboard."""
         from sqlalchemy import func
-        rows = db.query(Bar.location_id, func.count(Bar.id)).filter(
-            Bar.location_id.isnot(None),
-        ).group_by(Bar.location_id).all()
-        return {loc_id: cnt for loc_id, cnt in rows}
+        rows = db.query(Bar.dealer_id, func.count(Bar.id)).filter(
+            Bar.dealer_id.isnot(None),
+        ).group_by(Bar.dealer_id).all()
+        return {dealer_id: cnt for dealer_id, cnt in rows}
 
-    def transfer_bar(
+    def transfer_bar_to_dealer(
         self,
         db: Session,
         bar_id: int,
-        to_location_id: int,
+        to_dealer_id: int,
         transferred_by: str = "System",
         description: str = "",
     ) -> Optional[Bar]:
-        """Move a bar to a new location with history tracking."""
+        """Move a bar to a new dealer/warehouse with history tracking."""
         bar = db.query(Bar).filter(Bar.id == bar_id).first()
         if not bar:
             return None
 
-        from_id = bar.location_id
-        if from_id == to_location_id:
+        from_id = bar.dealer_id
+        if from_id == to_dealer_id:
             return bar  # No change
 
-        db.add(LocationTransfer(
+        db.add(DealerTransfer(
             bar_id=bar.id,
-            from_location_id=from_id,
-            to_location_id=to_location_id if to_location_id else None,
+            from_dealer_id=from_id,
+            to_dealer_id=to_dealer_id if to_dealer_id else None,
             transferred_by=transferred_by,
             description=description,
         ))
-        bar.location_id = to_location_id if to_location_id else None
+        bar.dealer_id = to_dealer_id if to_dealer_id else None
         db.flush()
         return bar
 
-    def get_transfers_for_bar(self, db: Session, bar_id: int) -> List[LocationTransfer]:
-        return db.query(LocationTransfer).filter(
-            LocationTransfer.bar_id == bar_id,
-        ).order_by(LocationTransfer.transferred_at.desc()).all()
+    def get_transfers_for_bar(self, db: Session, bar_id: int) -> List[DealerTransfer]:
+        return db.query(DealerTransfer).filter(
+            DealerTransfer.bar_id == bar_id,
+        ).order_by(DealerTransfer.transferred_at.desc()).all()
 
 
 # Singleton
-location_service = LocationService()
+inventory_service = InventoryService()

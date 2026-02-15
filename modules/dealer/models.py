@@ -5,7 +5,7 @@ Dealer representatives, POS sales, buyback requests, and dealer tiers.
 
 Models:
   - DealerTier: Dealer level (پخش, بنکدار, فروشگاه, مشتری نهایی)
-  - Dealer: Representative who sells bars at a branch location
+  - Dealer: Representative who sells bars at a branch location (dealer IS the warehouse)
   - DealerSale: POS sale record (walk-in customer purchase via dealer)
   - BuybackRequest: Customer wants to sell back a bar (dealer initiates)
 """
@@ -52,7 +52,7 @@ class DealerTier(Base):
 
 
 # ==========================================
-# Dealer
+# Dealer (نماینده = انبار/مکان فیزیکی)
 # ==========================================
 
 class Dealer(Base):
@@ -62,12 +62,15 @@ class Dealer(Base):
     mobile = Column(String, unique=True, nullable=False, index=True)
     full_name = Column(String, nullable=False)
     national_id = Column(String, nullable=True)
-    location_id = Column(Integer, ForeignKey("locations.id", ondelete="SET NULL"), nullable=True)
     tier_id = Column(Integer, ForeignKey("dealer_tiers.id", ondelete="SET NULL"), nullable=True)
     commission_percent = Column(Numeric(5, 2), default=2.0, nullable=False)  # legacy
     is_active = Column(Boolean, default=True, nullable=False)
 
-    # Address fields (like CustomerAddress)
+    # Warehouse / Postal flags
+    is_warehouse = Column(Boolean, default=False, nullable=False)     # انبار مرکزی (بدون فروش POS)
+    is_postal_hub = Column(Boolean, default=False, nullable=False)    # انبار ارسال پستی
+
+    # Address fields
     province_id = Column(Integer, ForeignKey("geo_provinces.id", ondelete="SET NULL"), nullable=True)
     city_id = Column(Integer, ForeignKey("geo_cities.id", ondelete="SET NULL"), nullable=True)
     district_id = Column(Integer, ForeignKey("geo_districts.id", ondelete="SET NULL"), nullable=True)
@@ -85,17 +88,12 @@ class Dealer(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
-    location = relationship("Location", foreign_keys=[location_id])
     tier = relationship("DealerTier", back_populates="dealers")
     province = relationship("GeoProvince", foreign_keys=[province_id])
     city = relationship("GeoCity", foreign_keys=[city_id])
     district = relationship("GeoDistrict", foreign_keys=[district_id])
     sales = relationship("DealerSale", back_populates="dealer", cascade="all, delete-orphan")
     buybacks = relationship("BuybackRequest", back_populates="dealer", cascade="all, delete-orphan")
-
-    @property
-    def location_name(self) -> str:
-        return self.location.name if self.location else "—"
 
     @property
     def tier_name(self) -> str:
@@ -125,6 +123,35 @@ class Dealer(Base):
         if self.address:
             parts.append(self.address)
         return "، ".join(parts) if parts else "—"
+
+    @property
+    def display_name(self) -> str:
+        """Full display: نمایندگی اصفهان - اصفهان"""
+        parts = [self.full_name]
+        if self.city:
+            city_name = self.city.name
+            parts.append(f"- {city_name}")
+            if self.province and self.province.name != city_name:
+                parts.append(f"({self.province.name})")
+        return " ".join(parts)
+
+    @property
+    def type_label(self) -> str:
+        if self.is_warehouse:
+            return "انبار مرکزی"
+        return self.tier_name
+
+    @property
+    def type_icon(self) -> str:
+        if self.is_warehouse:
+            return "bi-box-seam"
+        return "bi-shop"
+
+    @property
+    def type_color(self) -> str:
+        if self.is_warehouse:
+            return "primary"
+        return "success"
 
     def __repr__(self):
         return f"<Dealer {self.full_name} ({self.mobile})>"

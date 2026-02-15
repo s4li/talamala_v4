@@ -26,7 +26,7 @@ from modules.catalog.models import (  # noqa
     PackageType, PackageTypeImage, Batch, BatchImage,
 )
 from modules.inventory.models import (  # noqa
-    Bar, BarImage, OwnershipHistory, Location, LocationTransfer, BarTransfer,
+    Bar, BarImage, OwnershipHistory, DealerTransfer, BarTransfer,
 )
 from modules.cart.models import Cart, CartItem  # noqa
 from modules.order.models import Order, OrderItem  # noqa

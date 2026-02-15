@@ -15,7 +15,6 @@ from modules.auth.deps import require_operator_or_admin
 from modules.dealer.service import dealer_service
 from modules.dealer.models import DealerTier
 from modules.catalog.models import Product, ProductTierWage
-from modules.inventory.models import Location, LocationType
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict
 
 router = APIRouter(prefix="/admin/dealers", tags=["admin-dealer"])
@@ -118,6 +117,8 @@ async def dealer_create_submit(
     address: str = Form(""),
     postal_code: str = Form(""),
     landline_phone: str = Form(""),
+    is_warehouse: str = Form("off"),
+    is_postal_hub: str = Form("off"),
     csrf_token: str = Form(""),
     user=Depends(require_operator_or_admin),
     db: Session = Depends(get_db),
@@ -154,6 +155,8 @@ async def dealer_create_submit(
         address=address.strip(),
         postal_code=postal_code.strip(),
         landline_phone=landline_phone.strip(),
+        is_warehouse=(is_warehouse == "on"),
+        is_postal_hub=(is_postal_hub == "on"),
     )
     db.commit()
 
@@ -208,6 +211,8 @@ async def dealer_edit_submit(
     postal_code: str = Form(""),
     landline_phone: str = Form(""),
     is_active: str = Form("off"),
+    is_warehouse: str = Form("off"),
+    is_postal_hub: str = Form("off"),
     csrf_token: str = Form(""),
     user=Depends(require_operator_or_admin),
     db: Session = Depends(get_db),
@@ -225,6 +230,8 @@ async def dealer_edit_submit(
         postal_code=postal_code.strip(),
         landline_phone=landline_phone.strip(),
         is_active=(is_active == "on"),
+        is_warehouse=(is_warehouse == "on"),
+        is_postal_hub=(is_postal_hub == "on"),
     )
     db.commit()
 

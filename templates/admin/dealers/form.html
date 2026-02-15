@@ -129,6 +129,33 @@
             </div>
         </div>
 
+        <!-- نوع نمایندگی -->
+        <h6 class="fw-bold mb-3 mt-4 pb-2" style="border-bottom: 1px solid var(--tm-primary-100);">
+            <i class="bi bi-building text-tm-primary me-1"></i> نوع نمایندگی
+        </h6>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_warehouse" id="isWarehouse"
+                           {% if dealer and dealer.is_warehouse %}checked{% endif %}>
+                    <label class="form-check-label fw-bold" for="isWarehouse">
+                        <i class="bi bi-box-seam me-1"></i> انبار مرکزی
+                    </label>
+                    <div class="small text-muted">بدون فروش POS — فقط ذخیره و ارسال</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_postal_hub" id="isPostalHub"
+                           {% if dealer and dealer.is_postal_hub %}checked{% endif %}>
+                    <label class="form-check-label fw-bold" for="isPostalHub">
+                        <i class="bi bi-envelope me-1"></i> هاب ارسال پستی
+                    </label>
+                    <div class="small text-muted">شمش‌های سفارش پستی از اینجا ارسال می‌شوند</div>
+                </div>
+            </div>
+        </div>
+
         <!-- وضعیت (فقط ویرایش) -->
         {% if dealer %}
         <h6 class="fw-bold mb-3 mt-4 pb-2" style="border-bottom: 1px solid var(--tm-primary-100);">
