@@ -10,7 +10,8 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from common.upload import save_upload_file, delete_file
-from common.helpers import safe_int
+from decimal import Decimal
+from common.helpers import safe_int, safe_decimal
 from modules.dealer.models import DealerTier
 from modules.catalog.models import (
     ProductTierWage,
@@ -114,12 +115,12 @@ class ProductService:
         product = Product(
             name=data["name"],
             weight=data["weight"],
-            purity=safe_int(data.get("purity", "750")) or 750,
+            purity=safe_decimal(data.get("purity", "750"), Decimal("750")),
             design=data.get("design"),
             card_design_id=data.get("card_design_id"),
             package_type_id=data.get("package_type_id"),
             wage=data.get("wage", 0),
-            is_wage_percent=data.get("is_wage_percent", True),
+            is_wage_percent=True,
             is_active=data.get("is_active", True),
         )
         db.add(product)

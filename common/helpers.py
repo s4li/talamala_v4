@@ -25,6 +25,16 @@ def safe_int(value: Optional[str]) -> Optional[int]:
         return None
 
 
+def safe_decimal(value: Optional[str], default: Optional[Decimal] = None) -> Optional[Decimal]:
+    """Safely convert a string to Decimal. Returns default on failure."""
+    if value is None:
+        return default
+    try:
+        return Decimal(str(value).strip())
+    except Exception:
+        return default
+
+
 def format_toman(value) -> str:
     """Format Rial value as Toman with comma separators. (Rial ÷ 10 = Toman)"""
     if value is None:
