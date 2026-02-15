@@ -28,9 +28,9 @@
                     <div class="col-md-3">
                         <label class="form-label-tm">عیار</label>
                         <select name="purity" class="form-select form-select-tm">
-                            <option value="999" {% if p.purity == 999 %}selected{% endif %}>999 (24K)</option>
-                            <option value="750" {% if p.purity == 750 %}selected{% endif %}>750 (18K)</option>
-                            <option value="585" {% if p.purity == 585 %}selected{% endif %}>585 (14K)</option>
+                            <option value="750" {% if p.purity|float == 750 %}selected{% endif %}>750 (18K)</option>
+                            <option value="995" {% if p.purity|float == 995 %}selected{% endif %}>995</option>
+                            <option value="999.9" {% if p.purity|float == 999.9 %}selected{% endif %}>999.9 (24K)</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -47,14 +47,10 @@
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label-tm">اجرت ساخت</label>
+                        <label class="form-label-tm">درصد اجرت ساخت</label>
                         <div class="input-group">
                             <input type="text" name="wage" class="form-control form-control-tm" value="{{ p.wage }}">
-                            <div class="input-group-text">
-                                <input type="checkbox" name="is_wage_percent" class="form-check-input me-1"
-                                       {% if p.is_wage_percent %}checked{% endif %}>
-                                <small>درصدی</small>
-                            </div>
+                            <span class="input-group-text">%</span>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -89,7 +85,8 @@
                     </div>
                     <div class="col-12">
                         <label class="form-label-tm">افزودن تصاویر جدید</label>
-                        <input type="file" name="new_files" class="form-control form-control-tm" multiple accept="image/*">
+                        <input type="file" name="new_files" class="form-control form-control-tm" multiple accept="image/*" id="editProductFiles">
+                        <div id="editProductPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
                     </div>
                     <div class="col-12 d-flex gap-2">
                         <button type="submit" class="btn btn-tm-primary">
@@ -142,4 +139,30 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const input = document.getElementById('editProductFiles');
+    const preview = document.getElementById('editProductPreview');
+    if (!input || !preview) return;
+
+    input.addEventListener('change', function() {
+        preview.innerHTML = '';
+        Array.from(this.files).forEach(file => {
+            if (!file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.style.cssText = 'width:80px; height:80px;';
+                div.innerHTML = '<img src="' + e.target.result + '" class="rounded border" style="width:80px; height:80px; object-fit:cover;">' +
+                    '<small class="d-block text-muted text-center" style="font-size:0.65rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:80px;">' + file.name + '</small>';
+                preview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+})();
+</script>
 {% endblock %}
