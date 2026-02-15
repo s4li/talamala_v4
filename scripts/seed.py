@@ -44,7 +44,7 @@ from modules.catalog.models import (
 )
 from modules.inventory.models import (
     Bar, BarImage, OwnershipHistory, BarStatus,
-    Location, LocationType, LocationTransfer, BarTransfer,
+    DealerTransfer, BarTransfer,
 )
 from modules.cart.models import Cart, CartItem
 from modules.order.models import Order, OrderItem
@@ -405,151 +405,16 @@ def seed():
         db.flush()
 
         # ==========================================
-        # 6. Locations
+        # 6. (Removed — locations merged into dealers)
         # ==========================================
-        print("\n[6/9] Locations")
-
-        locations_data = [
-            ("انبار مرکزی تهران", LocationType.WAREHOUSE, "تهران", "تهران",
-             "تهران، خیابان ولیعصر، پلاک ۱۲۳", "02188001234", True),
-            # شعب تهران (از صفحه تماس با ما)
-            ("شعبه میرداماد", LocationType.BRANCH, "تهران", "تهران",
-             "تهران، بلوار میرداماد، برج آرین، طبقه دوم اداری، واحد ۵", "02145241", False),
-            ("شعبه بازار ناصرخسرو", LocationType.BRANCH, "تهران", "تهران",
-             "بازار تهران، خیابان ناصر خسرو، پاساژ شمس العماره، طبقه منفی ۱، واحد ۳۰۵", "02186091012", False),
-            ("شعبه بازار اردیبهشت", LocationType.BRANCH, "تهران", "تهران",
-             "بازار بزرگ تهران، پاساژ اردیبهشت، طبقه هم‌کف، پلاک ۶۸", "02186091013", False),
-            ("شعبه شهرک غرب", LocationType.BRANCH, "تهران", "تهران",
-             "تهران، بلوار فرحزادی، مجتمع تجاری لیدوما، تجاری دوم (G2)، واحد ۱۵", "02186091014", False),
-            ("شعبه کریمخان", LocationType.BRANCH, "تهران", "تهران",
-             "تهران، میدان ولی‌عصر(عج)، خیابان کریمخان، مجتمع تجاری الماس کریمخان، طبقه دوم، واحد ۲۰۸", "02186091015", False),
-            # شعب شهرستان
-            ("نمایندگی اصفهان", LocationType.BRANCH, "اصفهان", "اصفهان",
-             "اصفهان، خیابان چهارباغ، پلاک ۴۵", "03132001234", False),
-            ("نمایندگی شیراز", LocationType.BRANCH, "فارس", "شیراز",
-             "شیراز، خیابان زند، پلاک ۷۸", "07136001234", False),
-            ("نمایندگی مشهد", LocationType.BRANCH, "خراسان رضوی", "مشهد",
-             "مشهد، بلوار وکیل‌آباد، پلاک ۲۲", "05138001234", False),
-            ("نمایندگی تبریز", LocationType.BRANCH, "آذربایجان شرقی", "تبریز",
-             "تبریز، خیابان آزادی، پلاک ۳۳", "04135001234", False),
-        ]
-
-        location_map = {}
-        for name, loc_type, province, city, address, phone, is_postal in locations_data:
-            existing = db.query(Location).filter(Location.name == name).first()
-            if not existing:
-                loc = Location(
-                    name=name, location_type=loc_type,
-                    province=province, city=city,
-                    address=address, phone=phone,
-                    is_postal_hub=is_postal,
-                )
-                db.add(loc)
-                db.flush()
-                location_map[name] = loc
-                tag = " [postal hub]" if is_postal else ""
-                print(f"  + {name} ({city}){tag}")
-            else:
-                location_map[name] = existing
-                print(f"  = exists: {name}")
-
-        db.flush()
 
         # ==========================================
-        # 7. Bars (inventory)
+        # 7. Bars (inventory) — created AFTER dealers (section 10)
         # ==========================================
-        print("\n[7/9] Bars (Inventory)")
+        print("\n[6/9] Bars (deferred — created after dealers)")
 
-        existing_bar_count = db.query(Bar).count()
-        if existing_bar_count > 0:
-            print(f"  = {existing_bar_count} bars already exist, skipping")
-        else:
-            batch1 = db.query(Batch).filter(Batch.batch_number == "B-1403-001").first()
-
-            locations = list(location_map.values())
-            if not locations:
-                locations = db.query(Location).filter(Location.is_active == True).all()
-
-            total_bars = 0
-            used_serials = set()
-
-            # Create bars for all active products, quantity based on weight
-            all_products = db.query(Product).filter(Product.is_active == True).all()
-            for product in all_products:
-                w = float(product.weight)
-                if w <= 1:
-                    count_per_loc = 5
-                elif w <= 5:
-                    count_per_loc = 3
-                elif w <= 50:
-                    count_per_loc = 2
-                else:
-                    count_per_loc = 1
-
-                for loc in locations:
-                    for _ in range(count_per_loc):
-                        serial = generate_serial()
-                        while serial in used_serials:
-                            serial = generate_serial()
-                        used_serials.add(serial)
-
-                        db.add(Bar(
-                            serial_code=serial,
-                            status=BarStatus.ASSIGNED,
-                            product_id=product.id,
-                            batch_id=batch1.id if batch1 else None,
-                            location_id=loc.id,
-                        ))
-                        total_bars += 1
-
-            db.flush()
-            print(f"  + {total_bars} bars for {len(all_products)} products across {len(locations)} locations")
-
-            # --- Test bars for claim & transfer testing ---
-            first_product = db.query(Product).first()
-            first_location = db.query(Location).filter(Location.is_active == True).first()
-            test_customer_1 = db.query(Customer).filter(Customer.mobile == "09351234567").first()
-
-            if first_product and first_location:
-                # Bar 1: SOLD + claim_code (for claim testing - no owner)
-                claim_bar_1 = Bar(
-                    serial_code="TSCLM001",
-                    status=BarStatus.SOLD,
-                    product_id=first_product.id,
-                    batch_id=batch1.id if batch1 else None,
-                    location_id=first_location.id,
-                    customer_id=None,
-                    claim_code="ABC123",
-                )
-                db.add(claim_bar_1)
-
-                # Bar 2: SOLD + claim_code (for wrong-code testing - no owner)
-                claim_bar_2 = Bar(
-                    serial_code="TSCLM002",
-                    status=BarStatus.SOLD,
-                    product_id=first_product.id,
-                    batch_id=batch1.id if batch1 else None,
-                    location_id=first_location.id,
-                    customer_id=None,
-                    claim_code="XYZ789",
-                )
-                db.add(claim_bar_2)
-
-                # Bar 3: SOLD + owner (for transfer testing - owned by test_customer_1)
-                if test_customer_1:
-                    transfer_bar = Bar(
-                        serial_code="TSTRF001",
-                        status=BarStatus.SOLD,
-                        product_id=first_product.id,
-                        batch_id=batch1.id if batch1 else None,
-                        location_id=first_location.id,
-                        customer_id=test_customer_1.id,
-                        claim_code=None,
-                    )
-                    db.add(transfer_bar)
-
-                db.flush()
-                print("  + 3 test bars for claim/transfer testing (TSCLM001, TSCLM002, TSTRF001)")
+        # (Bars will be created in section 10.5 after dealers exist)
+        _bar_batch1 = db.query(Batch).filter(Batch.batch_number == "B-1403-001").first()
 
         # ==========================================
         # 8. Sample Coupons
@@ -847,6 +712,85 @@ def seed():
                 print(f"  = gold wallet exists for {test_customer.full_name}")
 
         # ==========================================
+        # 9.1 Sample Withdrawal Requests
+        # ==========================================
+        print("\n[9.1] Sample Withdrawal Requests")
+
+        existing_wr = db.query(WithdrawalRequest).count()
+        if existing_wr == 0 and test_customer:
+            from modules.wallet.models import WithdrawalStatus
+
+            acct = db.query(Account).filter(
+                Account.owner_type == OwnerType.CUSTOMER,
+                Account.owner_id == test_customer.id,
+                Account.asset_code == "IRR",
+            ).first()
+
+            wr_data = [
+                {
+                    "amount_irr": 5_000_000,
+                    "shaba_number": "IR820540102680020817909002",
+                    "account_holder": "علی رضایی",
+                    "status": WithdrawalStatus.PENDING,
+                },
+                {
+                    "amount_irr": 10_000_000,
+                    "shaba_number": "IR062960000000100324200001",
+                    "account_holder": "علی رضایی",
+                    "status": WithdrawalStatus.PENDING,
+                },
+                {
+                    "amount_irr": 3_000_000,
+                    "shaba_number": "IR820540102680020817909002",
+                    "account_holder": "علی رضایی",
+                    "status": WithdrawalStatus.PAID,
+                    "admin_note": "واریز شد - شماره پیگیری ۱۲۳۴۵۶",
+                },
+                {
+                    "amount_irr": 2_000_000,
+                    "shaba_number": "IR062960000000100324200001",
+                    "account_holder": "علی رضایی",
+                    "status": WithdrawalStatus.REJECTED,
+                    "admin_note": "شماره شبا با نام صاحب حساب مطابقت ندارد",
+                },
+            ]
+
+            total_pending_hold = 0
+            for wd in wr_data:
+                wr = WithdrawalRequest(
+                    customer_id=test_customer.id,
+                    amount_irr=wd["amount_irr"],
+                    shaba_number=wd["shaba_number"],
+                    account_holder=wd["account_holder"],
+                    status=wd["status"],
+                    admin_note=wd.get("admin_note"),
+                )
+                db.add(wr)
+                status_label = wd["status"].value if hasattr(wd["status"], "value") else wd["status"]
+                print(f"  + Withdrawal {wd['amount_irr'] // 10:,} toman [{status_label}]")
+
+                if wd["status"] == WithdrawalStatus.PENDING:
+                    total_pending_hold += wd["amount_irr"]
+
+            # Hold funds for pending withdrawals
+            if acct and total_pending_hold > 0:
+                acct.locked_balance += total_pending_hold
+                db.flush()
+                db.add(LedgerEntry(
+                    account_id=acct.id, txn_type="Hold",
+                    delta_balance=0, delta_locked=total_pending_hold,
+                    balance_after=acct.balance, locked_after=acct.locked_balance,
+                    idempotency_key="seed:withdrawal_hold:1",
+                    reference_type="seed", reference_id="withdrawal_hold",
+                    description=f"بلوکه تستی برای درخواست‌های برداشت",
+                ))
+                print(f"  + Held {total_pending_hold // 10:,} toman for pending withdrawals")
+
+            db.flush()
+        else:
+            print(f"  = {existing_wr} withdrawal requests exist, skipping")
+
+        # ==========================================
         # 9.5. Dealer Tiers
         # ==========================================
         print("\n[9.5] Dealer Tiers")
@@ -926,18 +870,6 @@ def seed():
         # ==========================================
         print("\n[10] Dealers")
 
-        # Get branch locations for assigning dealers
-        branch_esfahan = db.query(Location).filter(Location.name == "نمایندگی اصفهان").first()
-        branch_shiraz = db.query(Location).filter(Location.name == "نمایندگی شیراز").first()
-        branch_mashhad = db.query(Location).filter(Location.name == "نمایندگی مشهد").first()
-        branch_tabriz = db.query(Location).filter(Location.name == "نمایندگی تبریز").first()
-        # شعب تهران
-        branch_mirdamad = db.query(Location).filter(Location.name == "شعبه میرداماد").first()
-        branch_naserkh = db.query(Location).filter(Location.name == "شعبه بازار ناصرخسرو").first()
-        branch_ordibehesht = db.query(Location).filter(Location.name == "شعبه بازار اردیبهشت").first()
-        branch_shahrak = db.query(Location).filter(Location.name == "شعبه شهرک غرب").first()
-        branch_karimkhan = db.query(Location).filter(Location.name == "شعبه کریمخان").first()
-
         tier_distributor = tier_map.get("distributor")
         tier_wholesaler = tier_map.get("wholesaler")
         tier_store = tier_map.get("store")
@@ -955,12 +887,24 @@ def seed():
         geo_tabriz = geo_ids("آذربایجان شرقی", "تبریز")
 
         dealers_data = [
+            # --- انبار مرکزی (postal hub + warehouse) ---
+            {
+                "mobile": "00000000000",
+                "full_name": "انبار مرکزی تهران",
+                "national_id": "0000000000",
+                "api_key": None,
+                "tier_id": None,
+                "province_id": geo_tehran[0], "city_id": geo_tehran[1],
+                "address": "تهران، خیابان ولیعصر، پلاک ۱۲۳",
+                "landline_phone": "02188001234",
+                "is_warehouse": True,
+                "is_postal_hub": True,
+            },
             # --- شهرستان ---
             {
                 "mobile": "09161234567",
                 "full_name": "احمد نوری",
                 "national_id": "1111111111",
-                "location_id": branch_esfahan.id if branch_esfahan else None,
                 "api_key": "test_esfahan_key_0000000000000000",
                 "tier_id": tier_distributor.id if tier_distributor else None,
                 "province_id": geo_esfahan[0], "city_id": geo_esfahan[1],
@@ -971,7 +915,6 @@ def seed():
                 "mobile": "09171234567",
                 "full_name": "سارا کریمی",
                 "national_id": "2222222222",
-                "location_id": branch_shiraz.id if branch_shiraz else None,
                 "api_key": "test_shiraz__key_1111111111111111",
                 "tier_id": tier_wholesaler.id if tier_wholesaler else None,
                 "province_id": geo_shiraz[0], "city_id": geo_shiraz[1],
@@ -982,7 +925,6 @@ def seed():
                 "mobile": "09181234567",
                 "full_name": "حسین موسوی",
                 "national_id": "3333333333",
-                "location_id": branch_mashhad.id if branch_mashhad else None,
                 "api_key": "test_mashhad_key_2222222222222222",
                 "tier_id": tier_store.id if tier_store else None,
                 "province_id": geo_mashhad[0], "city_id": geo_mashhad[1],
@@ -993,19 +935,17 @@ def seed():
                 "mobile": "09141234567",
                 "full_name": "یوسف قربانی",
                 "national_id": "4444444444",
-                "location_id": branch_tabriz.id if branch_tabriz else None,
                 "api_key": "test_tabriz__key_3333333333333333",
                 "tier_id": tier_distributor.id if tier_distributor else None,
                 "province_id": geo_tabriz[0], "city_id": geo_tabriz[1],
                 "address": "تبریز، خیابان آزادی، پلاک ۳۳",
                 "landline_phone": "04135001234",
             },
-            # --- تهران (شعب از صفحه تماس با ما) ---
+            # --- تهران ---
             {
                 "mobile": "09121234567",
                 "full_name": "محمد رضایی",
                 "national_id": "5555555555",
-                "location_id": branch_mirdamad.id if branch_mirdamad else None,
                 "api_key": "test_mirdmad_key_4444444444444444",
                 "tier_id": tier_distributor.id if tier_distributor else None,
                 "province_id": geo_tehran[0], "city_id": geo_tehran[1],
@@ -1016,7 +956,6 @@ def seed():
                 "mobile": "09122345678",
                 "full_name": "علی حسینی",
                 "national_id": "6666666666",
-                "location_id": branch_naserkh.id if branch_naserkh else None,
                 "api_key": "test_nasrkhr_key_5555555555555555",
                 "tier_id": tier_wholesaler.id if tier_wholesaler else None,
                 "province_id": geo_tehran[0], "city_id": geo_tehran[1],
@@ -1027,7 +966,6 @@ def seed():
                 "mobile": "09123456780",
                 "full_name": "فاطمه احمدی",
                 "national_id": "7777777777",
-                "location_id": branch_ordibehesht.id if branch_ordibehesht else None,
                 "api_key": "test_ordibht_key_6666666666666666",
                 "tier_id": tier_wholesaler.id if tier_wholesaler else None,
                 "province_id": geo_tehran[0], "city_id": geo_tehran[1],
@@ -1038,7 +976,6 @@ def seed():
                 "mobile": "09124567890",
                 "full_name": "رضا محمدی",
                 "national_id": "8888888888",
-                "location_id": branch_shahrak.id if branch_shahrak else None,
                 "api_key": "test_shahrak_key_7777777777777777",
                 "tier_id": tier_store.id if tier_store else None,
                 "province_id": geo_tehran[0], "city_id": geo_tehran[1],
@@ -1049,7 +986,6 @@ def seed():
                 "mobile": "09125678901",
                 "full_name": "مریم کاظمی",
                 "national_id": "9999999999",
-                "location_id": branch_karimkhan.id if branch_karimkhan else None,
                 "api_key": "test_karimkh_key_8888888888888888",
                 "tier_id": tier_store.id if tier_store else None,
                 "province_id": geo_tehran[0], "city_id": geo_tehran[1],
@@ -1065,33 +1001,109 @@ def seed():
                     mobile=dd["mobile"],
                     full_name=dd["full_name"],
                     national_id=dd["national_id"],
-                    location_id=dd["location_id"],
-                    api_key=dd["api_key"],
-                    tier_id=dd["tier_id"],
+                    api_key=dd.get("api_key"),
+                    tier_id=dd.get("tier_id"),
                     province_id=dd.get("province_id"),
                     city_id=dd.get("city_id"),
                     address=dd.get("address"),
                     landline_phone=dd.get("landline_phone"),
+                    is_warehouse=dd.get("is_warehouse", False),
+                    is_postal_hub=dd.get("is_postal_hub", False),
                 )
                 db.add(dealer)
                 db.flush()
-                loc_name = "—"
-                if dd["location_id"]:
-                    loc = db.query(Location).filter(Location.id == dd["location_id"]).first()
-                    loc_name = loc.name if loc else "—"
-                print(f"  + {dd['full_name']}: {dd['mobile']} ({loc_name}) [tier_id={dd['tier_id']}]")
+                tags = []
+                if dd.get("is_warehouse"): tags.append("warehouse")
+                if dd.get("is_postal_hub"): tags.append("postal_hub")
+                tag_str = f" [{', '.join(tags)}]" if tags else ""
+                print(f"  + {dd['full_name']}: {dd['mobile']}{tag_str}")
             else:
-                # Update tier_id if missing
-                if not existing.tier_id and dd["tier_id"]:
+                if not existing.tier_id and dd.get("tier_id"):
                     existing.tier_id = dd["tier_id"]
                     print(f"  ~ updated tier: {dd['mobile']}")
-                if not existing.api_key:
+                elif not existing.api_key and dd.get("api_key"):
                     existing.api_key = dd["api_key"]
                     print(f"  ~ updated api_key: {dd['mobile']}")
                 else:
                     print(f"  = exists: {dd['mobile']}")
 
         db.flush()
+
+        # ==========================================
+        # 10.5. Bars (inventory) — now that dealers exist
+        # ==========================================
+        print("\n[10.5] Bars (Inventory)")
+
+        existing_bar_count = db.query(Bar).count()
+        if existing_bar_count > 0:
+            print(f"  = {existing_bar_count} bars already exist, skipping")
+        else:
+            batch1 = _bar_batch1
+
+            # Use all active dealers as locations for bars
+            all_dealer_locs = db.query(Dealer).filter(Dealer.is_active == True).all()
+
+            total_bars = 0
+            used_serials = set()
+
+            all_products = db.query(Product).filter(Product.is_active == True).all()
+            for product in all_products:
+                w = float(product.weight)
+                if w <= 1:
+                    count_per_dealer = 5
+                elif w <= 5:
+                    count_per_dealer = 3
+                elif w <= 50:
+                    count_per_dealer = 2
+                else:
+                    count_per_dealer = 1
+
+                for dlr in all_dealer_locs:
+                    for _ in range(count_per_dealer):
+                        serial = generate_serial()
+                        while serial in used_serials:
+                            serial = generate_serial()
+                        used_serials.add(serial)
+
+                        db.add(Bar(
+                            serial_code=serial,
+                            status=BarStatus.ASSIGNED,
+                            product_id=product.id,
+                            batch_id=batch1.id if batch1 else None,
+                            dealer_id=dlr.id,
+                        ))
+                        total_bars += 1
+
+            db.flush()
+            print(f"  + {total_bars} bars for {len(all_products)} products across {len(all_dealer_locs)} dealers")
+
+            # --- Test bars for claim & transfer testing ---
+            first_product = db.query(Product).first()
+            first_dealer = db.query(Dealer).filter(Dealer.is_active == True).first()
+            test_customer_1 = db.query(Customer).filter(Customer.mobile == "09351234567").first()
+
+            if first_product and first_dealer:
+                claim_bar_1 = Bar(
+                    serial_code="TSCLM001", status=BarStatus.SOLD,
+                    product_id=first_product.id, batch_id=batch1.id if batch1 else None,
+                    dealer_id=first_dealer.id, customer_id=None, claim_code="ABC123",
+                )
+                db.add(claim_bar_1)
+                claim_bar_2 = Bar(
+                    serial_code="TSCLM002", status=BarStatus.SOLD,
+                    product_id=first_product.id, batch_id=batch1.id if batch1 else None,
+                    dealer_id=first_dealer.id, customer_id=None, claim_code="XYZ789",
+                )
+                db.add(claim_bar_2)
+                if test_customer_1:
+                    transfer_bar = Bar(
+                        serial_code="TSTRF001", status=BarStatus.SOLD,
+                        product_id=first_product.id, batch_id=batch1.id if batch1 else None,
+                        dealer_id=first_dealer.id, customer_id=test_customer_1.id, claim_code=None,
+                    )
+                    db.add(transfer_bar)
+                db.flush()
+                print("  + 3 test bars (TSCLM001, TSCLM002, TSTRF001)")
 
         # Create dealer wallets (IRR + XAU_MG)
         print("\n  Dealer Wallets:")
@@ -1230,7 +1242,6 @@ def seed():
         print(f"  Card Designs:   {db.query(CardDesign).count()}")
         print(f"  Package Types:  {db.query(PackageType).count()}")
         print(f"  Batches:        {db.query(Batch).count()}")
-        print(f"  Locations:      {db.query(Location).count()}")
         print(f"  Bars:           {db.query(Bar).count()}")
         print(f"  Coupons:        {db.query(Coupon).count()}")
         print(f"  Wallet Accts:   {db.query(Account).count()}")
@@ -1238,6 +1249,7 @@ def seed():
         print(f"  Tier Wages:     {db.query(ProductTierWage).count()}")
         print(f"  Dealers:        {db.query(Dealer).count()}")
         print(f"  Tickets:        {db.query(Ticket).count()}")
+        print(f"  Withdrawals:    {db.query(WithdrawalRequest).count()}")
 
         print("\n--- Credentials ---")
         print(f"  Admin:    09123456789")
@@ -1278,6 +1290,11 @@ def seed():
 def reset_and_seed():
     """Drop all tables and recreate + seed."""
     print("WARNING: Dropping ALL tables...")
+    # Drop orphan tables (created by migrations but no longer have models)
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS location_transfers CASCADE"))
+        conn.commit()
     Base.metadata.drop_all(bind=engine)
     print("All tables dropped")
     Base.metadata.create_all(bind=engine)
