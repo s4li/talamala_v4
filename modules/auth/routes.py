@@ -19,6 +19,13 @@ from modules.auth.deps import get_current_active_user
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def _safe_next_url(url: str) -> str:
+    """Only allow relative paths as redirect targets (prevent open redirect)."""
+    if not url or not url.startswith("/"):
+        return "/"
+    return url
+
+
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(
     request: Request,
@@ -31,7 +38,7 @@ async def login_page(
             return RedirectResponse("/admin/dashboard", status_code=302)
         if getattr(user, "is_dealer", False):
             return RedirectResponse("/dealer/dashboard", status_code=302)
-        return RedirectResponse(next or "/", status_code=302)
+        return RedirectResponse(_safe_next_url(next), status_code=302)
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("auth/login.html", {
@@ -111,7 +118,7 @@ async def verify_otp(
 
         # For customers, use next_url if provided (return to original page)
         if next_url and cookie_name == "customer_token":
-            redirect_url = next_url
+            redirect_url = _safe_next_url(next_url)
 
         response = RedirectResponse(redirect_url, status_code=302)
         response.set_cookie(cookie_name, token, **get_cookie_kwargs())

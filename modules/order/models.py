@@ -153,7 +153,7 @@ class OrderItem(Base):
     applied_gold_price = Column(BigInteger, nullable=False)
     applied_unit_price = Column(BigInteger, nullable=False)
     applied_weight = Column(Numeric(10, 3), nullable=False)
-    applied_purity = Column(Integer, nullable=False)
+    applied_purity = Column(Numeric(4, 1), nullable=False)
     applied_wage_percent = Column(Numeric(5, 2), nullable=False)
     applied_tax_percent = Column(Numeric(5, 2), nullable=False)
 

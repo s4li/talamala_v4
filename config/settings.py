@@ -22,7 +22,7 @@ DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME")
 
 if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_NAME]):
-    print("❌ Critical: Database config missing in .env (DB_USER, DB_PASSWORD, DB_HOST, DB_NAME)")
+    print("[ERROR] Critical: Database config missing in .env (DB_USER, DB_PASSWORD, DB_HOST, DB_NAME)")
     sys.exit(1)
 
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
@@ -37,7 +37,7 @@ DEALER_SECRET_KEY = os.getenv("DEALER_SECRET_KEY", os.getenv("CUSTOMER_SECRET_KE
 OTP_SECRET = os.getenv("OTP_SECRET")
 
 if not all([SECRET_KEY, CUSTOMER_SECRET_KEY, OTP_SECRET]):
-    print("❌ Critical: Security keys missing in .env (SECRET_KEY, CUSTOMER_SECRET_KEY, OTP_SECRET)")
+    print("[ERROR] Critical: Security keys missing in .env (SECRET_KEY, CUSTOMER_SECRET_KEY, OTP_SECRET)")
     sys.exit(1)
 
 ALGORITHM = "HS256"

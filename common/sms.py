@@ -42,8 +42,8 @@ class SmsSender:
         """
         # Always print OTP to console for debugging
         print(f"\n{'='*40}")
-        print(f"🔑 OTP CODE (DEBUG): {token2}")
-        print(f"📱 To: {receptor}")
+        print(f"[OTP] CODE (DEBUG): {token2}")
+        print(f"[OTP] To: {receptor}")
         print(f"{'='*40}\n")
 
         if not SMS_API_KEY:

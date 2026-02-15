@@ -61,7 +61,7 @@ class Product(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     weight = Column(Numeric(10, 3), nullable=False)           # گرم
-    purity = Column(Integer, default=750, nullable=False)      # عیار (750 = 18K)
+    purity = Column(Numeric(4, 1), default=750, nullable=False)  # عیار (750, 995, 999.9)
     wage = Column(Numeric(5, 2), default=0, nullable=False)     # اجرت ساخت (درصدی)
     is_wage_percent = Column(Boolean, default=True, nullable=False)  # همیشه True برای شمش
     design = Column(String, nullable=True)

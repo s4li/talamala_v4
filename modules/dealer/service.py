@@ -455,7 +455,7 @@ class DealerService:
             default_img = db.query(ProductImage).filter(
                 ProductImage.product_id == p.id, ProductImage.is_default == True
             ).first()
-            img_path = default_img.path if default_img else None
+            img_path = default_img.file_path if default_img else None
 
             product_bars = bars_by_product.get(p.id, [])
             result_products.append({
