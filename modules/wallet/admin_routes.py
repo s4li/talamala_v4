@@ -79,7 +79,7 @@ async def admin_wallet_detail(
     total_pages = max(1, (total + per_page - 1) // per_page)
 
     csrf = new_csrf_token()
-    return templates.TemplateResponse("admin/wallet/detail.html", {
+    response = templates.TemplateResponse("admin/wallet/detail.html", {
         "request": request,
         "user": user,
         "owner_type": "customer",
@@ -97,6 +97,8 @@ async def admin_wallet_detail(
         "error": error,
         "active_page": "wallets",
     })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
 
 
 @router.get("/dealer/{dealer_id}", response_class=HTMLResponse)
@@ -120,7 +122,7 @@ async def admin_wallet_dealer_detail(
     total_pages = max(1, (total + per_page - 1) // per_page)
 
     csrf = new_csrf_token()
-    return templates.TemplateResponse("admin/wallet/detail.html", {
+    response = templates.TemplateResponse("admin/wallet/detail.html", {
         "request": request,
         "user": user,
         "owner_type": "dealer",
@@ -138,6 +140,8 @@ async def admin_wallet_dealer_detail(
         "error": error,
         "active_page": "wallets",
     })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
 
 
 # ==========================================
@@ -203,7 +207,7 @@ async def admin_withdrawals_list(
     )
 
     csrf = new_csrf_token()
-    return templates.TemplateResponse("admin/wallet/withdrawals.html", {
+    response = templates.TemplateResponse("admin/wallet/withdrawals.html", {
         "request": request,
         "user": user,
         "withdrawals": withdrawals,
@@ -214,6 +218,8 @@ async def admin_withdrawals_list(
         "csrf_token": csrf,
         "active_page": "withdrawals",
     })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
 
 
 @router.post("/withdrawals/{wr_id}/approve")
