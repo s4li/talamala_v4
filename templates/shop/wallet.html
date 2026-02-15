@@ -182,7 +182,7 @@
                 <div class="mt-2 d-flex gap-1 justify-content-center flex-wrap">
                     {% for val in [1000000, 50000000, 100000000, 200000000] %}
                     <button type="button" class="btn btn-sm btn-tm-outline quick-amount" data-amount="{{ val }}">
-                        {{ val | toman }}
+                        {{ "{:,}".format(val) }}
                     </button>
                     {% endfor %}
                 </div>
