@@ -22,7 +22,7 @@
                         <label class="form-label-tm">وضعیت</label>
                         <select name="status" class="form-select form-select-tm">
                             {% for s in bar_statuses %}
-                            <option value="{{ s.value }}" {% if bar.status == s.value %}selected{% endif %}>{{ s.value }}</option>
+                            <option value="{{ s.value }}" {% if bar.status == s.value %}selected{% endif %}>{{ s.value | fa_label }}</option>
                             {% endfor %}
                         </select>
                     </div>

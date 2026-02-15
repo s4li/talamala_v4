@@ -33,7 +33,7 @@
                 <select name="status" class="form-select form-select-tm form-select-sm">
                     <option value="">همه وضعیت‌ها</option>
                     {% for s in bar_statuses %}
-                    <option value="{{ s.value }}" {% if status_filter == s.value %}selected{% endif %}>{{ s.value }}</option>
+                    <option value="{{ s.value }}" {% if status_filter == s.value %}selected{% endif %}>{{ s.value | fa_label }}</option>
                     {% endfor %}
                 </select>
             </div>

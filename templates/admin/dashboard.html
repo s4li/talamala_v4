@@ -225,7 +225,7 @@
                                 {% elif order.status == 'Cancelled' %}
                                 <span class="badge-tm badge-tm-danger">لغو شده</span>
                                 {% else %}
-                                <span class="badge-tm badge-tm-info">{{ order.status }}</span>
+                                <span class="badge-tm badge-tm-info">{{ order.status | fa_label }}</span>
                                 {% endif %}
                             </td>
                             <td>{{ order.created_at | jdate }}</td>

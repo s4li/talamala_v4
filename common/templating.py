@@ -64,5 +64,18 @@ templates.env.filters["gold_gram"] = format_gold_gram
 templates.env.filters["time_ago"] = format_time_ago
 templates.env.filters["purity"] = lambda v: str(v).rstrip('0').rstrip('.') if v else "—"
 
+# Persian label mapping for enum values used in dropdowns/filters
+_FA_LABELS = {
+    # BarStatus
+    "Raw": "خام", "Assigned": "اختصاص", "Reserved": "رزرو", "Sold": "فروخته",
+    # OrderStatus
+    "Pending": "در انتظار پرداخت", "Paid": "پرداخت شده", "Cancelled": "لغو شده",
+    # DeliveryStatus
+    "Preparing": "آماده‌سازی", "Shipped": "ارسال شده", "Delivered": "تحویل شده",
+    # DeliveryMethod
+    "Pickup": "حضوری", "Postal": "پستی",
+}
+templates.env.filters["fa_label"] = lambda v: _FA_LABELS.get(str(v), str(v)) if v else "—"
+
 # Globals (usage in template: {{ get_setting_value('key') }})
 templates.env.globals["get_setting_value"] = get_setting_value
