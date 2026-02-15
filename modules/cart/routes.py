@@ -216,10 +216,10 @@ async def checkout(
         if not pickup_loc_id:
             error = urllib.parse.quote("لطفاً نمایندگی تحویل را انتخاب کنید.")
             return RedirectResponse(f"/checkout?error={error}", status_code=303)
-        # Server-side: verify dealer exists, is active, and is a retail point
+        # Server-side: verify dealer exists and is active
         from modules.dealer.models import Dealer
         dlr = db.query(Dealer).filter(Dealer.id == pickup_loc_id).first()
-        if not dlr or not dlr.is_active or dlr.is_warehouse:
+        if not dlr or not dlr.is_active:
             error = urllib.parse.quote("نمایندگی انتخابی نامعتبر است.")
             return RedirectResponse(f"/checkout?error={error}", status_code=303)
         if not commitment:
