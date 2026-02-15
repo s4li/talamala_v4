@@ -1,0 +1,53 @@
+{#
+  Smart pagination macro — shows max ~5 page numbers + first/prev/next/last.
+  Usage:
+    {% from "components/pagination.html" import pagination %}
+    {{ pagination(page, total_pages, base_url, qs) }}
+
+  Args:
+    page:        current page number (int)
+    total_pages: total number of pages (int)
+    base_url:    e.g. "/admin/bars"
+    qs:          extra query string (already prefixed with &), e.g. "&search=foo&status=RAW"
+    window:      number of pages to show on each side of current (default 2)
+#}
+
+{% macro pagination(page, total_pages, base_url, qs='', window=2) %}
+{% if total_pages > 1 %}
+{% set start = [page - window, 1] | max %}
+{% set end = [page + window, total_pages] | min %}
+<nav class="mt-3">
+    <ul class="pagination pagination-sm justify-content-center flex-wrap mb-1" style="gap:2px;">
+        {# First + Prev #}
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+            <a class="page-link" href="{{ base_url }}?page=1{{ qs }}"><i class="bi bi-chevron-double-right"></i></a>
+        </li>
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+            <a class="page-link" href="{{ base_url }}?page={{ page - 1 }}{{ qs }}"><i class="bi bi-chevron-right"></i></a>
+        </li>
+        {# Left ellipsis #}
+        {% if start > 1 %}
+        <li class="page-item disabled"><span class="page-link px-2">...</span></li>
+        {% endif %}
+        {# Page numbers #}
+        {% for p in range(start, end + 1) %}
+        <li class="page-item {% if p == page %}active{% endif %}">
+            <a class="page-link" href="{{ base_url }}?page={{ p }}{{ qs }}">{{ p | persian_number }}</a>
+        </li>
+        {% endfor %}
+        {# Right ellipsis #}
+        {% if end < total_pages %}
+        <li class="page-item disabled"><span class="page-link px-2">...</span></li>
+        {% endif %}
+        {# Next + Last #}
+        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+            <a class="page-link" href="{{ base_url }}?page={{ page + 1 }}{{ qs }}"><i class="bi bi-chevron-left"></i></a>
+        </li>
+        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+            <a class="page-link" href="{{ base_url }}?page={{ total_pages }}{{ qs }}"><i class="bi bi-chevron-double-left"></i></a>
+        </li>
+    </ul>
+    <div class="text-center text-muted small">صفحه {{ page | persian_number }} از {{ total_pages | persian_number }}</div>
+</nav>
+{% endif %}
+{% endmacro %}

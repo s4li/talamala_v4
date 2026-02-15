@@ -115,17 +115,9 @@
             </table>
         </div>
 
-        {% if total_pages > 1 %}
-        <nav class="d-flex justify-content-center py-3">
-            <ul class="pagination pagination-tm pagination-sm mb-0">
-                {% for p in range(1, total_pages + 1) %}
-                <li class="page-item {{ 'active' if p == page else '' }}">
-                    <a class="page-link" href="/admin/coupons?page={{ p }}&status={{ status_filter or '' }}&search={{ search }}">{{ p }}</a>
-                </li>
-                {% endfor %}
-            </ul>
-        </nav>
-        {% endif %}
+        {% from "components/pagination.html" import pagination %}
+        {% set qs %}&status={{ status_filter or '' }}&search={{ search or '' }}{% endset %}
+        {{ pagination(page, total_pages, '/admin/coupons', qs) }}
 
         {% else %}
         <div class="text-center text-muted py-5">
