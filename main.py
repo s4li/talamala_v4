@@ -84,7 +84,7 @@ def _static_page_ctx(request: Request, db: Session):
 # ==========================================
 # Import ALL models so Alembic/Base can see them
 # ==========================================
-from modules.admin.models import SystemUser, SystemSetting  # noqa: F401
+from modules.admin.models import SystemUser, SystemSetting, RequestLog  # noqa: F401
 from modules.customer.models import Customer  # noqa: F401
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress  # noqa: F401
 from modules.catalog.models import (  # noqa: F401
@@ -143,14 +143,32 @@ def _cleanup_expired_orders():
     finally:
         db.close()
 
+def _cleanup_old_request_logs():
+    """Background job: delete request logs older than 30 days."""
+    db = SessionLocal()
+    try:
+        from datetime import datetime, timedelta, timezone
+        cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+        deleted = db.query(RequestLog).filter(RequestLog.created_at < cutoff).delete()
+        if deleted:
+            db.commit()
+            scheduler_logger.info(f"Deleted {deleted} old request logs (>30 days)")
+    except Exception as e:
+        db.rollback()
+        scheduler_logger.error(f"Log cleanup error: {e}")
+    finally:
+        db.close()
+
+
 scheduler = BackgroundScheduler()
 
 
 @asynccontextmanager
 async def lifespan(app):
     scheduler.add_job(_cleanup_expired_orders, 'interval', seconds=60, id='expired_orders')
+    scheduler.add_job(_cleanup_old_request_logs, 'interval', hours=6, id='log_cleanup')
     scheduler.start()
-    scheduler_logger.info("Background scheduler started (expired order cleanup every 60s)")
+    scheduler_logger.info("Background scheduler started (orders: 60s, logs: 6h)")
     yield
     scheduler.shutdown()
     scheduler_logger.info("Background scheduler stopped")
@@ -221,6 +239,120 @@ async def maintenance_check(request: Request, call_next):
             status_code=503,
         )
     return await call_next(request)
+
+
+# ==========================================
+# Middleware: Request Audit Log
+# ==========================================
+import time as _time
+import re as _re
+from urllib.parse import unquote_plus as _unquote
+
+_SKIP_PATHS = ("/static/", "/health", "/favicon.ico")
+_SENSITIVE_KEYS = _re.compile(
+    r'(password|otp_code|csrf_token|api_key|secret|token)=[^&]*',
+    _re.IGNORECASE,
+)
+
+
+def _identify_user(request: Request):
+    """Identify user from JWT cookies without DB query. Returns (user_type, user_display)."""
+    from common.security import decode_staff_token, decode_customer_token, decode_dealer_token
+
+    # Staff / Admin
+    admin_tok = request.cookies.get("auth_token")
+    if admin_tok:
+        payload = decode_staff_token(admin_tok)
+        if payload:
+            return "admin", payload.get("sub", "?")
+
+    # Dealer
+    dealer_tok = request.cookies.get("dealer_token")
+    if dealer_tok:
+        payload = decode_dealer_token(dealer_tok)
+        if payload:
+            return "dealer", payload.get("sub", "?")
+
+    # Customer
+    cust_tok = request.cookies.get("customer_token")
+    if cust_tok:
+        payload = decode_customer_token(cust_tok)
+        if payload:
+            return "customer", payload.get("sub", "?")
+
+    return "anonymous", None
+
+
+def _mask_body(raw: bytes, content_type: str) -> str | None:
+    """Parse request body, mask sensitive fields, truncate."""
+    if not raw:
+        return None
+
+    ct = (content_type or "").lower()
+
+    # Multipart (file uploads) — just note it, don't store binary
+    if "multipart/form-data" in ct:
+        return "[multipart/form-data — file upload]"
+
+    # URL-encoded form or JSON
+    try:
+        text = raw[:10_000].decode("utf-8", errors="replace")
+    except Exception:
+        return None
+
+    # Mask sensitive fields
+    text = _SENSITIVE_KEYS.sub(lambda m: m.group(0).split("=")[0] + "=***", text)
+
+    return text[:2000] if text else None
+
+
+@app.middleware("http")
+async def request_logger(request: Request, call_next):
+    """Log every HTTP request to the database for audit purposes."""
+    path = request.url.path
+
+    # Skip noisy paths
+    if any(path.startswith(p) for p in _SKIP_PATHS):
+        return await call_next(request)
+
+    start = _time.time()
+
+    # Read body for POST/PUT/PATCH before call_next (caches internally)
+    body_preview = None
+    if request.method in ("POST", "PUT", "PATCH"):
+        try:
+            raw = await request.body()
+            body_preview = _mask_body(raw, request.headers.get("content-type"))
+        except Exception:
+            body_preview = "[error reading body]"
+
+    response = await call_next(request)
+
+    elapsed_ms = int((_time.time() - start) * 1000)
+    user_type, user_display = _identify_user(request)
+
+    # Write log in a separate session (fire-and-forget, don't block response)
+    try:
+        log_db = SessionLocal()
+        log_entry = RequestLog(
+            method=request.method,
+            path=path[:500],
+            query_string=str(request.url.query)[:2000] if request.url.query else None,
+            status_code=response.status_code,
+            ip_address=(request.client.host if request.client else None),
+            user_agent=(request.headers.get("user-agent") or "")[:500],
+            user_type=user_type,
+            user_display=user_display,
+            body_preview=body_preview,
+            response_time_ms=elapsed_ms,
+        )
+        log_db.add(log_entry)
+        log_db.commit()
+        log_db.close()
+    except Exception:
+        pass  # Never let logging break the actual request
+
+    return response
 
 
 # ==========================================

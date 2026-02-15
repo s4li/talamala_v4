@@ -667,6 +667,32 @@
 
 ---
 
+## 15.5 لاگ درخواست‌ها (Request Audit Log)
+
+**مسیر فایل‌ها**: `modules/admin/models.py` (RequestLog), `modules/admin/routes.py`, `main.py` (middleware)
+
+### مدل
+
+| مدل | جدول | ستون‌های کلیدی |
+|------|-------|---------------|
+| RequestLog | request_logs | method, path, query_string, status_code, ip_address, user_agent, user_type, user_display, body_preview, response_time_ms, created_at |
+
+### Middleware
+
+- `request_logger` در `main.py` — هر درخواست HTTP را لاگ میکنه
+- Exclude: `/static/`, `/health`, `favicon.ico`
+- POST body: mask حساس (`password`, `otp_code`, `csrf_token`, `api_key`)
+- شناسایی کاربر از JWT cookies
+- Auto-cleanup: لاگ‌های قدیمی‌تر از ۳۰ روز (APScheduler هر ۶ ساعت)
+
+### مسیرها
+
+| متد | مسیر | توضیح |
+|------|------|-------|
+| GET | `/admin/logs` | لیست لاگ‌ها + فیلتر (متد، وضعیت، مسیر، نوع کاربر، IP) + pagination |
+
+---
+
 ## 16. API نماینده (Dealer POS API)
 
 **مسیر فایل‌ها**: `modules/dealer/api_routes.py`

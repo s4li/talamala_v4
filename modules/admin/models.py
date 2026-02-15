@@ -3,9 +3,10 @@ Admin Module - Models
 ======================
 SystemUser: Staff/Admin/Operator users
 SystemSetting: Key-value system configuration
+RequestLog: HTTP request audit trail
 """
 
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Text, Index
 from sqlalchemy.sql import func
 from config.database import Base
 
@@ -38,3 +39,58 @@ class SystemSetting(Base):
 
     def __repr__(self):
         return f"<Setting {self.key}={self.value}>"
+
+
+# ==========================================
+# Request Audit Log
+# ==========================================
+
+class RequestLog(Base):
+    __tablename__ = "request_logs"
+
+    id = Column(Integer, primary_key=True)
+    method = Column(String(10), nullable=False)                  # GET, POST, PUT, DELETE
+    path = Column(String(500), nullable=False)                   # URL path (no query string)
+    query_string = Column(Text, nullable=True)                   # query parameters
+    status_code = Column(Integer, nullable=False)                # HTTP response status
+    ip_address = Column(String(45), nullable=True)               # IPv4 / IPv6
+    user_agent = Column(String(500), nullable=True)              # Browser / client info
+    user_type = Column(String(20), nullable=False, default="anonymous")  # admin/operator/customer/dealer/anonymous
+    user_id = Column(Integer, nullable=True)                     # user PK (if authenticated)
+    user_display = Column(String(200), nullable=True)            # name or mobile (quick display)
+    body_preview = Column(Text, nullable=True)                   # POST body (truncated, sensitive masked)
+    response_time_ms = Column(Integer, nullable=True)            # response duration (ms)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        Index("ix_reqlog_created", "created_at"),
+        Index("ix_reqlog_method", "method"),
+        Index("ix_reqlog_path", "path"),
+        Index("ix_reqlog_user_type", "user_type"),
+        Index("ix_reqlog_ip", "ip_address"),
+    )
+
+    @property
+    def method_color(self) -> str:
+        return {"GET": "info", "POST": "success", "PUT": "warning", "PATCH": "warning",
+                "DELETE": "danger"}.get(self.method, "secondary")
+
+    @property
+    def status_color(self) -> str:
+        if self.status_code < 300:
+            return "success"
+        elif self.status_code < 400:
+            return "info"
+        elif self.status_code < 500:
+            return "warning"
+        return "danger"
+
+    @property
+    def user_type_label(self) -> str:
+        return {"admin": "مدیر", "operator": "اپراتور", "customer": "مشتری",
+                "dealer": "نماینده", "anonymous": "ناشناس"}.get(self.user_type, self.user_type)
+
+    @property
+    def user_type_color(self) -> str:
+        return {"admin": "danger", "operator": "warning", "customer": "info",
+                "dealer": "purple", "anonymous": "secondary"}.get(self.user_type, "secondary")

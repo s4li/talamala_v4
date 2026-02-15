@@ -76,7 +76,8 @@ talamala_v4/
 │   │   ├── orders/list.html     # Order management + delivery status
 │   │   ├── wallet/              # accounts, detail, withdrawals
 │   │   ├── coupon/              # list, form, detail
-│   │   └── tickets/             # admin ticket list + detail
+│   │   ├── tickets/             # admin ticket list + detail
+│   │   └── logs/                # request audit log list
 │   ├── dealer/
 │   │   ├── base_dealer.html     # Dealer sidebar layout
 │   │   ├── tickets.html         # Dealer ticket list
@@ -99,6 +100,7 @@ talamala_v4/
 ### admin/models.py
 - **SystemUser**: id, username, mobile, hashed_password, role (super_admin/operator), is_staff=True
 - **SystemSetting**: id, key (unique), value, description
+- **RequestLog**: id, method, path, query_string, status_code, ip_address, user_agent, user_type, user_id, user_display, body_preview, response_time_ms, created_at — لاگ درخواست‌ها (middleware ثبت میکنه)
 
 ### customer/models.py
 - **Customer**: id, mobile (unique), full_name, national_id, birth_date, is_active, created_at
@@ -505,6 +507,9 @@ total    = raw_gold + wage + tax
 - `POST /admin/tickets/{id}/status` — Change status (sends notification)
 - `POST /admin/tickets/{id}/close` — Close ticket
 - `POST /admin/tickets/{id}/assign` — Assign to staff
+
+### Request Audit Log
+- `GET /admin/logs` — لاگ درخواست‌ها با فیلتر (متد، وضعیت، مسیر، نوع کاربر، IP)
 
 ---
 

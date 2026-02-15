@@ -1,0 +1,160 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "logs" %}
+{% block title %}لاگ درخواست‌ها - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header tm-animate-fade-in">
+    <h4 class="fw-bold mb-0"><i class="bi bi-journal-text me-2"></i>لاگ درخواست‌ها <small class="text-muted fw-normal">({{ total }})</small></h4>
+    <div class="d-flex gap-2">
+        <span class="badge-tm badge-tm-info">{{ stats.today }} امروز</span>
+        <span class="badge-tm badge-tm-danger">{{ stats.errors }} خطا</span>
+        <span class="badge-tm badge-tm-secondary">{{ stats.total }} کل</span>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-1">
+    <div class="py-2">
+        <form method="GET" action="/admin/logs" class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label-tm small mb-0">متد</label>
+                <select name="method" class="form-select form-select-sm">
+                    <option value="">همه</option>
+                    {% for m in ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] %}
+                    <option value="{{ m }}" {% if method_filter == m %}selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label-tm small mb-0">وضعیت</label>
+                <select name="status_group" class="form-select form-select-sm">
+                    <option value="">همه</option>
+                    <option value="2xx" {% if status_filter == '2xx' %}selected{% endif %}>2xx موفق</option>
+                    <option value="3xx" {% if status_filter == '3xx' %}selected{% endif %}>3xx ریدایرکت</option>
+                    <option value="4xx" {% if status_filter == '4xx' %}selected{% endif %}>4xx خطای کاربر</option>
+                    <option value="5xx" {% if status_filter == '5xx' %}selected{% endif %}>5xx خطای سرور</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label-tm small mb-0">نوع کاربر</label>
+                <select name="user_type" class="form-select form-select-sm">
+                    <option value="">همه</option>
+                    <option value="admin" {% if user_type_filter == 'admin' %}selected{% endif %}>مدیر</option>
+                    <option value="operator" {% if user_type_filter == 'operator' %}selected{% endif %}>اپراتور</option>
+                    <option value="customer" {% if user_type_filter == 'customer' %}selected{% endif %}>مشتری</option>
+                    <option value="dealer" {% if user_type_filter == 'dealer' %}selected{% endif %}>نماینده</option>
+                    <option value="anonymous" {% if user_type_filter == 'anonymous' %}selected{% endif %}>ناشناس</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label-tm small mb-0">مسیر</label>
+                <input type="text" name="path_search" class="form-control form-control-sm" placeholder="/admin/..."
+                       value="{{ path_search }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label-tm small mb-0">IP</label>
+                <input type="text" name="ip" class="form-control form-control-sm" placeholder="127.0.0.1"
+                       value="{{ ip_filter }}">
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-sm btn-tm-primary"><i class="bi bi-funnel"></i></button>
+                <a href="/admin/logs" class="btn btn-sm btn-light">پاک</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Logs Table -->
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+    <div class="p-0">
+        <div class="table-responsive">
+            <table class="table table-tm table-sm mb-0 align-middle" style="font-size:0.85rem;">
+                <thead>
+                    <tr>
+                        <th>زمان</th>
+                        <th>متد</th>
+                        <th>مسیر</th>
+                        <th>وضعیت</th>
+                        <th>کاربر</th>
+                        <th>IP</th>
+                        <th>زمان پاسخ</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>
+                            <small class="text-muted">{{ log.created_at | jdate }}</small>
+                            <br><small class="font-monospace text-muted" style="font-size:0.75rem;">{{ log.created_at.strftime('%H:%M:%S') if log.created_at else '' }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ log.method_color }}">{{ log.method }}</span>
+                        </td>
+                        <td>
+                            <code class="text-dark" style="font-size:0.8rem;">{{ log.path }}</code>
+                            {% if log.query_string %}
+                            <br><small class="text-muted font-monospace" style="font-size:0.7rem;">?{{ log.query_string[:80] }}{% if log.query_string|length > 80 %}...{% endif %}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ log.status_color }}">{{ log.status_code }}</span>
+                        </td>
+                        <td>
+                            <span class="badge" style="background:{% if log.user_type_color == 'purple' %}#6f42c1{% else %}var(--bs-{{ log.user_type_color }}){% endif %};">{{ log.user_type_label }}</span>
+                            {% if log.user_display %}
+                            <br><small class="font-monospace">{{ log.user_display }}</small>
+                            {% endif %}
+                        </td>
+                        <td><small class="font-monospace">{{ log.ip_address or '—' }}</small></td>
+                        <td>
+                            {% if log.response_time_ms is not none %}
+                            <small class="{% if log.response_time_ms > 1000 %}text-danger fw-bold{% elif log.response_time_ms > 500 %}text-warning{% else %}text-muted{% endif %}">
+                                {{ log.response_time_ms }}ms
+                            </small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.body_preview %}
+                            <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#bodyModal{{ log.id }}" title="مشاهده بدنه">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">لاگی یافت نشد</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Body Preview Modals -->
+{% for log in logs %}
+{% if log.body_preview %}
+<div class="modal fade" id="bodyModal{{ log.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold">
+                    <span class="badge bg-{{ log.method_color }} me-2">{{ log.method }}</span>
+                    <code>{{ log.path }}</code>
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre class="bg-light p-3 rounded-3" style="direction:ltr;text-align:left;font-size:0.8rem;max-height:400px;overflow:auto;white-space:pre-wrap;word-break:break-all;">{{ log.body_preview }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<!-- Pagination -->
+{% from "components/pagination.html" import pagination %}
+{% set qs %}{% if method_filter %}&method={{ method_filter }}{% endif %}{% if status_filter %}&status_group={{ status_filter }}{% endif %}{% if path_search %}&path_search={{ path_search }}{% endif %}{% if user_type_filter %}&user_type={{ user_type_filter }}{% endif %}{% if ip_filter %}&ip={{ ip_filter }}{% endif %}{% endset %}
+{{ pagination(page, total_pages, '/admin/logs', qs) }}
+{% endblock %}

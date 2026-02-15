@@ -1,19 +1,19 @@
 """
-Admin Module - Settings Routes
-=================================
-System settings management (gold price, tax, etc.).
+Admin Module - Settings & Logs Routes
+========================================
+System settings management + Request audit log viewer.
 """
 
 from typing import Optional
-from fastapi import APIRouter, Request, Depends, Form
+from fastapi import APIRouter, Request, Depends, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
-from modules.auth.deps import require_super_admin
-from modules.admin.models import SystemSetting
+from modules.auth.deps import require_super_admin, require_operator_or_admin
+from modules.admin.models import SystemSetting, RequestLog
 
 router = APIRouter(tags=["admin-settings"])
 
@@ -74,3 +74,76 @@ async def update_settings(
 
     db.commit()
     return RedirectResponse("/admin/settings?msg=saved", status_code=303)
+
+
+# ==========================================
+# 📋 Request Audit Log
+# ==========================================
+
+@router.get("/admin/logs", response_class=HTMLResponse)
+async def admin_logs(
+    request: Request,
+    page: int = 1,
+    method: str = Query(None),
+    status_group: str = Query(None),
+    path_search: str = Query(None),
+    user_type: str = Query(None),
+    ip: str = Query(None),
+    db: Session = Depends(get_db),
+    user=Depends(require_operator_or_admin),
+):
+    per_page = 50
+    q = db.query(RequestLog)
+
+    # Filters
+    if method:
+        q = q.filter(RequestLog.method == method.upper())
+    if status_group:
+        if status_group == "2xx":
+            q = q.filter(RequestLog.status_code >= 200, RequestLog.status_code < 300)
+        elif status_group == "3xx":
+            q = q.filter(RequestLog.status_code >= 300, RequestLog.status_code < 400)
+        elif status_group == "4xx":
+            q = q.filter(RequestLog.status_code >= 400, RequestLog.status_code < 500)
+        elif status_group == "5xx":
+            q = q.filter(RequestLog.status_code >= 500)
+    if path_search:
+        q = q.filter(RequestLog.path.ilike(f"%{path_search}%"))
+    if user_type:
+        q = q.filter(RequestLog.user_type == user_type)
+    if ip:
+        q = q.filter(RequestLog.ip_address == ip)
+
+    total = q.count()
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    page = min(page, total_pages)
+
+    logs = q.order_by(RequestLog.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
+
+    # Quick stats
+    from sqlalchemy import func as sa_func
+    stats = {
+        "total": db.query(sa_func.count(RequestLog.id)).scalar() or 0,
+        "today": db.query(sa_func.count(RequestLog.id)).filter(
+            sa_func.date(RequestLog.created_at) == sa_func.current_date()
+        ).scalar() or 0,
+        "errors": db.query(sa_func.count(RequestLog.id)).filter(
+            RequestLog.status_code >= 400
+        ).scalar() or 0,
+    }
+
+    return templates.TemplateResponse("admin/logs/list.html", {
+        "request": request,
+        "user": user,
+        "logs": logs,
+        "stats": stats,
+        "page": page,
+        "total": total,
+        "total_pages": total_pages,
+        "method_filter": method or "",
+        "status_filter": status_group or "",
+        "path_search": path_search or "",
+        "user_type_filter": user_type or "",
+        "ip_filter": ip or "",
+        "active_page": "logs",
+    })
