@@ -72,6 +72,7 @@ class DeliveryService:
         """
         q = db.query(Dealer).filter(
             Dealer.is_active == True,
+            Dealer.is_warehouse == False,
         )
         if province:
             q = q.join(GeoProvince, Dealer.province_id == GeoProvince.id).filter(
