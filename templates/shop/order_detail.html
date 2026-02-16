@@ -335,6 +335,7 @@
         </div>
         {% endif %}
 
+        {% if user.is_staff %}
         <!-- Admin: Gift claim codes for packaging -->
         {% if order.is_gift and order.status == 'Paid' %}
         <div class="card-tm no-hover mt-3 border-start border-4 border-warning">
