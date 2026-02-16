@@ -300,16 +300,40 @@
             {% endif %}
         </div>
 
-        <!-- Customer Info (for admin) -->
-        {% if user.is_staff %}
+        <!-- Customer Billing Info (on invoice) -->
+        {% if order.customer %}
         <div class="card-tm no-hover mt-3">
-            <div class="border-bottom pb-3 mb-3 fw-bold small">اطلاعات مشتری</div>
+            <div class="border-bottom pb-3 mb-3 fw-bold small">
+                <i class="bi bi-person-vcard me-1"></i>اطلاعات خریدار
+            </div>
             <table class="table table-tm table-borderless mb-0">
-                <tr><td class="text-muted">نام</td><td>{{ order.customer.full_name if order.customer else '—' }}</td></tr>
-                <tr><td class="text-muted">موبایل</td><td dir="ltr">{{ order.customer.mobile if order.customer else '—' }}</td></tr>
-                <tr><td class="text-muted">کد ملی</td><td dir="ltr">{{ order.customer.national_id if order.customer else '—' }}</td></tr>
+                {% if order.customer.customer_type == 'legal' %}
+                <tr><td class="text-muted">نوع</td><td><span class="badge-tm badge-tm-info">حقوقی</span></td></tr>
+                {% if order.customer.company_name %}
+                <tr><td class="text-muted">نام شرکت</td><td class="fw-bold">{{ order.customer.company_name }}</td></tr>
+                {% endif %}
+                <tr><td class="text-muted">شناسه ملی</td><td dir="ltr">{{ order.customer.national_id or '—' }}</td></tr>
+                {% if order.customer.economic_code %}
+                <tr><td class="text-muted">کد اقتصادی</td><td dir="ltr">{{ order.customer.economic_code }}</td></tr>
+                {% endif %}
+                {% else %}
+                <tr><td class="text-muted">نوع</td><td><span class="badge-tm badge-tm-success">حقیقی</span></td></tr>
+                <tr><td class="text-muted">نام</td><td class="fw-bold">{{ order.customer.full_name }}</td></tr>
+                <tr><td class="text-muted">کد ملی</td><td dir="ltr">{{ order.customer.national_id or '—' }}</td></tr>
+                {% endif %}
+                <tr><td class="text-muted">موبایل</td><td dir="ltr">{{ order.customer.mobile }}</td></tr>
+                {% if order.customer.phone %}
+                <tr><td class="text-muted">تلفن ثابت</td><td dir="ltr">{{ order.customer.phone }}</td></tr>
+                {% endif %}
+                {% if order.customer.postal_code %}
+                <tr><td class="text-muted">کد پستی</td><td dir="ltr">{{ order.customer.postal_code }}</td></tr>
+                {% endif %}
+                {% if order.customer.address %}
+                <tr><td class="text-muted">نشانی</td><td>{{ order.customer.address }}</td></tr>
+                {% endif %}
             </table>
         </div>
+        {% endif %}
 
         <!-- Admin: Gift claim codes for packaging -->
         {% if order.is_gift and order.status == 'Paid' %}

@@ -56,6 +56,14 @@
         {% if msg %}<div class="alert-tm-success py-2">{{ msg }}</div>{% endif %}
         {% if error %}<div class="alert-tm-danger py-2">{{ error }}</div>{% endif %}
 
+        {% if not user.is_profile_complete %}
+        <div class="alert-tm-warning py-2 mb-3">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            <strong>پروفایل شما ناقص است.</strong>
+            لطفاً اطلاعات زیر را تکمیل کنید تا بتوانید سفارش ثبت کنید.
+        </div>
+        {% endif %}
+
         <!-- Quick Navigation Cards -->
         <div class="row g-3 mb-4 tm-animate-fade-in-up">
             <div class="col-4">
@@ -87,12 +95,50 @@
             </div>
         </div>
 
-        <!-- Identity (read-only — will be verified via Shahkar) -->
-        <div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-1">
-            <div class="border-bottom pb-3 mb-3 fw-bold small">
-                <i class="bi bi-shield-lock me-1"></i>اطلاعات هویتی
-                <span class="badge-tm badge-tm-info float-start">غیرقابل تغییر</span>
+        <!-- Profile Form -->
+        <form method="POST" action="/profile">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <!-- Customer Type Selection -->
+            <div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-1">
+                <div class="border-bottom pb-3 mb-3 fw-bold small">
+                    <i class="bi bi-building me-1"></i>نوع شخصیت
+                    <span class="text-danger">*</span>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-check border rounded p-3 {% if user.customer_type == 'real' %}border-success bg-light{% endif %}" style="cursor:pointer;"
+                             onclick="this.querySelector('input').checked=true; toggleCustomerType('real');">
+                            <input class="form-check-input" type="radio" name="customer_type" value="real" id="typeReal"
+                                   {% if user.customer_type == 'real' or not user.customer_type %}checked{% endif %}
+                                   onchange="toggleCustomerType('real')">
+                            <label class="form-check-label w-100" for="typeReal">
+                                <strong><i class="bi bi-person me-1"></i>شخص حقیقی</strong>
+                                <div class="small text-muted">خرید شخصی با کد ملی</div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check border rounded p-3 {% if user.customer_type == 'legal' %}border-success bg-light{% endif %}" style="cursor:pointer;"
+                             onclick="this.querySelector('input').checked=true; toggleCustomerType('legal');">
+                            <input class="form-check-input" type="radio" name="customer_type" value="legal" id="typeLegal"
+                                   {% if user.customer_type == 'legal' %}checked{% endif %}
+                                   onchange="toggleCustomerType('legal')">
+                            <label class="form-check-label w-100" for="typeLegal">
+                                <strong><i class="bi bi-building me-1"></i>شخص حقوقی</strong>
+                                <div class="small text-muted">خرید سازمانی با شناسه ملی</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Identity (read-only — will be verified via Shahkar) -->
+            <div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-2">
+                <div class="border-bottom pb-3 mb-3 fw-bold small">
+                    <i class="bi bi-shield-lock me-1"></i>اطلاعات هویتی
+                    <span class="badge-tm badge-tm-info float-start">غیرقابل تغییر</span>
+                </div>
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label-tm small text-muted">نام و نام خانوادگی</label>
@@ -103,7 +149,9 @@
                         <input type="text" class="form-control form-control-tm bg-light" dir="ltr" value="{{ user.mobile }}" readonly disabled>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label-tm small text-muted">کد ملی</label>
+                        <label class="form-label-tm small text-muted">
+                            <span id="idLabel">{{ 'شناسه ملی' if user.customer_type == 'legal' else 'کد ملی' }}</span>
+                        </label>
                         <input type="text" class="form-control form-control-tm bg-light" dir="ltr" value="{{ user.national_id or '—' }}" readonly disabled>
                     </div>
                     <div class="col-md-6">
@@ -115,25 +163,75 @@
                     <i class="bi bi-info-circle me-1"></i>
                     این اطلاعات پس از احراز هویت (شاهکار) قابل تغییر نیست. در صورت نیاز به اصلاح با پشتیبانی تماس بگیرید.
                 </p>
-        </div>
-
-        <!-- Editable fields -->
-        <div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-2">
-            <div class="border-bottom pb-3 mb-3 fw-bold small">
-                <i class="bi bi-pencil me-1"></i>اطلاعات تکمیلی
             </div>
-                <form method="POST" action="/profile">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label-tm small fw-bold">تاریخ تولد</label>
-                            <input type="text" name="birth_date" class="form-control form-control-tm" dir="ltr"
-                                   value="{{ user.birth_date or '' }}" placeholder="1370/01/15">
-                        </div>
+
+            <!-- Legal entity fields (shown only for حقوقی) -->
+            <div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-3" id="legalFields"
+                 style="{% if user.customer_type != 'legal' %}display:none;{% endif %}">
+                <div class="border-bottom pb-3 mb-3 fw-bold small">
+                    <i class="bi bi-building me-1"></i>اطلاعات حقوقی
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-tm small fw-bold">نام شرکت / سازمان <span class="text-danger">*</span></label>
+                        <input type="text" name="company_name" class="form-control form-control-tm"
+                               value="{{ user.company_name or '' }}" placeholder="نام رسمی شرکت">
                     </div>
-                    <button class="btn btn-tm-primary mt-3"><i class="bi bi-check-lg me-1"></i>ذخیره تغییرات</button>
-                </form>
-        </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm small fw-bold">کد اقتصادی</label>
+                        <input type="text" name="economic_code" class="form-control form-control-tm" dir="ltr"
+                               value="{{ user.economic_code or '' }}" placeholder="کد اقتصادی (اختیاری)">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact & Address fields -->
+            <div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-4">
+                <div class="border-bottom pb-3 mb-3 fw-bold small">
+                    <i class="bi bi-pencil me-1"></i>اطلاعات تماس و نشانی
+                    <span class="text-danger">*</span>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-tm small fw-bold">شماره تماس ثابت</label>
+                        <input type="text" name="phone" class="form-control form-control-tm" dir="ltr"
+                               value="{{ user.phone or '' }}" placeholder="021-12345678">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm small fw-bold">کد پستی <span class="text-danger">*</span></label>
+                        <input type="text" name="postal_code" class="form-control form-control-tm" dir="ltr"
+                               value="{{ user.postal_code or '' }}" placeholder="۱۰ رقم" maxlength="10">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-tm small fw-bold">نشانی <span class="text-danger">*</span></label>
+                        <textarea name="address" class="form-control form-control-tm" rows="2"
+                                  placeholder="نشانی کامل (استان، شهر، خیابان، پلاک)">{{ user.address or '' }}</textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm small fw-bold">تاریخ تولد</label>
+                        <input type="text" name="birth_date" class="form-control form-control-tm" dir="ltr"
+                               value="{{ user.birth_date or '' }}" placeholder="1370/01/15">
+                    </div>
+                </div>
+                <button class="btn btn-tm-primary mt-3"><i class="bi bi-check-lg me-1"></i>ذخیره تغییرات</button>
+            </div>
+        </form>
     </div>
 </div>
+{% endblock %}
+
+{% block shop_js %}
+<script>
+function toggleCustomerType(type) {
+    var legalFields = document.getElementById('legalFields');
+    var idLabel = document.getElementById('idLabel');
+    if (type === 'legal') {
+        legalFields.style.display = '';
+        idLabel.textContent = 'شناسه ملی';
+    } else {
+        legalFields.style.display = 'none';
+        idLabel.textContent = 'کد ملی';
+    }
+}
+</script>
 {% endblock %}

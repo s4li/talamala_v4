@@ -26,6 +26,14 @@ class Customer(Base):
     avatar_path = Column(String, nullable=True)
     is_active = Column(Boolean, default=True, server_default="true", nullable=False)
 
+    # Legal entity type: "real" (حقیقی) or "legal" (حقوقی)
+    customer_type = Column(String, nullable=True)  # "real" | "legal"
+    company_name = Column(String, nullable=True)   # نام شرکت (فقط حقوقی)
+    economic_code = Column(String, nullable=True)   # کد اقتصادی (فقط حقوقی)
+    postal_code = Column(String, nullable=True)     # کد پستی
+    address = Column(String, nullable=True)         # نشانی
+    phone = Column(String, nullable=True)           # شماره تماس ثابت
+
     # OTP fields (used by auth module)
     otp_code = Column(String, nullable=True)
     otp_expiry = Column(DateTime(timezone=True), nullable=True)
@@ -36,6 +44,30 @@ class Customer(Base):
     def full_name(self) -> str:
         parts = [self.first_name or "", self.last_name or ""]
         return " ".join(p for p in parts if p).strip() or "کاربر"
+
+    @property
+    def display_name(self) -> str:
+        """For invoices: company name for legal entities, full_name for real persons."""
+        if self.customer_type == "legal" and self.company_name:
+            return self.company_name
+        return self.full_name
+
+    @property
+    def is_profile_complete(self) -> bool:
+        """Check if required profile fields are filled for ordering."""
+        if not self.first_name or not self.last_name:
+            return False
+        if not self.national_id:
+            return False
+        if not self.customer_type:
+            return False
+        if not self.postal_code:
+            return False
+        if not self.address:
+            return False
+        if self.customer_type == "legal" and not self.company_name:
+            return False
+        return True
 
     def __repr__(self):
         return f"<Customer {self.mobile} ({self.full_name})>"

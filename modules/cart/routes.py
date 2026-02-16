@@ -115,6 +115,11 @@ async def checkout_page(
 ):
     from modules.order.delivery_service import delivery_service
 
+    # Profile completion check
+    if not me.is_profile_complete:
+        error = urllib.parse.quote("لطفاً ابتدا پروفایل خود را تکمیل کنید تا بتوانید سفارش ثبت کنید.")
+        return RedirectResponse(f"/profile?error={error}", status_code=302)
+
     items, total_price = cart_service.get_cart_items_with_pricing(db, me.id)
     if not items:
         return RedirectResponse("/cart", status_code=302)
@@ -209,6 +214,11 @@ async def checkout(
     me=Depends(require_customer),
 ):
     csrf_check(request, csrf_token)
+
+    # Profile completion check
+    if not me.is_profile_complete:
+        error = urllib.parse.quote("لطفاً ابتدا پروفایل خود را تکمیل کنید.")
+        return RedirectResponse(f"/profile?error={error}", status_code=303)
 
     # Validate
     pickup_loc_id = int(pickup_dealer_id) if pickup_dealer_id.strip().isdigit() else None

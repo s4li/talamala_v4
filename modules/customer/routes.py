@@ -49,6 +49,12 @@ async def profile_page(
 @router.post("/profile")
 async def profile_update(
     request: Request,
+    customer_type: str = Form("real"),
+    company_name: str = Form(""),
+    economic_code: str = Form(""),
+    postal_code: str = Form(""),
+    address: str = Form(""),
+    phone: str = Form(""),
     birth_date: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
@@ -57,8 +63,25 @@ async def profile_update(
     """Update editable profile fields only (name/national_id locked for shahkar)."""
     csrf_check(request, csrf_token)
 
+    # Customer type
+    if customer_type in ("real", "legal"):
+        me.customer_type = customer_type
+
+    # Legal entity fields
+    if customer_type == "legal":
+        me.company_name = company_name.strip() or None
+        me.economic_code = economic_code.strip() or None
+    else:
+        me.company_name = None
+        me.economic_code = None
+
+    # Contact & address
+    me.postal_code = postal_code.strip() or None
+    me.address = address.strip() or None
+    me.phone = phone.strip() or None
     if birth_date:
         me.birth_date = birth_date.strip()
+
     db.commit()
 
     msg = urllib.parse.quote("اطلاعات پروفایل بروزرسانی شد.")

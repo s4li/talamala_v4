@@ -103,7 +103,8 @@ talamala_v4/
 - **RequestLog**: id, method, path, query_string, status_code, ip_address, user_agent, user_type, user_id, user_display, body_preview, response_time_ms, created_at — لاگ درخواست‌ها (middleware ثبت میکنه)
 
 ### customer/models.py
-- **Customer**: id, mobile (unique), full_name, national_id, birth_date, is_active, created_at
+- **Customer**: id, mobile (unique), first_name, last_name, national_id, birth_date, is_active, customer_type (real/legal), company_name, economic_code, postal_code, address, phone, created_at
+  - Properties: `full_name`, `display_name` (company for legal, name for real), `is_profile_complete` (checks required fields)
 
 ### customer/address_models.py
 - **GeoProvince**: id, name (unique), sort_order → has many GeoCity

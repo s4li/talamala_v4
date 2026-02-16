@@ -101,9 +101,31 @@ def seed():
         print("\n[2/9] Test Customers")
 
         customers_data = [
-            {"mobile": "09351234567", "national_id": "0012345678", "first_name": "علی", "last_name": "رضایی"},
-            {"mobile": "09359876543", "national_id": "0087654321", "first_name": "مریم", "last_name": "احمدی"},
-            {"mobile": "09131112233", "national_id": "1234567890", "first_name": "رضا", "last_name": "محمدی"},
+            {
+                "mobile": "09351234567", "national_id": "0012345678",
+                "first_name": "علی", "last_name": "رضایی",
+                "customer_type": "real",
+                "postal_code": "1234567890",
+                "address": "تهران، خیابان ولیعصر، پلاک ۱۰۰",
+                "phone": "02112345678",
+            },
+            {
+                "mobile": "09359876543", "national_id": "0087654321",
+                "first_name": "مریم", "last_name": "احمدی",
+                "customer_type": "legal",
+                "company_name": "شرکت زرین تجارت",
+                "economic_code": "411111111111",
+                "postal_code": "9876543210",
+                "address": "اصفهان، خیابان چهارباغ، پلاک ۵۰",
+                "phone": "03132005678",
+            },
+            {
+                "mobile": "09131112233", "national_id": "1234567890",
+                "first_name": "رضا", "last_name": "محمدی",
+                "customer_type": "real",
+                "postal_code": "1122334455",
+                "address": "شیراز، خیابان زند، پلاک ۲۰",
+            },
         ]
         for data in customers_data:
             existing = db.query(Customer).filter(Customer.mobile == data["mobile"]).first()
