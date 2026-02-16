@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}دسترسی غیرمجاز{% endblock %}
+
+{% block body %}
+<div class="d-flex align-items-center justify-content-center" style="min-height:70vh;">
+    <div class="text-center">
+        <div class="mb-4" style="font-size:5rem;color:var(--tm-negative);">
+            <i class="bi bi-shield-lock"></i>
+        </div>
+        <h3 class="fw-bold mb-3">دسترسی غیرمجاز</h3>
+        <p class="text-muted fs-5 mb-4">{{ detail }}</p>
+        <div class="d-flex gap-3 justify-content-center">
+            <a href="/admin/dashboard" class="btn btn-tm-primary">
+                <i class="bi bi-speedometer2 me-1"></i> داشبورد
+            </a>
+            <a href="/auth/logout" class="btn btn-tm-outline">
+                <i class="bi bi-box-arrow-right me-1"></i> خروج و ورود مجدد
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

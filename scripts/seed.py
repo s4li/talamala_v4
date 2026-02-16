@@ -81,21 +81,28 @@ def seed():
         # ==========================================
         print("\n[1/9] Admin Users")
 
-        import json as _json
-        operator_perms = _json.dumps(["dashboard", "orders", "inventory", "tickets", "customers"])
         admins_data = [
             {"mobile": "09123456789", "full_name": "مدیر سیستم", "role": "admin"},
-            {"mobile": "09121111111", "full_name": "اپراتور تهران", "role": "operator", "_permissions": operator_perms},
+            {"mobile": "09121111111", "full_name": "اپراتور تهران", "role": "operator"},
             {"mobile": "09121023589", "full_name": "ادمین ۱", "role": "admin"},
             {"mobile": "09120725564", "full_name": "ادمین ۲", "role": "admin"},
         ]
         for data in admins_data:
             existing = db.query(SystemUser).filter(SystemUser.mobile == data["mobile"]).first()
             if not existing:
-                db.add(SystemUser(**data))
+                user_obj = SystemUser(**data)
+                db.add(user_obj)
                 print(f"  + {data['role']}: {data['mobile']} ({data['full_name']})")
             else:
+                user_obj = existing
                 print(f"  = exists: {data['mobile']}")
+
+        # Set operator permissions (after flush to ensure objects exist)
+        db.flush()
+        op_user = db.query(SystemUser).filter(SystemUser.mobile == "09121111111").first()
+        if op_user:
+            op_user.permissions = ["dashboard", "orders", "inventory", "tickets", "customers"]
+            print(f"  ~ operator permissions set: {op_user.permissions}")
 
         # ==========================================
         # 2. Test Customers
