@@ -24,9 +24,11 @@ from modules.pricing.service import get_end_customer_wage
 logger = logging.getLogger("talamala.order")
 
 
-def build_order_item(product, bar, invoice: dict, gold_price_rial: int, tax_percent_str: str) -> OrderItem:
-    """Create an OrderItem with full price snapshot."""
+def build_order_item(product, bar, invoice: dict, gold_price_rial: int, tax_percent_str: str,
+                     package_type_id: int = None, package_price: int = 0) -> OrderItem:
+    """Create an OrderItem with full price snapshot (including package)."""
     audit = invoice.get("audit", {})
+    gold_total = int(invoice.get("total", 0))
     return OrderItem(
         product_id=product.id,
         bar_id=bar.id,
@@ -39,7 +41,9 @@ def build_order_item(product, bar, invoice: dict, gold_price_rial: int, tax_perc
         final_gold_amount=int(invoice.get("raw_gold", 0)),
         final_wage_amount=int(invoice.get("wage", 0)),
         final_tax_amount=int(invoice.get("tax", 0)),
-        line_total=int(invoice.get("total", 0)),
+        package_type_id=package_type_id,
+        applied_package_price=package_price,
+        line_total=gold_total + package_price,
     )
 
 
@@ -129,6 +133,12 @@ class OrderService:
                 tax_percent=Decimal(tax_percent_str) if tax_percent_str else 0,
             )
 
+            # Package price snapshot
+            pkg_type_id = item.package_type_id
+            pkg_price = 0
+            if pkg_type_id and item.package_type:
+                pkg_price = int(item.package_type.price or 0)
+
             required_qty = item.quantity
 
             # Lock and reserve bars - filter by location for delivery method
@@ -171,10 +181,11 @@ class OrderService:
                 bar.reserved_customer_id = customer_id
                 bar.reserved_until = expire_at
 
-                oi = build_order_item(item.product, bar, price_info, gold_price_rial, tax_percent_str)
+                oi = build_order_item(item.product, bar, price_info, gold_price_rial, tax_percent_str,
+                                     package_type_id=pkg_type_id, package_price=pkg_price)
                 oi.order_id = new_order.id
                 order_items.append(oi)
-                cart_raw_total += int(price_info.get("total", 0))
+                cart_raw_total += int(price_info.get("total", 0)) + pkg_price
 
         new_order.total_amount = cart_raw_total
 

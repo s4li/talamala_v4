@@ -296,10 +296,56 @@ class BatchService:
 
 
 # ==========================================
+# Package Service (dedicated, with price + is_active)
+# ==========================================
+
+class PackageService:
+    """Service for PackageType with name, price, is_active + images."""
+
+    def list_all(self, db: Session) -> List[PackageType]:
+        return db.query(PackageType).order_by(PackageType.id).all()
+
+    def list_active(self, db: Session) -> List[PackageType]:
+        return db.query(PackageType).filter(PackageType.is_active == True).order_by(PackageType.id).all()
+
+    def get_by_id(self, db: Session, item_id: int) -> Optional[PackageType]:
+        return db.query(PackageType).filter(PackageType.id == item_id).first()
+
+    def create(self, db: Session, name: str, price: int = 0, is_active: bool = True,
+               files: List[UploadFile] = None) -> PackageType:
+        item = PackageType(name=name, price=price, is_active=is_active)
+        db.add(item)
+        db.commit()
+        db.refresh(item)
+        if files:
+            images.save_images(db, item.id, files, PackageTypeImage, "package_id",
+                             subfolder="packages")
+        return item
+
+    def update(self, db: Session, item_id: int, name: str, price: int = 0,
+               is_active: bool = True, files: List[UploadFile] = None) -> Optional[PackageType]:
+        item = self.get_by_id(db, item_id)
+        if not item:
+            return None
+        item.name = name
+        item.price = price
+        item.is_active = is_active
+        db.commit()
+        if files:
+            images.save_images(db, item.id, files, PackageTypeImage, "package_id",
+                             set_first_default=False, subfolder="packages")
+        return item
+
+    def delete(self, db: Session, item_id: int):
+        db.query(PackageType).filter(PackageType.id == item_id).delete()
+        db.commit()
+
+
+# ==========================================
 # Service Singletons
 # ==========================================
 
 product_service = ProductService()
 design_service = SimpleEntityService(CardDesign, CardDesignImage, "design_id", "designs")
-package_service = SimpleEntityService(PackageType, PackageTypeImage, "package_id", "packages")
+package_service = PackageService()
 batch_service = BatchService()

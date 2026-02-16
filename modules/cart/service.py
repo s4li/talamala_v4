@@ -38,9 +38,11 @@ class CartService:
             Bar.reserved_customer_id.is_(None),
         ).count()
 
-    def update_item(self, db: Session, customer_id: int, product_id: int, change: int) -> Tuple[int, int]:
+    def update_item(self, db: Session, customer_id: int, product_id: int, change: int,
+                    package_type_id: int = None) -> Tuple[int, int]:
         """
         Update cart item quantity by `change` (+1 or -1).
+        If package_type_id is provided on first add, it's set on the CartItem.
         Returns: (new_quantity, total_cart_count)
         """
         cart = self.get_or_create_cart(db, customer_id)
@@ -61,16 +63,35 @@ class CartService:
                 new_qty = 0
             else:
                 item.quantity = new_qty
+                if package_type_id is not None and change > 0:
+                    item.package_type_id = package_type_id
         elif change > 0:
             if inventory < 1:
                 return 0, self._cart_count(db, cart.id)
-            item = CartItem(cart_id=cart.id, product_id=product_id, quantity=1)
+            item = CartItem(cart_id=cart.id, product_id=product_id, quantity=1,
+                           package_type_id=package_type_id)
             db.add(item)
             new_qty = 1
 
         db.flush()
         total = self._cart_count(db, cart.id)
         return new_qty, total
+
+    def set_package(self, db: Session, customer_id: int, product_id: int,
+                    package_type_id: int = None) -> bool:
+        """Set or clear the package type for a cart item. Returns True if found."""
+        cart = db.query(Cart).filter(Cart.customer_id == customer_id).first()
+        if not cart:
+            return False
+        item = db.query(CartItem).filter(
+            CartItem.cart_id == cart.id,
+            CartItem.product_id == product_id,
+        ).first()
+        if not item:
+            return False
+        item.package_type_id = package_type_id
+        db.flush()
+        return True
 
     def get_cart_items_with_pricing(self, db: Session, customer_id: int) -> Tuple[List[dict], int]:
         """
@@ -107,13 +128,21 @@ class CartService:
                 tax_percent=Decimal(tax_percent_str) if tax_percent_str else 0,
             )
             unit_total = int(price_info.get("total", 0))
-            line_total = unit_total * item.quantity
+
+            # Package price (per bar)
+            pkg_price = 0
+            if item.package_type_id and item.package_type:
+                pkg_price = int(item.package_type.price or 0)
+
+            line_total = (unit_total + pkg_price) * item.quantity
             total_price += line_total
 
             items_data.append({
                 "product": item.product,
                 "quantity": item.quantity,
                 "unit_price": unit_total,
+                "package_type": item.package_type,
+                "package_price": pkg_price,
                 "line_total": line_total,
                 "inventory": inv_map.get(item.product_id, 0),
                 "details": price_info,

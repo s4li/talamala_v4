@@ -91,6 +91,10 @@ async def product_detail(
     product, invoice, inventory, gold_price, tax_percent, location_inventory = result
     cart_map, cart_count = _get_cart_info(db, user)
 
+    # Get active packages for selection
+    from modules.catalog.models import PackageType
+    packages = db.query(PackageType).filter(PackageType.is_active == True).order_by(PackageType.id).all()
+
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/product_detail.html", {
         "request": request,
@@ -103,6 +107,7 @@ async def product_detail(
         "location_inventory": location_inventory,
         "cart_map": cart_map,
         "cart_count": cart_count,
+        "packages": packages,
         "csrf_token": csrf,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")

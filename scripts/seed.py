@@ -188,10 +188,20 @@ def seed():
                 db.add(CardDesign(name=name))
                 print(f"  + Design: {name}")
 
-        for name in ["جعبه استاندارد", "جعبه لوکس", "جعبه هدیه ویژه", "پاکت ساده"]:
-            if not db.query(PackageType).filter(PackageType.name == name).first():
-                db.add(PackageType(name=name))
-                print(f"  + Package: {name}")
+        pkg_data = [
+            {"name": "جعبه استاندارد", "price": 0},
+            {"name": "جعبه لوکس", "price": 5_000_000},
+            {"name": "جعبه هدیه ویژه", "price": 15_000_000},
+            {"name": "پاکت ساده", "price": 1_000_000},
+        ]
+        for pd in pkg_data:
+            existing = db.query(PackageType).filter(PackageType.name == pd["name"]).first()
+            if not existing:
+                db.add(PackageType(name=pd["name"], price=pd["price"], is_active=True))
+                print(f"  + Package: {pd['name']} ({pd['price']} rial)")
+            else:
+                existing.price = pd["price"]
+                print(f"  = Package: {pd['name']} (price updated)")
 
         batches_data = [
             {"batch_number": "B-1403-001", "melt_number": "M-001", "operator": "استاد کریمی", "purity": 750},

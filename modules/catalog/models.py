@@ -155,6 +155,8 @@ class PackageType(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)
+    price = Column(BigInteger, default=0, nullable=False)       # قیمت بسته‌بندی (ریال)
+    is_active = Column(Boolean, default=True, nullable=False)
 
     images = relationship("PackageTypeImage", back_populates="package", cascade="all, delete-orphan")
 

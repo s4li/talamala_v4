@@ -119,7 +119,7 @@ talamala_v4/
   - Properties: `categories` (list of ProductCategory), `category_ids` (list of int)
 - **ProductImage**: id, product_id, path, is_default
 - **CardDesign / CardDesignImage**: طرح کارت‌های هدیه
-- **PackageType / PackageTypeImage**: بسته‌بندی
+- **PackageType / PackageTypeImage**: بسته‌بندی — price (BigInteger, ریال, default=0), is_active (Boolean, default=True)
 - **Batch / BatchImage**: بچ تولید (ذوب)
 
 ### inventory/models.py
@@ -132,11 +132,11 @@ talamala_v4/
 
 ### cart/models.py
 - **Cart**: id, customer_id (unique), created_at
-- **CartItem**: id, cart_id, product_id, quantity
+- **CartItem**: id, cart_id, product_id, quantity, package_type_id (FK→package_types, nullable)
 
 ### order/models.py
 - **Order**: id, customer_id, status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_dealer_id (FK→dealers), shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at
-- **OrderItem**: id, order_id, product_id, bar_id, applied_gold_price, applied_unit_price, applied_weight, applied_purity, applied_wage_percent, applied_tax_percent, final_gold_amount, final_wage_amount, final_tax_amount, line_total
+- **OrderItem**: id, order_id, product_id, bar_id, applied_gold_price, applied_unit_price, applied_weight, applied_purity, applied_wage_percent, applied_tax_percent, final_gold_amount, final_wage_amount, final_tax_amount, package_type_id (FK→package_types, nullable), applied_package_price (BigInteger, default=0), line_total (= gold_total + package_price)
 
 ### wallet/models.py
 - **Account**: id, customer_id, asset_code (IRR/XAU_MG), owner_type, owner_id, balance, locked_balance, credit_balance (non-withdrawable store credit)
@@ -445,7 +445,8 @@ total    = raw_gold + wage + tax
 
 ### Cart & Orders
 - `GET /cart` — Cart page
-- `POST /cart/update` — افزودن/حذف آیتم (با product_id + action)
+- `POST /cart/update` — افزودن/حذف آیتم (با product_id + action + package_type_id)
+- `POST /cart/set-package` — تغییر بسته‌بندی آیتم سبد خرید
 - `GET /checkout` — Checkout
 - `POST /cart/checkout` — Place order
 - `GET /orders` — My orders

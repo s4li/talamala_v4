@@ -191,6 +191,24 @@
                 <h6><a href="/product/{{ item.product.id }}">{{ item.product.name }}</a></h6>
                 <div class="cart-item-specs">{{ item.product.weight }} گرم | عیار {{ item.product.purity|purity }}</div>
                 <div class="cart-item-unit-price">{{ item.unit_price | toman }} تومان</div>
+                <!-- Package selection -->
+                <form method="POST" action="/cart/set-package" class="d-inline mt-1" style="display:block!important;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="product_id" value="{{ item.product.id }}">
+                    <div class="d-flex align-items-center gap-1">
+                        <i class="bi bi-gift text-muted" style="font-size:0.78rem;"></i>
+                        <select name="package_type_id" class="form-select form-select-sm d-inline-block"
+                                style="width:auto;font-size:0.78rem;padding:2px 24px 2px 8px;height:auto;"
+                                onchange="this.form.submit()">
+                            <option value="">بسته‌بندی استاندارد (رایگان)</option>
+                            {% for pkg in packages %}
+                            <option value="{{ pkg.id }}" {% if item.package_type and item.package_type.id == pkg.id %}selected{% endif %}>
+                                {{ pkg.name }}{% if pkg.price > 0 %} (+{{ pkg.price | toman }} ت){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
             </div>
 
             <!-- Quantity Controls -->
@@ -218,6 +236,9 @@
             <div class="cart-item-total">
                 <div class="price">{{ item.line_total | toman }}</div>
                 <div class="currency">تومان</div>
+                {% if item.package_price > 0 %}
+                <div class="text-muted" style="font-size:0.68rem;">شامل بسته‌بندی</div>
+                {% endif %}
             </div>
 
             <!-- Remove -->

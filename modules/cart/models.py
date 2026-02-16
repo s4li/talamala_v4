@@ -31,9 +31,11 @@ class CartItem(Base):
     cart_id = Column(Integer, ForeignKey("carts.id", ondelete="CASCADE"), nullable=False)
     product_id = Column(Integer, ForeignKey("products.id", ondelete="RESTRICT"), nullable=False)
     quantity = Column(Integer, default=1, nullable=False)
+    package_type_id = Column(Integer, ForeignKey("package_types.id", ondelete="SET NULL"), nullable=True)
 
     cart = relationship("Cart", back_populates="items")
     product = relationship("Product")
+    package_type = relationship("PackageType")
 
     __table_args__ = (
         UniqueConstraint("cart_id", "product_id", name="uq_cart_product"),

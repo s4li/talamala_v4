@@ -20,6 +20,22 @@
                     <input type="text" name="name" class="form-control form-control-tm fw-bold" value="{{ pkg.name }}">
                     <button class="btn btn-sm btn-tm-outline"><i class="bi bi-check-lg"></i></button>
                 </div>
+                <div class="row g-2 mt-2">
+                    <div class="col-7">
+                        <div class="input-group input-group-sm">
+                            <input type="number" name="price" class="form-control form-control-tm"
+                                   value="{{ (pkg.price / 10)|int }}" min="0" placeholder="قیمت">
+                            <span class="input-group-text">تومان</span>
+                        </div>
+                    </div>
+                    <div class="col-5">
+                        <div class="form-check form-switch mt-1">
+                            <input class="form-check-input" type="checkbox" name="is_active"
+                                   {% if pkg.is_active %}checked{% endif %}>
+                            <label class="form-check-label small">فعال</label>
+                        </div>
+                    </div>
+                </div>
                 <input type="file" name="files" class="form-control form-control-tm form-control-sm mt-2" multiple accept="image/*">
                 <button type="submit" class="btn btn-sm btn-tm-primary mt-2 w-100">ذخیره</button>
             </form>
@@ -73,6 +89,20 @@
                     <div class="mb-3">
                         <label class="form-label-tm">نام بسته‌بندی *</label>
                         <input type="text" name="name" class="form-control form-control-tm" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-tm">قیمت (تومان)</label>
+                        <div class="input-group">
+                            <input type="number" name="price" class="form-control form-control-tm" value="0" min="0">
+                            <span class="input-group-text">تومان</span>
+                        </div>
+                        <small class="text-muted">۰ = رایگان</small>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_active" checked>
+                            <label class="form-check-label">فعال</label>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label-tm">تصاویر</label>

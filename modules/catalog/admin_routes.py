@@ -199,18 +199,22 @@ async def list_packages(request: Request, db: Session = Depends(get_db), user=De
 
 
 @router.post("/admin/packages/add")
-async def add_package(request: Request, name: str = Form(...), files: List[UploadFile] = File(None),
+async def add_package(request: Request, name: str = Form(...), price: str = Form("0"),
+                       is_active: str = Form("on"), files: List[UploadFile] = File(None),
                        csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
-    package_service.create(db, name, files)
+    price_rial = int(price) * 10 if price.strip().isdigit() else 0
+    package_service.create(db, name, price=price_rial, is_active=(is_active == "on"), files=files)
     return RedirectResponse("/admin/packages", status_code=303)
 
 
 @router.post("/admin/packages/update/{item_id}")
-async def update_package(request: Request, item_id: int, name: str = Form(...), files: List[UploadFile] = File(None),
+async def update_package(request: Request, item_id: int, name: str = Form(...), price: str = Form("0"),
+                           is_active: str = Form(None), files: List[UploadFile] = File(None),
                            csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
-    package_service.update(db, item_id, name, files)
+    price_rial = int(price) * 10 if price.strip().isdigit() else 0
+    package_service.update(db, item_id, name, price=price_rial, is_active=(is_active == "on"), files=files)
     return RedirectResponse("/admin/packages", status_code=303)
 
 

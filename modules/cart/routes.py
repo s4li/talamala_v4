@@ -35,6 +35,10 @@ async def view_cart(
 ):
     items, total_price = cart_service.get_cart_items_with_pricing(db, me.id)
 
+    # Get active packages for selection dropdown
+    from modules.catalog.models import PackageType
+    packages = db.query(PackageType).filter(PackageType.is_active == True).order_by(PackageType.id).all()
+
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/cart.html", {
         "request": request,
@@ -43,6 +47,7 @@ async def view_cart(
         "total_price": total_price,
         "cart_count": sum(it["quantity"] for it in items),
         "gold_price": cart_service._gold_price(db),
+        "packages": packages,
         "csrf_token": csrf,
         "msg": msg,
         "error": error,
@@ -60,16 +65,18 @@ async def update_cart_form(
     request: Request,
     product_id: int = Form(...),
     action: str = Form(...),
+    package_type_id: str = Form(""),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     me=Depends(require_customer),
 ):
     csrf_check(request, csrf_token)
+    pkg_id = int(package_type_id) if package_type_id.strip().isdigit() else None
     if action == "remove":
         cart_service.update_item(db, me.id, product_id, -9999)
     else:
         change = 1 if action == "increase" else -1
-        cart_service.update_item(db, me.id, product_id, change)
+        cart_service.update_item(db, me.id, product_id, change, package_type_id=pkg_id)
     db.commit()
 
     # Redirect back to referrer page
@@ -93,14 +100,39 @@ async def api_update_cart(
 
     product_id = int(data.get("product_id"))
     change = int(data.get("change"))
+    pkg_id = data.get("package_type_id")
+    if pkg_id is not None:
+        pkg_id = int(pkg_id)
 
-    new_qty, cart_count = cart_service.update_item(db, me.id, product_id, change)
+    new_qty, cart_count = cart_service.update_item(db, me.id, product_id, change,
+                                                   package_type_id=pkg_id)
     db.commit()
     return JSONResponse({
         "status": "success",
         "new_quantity": new_qty,
         "cart_count": cart_count,
     })
+
+
+# ==========================================
+# 📦 Set Cart Package (Form-based)
+# ==========================================
+
+@router.post("/cart/set-package")
+async def set_cart_package(
+    request: Request,
+    product_id: int = Form(...),
+    package_type_id: str = Form(""),
+    csrf_token: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    me=Depends(require_customer),
+):
+    csrf_check(request, csrf_token)
+    pkg_id = int(package_type_id) if package_type_id.strip().isdigit() else None
+    cart_service.set_package(db, me.id, product_id, pkg_id)
+    db.commit()
+    referer = request.headers.get("referer", "/cart")
+    return RedirectResponse(referer, status_code=303)
 
 
 # ==========================================

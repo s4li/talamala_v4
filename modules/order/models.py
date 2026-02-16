@@ -163,7 +163,12 @@ class OrderItem(Base):
     final_tax_amount = Column(BigInteger, default=0, nullable=False)
     line_total = Column(BigInteger, nullable=False)
 
+    # Package snapshot
+    package_type_id = Column(Integer, ForeignKey("package_types.id", ondelete="SET NULL"), nullable=True)
+    applied_package_price = Column(BigInteger, default=0, nullable=False)   # ریال — snapshot at checkout
+
     # Relationships
     order = relationship("Order", back_populates="items")
     product = relationship("Product")
     bar = relationship("Bar")
+    package_type = relationship("PackageType")
