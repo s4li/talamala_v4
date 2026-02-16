@@ -113,7 +113,15 @@
                         </div>
                         <small class="text-muted">حداکثر: <span id="maxDiscountDisplay">0</span>%</small>
                     </div>
-                    <div class="col-md-9">
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <input type="number" id="discountTomanInput" step="1" min="0" max="0"
+                                   class="form-control form-control-tm text-center" value="0" dir="ltr">
+                            <span class="input-group-text">تومان</span>
+                        </div>
+                        <small class="text-muted">از ۰ تا <span id="maxDiscountTomanDisplay">۰</span> تومان</small>
+                    </div>
+                    <div class="col-md-6">
                         <input type="range" id="discountSlider" min="0" max="0" step="0.01" value="0"
                                class="form-range" style="direction:ltr;">
                     </div>
@@ -199,9 +207,11 @@
     const discountInput = document.getElementById('discountInput');
     const discountSlider = document.getElementById('discountSlider');
     const discountHidden = document.getElementById('discountWageHidden');
+    const discountTomanInput = document.getElementById('discountTomanInput');
     const submitBtn = document.getElementById('submitBtn');
 
     let currentBar = null;
+    let maxDiscountToman = 0;
 
     function fmt(n) {
         return Number(n).toLocaleString('fa-IR') + ' تومان';
@@ -224,7 +234,20 @@
         return { rawGold: rawGold, wage: wage, tax: tax, total: total, totalToman: Math.floor(total / 10) };
     }
 
-    function updateDiscount() {
+    // Convert Toman discount to approximate wage percent
+    function tomanToPct(bd, tomanDisc) {
+        if (!bd || tomanDisc <= 0) return 0;
+        var rawGold = recalcPrice(bd, 0).rawGold;
+        var taxFactor = 1 + bd.tax_percent / 100;
+        // discount_toman ≈ rawGold × pct/100 × (1+tax/100) / 10
+        var pct = tomanDisc * 10 * 100 / (rawGold * taxFactor);
+        // Clamp to margin
+        if (pct > bd.margin_pct) pct = bd.margin_pct;
+        if (pct < 0) pct = 0;
+        return Math.round(pct * 100) / 100;
+    }
+
+    function updateDiscount(source) {
         if (!currentBar) return;
         var disc = parseFloat(discountInput.value) || 0;
         var margin = currentBar.margin_pct;
@@ -238,6 +261,13 @@
 
         var result = recalcPrice(currentBar, disc);
         salePriceInput.value = result.totalToman;
+
+        // Sync Toman field (unless Toman was the source of change)
+        if (source !== 'toman') {
+            var origResult = recalcPrice(currentBar, 0);
+            var tomanVal = origResult.totalToman - result.totalToman;
+            discountTomanInput.value = tomanVal;
+        }
 
         // Update final price display
         document.getElementById('finalSalePriceDisplay').textContent = fmt(result.totalToman);
@@ -293,6 +323,16 @@
                     discountInput.value = 0;
                     discountInput.max = p.margin_pct;
                     discountHidden.value = 0;
+
+                    // Calculate max discount in Toman
+                    var fullPrice = recalcPrice(p, 0);
+                    var minPrice = recalcPrice(p, p.margin_pct);
+                    maxDiscountToman = fullPrice.totalToman - minPrice.totalToman;
+                    discountTomanInput.value = 0;
+                    discountTomanInput.max = maxDiscountToman;
+                    document.getElementById('maxDiscountTomanDisplay').textContent =
+                        Number(maxDiscountToman).toLocaleString('fa-IR');
+
                     document.getElementById('discountSummary').style.display = 'none';
                     discountSection.style.display = 'block';
                 } else {
@@ -311,17 +351,28 @@
         });
     }
 
-    // Sync slider <-> input
+    // Sync slider <-> pct input <-> toman input
     if (discountInput) {
         discountInput.addEventListener('input', function() {
             discountSlider.value = this.value;
-            updateDiscount();
+            updateDiscount('pct');
         });
     }
     if (discountSlider) {
         discountSlider.addEventListener('input', function() {
             discountInput.value = this.value;
-            updateDiscount();
+            updateDiscount('slider');
+        });
+    }
+    if (discountTomanInput) {
+        discountTomanInput.addEventListener('input', function() {
+            var tomanVal = parseInt(this.value) || 0;
+            if (tomanVal < 0) tomanVal = 0;
+            if (tomanVal > maxDiscountToman) tomanVal = maxDiscountToman;
+            var pct = tomanToPct(currentBar, tomanVal);
+            discountInput.value = pct;
+            discountSlider.value = pct;
+            updateDiscount('toman');
         });
     }
 })();
