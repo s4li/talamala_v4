@@ -501,6 +501,7 @@ total    = raw_gold + wage + tax
 - `/admin/bars|orders|settings`
 - `GET /admin/customers` — لیست کاربران + جستجو + فیلتر (فعال/غیرفعال)
 - `GET /admin/customers/{id}` — جزئیات کاربر (تب‌ها: خلاصه، تراکنش کیف پول، سفارشات، درخواست برداشت)
+- `POST /admin/customers/{id}` — ویرایش اطلاعات مشتری (نام، موبایل، کد ملی، نوع مشتری، وضعیت فعال/غیرفعال)
 - `/admin/wallets` — حساب‌ها, `/admin/wallets/withdrawals/list` — برداشت‌ها
 - `/admin/coupons`
 - `/admin/dealers` — Dealer list + create/edit
