@@ -115,6 +115,7 @@ from modules.coupon.admin_routes import router as coupon_admin_router
 from modules.coupon.routes import router as coupon_api_router
 from modules.payment.routes import router as payment_router
 from modules.customer.routes import router as customer_router
+from modules.customer.admin_routes import router as customer_admin_router
 from modules.verification.routes import router as verification_router
 from modules.dealer.routes import router as dealer_router
 from modules.dealer.admin_routes import router as dealer_admin_router
@@ -390,6 +391,7 @@ app.include_router(coupon_admin_router)
 app.include_router(coupon_api_router)
 app.include_router(payment_router)
 app.include_router(customer_router)
+app.include_router(customer_admin_router)
 app.include_router(verification_router)
 app.include_router(dealer_router)
 app.include_router(dealer_admin_router)

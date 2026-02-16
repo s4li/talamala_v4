@@ -1,0 +1,430 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "customers" %}
+{% block title %}{{ customer.full_name }} - مدیریت کاربران{% endblock %}
+
+{% block page_css %}
+<style>
+    .tab-nav-tm {
+        border-bottom: 2px solid var(--tm-border);
+        display: flex;
+        gap: 0;
+        overflow-x: auto;
+        margin-bottom: 1.5rem;
+    }
+    .tab-nav-tm a {
+        padding: 0.7rem 1.2rem;
+        text-decoration: none;
+        color: #888;
+        font-size: 0.9rem;
+        font-weight: 500;
+        border-bottom: 3px solid transparent;
+        white-space: nowrap;
+        transition: all var(--tm-duration-fast);
+    }
+    .tab-nav-tm a:hover {
+        color: var(--tm-primary);
+        background: var(--tm-primary-900);
+    }
+    .tab-nav-tm a.active {
+        color: var(--tm-primary);
+        border-bottom-color: var(--tm-primary);
+        font-weight: 600;
+    }
+    .tab-nav-tm .tab-count {
+        font-size: 0.7rem;
+        background: var(--tm-primary-900);
+        color: var(--tm-primary);
+        padding: 1px 6px;
+        border-radius: 10px;
+        margin-right: 4px;
+    }
+    .tab-nav-tm a.active .tab-count {
+        background: var(--tm-primary);
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="page-header tm-animate-fade-in">
+    <div>
+        <h4 class="mb-1">
+            <i class="bi bi-person-circle me-2 text-tm-primary"></i>
+            {{ customer.full_name }}
+        </h4>
+        <small class="text-muted">
+            <i class="bi bi-phone me-1"></i><code dir="ltr">{{ customer.mobile }}</code>
+            {% if customer.national_id %}
+            <span class="mx-2">|</span>
+            <i class="bi bi-person-badge me-1"></i>{{ customer.national_id }}
+            {% endif %}
+            <span class="mx-2">|</span>
+            <i class="bi bi-calendar3 me-1"></i>عضویت: {{ customer.created_at | jdate if customer.created_at else '—' }}
+            <span class="mx-2">|</span>
+            {% if customer.is_active %}
+            <span class="badge-tm badge-tm-success">فعال</span>
+            {% else %}
+            <span class="badge-tm badge-tm-danger">غیرفعال</span>
+            {% endif %}
+        </small>
+    </div>
+    <a href="/admin/customers" class="btn btn-tm-outline">
+        <i class="bi bi-arrow-right me-1"></i> بازگشت
+    </a>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-2 tm-animate-fade-in-up tm-delay-1">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">سفارشات</div>
+            <div class="fw-bold fs-4">{{ summary.order_count | persian_number }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2 tm-animate-fade-in-up tm-delay-2">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">مجموع خرید</div>
+            <div class="fw-bold fs-5 text-success">{{ summary.total_spent | toman }}</div>
+            <small class="text-muted">تومان</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2 tm-animate-fade-in-up tm-delay-3">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">موجودی کیف پول</div>
+            <div class="fw-bold fs-5 text-primary">{{ balance.balance | toman if balance.balance else '۰' }}</div>
+            <small class="text-muted">تومان</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2 tm-animate-fade-in-up tm-delay-4">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">موجودی طلا</div>
+            <div class="fw-bold fs-5" style="color:var(--tm-primary);">{{ summary.gold_balance_mg | gold_gram }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2 tm-animate-fade-in-up tm-delay-5">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">شمش‌های مالکیت</div>
+            <div class="fw-bold fs-4">{{ summary.bars_owned | persian_number }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2 tm-animate-fade-in-up tm-delay-6">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">درخواست برداشت</div>
+            <div class="fw-bold fs-4 text-warning">{{ summary.withdrawal_count | persian_number }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab Navigation -->
+<div class="tab-nav-tm tm-animate-fade-in">
+    <a href="/admin/customers/{{ customer.id }}?tab=overview" class="{% if tab == 'overview' %}active{% endif %}">
+        <i class="bi bi-grid me-1"></i> خلاصه
+    </a>
+    <a href="/admin/customers/{{ customer.id }}?tab=wallet" class="{% if tab == 'wallet' %}active{% endif %}">
+        <i class="bi bi-wallet2 me-1"></i> تراکنش‌های کیف پول
+        {% if wallet_total %}<span class="tab-count">{{ wallet_total | persian_number }}</span>{% endif %}
+    </a>
+    <a href="/admin/customers/{{ customer.id }}?tab=orders" class="{% if tab == 'orders' %}active{% endif %}">
+        <i class="bi bi-bag-check me-1"></i> سفارشات
+        {% if summary.order_count %}<span class="tab-count">{{ summary.order_count | persian_number }}</span>{% endif %}
+    </a>
+    <a href="/admin/customers/{{ customer.id }}?tab=withdrawals" class="{% if tab == 'withdrawals' %}active{% endif %}">
+        <i class="bi bi-bank me-1"></i> درخواست‌های برداشت
+        {% if summary.withdrawal_count %}<span class="tab-count">{{ summary.withdrawal_count | persian_number }}</span>{% endif %}
+    </a>
+</div>
+
+<!-- ==================== TAB: Overview ==================== -->
+{% if tab == "overview" %}
+<div class="row g-4 tm-animate-fade-in-up">
+    <!-- Wallet Balance -->
+    <div class="col-md-6">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3">
+                <i class="bi bi-currency-exchange me-1 text-tm-primary"></i> وضعیت کیف پول
+            </div>
+            <div class="row text-center">
+                <div class="col-6 mb-3">
+                    <div class="text-muted small">موجودی کل</div>
+                    <div class="fw-bold fs-5 text-success">{{ balance.balance | toman if balance.balance else '۰' }}</div>
+                    <small class="text-muted">تومان</small>
+                </div>
+                <div class="col-6 mb-3">
+                    <div class="text-muted small">قابل برداشت</div>
+                    <div class="fw-bold">{{ balance.withdrawable | toman if balance.withdrawable else '۰' }}</div>
+                    <small class="text-muted">تومان</small>
+                </div>
+                <div class="col-6">
+                    <div class="text-muted small">اعتبار فروشگاهی</div>
+                    <div class="fw-bold text-info">{{ balance.credit | toman if balance.credit else '۰' }}</div>
+                </div>
+                <div class="col-6">
+                    <div class="text-muted small">بلوکه</div>
+                    <div class="fw-bold text-warning">{{ balance.locked | toman if balance.locked else '۰' }}</div>
+                </div>
+            </div>
+            {% if summary.gold_balance_mg %}
+            <div class="border-top pt-3 mt-3 text-center">
+                <div class="text-muted small">موجودی طلا</div>
+                <div class="fw-bold fs-5" style="color:var(--tm-primary);">{{ summary.gold_balance_mg | gold_gram }}</div>
+            </div>
+            {% endif %}
+            <div class="text-center mt-3">
+                <a href="/admin/customers/{{ customer.id }}?tab=wallet" class="btn btn-sm btn-tm-outline">
+                    <i class="bi bi-journal-text me-1"></i> مشاهده تراکنش‌ها
+                </a>
+                <a href="/admin/wallets/customer/{{ customer.id }}" class="btn btn-sm btn-tm-outline">
+                    <i class="bi bi-gear me-1"></i> مدیریت کیف پول
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Info -->
+    <div class="col-md-6">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3">
+                <i class="bi bi-person me-1 text-tm-primary"></i> اطلاعات کاربر
+            </div>
+            <table class="table table-tm table-borderless table-sm mb-0">
+                <tr>
+                    <td class="text-muted" style="width:130px;">نام</td>
+                    <td class="fw-bold">{{ customer.full_name }}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">موبایل</td>
+                    <td><code dir="ltr">{{ customer.mobile }}</code></td>
+                </tr>
+                <tr>
+                    <td class="text-muted">کد ملی</td>
+                    <td>{{ customer.national_id or '—' }}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">تاریخ تولد</td>
+                    <td>{{ customer.birth_date or '—' }}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">تاریخ عضویت</td>
+                    <td>{{ customer.created_at | jdate if customer.created_at else '—' }}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">وضعیت</td>
+                    <td>
+                        {% if customer.is_active %}
+                        <span class="badge-tm badge-tm-success">فعال</span>
+                        {% else %}
+                        <span class="badge-tm badge-tm-danger">غیرفعال</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== TAB: Wallet Transactions ==================== -->
+{% elif tab == "wallet" %}
+<div class="card-tm no-hover tm-animate-fade-in-up">
+    <div class="border-bottom pb-3 mb-3">
+        <i class="bi bi-journal-text me-1 text-tm-primary"></i>
+        تراکنش‌های کیف پول ({{ wallet_total | persian_number }})
+    </div>
+    <div class="p-0">
+        {% if wallet_entries %}
+        <div class="table-responsive">
+            <table class="table table-tm table-sm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th style="width:40px;">#</th>
+                        <th>نوع</th>
+                        <th>شرح</th>
+                        <th>تغییر موجودی</th>
+                        <th>تغییر بلوکه</th>
+                        <th>موجودی بعد</th>
+                        <th>بلوکه بعد</th>
+                        <th>مرجع</th>
+                        <th>تاریخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in wallet_entries %}
+                    <tr>
+                        <td class="text-muted small">{{ e.id }}</td>
+                        <td><span class="badge bg-{{ e.txn_type_color }}">{{ e.txn_type_label }}</span></td>
+                        <td class="small">{{ e.description or '—' }}</td>
+                        <td class="fw-bold {{ 'text-success' if e.delta_balance > 0 else 'text-danger' if e.delta_balance < 0 else '' }}">
+                            {% if e.account and e.account.asset_code == 'XAU_MG' %}
+                                {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | gold_gram }}
+                            {% else %}
+                                {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }}
+                            {% endif %}
+                        </td>
+                        <td class="{{ 'text-warning' if e.delta_locked != 0 else 'text-muted' }}">
+                            {% if e.account and e.account.asset_code == 'XAU_MG' %}
+                                {% if e.delta_locked > 0 %}+{% endif %}{{ e.delta_locked | gold_gram }}
+                            {% else %}
+                                {% if e.delta_locked > 0 %}+{% endif %}{{ e.delta_locked | toman }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if e.account and e.account.asset_code == 'XAU_MG' %}
+                                {{ e.balance_after | gold_gram }}
+                            {% else %}
+                                {{ e.balance_after | toman }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if e.account and e.account.asset_code == 'XAU_MG' %}
+                                {{ e.locked_after | gold_gram }}
+                            {% else %}
+                                {{ e.locked_after | toman }}
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted">
+                            {% if e.reference_type %}{{ e.reference_type }}:{{ e.reference_id or '' }}{% else %}—{% endif %}
+                        </td>
+                        <td class="small text-muted">{{ e.created_at | jdate if e.created_at else '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% set qs %}&tab=wallet{% endset %}
+        {% from "components/pagination.html" import pagination %}
+        {{ pagination(page, wallet_pages, '/admin/customers/' ~ customer.id, qs) }}
+
+        {% else %}
+        <div class="text-center text-muted py-4">
+            <i class="bi bi-inbox"></i> هنوز تراکنشی ثبت نشده
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ==================== TAB: Orders ==================== -->
+{% elif tab == "orders" %}
+<div class="card-tm no-hover tm-animate-fade-in-up">
+    <div class="border-bottom pb-3 mb-3">
+        <i class="bi bi-bag-check me-1 text-tm-primary"></i>
+        سفارشات ({{ order_total | persian_number }})
+    </div>
+    <div class="p-0">
+        {% if orders %}
+        <div class="table-responsive">
+            <table class="table table-tm table-sm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>تعداد آیتم</th>
+                        <th>مبلغ (تومان)</th>
+                        <th>تحویل</th>
+                        <th>وضعیت</th>
+                        <th>پرداخت</th>
+                        <th>تاریخ</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>
+                            <strong>{{ order.id }}</strong>
+                            {% if order.is_gift %}<span class="badge-tm badge-tm-info ms-1" title="هدیه"><i class="bi bi-gift"></i></span>{% endif %}
+                        </td>
+                        <td>{{ order.items | length | persian_number }}</td>
+                        <td class="fw-bold">{{ order.grand_total | toman }}</td>
+                        <td>
+                            {% if order.delivery_method %}
+                            <span class="badge-tm badge-tm-{{ 'info' if order.delivery_method == 'Pickup' else 'primary' }}">
+                                {{ order.delivery_method_label }}
+                            </span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ order.status_color }}">{{ order.status_label }}</span>
+                        </td>
+                        <td class="small text-muted">
+                            {% if order.payment_method %}
+                            {{ order.payment_method }}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="small text-muted">{{ order.created_at | jdate if order.created_at else '—' }}</td>
+                        <td>
+                            <a href="/orders/{{ order.id }}" class="btn btn-sm btn-tm-outline" title="مشاهده">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% set qs %}&tab=orders{% endset %}
+        {% from "components/pagination.html" import pagination %}
+        {{ pagination(page, order_pages, '/admin/customers/' ~ customer.id, qs) }}
+
+        {% else %}
+        <div class="text-center text-muted py-4">
+            <i class="bi bi-bag"></i> هنوز سفارشی ثبت نشده
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ==================== TAB: Withdrawals ==================== -->
+{% elif tab == "withdrawals" %}
+<div class="card-tm no-hover tm-animate-fade-in-up">
+    <div class="border-bottom pb-3 mb-3">
+        <i class="bi bi-bank me-1 text-tm-primary"></i>
+        درخواست‌های برداشت ({{ wd_total | persian_number }})
+    </div>
+    <div class="p-0">
+        {% if withdrawals %}
+        <div class="table-responsive">
+            <table class="table table-tm table-sm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th style="width:40px;">#</th>
+                        <th>مبلغ (تومان)</th>
+                        <th>شماره شبا</th>
+                        <th>صاحب حساب</th>
+                        <th>وضعیت</th>
+                        <th>یادداشت ادمین</th>
+                        <th>تاریخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for wr in withdrawals %}
+                    <tr>
+                        <td class="text-muted">{{ wr.id }}</td>
+                        <td class="fw-bold">{{ wr.amount_irr | toman }}</td>
+                        <td><code dir="ltr" class="small">{{ wr.shaba_number or '—' }}</code></td>
+                        <td class="small">{{ wr.account_holder or '—' }}</td>
+                        <td>
+                            <span class="badge bg-{{ wr.status_color }}">{{ wr.status_label }}</span>
+                        </td>
+                        <td class="small text-muted">{{ wr.admin_note or '—' }}</td>
+                        <td class="small text-muted">{{ wr.created_at | jdate if wr.created_at else '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% set qs %}&tab=withdrawals{% endset %}
+        {% from "components/pagination.html" import pagination %}
+        {{ pagination(page, wd_pages, '/admin/customers/' ~ customer.id, qs) }}
+
+        {% else %}
+        <div class="text-center text-muted py-4">
+            <i class="bi bi-bank"></i> هنوز درخواست برداشتی ثبت نشده
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "customers" %}
+{% block title %}مدیریت کاربران - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header tm-animate-fade-in">
+    <h4 class="fw-bold mb-0"><i class="bi bi-people me-2 text-tm-primary"></i>مدیریت کاربران</h4>
+    <span class="text-muted">{{ total | persian_number }} کاربر</span>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-1">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">کل کاربران</div>
+            <div class="fw-bold fs-4">{{ stats.total | persian_number }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-2">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">فعال</div>
+            <div class="fw-bold fs-4 text-success">{{ stats.active | persian_number }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-3">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">ثبت‌نام امروز</div>
+            <div class="fw-bold fs-4 text-primary">{{ stats.today_registered | persian_number }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-4">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">دارای سفارش</div>
+            <div class="fw-bold fs-4 text-tm-primary">{{ stats.with_orders | persian_number }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Search & Filter -->
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-5">
+    <form method="GET" action="/admin/customers" class="d-flex flex-wrap gap-2 align-items-center">
+        <div class="input-group" style="max-width:350px;">
+            <input type="text" name="search" class="form-control form-control-tm"
+                   placeholder="جستجو: نام، موبایل، کد ملی..."
+                   value="{{ search_query }}">
+            <button class="btn btn-tm-primary" type="submit">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+        <div class="btn-group">
+            <a href="/admin/customers{% if search_query %}?search={{ search_query }}{% endif %}"
+               class="btn btn-sm {{ 'btn-tm-primary' if not status_filter else 'btn-tm-outline' }}">همه</a>
+            <a href="/admin/customers?status=active{% if search_query %}&search={{ search_query }}{% endif %}"
+               class="btn btn-sm {{ 'btn-tm-primary' if status_filter == 'active' else 'btn-tm-outline' }}">فعال</a>
+            <a href="/admin/customers?status=inactive{% if search_query %}&search={{ search_query }}{% endif %}"
+               class="btn btn-sm {{ 'btn-tm-primary' if status_filter == 'inactive' else 'btn-tm-outline' }}">غیرفعال</a>
+        </div>
+        {% if search_query or status_filter %}
+        <a href="/admin/customers" class="btn btn-sm btn-light"><i class="bi bi-x-lg"></i> پاک</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Customers Table -->
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-6">
+    <div class="p-0">
+        {% if customers %}
+        <div class="table-responsive">
+            <table class="table table-tm table-sm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th style="width:50px;">#</th>
+                        <th>نام</th>
+                        <th>موبایل</th>
+                        <th>کد ملی</th>
+                        <th>وضعیت</th>
+                        <th>تاریخ عضویت</th>
+                        <th style="width:80px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in customers %}
+                    <tr>
+                        <td class="text-muted">{{ c.id }}</td>
+                        <td><strong>{{ c.full_name }}</strong></td>
+                        <td><code dir="ltr">{{ c.mobile }}</code></td>
+                        <td class="text-muted">{{ c.national_id or '—' }}</td>
+                        <td>
+                            {% if c.is_active %}
+                            <span class="badge-tm badge-tm-success">فعال</span>
+                            {% else %}
+                            <span class="badge-tm badge-tm-danger">غیرفعال</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted">{{ c.created_at | jdate if c.created_at else '—' }}</td>
+                        <td>
+                            <a href="/admin/customers/{{ c.id }}" class="btn btn-sm btn-tm-outline" title="مشاهده جزئیات">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% set qs %}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% endset %}
+        {% from "components/pagination.html" import pagination %}
+        {{ pagination(page, total_pages, '/admin/customers', qs) }}
+
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-people" style="font-size:2rem;"></i>
+            <p class="mt-2">کاربری یافت نشد</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

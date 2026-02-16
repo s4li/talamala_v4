@@ -497,6 +497,8 @@ total    = raw_gold + wage + tax
 ### Admin
 - `/admin/dashboard|products|categories|designs|packages|batches`
 - `/admin/bars|orders|settings`
+- `GET /admin/customers` — لیست کاربران + جستجو + فیلتر (فعال/غیرفعال)
+- `GET /admin/customers/{id}` — جزئیات کاربر (تب‌ها: خلاصه، تراکنش کیف پول، سفارشات، درخواست برداشت)
 - `/admin/wallets` — حساب‌ها, `/admin/wallets/withdrawals/list` — برداشت‌ها
 - `/admin/coupons`
 - `/admin/dealers` — Dealer list + create/edit
