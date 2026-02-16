@@ -1,17 +1,19 @@
 {% extends "admin/base_admin.html" %}
-{% block title %}کیف پول {{ customer.full_name }} - مدیریت{% endblock %}
+{% block title %}کیف پول {{ owner_name }} - مدیریت{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h4 class="mb-1">
             <i class="bi bi-wallet2 me-2"></i>
-            کیف پول: {{ customer.full_name }}
+            کیف پول: {{ owner_name }}
         </h4>
         <small class="text-muted">
-            <i class="bi bi-phone me-1"></i>{{ customer.mobile }}
+            <i class="bi bi-phone me-1"></i>{{ owner.mobile }}
+            {% if owner.national_id %}
             <span class="mx-2">|</span>
-            <i class="bi bi-person-badge me-1"></i>{{ customer.national_id }}
+            <i class="bi bi-person-badge me-1"></i>{{ owner.national_id }}
+            {% endif %}
         </small>
     </div>
     <a href="/admin/wallets" class="btn btn-tm-outline">
@@ -65,8 +67,10 @@
     <div class="col-md-8">
         <div class="card-tm no-hover">
             <div class="border-bottom pb-3 mb-3"><i class="bi bi-gear me-1"></i> عملیات دستی</div>
-            <form method="post" action="/admin/wallets/{{ customer.id }}/adjust">
+            <form method="post" action="/admin/wallets/adjust">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" name="owner_type" value="{{ owner_type }}">
+                <input type="hidden" name="owner_id" value="{{ owner_id }}">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
                         <label class="form-label-tm">نوع عملیات</label>
@@ -77,7 +81,7 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label-tm">مبلغ (تومان)</label>
-                        <input type="number" name="amount_toman" class="form-control form-control-tm"
+                        <input type="number" name="amount" class="form-control form-control-tm"
                                min="1" required placeholder="مبلغ">
                     </div>
                     <div class="col-md-4">
@@ -144,7 +148,7 @@
                 </div>
 
                 {% from "components/pagination.html" import pagination %}
-                {{ pagination(page, total_pages, '/admin/wallets/' ~ customer.id) }}
+                {{ pagination(page, total_pages, '/admin/wallets/' ~ owner_type ~ '/' ~ owner_id) }}
 
                 {% else %}
                 <div class="text-center text-muted py-4">
