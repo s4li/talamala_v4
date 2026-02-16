@@ -187,4 +187,73 @@ class CustomerAdminService:
         return items, total
 
 
+    def update_customer(
+        self,
+        db: Session,
+        customer_id: int,
+        first_name: str = None,
+        last_name: str = None,
+        national_id: str = None,
+        mobile: str = None,
+        birth_date: str = None,
+        customer_type: str = None,
+        company_name: str = None,
+        economic_code: str = None,
+        postal_code: str = None,
+        address: str = None,
+        phone: str = None,
+        is_active: bool = None,
+    ) -> Dict[str, Any]:
+        customer = self.get_customer_detail(db, customer_id)
+        if not customer:
+            return {"success": False, "error": "مشتری یافت نشد"}
+
+        # Uniqueness: mobile
+        if mobile and mobile != customer.mobile:
+            dup = db.query(Customer).filter(
+                Customer.mobile == mobile, Customer.id != customer_id
+            ).first()
+            if dup:
+                return {"success": False, "error": "این شماره موبایل قبلا ثبت شده است"}
+
+        # Uniqueness: national_id
+        if national_id and national_id != (customer.national_id or ""):
+            dup = db.query(Customer).filter(
+                Customer.national_id == national_id, Customer.id != customer_id
+            ).first()
+            if dup:
+                return {"success": False, "error": "این کد ملی قبلا ثبت شده است"}
+
+        # Apply updates
+        if first_name is not None:
+            customer.first_name = first_name or None
+        if last_name is not None:
+            customer.last_name = last_name or None
+        if national_id is not None:
+            customer.national_id = national_id or customer.national_id
+        if mobile is not None:
+            customer.mobile = mobile or customer.mobile
+        if birth_date is not None:
+            customer.birth_date = birth_date or None
+        if customer_type and customer_type in ("real", "legal"):
+            customer.customer_type = customer_type
+            if customer_type == "legal":
+                customer.company_name = (company_name or "").strip() or None
+                customer.economic_code = (economic_code or "").strip() or None
+            else:
+                customer.company_name = None
+                customer.economic_code = None
+        if postal_code is not None:
+            customer.postal_code = postal_code or None
+        if address is not None:
+            customer.address = address or None
+        if phone is not None:
+            customer.phone = phone or None
+        if is_active is not None:
+            customer.is_active = is_active
+
+        db.flush()
+        return {"success": True, "customer": customer}
+
+
 customer_admin_service = CustomerAdminService()
