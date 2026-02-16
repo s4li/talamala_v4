@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from config.database import get_db
 from common.security import csrf_check, new_csrf_token
-from modules.auth.deps import require_customer, require_super_admin
+from modules.auth.deps import require_customer, require_permission
 from modules.payment.service import payment_service
 
 router = APIRouter(prefix="/payment", tags=["payment"])
@@ -114,7 +114,7 @@ async def refund_order(
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_super_admin),
+    user=Depends(require_permission("orders")),
 ):
     csrf_check(request, csrf_token)
     result = payment_service.refund_order(db, order_id, admin_note)

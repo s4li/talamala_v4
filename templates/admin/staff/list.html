@@ -1,0 +1,78 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}مدیریت ادمین‌ها - طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-person-gear text-tm-primary"></i>
+        مدیریت ادمین‌ها
+    </h4>
+    <a href="/admin/staff/create" class="btn btn-tm-primary">
+        <i class="bi bi-plus-lg me-1"></i> افزودن ادمین
+    </a>
+</div>
+
+{% if msg == 'created' %}
+<div class="alert alert-tm-success alert-dismissible fade show">
+    <i class="bi bi-check-circle me-1"></i> ادمین جدید با موفقیت ایجاد شد.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% elif msg == 'updated' %}
+<div class="alert alert-tm-success alert-dismissible fade show">
+    <i class="bi bi-check-circle me-1"></i> اطلاعات ادمین بروزرسانی شد.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-1">
+    <div class="table-responsive">
+        <table class="table table-tm mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>نام</th>
+                    <th>موبایل</th>
+                    <th>نقش</th>
+                    <th>دسترسی‌ها</th>
+                    <th>تاریخ عضویت</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in staff_users %}
+                <tr>
+                    <td class="fw-bold">{{ s.id }}</td>
+                    <td class="fw-bold">{{ s.full_name }}</td>
+                    <td><code dir="ltr">{{ s.mobile }}</code></td>
+                    <td>
+                        <span class="badge bg-{{ s.role_color }}">{{ s.role_label }}</span>
+                    </td>
+                    <td>
+                        {% if s.role == 'admin' %}
+                        <span class="badge-tm badge-tm-success">دسترسی کامل</span>
+                        {% elif s.permissions_count > 0 %}
+                        <span class="badge-tm badge-tm-info">{{ s.permissions_count | persian_number }} بخش</span>
+                        {% else %}
+                        <span class="text-muted small">بدون دسترسی</span>
+                        {% endif %}
+                    </td>
+                    <td class="small text-muted">{{ s.created_at | jdate }}</td>
+                    <td>
+                        <a href="/admin/staff/{{ s.id }}/edit" class="btn btn-sm btn-tm-outline">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-person-gear" style="font-size:2rem;"></i>
+                        <br>ادمینی یافت نشد
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

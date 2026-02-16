@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from common.templating import templates
 from common.security import new_csrf_token, csrf_check
-from modules.auth.deps import require_operator_or_admin
+from modules.auth.deps import require_permission
 from modules.ticket.service import ticket_service
 from modules.ticket.models import TicketStatus, TicketCategory, SenderType
 from modules.admin.models import SystemUser
@@ -32,7 +32,7 @@ async def admin_ticket_list(
     sender_type: str = None,
     category: str = None,
     search: str = None,
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("tickets")),
     db: Session = Depends(get_db),
 ):
     tickets, total = ticket_service.list_tickets_admin(
@@ -74,7 +74,7 @@ async def admin_ticket_list(
 async def admin_ticket_detail(
     ticket_id: int,
     request: Request,
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("tickets")),
     db: Session = Depends(get_db),
 ):
     ticket = ticket_service.get_ticket(db, ticket_id)
@@ -108,7 +108,7 @@ async def admin_ticket_reply(
     body: str = Form(...),
     csrf_token: str = Form(""),
     files: List[UploadFile] = File(None),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("tickets")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -144,7 +144,7 @@ async def admin_ticket_internal_note(
     body: str = Form(...),
     csrf_token: str = Form(""),
     files: List[UploadFile] = File(None),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("tickets")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -177,7 +177,7 @@ async def admin_ticket_status(
     request: Request,
     new_status: str = Form(...),
     csrf_token: str = Form(""),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("tickets")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -197,7 +197,7 @@ async def admin_ticket_close(
     ticket_id: int,
     request: Request,
     csrf_token: str = Form(""),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("tickets")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -218,7 +218,7 @@ async def admin_ticket_category(
     request: Request,
     new_category: str = Form(...),
     csrf_token: str = Form(""),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("tickets")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -239,7 +239,7 @@ async def admin_ticket_assign(
     request: Request,
     staff_id: str = Form(...),
     csrf_token: str = Form(""),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("tickets")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)

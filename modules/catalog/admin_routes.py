@@ -14,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
-from modules.auth.deps import require_super_admin, require_operator_or_admin
+from modules.auth.deps import require_permission
 from modules.catalog.service import (
     product_service, design_service, package_service, batch_service,
     images, ProductImage, CardDesignImage, PackageTypeImage, BatchImage,
@@ -39,7 +39,7 @@ def ctx(request, user, **extra):
 # ==========================================
 
 @router.get("/admin/products", response_class=HTMLResponse)
-async def list_products(request: Request, db: Session = Depends(get_db), user=Depends(require_super_admin)):
+async def list_products(request: Request, db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     products = product_service.list_all(db)
     categories = db.query(ProductCategory).order_by(ProductCategory.sort_order).all()
     designs = db.query(CardDesign).all()
@@ -60,7 +60,7 @@ async def add_product(
     is_active: bool = Form(True),
     files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_super_admin),
+    db: Session = Depends(get_db), user=Depends(require_permission("products")),
 ):
     csrf_check(request, csrf_token)
     form = await request.form()
@@ -77,7 +77,7 @@ async def add_product(
 
 
 @router.get("/admin/products/edit/{p_id}", response_class=HTMLResponse)
-async def edit_product_form(request: Request, p_id: int, db: Session = Depends(get_db), user=Depends(require_super_admin)):
+async def edit_product_form(request: Request, p_id: int, db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     p = product_service.get_by_id(db, p_id)
     if not p:
         raise HTTPException(404)
@@ -100,7 +100,7 @@ async def update_product(
     is_active: bool = Form(False),
     new_files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_super_admin),
+    db: Session = Depends(get_db), user=Depends(require_permission("products")),
 ):
     csrf_check(request, csrf_token)
     form = await request.form()
@@ -118,7 +118,7 @@ async def update_product(
 
 @router.post("/admin/products/delete_image/{img_id}")
 async def delete_product_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                db: Session = Depends(get_db), user=Depends(require_super_admin)):
+                                db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     pid = images.delete_image(db, ProductImage, img_id)
     return RedirectResponse(f"/admin/products/edit/{pid}" if pid else "/admin/products", status_code=303)
@@ -126,7 +126,7 @@ async def delete_product_image(request: Request, img_id: int, csrf_token: Option
 
 @router.post("/admin/products/set_default/{img_id}")
 async def set_product_default(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                               db: Session = Depends(get_db), user=Depends(require_super_admin)):
+                               db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     pid = images.set_default(db, ProductImage, img_id, "product_id")
     return RedirectResponse(f"/admin/products/edit/{pid}" if pid else "/admin/products", status_code=303)
@@ -137,7 +137,7 @@ async def set_product_default(request: Request, img_id: int, csrf_token: Optiona
 # ==========================================
 
 @router.get("/admin/designs", response_class=HTMLResponse)
-async def list_designs(request: Request, db: Session = Depends(get_db), user=Depends(require_super_admin)):
+async def list_designs(request: Request, db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     items = design_service.list_all(db)
     data, csrf = ctx(request, user, designs=items)
     response = templates.TemplateResponse("admin/catalog/designs.html", data)
@@ -147,7 +147,7 @@ async def list_designs(request: Request, db: Session = Depends(get_db), user=Dep
 
 @router.post("/admin/designs/add")
 async def add_design(request: Request, name: str = Form(...), files: List[UploadFile] = File(None),
-                      csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_super_admin)):
+                      csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     design_service.create(db, name, files)
     return RedirectResponse("/admin/designs", status_code=303)
@@ -155,7 +155,7 @@ async def add_design(request: Request, name: str = Form(...), files: List[Upload
 
 @router.post("/admin/designs/update/{item_id}")
 async def update_design(request: Request, item_id: int, name: str = Form(...), files: List[UploadFile] = File(None),
-                          csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_super_admin)):
+                          csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     design_service.update(db, item_id, name, files)
     return RedirectResponse("/admin/designs", status_code=303)
@@ -163,7 +163,7 @@ async def update_design(request: Request, item_id: int, name: str = Form(...), f
 
 @router.post("/admin/designs/delete/{item_id}")
 async def delete_design(request: Request, item_id: int, csrf_token: Optional[str] = Form(None),
-                          db: Session = Depends(get_db), user=Depends(require_super_admin)):
+                          db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     design_service.delete(db, item_id)
     return RedirectResponse("/admin/designs", status_code=303)
@@ -171,7 +171,7 @@ async def delete_design(request: Request, item_id: int, csrf_token: Optional[str
 
 @router.post("/admin/designs/image/delete/{img_id}")
 async def delete_design_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                db: Session = Depends(get_db), user=Depends(require_super_admin)):
+                                db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     images.delete_image(db, CardDesignImage, img_id)
     return RedirectResponse("/admin/designs", status_code=303)
@@ -179,7 +179,7 @@ async def delete_design_image(request: Request, img_id: int, csrf_token: Optiona
 
 @router.post("/admin/designs/image/default/{img_id}")
 async def set_default_design_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                     db: Session = Depends(get_db), user=Depends(require_super_admin)):
+                                     db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     images.set_default(db, CardDesignImage, img_id, "design_id")
     return RedirectResponse("/admin/designs", status_code=303)
@@ -190,7 +190,7 @@ async def set_default_design_image(request: Request, img_id: int, csrf_token: Op
 # ==========================================
 
 @router.get("/admin/packages", response_class=HTMLResponse)
-async def list_packages(request: Request, db: Session = Depends(get_db), user=Depends(require_super_admin)):
+async def list_packages(request: Request, db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     items = package_service.list_all(db)
     data, csrf = ctx(request, user, packages=items)
     response = templates.TemplateResponse("admin/catalog/packages.html", data)
@@ -200,7 +200,7 @@ async def list_packages(request: Request, db: Session = Depends(get_db), user=De
 
 @router.post("/admin/packages/add")
 async def add_package(request: Request, name: str = Form(...), files: List[UploadFile] = File(None),
-                       csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_super_admin)):
+                       csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     package_service.create(db, name, files)
     return RedirectResponse("/admin/packages", status_code=303)
@@ -208,7 +208,7 @@ async def add_package(request: Request, name: str = Form(...), files: List[Uploa
 
 @router.post("/admin/packages/update/{item_id}")
 async def update_package(request: Request, item_id: int, name: str = Form(...), files: List[UploadFile] = File(None),
-                           csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_super_admin)):
+                           csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     package_service.update(db, item_id, name, files)
     return RedirectResponse("/admin/packages", status_code=303)
@@ -216,7 +216,7 @@ async def update_package(request: Request, item_id: int, name: str = Form(...), 
 
 @router.post("/admin/packages/delete/{item_id}")
 async def delete_package(request: Request, item_id: int, csrf_token: Optional[str] = Form(None),
-                           db: Session = Depends(get_db), user=Depends(require_super_admin)):
+                           db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     package_service.delete(db, item_id)
     return RedirectResponse("/admin/packages", status_code=303)
@@ -224,7 +224,7 @@ async def delete_package(request: Request, item_id: int, csrf_token: Optional[st
 
 @router.post("/admin/packages/image/delete/{img_id}")
 async def delete_package_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                 db: Session = Depends(get_db), user=Depends(require_super_admin)):
+                                 db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     images.delete_image(db, PackageTypeImage, img_id)
     return RedirectResponse("/admin/packages", status_code=303)
@@ -232,7 +232,7 @@ async def delete_package_image(request: Request, img_id: int, csrf_token: Option
 
 @router.post("/admin/packages/image/default/{img_id}")
 async def set_default_package_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                      db: Session = Depends(get_db), user=Depends(require_super_admin)):
+                                      db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     images.set_default(db, PackageTypeImage, img_id, "package_id")
     return RedirectResponse("/admin/packages", status_code=303)
@@ -243,7 +243,7 @@ async def set_default_package_image(request: Request, img_id: int, csrf_token: O
 # ==========================================
 
 @router.get("/admin/batches", response_class=HTMLResponse)
-async def list_batches(request: Request, db: Session = Depends(get_db), user=Depends(require_operator_or_admin)):
+async def list_batches(request: Request, db: Session = Depends(get_db), user=Depends(require_permission("batches"))):
     items = batch_service.list_all(db)
     data, csrf = ctx(request, user, batches=items)
     response = templates.TemplateResponse("admin/catalog/batches.html", data)
@@ -256,7 +256,7 @@ async def add_batch(
     request: Request, batch_number: str = Form(...), melt_number: str = Form(None),
     operator: str = Form(None), purity: str = Form(None),
     files: List[UploadFile] = File(None), csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_operator_or_admin),
+    db: Session = Depends(get_db), user=Depends(require_permission("batches")),
 ):
     csrf_check(request, csrf_token)
     try:
@@ -270,7 +270,7 @@ async def add_batch(
 
 
 @router.get("/admin/batches/edit/{batch_id}", response_class=HTMLResponse)
-async def edit_batch_form(request: Request, batch_id: int, db: Session = Depends(get_db), user=Depends(require_operator_or_admin)):
+async def edit_batch_form(request: Request, batch_id: int, db: Session = Depends(get_db), user=Depends(require_permission("batches"))):
     batch = batch_service.get_by_id(db, batch_id)
     if not batch:
         raise HTTPException(404)
@@ -286,7 +286,7 @@ async def update_batch(
     batch_number: str = Form(...), melt_number: str = Form(None),
     operator: str = Form(None), purity: str = Form(None),
     new_files: List[UploadFile] = File(None), csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_operator_or_admin),
+    db: Session = Depends(get_db), user=Depends(require_permission("batches")),
 ):
     csrf_check(request, csrf_token)
     batch_service.update(db, batch_id, {
@@ -298,7 +298,7 @@ async def update_batch(
 
 @router.post("/admin/batches/delete/{item_id}")
 async def delete_batch(request: Request, item_id: int, csrf_token: Optional[str] = Form(None),
-                         db: Session = Depends(get_db), user=Depends(require_operator_or_admin)):
+                         db: Session = Depends(get_db), user=Depends(require_permission("batches"))):
     csrf_check(request, csrf_token)
     batch_service.delete(db, item_id)
     return RedirectResponse("/admin/batches", status_code=303)
@@ -306,7 +306,7 @@ async def delete_batch(request: Request, item_id: int, csrf_token: Optional[str]
 
 @router.post("/admin/batches/image/delete/{img_id}")
 async def delete_batch_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                               db: Session = Depends(get_db), user=Depends(require_operator_or_admin)):
+                               db: Session = Depends(get_db), user=Depends(require_permission("batches"))):
     csrf_check(request, csrf_token)
     bid = images.delete_image(db, BatchImage, img_id)
     return RedirectResponse(f"/admin/batches/edit/{bid}" if bid else "/admin/batches", status_code=303)
@@ -314,7 +314,7 @@ async def delete_batch_image(request: Request, img_id: int, csrf_token: Optional
 
 @router.post("/admin/batches/image/default/{img_id}")
 async def set_batch_default_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                    db: Session = Depends(get_db), user=Depends(require_operator_or_admin)):
+                                    db: Session = Depends(get_db), user=Depends(require_permission("batches"))):
     csrf_check(request, csrf_token)
     bid = images.set_default(db, BatchImage, img_id, "batch_id")
     return RedirectResponse(f"/admin/batches/edit/{bid}" if bid else "/admin/batches", status_code=303)
@@ -325,7 +325,7 @@ async def set_batch_default_image(request: Request, img_id: int, csrf_token: Opt
 # ==========================================
 
 @router.get("/admin/categories", response_class=HTMLResponse)
-async def list_categories(request: Request, db: Session = Depends(get_db), user=Depends(require_super_admin)):
+async def list_categories(request: Request, db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     categories = db.query(ProductCategory).order_by(ProductCategory.sort_order, ProductCategory.id).all()
     data, csrf = ctx(request, user, categories=categories)
     response = templates.TemplateResponse("admin/catalog/categories.html", data)
@@ -339,7 +339,7 @@ async def add_category(
     name: str = Form(...), slug: str = Form(...),
     sort_order: int = Form(0), is_active: bool = Form(True),
     csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_super_admin),
+    db: Session = Depends(get_db), user=Depends(require_permission("products")),
 ):
     csrf_check(request, csrf_token)
     cat = ProductCategory(name=name.strip(), slug=slug.strip().lower(), sort_order=sort_order, is_active=is_active)
@@ -357,7 +357,7 @@ async def edit_category(
     name: str = Form(...), slug: str = Form(...),
     sort_order: int = Form(0), is_active: bool = Form(True),
     csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_super_admin),
+    db: Session = Depends(get_db), user=Depends(require_permission("products")),
 ):
     csrf_check(request, csrf_token)
     cat = db.query(ProductCategory).filter(ProductCategory.id == cat_id).first()
@@ -374,7 +374,7 @@ async def edit_category(
 async def delete_category(
     request: Request, cat_id: int,
     csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_super_admin),
+    db: Session = Depends(get_db), user=Depends(require_permission("products")),
 ):
     csrf_check(request, csrf_token)
     cat = db.query(ProductCategory).filter(ProductCategory.id == cat_id).first()

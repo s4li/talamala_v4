@@ -38,9 +38,12 @@
         <img src="/static/assets/img/wordmark-primary.svg" alt="طلاملا" class="wordmark">
     </div>
     <div class="mt-2">
+        {% if user.has_permission('dashboard') %}
         <a href="/admin/dashboard" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
             <i class="bi bi-speedometer2"></i> داشبورد
         </a>
+        {% endif %}
+        {% if user.has_permission('products') %}
         <a href="/admin/products" class="nav-link {% if active_page == 'products' %}active{% endif %}">
             <i class="bi bi-box-seam"></i> محصولات
         </a>
@@ -53,27 +56,41 @@
         <a href="/admin/packages" class="nav-link {% if active_page == 'packages' %}active{% endif %}">
             <i class="bi bi-gift"></i> بسته‌بندی‌ها
         </a>
+        {% endif %}
+        {% if user.has_permission('batches') %}
         <a href="/admin/batches" class="nav-link {% if active_page == 'batches' %}active{% endif %}">
             <i class="bi bi-fire"></i> بچ / ذوب
         </a>
+        {% endif %}
+        {% if user.has_permission('inventory') %}
         <a href="/admin/bars" class="nav-link {% if active_page == 'bars' %}active{% endif %}">
             <i class="bi bi-upc-scan"></i> شمش‌ها
         </a>
+        {% endif %}
+        {% if user.has_permission('orders') %}
         <a href="/admin/orders" class="nav-link {% if active_page == 'orders' %}active{% endif %}">
             <i class="bi bi-bag-check"></i> سفارشات
         </a>
+        {% endif %}
+        {% if user.has_permission('customers') %}
         <a href="/admin/customers" class="nav-link {% if active_page == 'customers' %}active{% endif %}">
             <i class="bi bi-people"></i> مدیریت کاربران
         </a>
+        {% endif %}
+        {% if user.has_permission('wallets') %}
         <a href="/admin/wallets" class="nav-link {% if active_page == 'wallets' %}active{% endif %}">
             <i class="bi bi-wallet2"></i> کیف پول‌ها
         </a>
         <a href="/admin/wallets/withdrawals/list" class="nav-link {% if active_page == 'withdrawals' %}active{% endif %}">
             <i class="bi bi-bank"></i> درخواست برداشت
         </a>
+        {% endif %}
+        {% if user.has_permission('coupons') %}
         <a href="/admin/coupons" class="nav-link {% if active_page == 'coupons' %}active{% endif %}">
             <i class="bi bi-ticket-perforated"></i> کوپن‌ها
         </a>
+        {% endif %}
+        {% if user.has_permission('dealers') %}
         <a href="/admin/dealers" class="nav-link {% if active_page == 'dealers' %}active{% endif %}">
             <i class="bi bi-shop"></i> نمایندگان
         </a>
@@ -83,16 +100,28 @@
         <a href="/admin/dealers/buybacks" class="nav-link {% if active_page == 'dealer_buybacks' %}active{% endif %}">
             <i class="bi bi-arrow-return-left"></i> بازخرید نمایندگان
         </a>
+        {% endif %}
+        {% if user.has_permission('tickets') %}
         <a href="/admin/tickets" class="nav-link {% if active_page == 'tickets' %}active{% endif %}">
             <i class="bi bi-headset"></i> تیکت‌های پشتیبانی
         </a>
+        {% endif %}
+        {% if user.has_permission('logs') %}
         <a href="/admin/logs" class="nav-link {% if active_page == 'logs' %}active{% endif %}">
             <i class="bi bi-journal-text"></i> لاگ درخواست‌ها
         </a>
+        {% endif %}
         <div style="border-top:1px solid var(--tm-border);margin:8px 16px;"></div>
+        {% if user.has_permission('staff') %}
+        <a href="/admin/staff" class="nav-link {% if active_page == 'staff' %}active{% endif %}">
+            <i class="bi bi-person-gear"></i> مدیریت ادمین‌ها
+        </a>
+        {% endif %}
+        {% if user.has_permission('settings') %}
         <a href="/admin/settings" class="nav-link {% if active_page == 'settings' %}active{% endif %}">
             <i class="bi bi-gear"></i> تنظیمات
         </a>
+        {% endif %}
         <a href="/auth/logout" class="nav-link" style="color:var(--tm-negative);">
             <i class="bi bi-box-arrow-right"></i> خروج
         </a>

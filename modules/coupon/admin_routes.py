@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
-from modules.auth.deps import require_staff, require_super_admin
+from modules.auth.deps import require_permission
 from modules.coupon.service import coupon_service
 from modules.coupon.models import CouponStatus, CouponType, DiscountMode, CouponScope
 from modules.catalog.models import Product, ProductCategory
@@ -42,7 +42,7 @@ async def coupon_list(
     status: str = None,
     search: str = None,
     db: Session = Depends(get_db),
-    user=Depends(require_staff),
+    user=Depends(require_permission("coupons")),
 ):
     per_page = 30
     coupons, total = coupon_service.get_all_coupons(
@@ -74,7 +74,7 @@ async def coupon_list(
 async def coupon_new_form(
     request: Request,
     db: Session = Depends(get_db),
-    user=Depends(require_staff),
+    user=Depends(require_permission("coupons")),
 ):
     products = db.query(Product).filter(Product.is_active == True).all()
     product_categories = db.query(ProductCategory).filter(ProductCategory.is_active == True).order_by(ProductCategory.sort_order).all()
@@ -118,7 +118,7 @@ async def coupon_create(
     mobiles_text: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_staff),
+    user=Depends(require_permission("coupons")),
 ):
     csrf_check(request, csrf_token)
 
@@ -187,7 +187,7 @@ async def coupon_detail(
     msg: str = None,
     error: str = None,
     db: Session = Depends(get_db),
-    user=Depends(require_staff),
+    user=Depends(require_permission("coupons")),
 ):
     coupon = coupon_service.get_coupon_by_id(db, coupon_id)
     if not coupon:
@@ -220,7 +220,7 @@ async def coupon_edit_form(
     request: Request,
     coupon_id: int,
     db: Session = Depends(get_db),
-    user=Depends(require_staff),
+    user=Depends(require_permission("coupons")),
 ):
     coupon = coupon_service.get_coupon_by_id(db, coupon_id)
     if not coupon:
@@ -267,7 +267,7 @@ async def coupon_edit(
     status: str = Form("ACTIVE"),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_staff),
+    user=Depends(require_permission("coupons")),
 ):
     csrf_check(request, csrf_token)
 
@@ -331,7 +331,7 @@ async def coupon_delete(
     coupon_id: int,
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_super_admin),
+    user=Depends(require_permission("coupons")),
 ):
     csrf_check(request, csrf_token)
     try:
@@ -356,7 +356,7 @@ async def coupon_add_mobiles(
     note: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_staff),
+    user=Depends(require_permission("coupons")),
 ):
     csrf_check(request, csrf_token)
     count = 0
@@ -383,7 +383,7 @@ async def coupon_remove_mobile(
     mobile_id: int,
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_staff),
+    user=Depends(require_permission("coupons")),
 ):
     csrf_check(request, csrf_token)
     coupon_service.remove_mobile(db, mobile_id)

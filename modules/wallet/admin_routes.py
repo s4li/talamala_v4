@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
-from modules.auth.deps import require_staff, require_super_admin
+from modules.auth.deps import require_permission
 from modules.wallet.service import wallet_service
 from modules.wallet.models import AssetCode, OwnerType, WithdrawalRequest, WithdrawalStatus
 from modules.customer.models import Customer
@@ -31,7 +31,7 @@ async def admin_wallet_list(
     owner_type: str = "",
     asset: str = "",
     db: Session = Depends(get_db),
-    user=Depends(require_staff),
+    user=Depends(require_permission("wallets")),
 ):
     per_page = 30
     ot = owner_type if owner_type in ("customer", "dealer") else None
@@ -66,7 +66,7 @@ async def admin_wallet_detail(
     msg: str = None,
     error: str = None,
     db: Session = Depends(get_db),
-    user=Depends(require_staff),
+    user=Depends(require_permission("wallets")),
 ):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
@@ -109,7 +109,7 @@ async def admin_wallet_dealer_detail(
     msg: str = None,
     error: str = None,
     db: Session = Depends(get_db),
-    user=Depends(require_staff),
+    user=Depends(require_permission("wallets")),
 ):
     dealer = db.query(Dealer).filter(Dealer.id == dealer_id).first()
     if not dealer:
@@ -159,7 +159,7 @@ async def admin_wallet_adjust(
     description: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_super_admin),
+    user=Depends(require_permission("wallets")),
 ):
     csrf_check(request, csrf_token)
 
@@ -195,7 +195,7 @@ async def admin_withdrawals_list(
     request: Request,
     page: int = 1,
     db: Session = Depends(get_db),
-    user=Depends(require_staff),
+    user=Depends(require_permission("wallets")),
 ):
     per_page = 30
     withdrawals, total = wallet_service.get_all_withdrawals(db, page=page, per_page=per_page)
@@ -229,7 +229,7 @@ async def admin_withdrawal_approve(
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_super_admin),
+    user=Depends(require_permission("wallets")),
 ):
     csrf_check(request, csrf_token)
     try:
@@ -254,7 +254,7 @@ async def admin_withdrawal_reject(
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_super_admin),
+    user=Depends(require_permission("wallets")),
 ):
     csrf_check(request, csrf_token)
     try:

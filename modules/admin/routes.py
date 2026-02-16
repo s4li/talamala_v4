@@ -12,14 +12,14 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
-from modules.auth.deps import require_super_admin, require_operator_or_admin
+from modules.auth.deps import require_permission
 from modules.admin.models import SystemSetting, RequestLog
 
 router = APIRouter(tags=["admin-settings"])
 
 
 @router.get("/admin/settings", response_class=HTMLResponse)
-async def settings_page(request: Request, db: Session = Depends(get_db), user=Depends(require_super_admin)):
+async def settings_page(request: Request, db: Session = Depends(get_db), user=Depends(require_permission("settings"))):
     settings = db.query(SystemSetting).all()
     settings_dict = {s.key: s for s in settings}
 
@@ -49,7 +49,7 @@ async def update_settings(
     insurance_percent: str = Form("1.5"),
     insurance_cap: str = Form("500000000"),
     db: Session = Depends(get_db),
-    user=Depends(require_super_admin),
+    user=Depends(require_permission("settings")),
 ):
     csrf_check(request, csrf_token)
 
@@ -90,7 +90,7 @@ async def admin_logs(
     user_type: str = Query(None),
     ip: str = Query(None),
     db: Session = Depends(get_db),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("logs")),
 ):
     per_page = 50
     q = db.query(RequestLog)

@@ -6,6 +6,8 @@ SystemSetting: Key-value system configuration
 RequestLog: HTTP request audit trail
 """
 
+import json
+
 from sqlalchemy import Column, Integer, String, DateTime, Text, Index
 from sqlalchemy.sql import func
 from config.database import Base
@@ -20,11 +22,45 @@ class SystemUser(Base):
     role = Column(String, default="operator", nullable=False)  # "admin" | "operator"
     avatar_path = Column(String, nullable=True)
 
+    # Granular permissions: JSON list of permission keys, e.g. '["dashboard","orders"]'
+    _permissions = Column("permissions", Text, nullable=True)
+
     # OTP fields (used by auth module)
     otp_code = Column(String, nullable=True)
     otp_expiry = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    @property
+    def permissions(self) -> list:
+        if not self._permissions:
+            return []
+        try:
+            return json.loads(self._permissions)
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+    @permissions.setter
+    def permissions(self, value: list):
+        self._permissions = json.dumps(value) if value else None
+
+    @property
+    def permissions_count(self) -> int:
+        return len(self.permissions)
+
+    def has_permission(self, perm_key: str) -> bool:
+        """Check permission. role=='admin' always returns True (super admin bypass)."""
+        if self.role == "admin":
+            return True
+        return perm_key in self.permissions
+
+    @property
+    def role_label(self) -> str:
+        return {"admin": "مدیر کل", "operator": "اپراتور"}.get(self.role, self.role)
+
+    @property
+    def role_color(self) -> str:
+        return {"admin": "danger", "operator": "warning"}.get(self.role, "secondary")
 
     def __repr__(self):
         return f"<SystemUser {self.mobile} ({self.role})>"

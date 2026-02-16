@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from config.database import get_db
 from common.templating import templates
-from modules.auth.deps import require_operator_or_admin
+from modules.auth.deps import require_permission
 from modules.customer.admin_service import customer_admin_service
 from modules.wallet.service import wallet_service
 from modules.wallet.models import AssetCode, OwnerType
@@ -29,7 +29,7 @@ async def admin_customer_list(
     search: str = Query(None),
     status: str = Query(None),
     db: Session = Depends(get_db),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("customers")),
 ):
     per_page = 30
     customers, total = customer_admin_service.list_customers(
@@ -63,7 +63,7 @@ async def admin_customer_detail(
     tab: str = Query("overview"),
     page: int = 1,
     db: Session = Depends(get_db),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("customers")),
 ):
     customer = customer_admin_service.get_customer_detail(db, customer_id)
     if not customer:

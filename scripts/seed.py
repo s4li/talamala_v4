@@ -81,9 +81,11 @@ def seed():
         # ==========================================
         print("\n[1/9] Admin Users")
 
+        import json as _json
+        operator_perms = _json.dumps(["dashboard", "orders", "inventory", "tickets", "customers"])
         admins_data = [
             {"mobile": "09123456789", "full_name": "مدیر سیستم", "role": "admin"},
-            {"mobile": "09121111111", "full_name": "اپراتور تهران", "role": "operator"},
+            {"mobile": "09121111111", "full_name": "اپراتور تهران", "role": "operator", "_permissions": operator_perms},
             {"mobile": "09121023589", "full_name": "ادمین ۱", "role": "admin"},
             {"mobile": "09120725564", "full_name": "ادمین ۲", "role": "admin"},
         ]

@@ -109,3 +109,32 @@ def require_super_admin(user=Depends(get_current_active_user)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="نیازمند دسترسی مدیر کل")
 
     return user
+
+
+def require_permission(*perm_keys: str):
+    """
+    Factory: returns a dependency that checks granular permissions.
+    role=='admin' always passes (super admin bypass).
+
+    Usage: user=Depends(require_permission("orders"))
+    """
+    from modules.admin.permissions import PERMISSION_REGISTRY
+
+    def dependency(user=Depends(get_current_active_user)):
+        if not user or not getattr(user, "is_staff", False):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="login_required")
+
+        # super admin bypasses all
+        if hasattr(user, "role") and user.role == "admin":
+            return user
+
+        for key in perm_keys:
+            if not user.has_permission(key):
+                label = PERMISSION_REGISTRY.get(key, key)
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"شما دسترسی به بخش «{label}» ندارید",
+                )
+        return user
+
+    return dependency

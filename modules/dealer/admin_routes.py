@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from common.templating import templates
 from common.security import new_csrf_token, csrf_check
-from modules.auth.deps import require_operator_or_admin
+from modules.auth.deps import require_permission
 from modules.dealer.service import dealer_service
 from modules.dealer.models import DealerTier
 from modules.catalog.models import Product, ProductTierWage
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/admin/dealers", tags=["admin-dealer"])
 async def dealer_list(
     request: Request,
     page: int = 1,
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     dealers, total = dealer_service.list_dealers(db, page=page)
@@ -82,7 +82,7 @@ def _parse_int(val: str) -> int | None:
 @router.get("/create", response_class=HTMLResponse)
 async def dealer_create_form(
     request: Request,
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     provinces, tiers = _load_form_context(db)
@@ -120,7 +120,7 @@ async def dealer_create_submit(
     is_warehouse: str = Form("off"),
     is_postal_hub: str = Form("off"),
     csrf_token: str = Form(""),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -171,7 +171,7 @@ async def dealer_create_submit(
 async def dealer_edit_form(
     dealer_id: int,
     request: Request,
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     dealer = dealer_service.get_dealer(db, dealer_id)
@@ -214,7 +214,7 @@ async def dealer_edit_submit(
     is_warehouse: str = Form("off"),
     is_postal_hub: str = Form("off"),
     csrf_token: str = Form(""),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -247,7 +247,7 @@ async def generate_api_key(
     dealer_id: int,
     request: Request,
     csrf_token: str = Form(""),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -262,7 +262,7 @@ async def revoke_api_key(
     dealer_id: int,
     request: Request,
     csrf_token: str = Form(""),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -280,7 +280,7 @@ async def buyback_management(
     request: Request,
     page: int = 1,
     status_filter: str = "",
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     from modules.dealer.models import BuybackRequest, BuybackStatus
@@ -314,7 +314,7 @@ async def approve_buyback(
     request: Request,
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -330,7 +330,7 @@ async def reject_buyback(
     request: Request,
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -347,7 +347,7 @@ async def reject_buyback(
 @router.get("/{dealer_id}/stats")
 async def dealer_stats_api(
     dealer_id: int,
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     stats = dealer_service.get_dealer_stats(db, dealer_id)
@@ -361,7 +361,7 @@ async def dealer_stats_api(
 @router.get("/tiers/list", response_class=HTMLResponse)
 async def tier_list(
     request: Request,
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     tiers = db.query(DealerTier).order_by(DealerTier.sort_order).all()
@@ -380,7 +380,7 @@ async def tier_list(
 @router.get("/tiers/new", response_class=HTMLResponse)
 async def tier_create_form(
     request: Request,
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     csrf = new_csrf_token()
@@ -405,7 +405,7 @@ async def tier_create_submit(
     is_end_customer: str = Form("off"),
     is_active: str = Form("on"),
     csrf_token: str = Form(""),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -425,7 +425,7 @@ async def tier_create_submit(
 async def tier_edit_form(
     tier_id: int,
     request: Request,
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     tier = db.query(DealerTier).filter(DealerTier.id == tier_id).first()
@@ -455,7 +455,7 @@ async def tier_edit_submit(
     is_end_customer: str = Form("off"),
     is_active: str = Form("on"),
     csrf_token: str = Form(""),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -481,7 +481,7 @@ async def tier_wages_form(
     product_id: int,
     request: Request,
     msg: str = None,
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     product = db.query(Product).filter(Product.id == product_id).first()
@@ -518,7 +518,7 @@ async def tier_wages_save(
     product_id: int,
     request: Request,
     csrf_token: str = Form(""),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)

@@ -124,6 +124,7 @@ from modules.dealer.wallet_routes import router as dealer_wallet_router
 from modules.ticket.routes import router as ticket_router
 from modules.ticket.admin_routes import router as ticket_admin_router
 from modules.ownership.routes import router as ownership_router
+from modules.admin.staff_routes import router as staff_admin_router
 
 
 # ==========================================
@@ -400,6 +401,7 @@ app.include_router(dealer_wallet_router)
 app.include_router(ticket_router)
 app.include_router(ticket_admin_router)
 app.include_router(ownership_router)
+app.include_router(staff_admin_router)
 
 
 # ==========================================
@@ -462,10 +464,13 @@ async def terms_page(request: Request, db: Session = Depends(get_db)):
 # ==========================================
 @app.get("/admin/dashboard", response_class=HTMLResponse)
 async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
-    from modules.auth.deps import get_current_active_user
+    from modules.auth.deps import get_current_active_user, require_permission
     from modules.admin.dashboard_service import dashboard_service
     user = get_current_active_user(request, db)
-    if not user or not getattr(user, "is_staff", False):
+    perm_dep = require_permission("dashboard")
+    try:
+        user = perm_dep(user)
+    except Exception:
         return RedirectResponse("/auth/login", status_code=302)
 
     stats = dashboard_service.get_overview_stats(db)
@@ -487,9 +492,12 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
 @app.get("/admin/dashboard/api/stats")
 async def dashboard_stats_api(request: Request, db: Session = Depends(get_db)):
     """JSON API for dashboard stats (for AJAX refresh)."""
-    from modules.auth.deps import get_current_active_user
+    from modules.auth.deps import get_current_active_user, require_permission
     from modules.admin.dashboard_service import dashboard_service
     user = get_current_active_user(request, db)
-    if not user or not getattr(user, "is_staff", False):
+    perm_dep = require_permission("dashboard")
+    try:
+        user = perm_dep(user)
+    except Exception:
         return {"error": "unauthorized"}
     return dashboard_service.get_overview_stats(db)

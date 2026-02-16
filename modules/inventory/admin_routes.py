@@ -15,7 +15,7 @@ from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
 from common.helpers import safe_int
-from modules.auth.deps import require_operator_or_admin, require_super_admin
+from modules.auth.deps import require_permission
 from modules.inventory.models import BarStatus
 from modules.inventory.service import inventory_service
 from modules.catalog.models import Product, Batch
@@ -47,7 +47,7 @@ async def list_bars(
     msg: str = Query(None),
     error: str = Query(None),
     db: Session = Depends(get_db),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("inventory")),
 ):
     _customer_id = safe_int(customer_id)
     _product_id = safe_int(product_id)
@@ -101,7 +101,7 @@ async def generate_bars(
     count: int = Form(...),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("inventory")),
 ):
     csrf_check(request, csrf_token)
     count = min(count, 500)  # Safety limit
@@ -118,7 +118,7 @@ async def generate_bars(
 async def edit_bar_form(
     request: Request, bar_id: int,
     db: Session = Depends(get_db),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("inventory")),
 ):
     bar = inventory_service.get_by_id(db, bar_id)
     if not bar:
@@ -151,7 +151,7 @@ async def update_bar(
     new_files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("inventory")),
 ):
     csrf_check(request, csrf_token)
     inventory_service.update_bar(db, bar_id, {
@@ -181,7 +181,7 @@ async def bulk_action(
     target_dealer_id: str = Form(None),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("inventory")),
 ):
     csrf_check(request, csrf_token)
 
@@ -225,7 +225,7 @@ async def delete_bar_image(
     request: Request, img_id: int,
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("inventory")),
 ):
     csrf_check(request, csrf_token)
     bar_id = inventory_service.delete_image(db, img_id)

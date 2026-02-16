@@ -1,0 +1,136 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}{{ 'ویرایش ادمین' if staff_user else 'افزودن ادمین' }} - طلاملا{% endblock %}
+
+{% block content %}
+<nav class="mb-3 tm-animate-fade-in">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="/admin/staff">ادمین‌ها</a></li>
+        <li class="breadcrumb-item active">{{ 'ویرایش' if staff_user else 'افزودن' }}</li>
+    </ol>
+</nav>
+
+{% if error %}
+<div class="alert alert-tm-danger alert-dismissible fade show">
+    <i class="bi bi-exclamation-triangle me-1"></i> {{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="row g-4 tm-animate-fade-in-up tm-delay-1">
+    <div class="col-lg-5">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3 fw-bold">
+                <i class="bi bi-person-plus me-1 text-tm-primary"></i>
+                {{ 'ویرایش اطلاعات' if staff_user else 'اطلاعات ادمین جدید' }}
+            </div>
+            <form method="POST" action="/admin/staff/{{ staff_user.id ~ '/edit' if staff_user else 'create' }}" id="staffForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="mb-3">
+                    <label class="form-label-tm">شماره موبایل</label>
+                    {% if staff_user %}
+                    <input type="text" class="form-control form-control-tm" value="{{ staff_user.mobile }}" disabled dir="ltr">
+                    {% else %}
+                    <input type="text" name="mobile" class="form-control form-control-tm" required
+                           placeholder="09xxxxxxxxx" dir="ltr" maxlength="11" pattern="09[0-9]{9}">
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label-tm">نام و نام خانوادگی</label>
+                    <input type="text" name="full_name" class="form-control form-control-tm" required
+                           value="{{ staff_user.full_name if staff_user else '' }}">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label-tm">نقش</label>
+                    <select name="role" id="roleSelect" class="form-select form-select-tm">
+                        <option value="operator" {% if not staff_user or staff_user.role == 'operator' %}selected{% endif %}>اپراتور</option>
+                        <option value="admin" {% if staff_user and staff_user.role == 'admin' %}selected{% endif %}>مدیر کل</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-tm-primary w-100">
+                    <i class="bi bi-check2 me-1"></i>
+                    {{ 'بروزرسانی' if staff_user else 'ایجاد ادمین' }}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3 fw-bold">
+                <i class="bi bi-shield-check me-1 text-tm-primary"></i>
+                سطوح دسترسی
+            </div>
+
+            <div id="adminNotice" class="alert alert-tm-success mb-3"
+                 style="display:{% if staff_user and staff_user.role == 'admin' %}block{% else %}none{% endif %};">
+                <i class="bi bi-shield-fill-check me-1"></i>
+                مدیر کل به تمام بخش‌های سیستم دسترسی کامل دارد.
+            </div>
+
+            <div id="permGrid" class="row g-2"
+                 style="{% if staff_user and staff_user.role == 'admin' %}opacity:0.4; pointer-events:none;{% endif %}">
+                {% for key, label in permissions_registry.items() %}
+                <div class="col-sm-6">
+                    <div class="form-check form-switch p-2 border rounded d-flex align-items-center"
+                         style="padding-right:3rem !important;">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               form="staffForm" name="perm_{{ key }}" id="perm_{{ key }}"
+                               {% if staff_user and key in staff_user.permissions %}checked{% endif %}>
+                        <label class="form-check-label me-2 fw-bold small" for="perm_{{ key }}">
+                            {{ label }}
+                        </label>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-3 text-center">
+                <button type="button" class="btn btn-sm btn-tm-outline" id="selectAll">انتخاب همه</button>
+                <button type="button" class="btn btn-sm btn-tm-outline" id="deselectAll">حذف همه</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+(function(){
+    var roleSelect = document.getElementById('roleSelect');
+    var adminNotice = document.getElementById('adminNotice');
+    var permGrid = document.getElementById('permGrid');
+
+    if(roleSelect){
+        roleSelect.addEventListener('change', function(){
+            if(this.value === 'admin'){
+                adminNotice.style.display = 'block';
+                permGrid.style.opacity = '0.4';
+                permGrid.style.pointerEvents = 'none';
+            } else {
+                adminNotice.style.display = 'none';
+                permGrid.style.opacity = '1';
+                permGrid.style.pointerEvents = 'auto';
+            }
+        });
+    }
+
+    var boxes = permGrid ? permGrid.querySelectorAll('input[type=checkbox]') : [];
+    var selectAll = document.getElementById('selectAll');
+    var deselectAll = document.getElementById('deselectAll');
+    if(selectAll){
+        selectAll.addEventListener('click', function(){
+            boxes.forEach(function(cb){ cb.checked = true; });
+        });
+    }
+    if(deselectAll){
+        deselectAll.addEventListener('click', function(){
+            boxes.forEach(function(cb){ cb.checked = false; });
+        });
+    }
+})();
+</script>
+{% endblock %}

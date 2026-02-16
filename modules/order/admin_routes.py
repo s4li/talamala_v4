@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
-from modules.auth.deps import require_super_admin, require_operator_or_admin
+from modules.auth.deps import require_permission
 from modules.order.service import order_service
 from modules.order.models import OrderStatus, DeliveryStatus, DeliveryMethod
 
@@ -28,7 +28,7 @@ async def admin_orders(
     msg: str = Query(None),
     error: str = Query(None),
     db: Session = Depends(get_db),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("orders")),
 ):
     orders = order_service.get_all_orders(db, status=status)
 
@@ -53,7 +53,7 @@ async def approve_order(
     order_id: int,
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_super_admin),
+    user=Depends(require_permission("orders")),
 ):
     """Admin approves/finalizes a pending order (marks as Paid, transfers bars)."""
     csrf_check(request, csrf_token)
@@ -72,7 +72,7 @@ async def cancel_order_admin(
     order_id: int,
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_super_admin),
+    user=Depends(require_permission("orders")),
 ):
     """Admin cancels a pending order and releases bars."""
     csrf_check(request, csrf_token)
@@ -97,7 +97,7 @@ async def update_delivery_status(
     postal_tracking_code: str = Form(""),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("orders")),
 ):
     """Update delivery status and optionally add postal tracking code."""
     csrf_check(request, csrf_token)
@@ -144,7 +144,7 @@ async def confirm_pickup_delivery(
     delivery_code: str = Form(...),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_operator_or_admin),
+    user=Depends(require_permission("orders")),
 ):
     """Confirm in-person pickup by verifying the delivery code."""
     csrf_check(request, csrf_token)
