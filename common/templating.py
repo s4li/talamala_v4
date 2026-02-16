@@ -77,5 +77,12 @@ _FA_LABELS = {
 }
 templates.env.filters["fa_label"] = lambda v: _FA_LABELS.get(str(v), str(v)) if v else "—"
 
+# Ticket category label mapping (for department transfer dropdown)
+_TICKET_CAT_LABELS = {
+    "Financial": "مالی", "Technical": "فنی", "Sales": "فروش",
+    "Complaints": "شکایات", "Other": "سایر",
+}
+templates.env.filters["ticket_category_label"] = lambda v: _TICKET_CAT_LABELS.get(str(v), str(v))
+
 # Globals (usage in template: {{ get_setting_value('key') }})
 templates.env.globals["get_setting_value"] = get_setting_value

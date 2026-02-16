@@ -45,6 +45,7 @@ async def admin_ticket_list(
     total_pages = max(1, (total + 29) // 30)
     stats = ticket_service.get_admin_stats(db)
 
+    csrf = new_csrf_token()
     response = templates.TemplateResponse("admin/tickets/list.html", {
         "request": request,
         "user": user,
@@ -58,8 +59,10 @@ async def admin_ticket_list(
         "category_filter": category,
         "search_query": search or "",
         "categories": TicketCategory,
+        "csrf_token": csrf,
         "active_page": "tickets",
     })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
 
 
@@ -200,6 +203,27 @@ async def admin_ticket_close(
     csrf_check(request, csrf_token)
 
     result = ticket_service.close_ticket(db, ticket_id)
+    if result["success"]:
+        db.commit()
+    return RedirectResponse(f"/admin/tickets/{ticket_id}", status_code=302)
+
+
+# ==========================================
+# Change Category (Department Transfer)
+# ==========================================
+
+@router.post("/{ticket_id}/category")
+async def admin_ticket_category(
+    ticket_id: int,
+    request: Request,
+    new_category: str = Form(...),
+    csrf_token: str = Form(""),
+    user=Depends(require_operator_or_admin),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+
+    result = ticket_service.change_category(db, ticket_id, new_category)
     if result["success"]:
         db.commit()
     return RedirectResponse(f"/admin/tickets/{ticket_id}", status_code=302)

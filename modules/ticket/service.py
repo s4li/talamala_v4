@@ -356,6 +356,32 @@ class TicketService:
         return {"success": True, "message": "تیکت تخصیص داده شد"}
 
     # ------------------------------------------
+    # Change Category (Department Transfer)
+    # ------------------------------------------
+
+    def change_category(
+        self, db: Session,
+        ticket_id: int,
+        new_category: str,
+    ) -> Dict[str, Any]:
+        ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+        if not ticket:
+            return {"success": False, "message": "تیکت یافت نشد"}
+
+        # Validate category
+        valid = [c.value for c in TicketCategory]
+        if new_category not in valid:
+            return {"success": False, "message": "دپارتمان نامعتبر"}
+
+        if ticket.category == new_category:
+            return {"success": True, "message": "دپارتمان تغییری نکرد"}
+
+        ticket.category = new_category
+        ticket.updated_at = now_utc()
+        db.flush()
+        return {"success": True, "message": "دپارتمان تیکت تغییر کرد"}
+
+    # ------------------------------------------
     # Admin Stats
     # ------------------------------------------
 

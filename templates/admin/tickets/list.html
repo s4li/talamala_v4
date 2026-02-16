@@ -137,7 +137,18 @@
                         <small class="text-muted">({{ t.message_count }} پیام)</small>
                         {% endif %}
                     </td>
-                    <td><span class="badge-tm badge-tm-{{ t.category_color }}">{{ t.category_label }}</span></td>
+                    <td>
+                        <form method="POST" action="/admin/tickets/{{ t.id }}/category" class="d-inline ticket-cat-form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <select name="new_category" class="form-select form-select-sm border-0 py-0 pe-4 ps-1 fw-bold"
+                                    style="font-size:0.75rem; width:auto; min-width:70px; background-color:transparent;"
+                                    onchange="this.form.submit()">
+                                {% for cat in categories %}
+                                <option value="{{ cat.value }}" {% if t.category == cat.value %}selected{% endif %}>{{ cat.value | ticket_category_label }}</option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </td>
                     <td><span class="badge-tm badge-tm-{{ t.priority_color }}">{{ t.priority_label }}</span></td>
                     <td><span class="badge-tm badge-tm-{{ t.status_color }}">{{ t.status_label }}</span></td>
                     <td>
