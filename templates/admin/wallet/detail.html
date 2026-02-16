@@ -81,8 +81,9 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label-tm">مبلغ (تومان)</label>
-                        <input type="number" name="amount" class="form-control form-control-tm"
+                        <input type="number" name="amount" id="adjustAmount" class="form-control form-control-tm"
                                min="1" required placeholder="مبلغ">
+                        <div id="amountPreview" class="mt-1" style="font-size:0.75rem; line-height:1.4;"></div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label-tm">توضیحات</label>
@@ -159,4 +160,59 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+(function(){
+    const ones = ['','یک','دو','سه','چهار','پنج','شش','هفت','هشت','نه'];
+    const teens = ['ده','یازده','دوازده','سیزده','چهارده','پانزده','شانزده','هفده','هجده','نوزده'];
+    const tens = ['','','بیست','سی','چهل','پنجاه','شصت','هفتاد','هشتاد','نود'];
+    const hundreds = ['','یکصد','دویست','سیصد','چهارصد','پانصد','ششصد','هفتصد','هشتصد','نهصد'];
+    const scales = ['','هزار','میلیون','میلیارد','هزار میلیارد'];
+
+    function threeDigits(n){
+        if(n===0) return '';
+        let parts=[];
+        let h=Math.floor(n/100), rem=n%100;
+        if(h) parts.push(hundreds[h]);
+        if(rem>=10 && rem<20){
+            parts.push(teens[rem-10]);
+        } else {
+            let t=Math.floor(rem/10), o=rem%10;
+            if(t) parts.push(tens[t]);
+            if(o) parts.push(ones[o]);
+        }
+        return parts.join(' و ');
+    }
+
+    function numToWords(n){
+        if(n===0) return 'صفر';
+        let chunks=[], i=0;
+        while(n>0){
+            let c=n%1000;
+            if(c) chunks.push(threeDigits(c)+(scales[i]?' '+scales[i]:''));
+            n=Math.floor(n/1000); i++;
+        }
+        return chunks.reverse().join(' و ');
+    }
+
+    function formatNum(n){
+        return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')
+            .replace(/[0-9]/g, function(d){return '۰۱۲۳۴۵۶۷۸۹'[d];});
+    }
+
+    var inp=document.getElementById('adjustAmount');
+    var prev=document.getElementById('amountPreview');
+    if(inp && prev){
+        inp.addEventListener('input', function(){
+            var v=parseInt(this.value);
+            if(!v || v<=0){prev.innerHTML=''; return;}
+            prev.innerHTML=
+                '<span class="text-muted">' + formatNum(v) + ' تومان</span><br>' +
+                '<span class="text-success">' + numToWords(v) + ' تومان</span>';
+        });
+    }
+})();
+</script>
 {% endblock %}
