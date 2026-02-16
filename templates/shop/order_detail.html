@@ -48,6 +48,12 @@
     .breakdown-panel .breakdown-item + .breakdown-item {
         border-top: 1px dashed #efe7da;
     }
+    .serial-blur {
+        filter: blur(5px);
+        user-select: none;
+        cursor: default;
+        transition: filter 0.3s ease;
+    }
     @media print {
         .no-print { display: none !important; }
         .shop-navbar, footer, .gold-price-banner { display: none !important; }
@@ -94,7 +100,7 @@
                     <div class="fw-bold">{{ item.product.name if item.product else 'محصول حذف‌شده' }}</div>
                     {% if item.bar %}
                     <small class="text-muted">
-                        <code>{{ item.bar.serial_code }}</code>
+                        <code class="{% if order.status != 'Paid' %}serial-blur{% endif %}">{{ item.bar.serial_code }}</code>
                         {% if item.bar.dealer_location %}
                         <span class="ms-1"><i class="bi bi-geo-alt"></i> {{ item.bar.dealer_location.full_name }}</span>
                         {% endif %}
