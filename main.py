@@ -16,6 +16,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from config import settings
 from config.database import get_db, SessionLocal
 from common.templating import templates
+from modules.auth.deps import require_permission
 
 scheduler_logger = logging.getLogger("talamala.scheduler")
 
@@ -463,15 +464,12 @@ async def terms_page(request: Request, db: Session = Depends(get_db)):
 # Admin Dashboard (comprehensive stats)
 # ==========================================
 @app.get("/admin/dashboard", response_class=HTMLResponse)
-async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
-    from modules.auth.deps import get_current_active_user, require_permission
+async def admin_dashboard(
+    request: Request,
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("dashboard")),
+):
     from modules.admin.dashboard_service import dashboard_service
-    user = get_current_active_user(request, db)
-    perm_dep = require_permission("dashboard")
-    try:
-        user = perm_dep(user)
-    except Exception:
-        return RedirectResponse("/auth/login", status_code=302)
 
     stats = dashboard_service.get_overview_stats(db)
     recent_orders = dashboard_service.get_recent_orders(db, limit=8)
@@ -490,14 +488,11 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
 
 
 @app.get("/admin/dashboard/api/stats")
-async def dashboard_stats_api(request: Request, db: Session = Depends(get_db)):
+async def dashboard_stats_api(
+    request: Request,
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("dashboard")),
+):
     """JSON API for dashboard stats (for AJAX refresh)."""
-    from modules.auth.deps import get_current_active_user, require_permission
     from modules.admin.dashboard_service import dashboard_service
-    user = get_current_active_user(request, db)
-    perm_dep = require_permission("dashboard")
-    try:
-        user = perm_dep(user)
-    except Exception:
-        return {"error": "unauthorized"}
     return dashboard_service.get_overview_stats(db)
