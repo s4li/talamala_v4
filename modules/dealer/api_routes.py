@@ -50,6 +50,7 @@ def get_dealer_by_api_key(
 class SaleRequest(BaseModel):
     serial_code: str = Field(..., min_length=1)
     sale_price: int = Field(..., gt=0)
+    discount_wage_percent: Optional[float] = Field(0.0, ge=0)
     customer_name: Optional[str] = ""
     customer_mobile: Optional[str] = ""
     customer_national_id: Optional[str] = ""
@@ -114,6 +115,7 @@ async def dealer_sale(
         customer_national_id=body.customer_national_id or "",
         payment_ref=body.payment_ref or "",
         description=body.description or "",
+        discount_wage_percent=body.discount_wage_percent or 0.0,
     )
 
     if not result["success"]:
@@ -131,6 +133,7 @@ async def dealer_sale(
         "bar_serial": body.serial_code.upper(),
         "claim_code": result.get("claim_code"),
         "gold_profit_mg": result.get("gold_profit_mg", 0),
+        "discount_wage_percent": float(sale.discount_wage_percent) if sale.discount_wage_percent else 0,
         "message": result["message"],
     }
 
@@ -164,6 +167,7 @@ async def dealer_sales(
                 "customer_mobile": s.customer_mobile,
                 "sale_price": s.sale_price,
                 "gold_profit_mg": s.gold_profit_mg,
+                "discount_wage_percent": float(s.discount_wage_percent) if s.discount_wage_percent else 0,
                 "created_at": s.created_at.isoformat() if s.created_at else None,
             }
             for s in sales

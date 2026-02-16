@@ -173,6 +173,7 @@ class DealerSale(Base):
     sale_price = Column(BigInteger, nullable=False)           # ریال
     commission_amount = Column(BigInteger, default=0, nullable=False)  # ریال (legacy)
     gold_profit_mg = Column(BigInteger, default=0, nullable=False)    # سود طلایی (میلی‌گرم)
+    discount_wage_percent = Column(Numeric(5, 2), default=0, nullable=False)  # تخفیف اجرت از سهم نماینده (درصد)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

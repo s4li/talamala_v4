@@ -153,6 +153,7 @@ class DealerService:
         sale_price: int, customer_name: str = "",
         customer_mobile: str = "", customer_national_id: str = "",
         description: str = "",
+        discount_wage_percent: float = 0.0,
     ) -> Dict[str, Any]:
         """Process a POS sale: dealer sells a bar to a walk-in customer."""
         dealer = self.get_dealer(db, dealer_id)
@@ -166,6 +167,55 @@ class DealerService:
             return {"success": False, "message": "این شمش قابل فروش نیست"}
         if bar.dealer_id != dealer.id:
             return {"success": False, "message": "این شمش در محل نمایندگی شما نیست"}
+
+        # --- Resolve wage tiers for discount validation & gold profit ---
+        product = bar.product
+        ec_wage_pct = 0.0
+        dealer_wage_pct = 0.0
+        margin_pct = 0.0
+        if product and dealer.tier_id:
+            ec_tier = db.query(DealerTier).filter(
+                DealerTier.is_end_customer == True,
+                DealerTier.is_active == True,
+            ).first()
+            if ec_tier:
+                ec_wage_row = db.query(ProductTierWage).filter(
+                    ProductTierWage.product_id == product.id,
+                    ProductTierWage.tier_id == ec_tier.id,
+                ).first()
+                dealer_wage_row = db.query(ProductTierWage).filter(
+                    ProductTierWage.product_id == product.id,
+                    ProductTierWage.tier_id == dealer.tier_id,
+                ).first()
+                ec_wage_pct = float(ec_wage_row.wage_percent) if ec_wage_row else 0
+                dealer_wage_pct = float(dealer_wage_row.wage_percent) if dealer_wage_row else 0
+                margin_pct = ec_wage_pct - dealer_wage_pct
+
+        # Validate discount range
+        if discount_wage_percent < 0:
+            return {"success": False, "message": "تخفیف نمی‌تواند منفی باشد"}
+        if margin_pct > 0 and discount_wage_percent > margin_pct + 0.001:
+            return {"success": False, "message": f"حداکثر تخفیف مجاز {margin_pct:.2f}% اجرت است"}
+        if margin_pct <= 0:
+            discount_wage_percent = 0.0  # no margin = no discount possible
+
+        # Server-side price verification
+        if product and discount_wage_percent > 0:
+            from modules.pricing.calculator import calculate_bar_price
+            from modules.admin.models import SystemSetting
+            gold_setting = db.query(SystemSetting).filter(SystemSetting.key == "gold_price").first()
+            tax_setting = db.query(SystemSetting).filter(SystemSetting.key == "tax_percent").first()
+            gold_price = int(gold_setting.value) if gold_setting else 0
+            tax_pct = float(tax_setting.value) if tax_setting else 10.0
+            effective_wage = ec_wage_pct - discount_wage_percent
+            expected = calculate_bar_price(
+                weight=product.weight, purity=product.purity,
+                wage_percent=effective_wage,
+                base_gold_price_18k=gold_price, tax_percent=tax_pct,
+            )
+            expected_total = expected.get("total", 0)
+            if abs(sale_price - expected_total) > 10:
+                return {"success": False, "message": "مبلغ فروش با قیمت محاسباتی مطابقت ندارد"}
 
         # Mark bar as sold + generate claim code for POS receipt
         bar.status = BarStatus.SOLD
@@ -196,6 +246,7 @@ class DealerService:
             customer_national_id=customer_national_id,
             sale_price=sale_price,
             commission_amount=0,
+            discount_wage_percent=discount_wage_percent,
             description=description,
         )
         db.add(sale)
@@ -203,27 +254,11 @@ class DealerService:
 
         # --- Gold settlement: auto-credit gold profit to dealer wallet ---
         gold_profit_mg = 0
-        product = bar.product
-        if product and dealer.tier_id:
-            ec_tier = db.query(DealerTier).filter(
-                DealerTier.is_end_customer == True,
-                DealerTier.is_active == True,
-            ).first()
-            if ec_tier:
-                ec_wage_row = db.query(ProductTierWage).filter(
-                    ProductTierWage.product_id == product.id,
-                    ProductTierWage.tier_id == ec_tier.id,
-                ).first()
-                dealer_wage_row = db.query(ProductTierWage).filter(
-                    ProductTierWage.product_id == product.id,
-                    ProductTierWage.tier_id == dealer.tier_id,
-                ).first()
-                ec_wage_pct = float(ec_wage_row.wage_percent) if ec_wage_row else 0
-                dealer_wage_pct = float(dealer_wage_row.wage_percent) if dealer_wage_row else 0
-
-                if ec_wage_pct > dealer_wage_pct:
-                    gold_profit_grams = float(product.weight) * (ec_wage_pct - dealer_wage_pct) / 100
-                    gold_profit_mg = int(gold_profit_grams * 1000)
+        if product and margin_pct > 0:
+            effective_margin = margin_pct - discount_wage_percent
+            if effective_margin > 0:
+                gold_profit_grams = float(product.weight) * effective_margin / 100
+                gold_profit_mg = int(gold_profit_grams * 1000)
 
         sale.gold_profit_mg = gold_profit_mg
 
@@ -448,13 +483,23 @@ class DealerService:
 
         result_products = []
         for p in products:
-            ec_wage = get_end_customer_wage(db,p)
+            ec_wage = get_end_customer_wage(db, p)
             price_info = calculate_bar_price(
                 weight=p.weight, purity=p.purity,
                 wage_percent=ec_wage,
                 base_gold_price_18k=gold_price,
                 tax_percent=float(tax_percent),
             )
+
+            # Dealer's tier wage for margin calculation
+            dealer_wage_pct = 0.0
+            if dealer.tier_id:
+                dealer_wage_row = db.query(ProductTierWage).filter(
+                    ProductTierWage.product_id == p.id,
+                    ProductTierWage.tier_id == dealer.tier_id,
+                ).first()
+                dealer_wage_pct = float(dealer_wage_row.wage_percent) if dealer_wage_row else 0
+            margin_pct = round(ec_wage - dealer_wage_pct, 2)
 
             # Get default image
             default_img = db.query(ProductImage).filter(
@@ -476,6 +521,9 @@ class DealerService:
                     "tax": price_info.get("tax", 0),
                     "total": price_info.get("total", 0),
                 },
+                "ec_wage_pct": ec_wage,
+                "dealer_wage_pct": dealer_wage_pct,
+                "margin_pct": margin_pct,
                 "available_bars": [
                     {"bar_id": b.id, "serial_code": b.serial_code}
                     for b in product_bars
@@ -495,6 +543,7 @@ class DealerService:
         sale_price: int, customer_name: str = "",
         customer_mobile: str = "", customer_national_id: str = "",
         payment_ref: str = "", description: str = "",
+        discount_wage_percent: float = 0.0,
     ) -> Dict[str, Any]:
         """Resolve serial_code to bar_id, then delegate to create_pos_sale."""
         bar = db.query(Bar).filter(Bar.serial_code == serial_code.upper()).first()
@@ -511,6 +560,7 @@ class DealerService:
             customer_mobile=customer_mobile,
             customer_national_id=customer_national_id,
             description=desc,
+            discount_wage_percent=discount_wage_percent,
         )
         return result
 
