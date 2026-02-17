@@ -10,10 +10,35 @@
 {% if msg %}<div class="alert-tm-success py-2">{{ msg }}</div>{% endif %}
 {% if error %}<div class="alert-tm-danger py-2">{{ error }}</div>{% endif %}
 
-<!-- Filter -->
-<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-1">
+<!-- Delivery Method Tabs -->
+<ul class="nav nav-tabs mb-3 tm-animate-fade-in-up tm-delay-1">
+    <li class="nav-item">
+        <a class="nav-link {% if not delivery_filter %}active{% endif %}"
+           href="/admin/orders{% if status_filter %}?status={{ status_filter }}{% endif %}">
+            <i class="bi bi-list-ul me-1"></i> همه
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if delivery_filter == 'Pickup' %}active{% endif %}"
+           href="/admin/orders?delivery=Pickup{% if status_filter %}&status={{ status_filter }}{% endif %}">
+            <i class="bi bi-shop me-1"></i> تحویل حضوری
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if delivery_filter == 'Postal' %}active{% endif %}"
+           href="/admin/orders?delivery=Postal{% if status_filter %}&status={{ status_filter }}{% endif %}">
+            <i class="bi bi-envelope me-1"></i> ارسال پستی
+        </a>
+    </li>
+</ul>
+
+<!-- Status Filter -->
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-2">
     <div class="py-2">
         <form method="GET" action="/admin/orders" class="d-flex gap-2 align-items-center">
+            {% if delivery_filter %}
+            <input type="hidden" name="delivery" value="{{ delivery_filter }}">
+            {% endif %}
             <select name="status" class="form-select form-select-tm form-select-sm" style="max-width:200px;">
                 <option value="">همه وضعیت‌ها</option>
                 {% for s in order_statuses %}
@@ -21,7 +46,7 @@
                 {% endfor %}
             </select>
             <button class="btn btn-sm btn-tm-primary"><i class="bi bi-funnel"></i> فیلتر</button>
-            <a href="/admin/orders" class="btn btn-sm btn-light">پاک</a>
+            <a href="/admin/orders{% if delivery_filter %}?delivery={{ delivery_filter }}{% endif %}" class="btn btn-sm btn-light">پاک</a>
         </form>
     </div>
 </div>

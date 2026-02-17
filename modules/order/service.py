@@ -350,10 +350,12 @@ class OrderService:
     def get_order_by_id(self, db: Session, order_id: int) -> Optional[Order]:
         return db.query(Order).filter(Order.id == order_id).first()
 
-    def get_all_orders(self, db: Session, status: str = None) -> List[Order]:
+    def get_all_orders(self, db: Session, status: str = None, delivery: str = None) -> List[Order]:
         q = db.query(Order).order_by(desc(Order.id))
         if status:
             q = q.filter(Order.status == status)
+        if delivery:
+            q = q.filter(Order.delivery_method == delivery)
         return q.all()
 
     # ==========================================
