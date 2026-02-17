@@ -14,6 +14,7 @@ from common.security import new_csrf_token
 from modules.auth.deps import get_current_active_user
 from modules.shop.service import shop_service
 from modules.cart.service import cart_service
+from modules.review.service import review_service
 
 router = APIRouter(tags=["shop"])
 
@@ -95,6 +96,14 @@ async def product_detail(
     from modules.catalog.models import PackageType
     packages = db.query(PackageType).filter(PackageType.is_active == True).order_by(PackageType.id).all()
 
+    # Reviews & Comments
+    reviews = review_service.get_product_reviews(db, product_id)
+    review_stats = review_service.get_product_review_stats(db, product_id)
+    product_comments = review_service.get_product_comments(db, product_id)
+    has_purchased = False
+    if user and not getattr(user, "is_staff", False):
+        has_purchased = review_service.customer_has_purchased(db, user.id, product_id)
+
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/product_detail.html", {
         "request": request,
@@ -108,6 +117,10 @@ async def product_detail(
         "cart_map": cart_map,
         "cart_count": cart_count,
         "packages": packages,
+        "reviews": reviews,
+        "review_stats": review_stats,
+        "product_comments": product_comments,
+        "has_purchased": has_purchased,
         "csrf_token": csrf,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")

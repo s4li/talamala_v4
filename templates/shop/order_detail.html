@@ -48,12 +48,13 @@
     .breakdown-panel .breakdown-item + .breakdown-item {
         border-top: 1px dashed #efe7da;
     }
-    .serial-blur {
-        filter: blur(5px);
-        user-select: none;
-        cursor: default;
-        transition: filter 0.3s ease;
-    }
+    .star-input { direction: rtl; display: inline-flex; gap: 4px; }
+    .star-input label { cursor: pointer; font-size: 1.5rem; color: #ddd; transition: color 0.15s; }
+    .star-input label:hover,
+    .star-input label:hover ~ label,
+    .star-input input:checked ~ label { color: #f5a623; }
+    .star-input input { display: none; }
+    .review-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; }
     @media print {
         .no-print { display: none !important; }
         .shop-navbar, footer, .gold-price-banner { display: none !important; }
@@ -98,14 +99,6 @@
             <div class="d-flex align-items-center px-3 py-3 item-row">
                 <div style="flex:3;">
                     <div class="fw-bold">{{ item.product.name if item.product else 'محصول حذف‌شده' }}</div>
-                    {% if item.bar %}
-                    <small class="text-muted">
-                        سریال شمش: <code class="{% if order.status != 'Paid' %}serial-blur{% endif %}">{{ item.bar.serial_code }}</code>
-                        {% if item.bar.dealer_location %}
-                        <span class="ms-1"><i class="bi bi-geo-alt"></i> {{ item.bar.dealer_location.full_name }}</span>
-                        {% endif %}
-                    </small>
-                    {% endif %}
                     {% if item.package_type %}
                     <small class="text-muted d-block">
                         <i class="bi bi-gift me-1"></i>بسته‌بندی: {{ item.package_type.name }}
@@ -552,4 +545,83 @@
         </div>
     </div>
 </div>
+
+<!-- ========================= REVIEW SECTION (Paid Orders) ========================= -->
+{% if order.status == 'Paid' and not user.is_staff %}
+<div class="mt-5 no-print">
+    <h5 class="fw-bold mb-3"><i class="bi bi-star me-2"></i>ثبت دیدگاه برای محصولات خریداری‌شده</h5>
+
+    {% for item in order.items %}
+    <div class="card-tm no-hover mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="fw-bold">{{ item.product.name if item.product else 'محصول' }}</div>
+            <span class="badge bg-light text-dark">{{ item.applied_weight }}g — عیار {{ item.applied_purity|purity }}</span>
+        </div>
+
+        {% set existing_review = item_reviews.get(item.id) if item_reviews else None %}
+
+        {% if existing_review %}
+        <!-- Already Reviewed -->
+        <div class="p-3 bg-light rounded-3">
+            <div class="mb-2">
+                <span class="text-warning">
+                    {% for i in range(1, 6) %}
+                    <i class="bi bi-star{% if i <= existing_review.rating %}-fill{% endif %} fs-5"></i>
+                    {% endfor %}
+                </span>
+                <span class="text-muted small ms-2">{{ existing_review.rating }} از ۵</span>
+            </div>
+            <p class="mb-1">{{ existing_review.body }}</p>
+            {% if existing_review.images %}
+            <div class="d-flex gap-2 flex-wrap mt-2">
+                {% for img in existing_review.images %}
+                <img src="/{{ img.file_path }}" class="review-thumb" alt="تصویر">
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% if existing_review.admin_reply %}
+            <div class="p-2 bg-success bg-opacity-10 rounded-3 mt-2">
+                <div class="small fw-bold text-success mb-1"><i class="bi bi-check-circle me-1"></i>پاسخ طلاملا</div>
+                <div class="small">{{ existing_review.admin_reply }}</div>
+            </div>
+            {% endif %}
+            <div class="small text-muted mt-2"><i class="bi bi-check-circle text-success me-1"></i>دیدگاه شما ثبت شده</div>
+        </div>
+        {% else %}
+        <!-- Review Form -->
+        <form method="POST" action="/reviews/submit" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="order_item_id" value="{{ item.id }}">
+            <input type="hidden" name="product_id" value="{{ item.product_id }}">
+            <input type="hidden" name="order_id" value="{{ order.id }}">
+
+            <div class="mb-3">
+                <label class="form-label-tm small fw-bold">امتیاز شما</label>
+                <div class="star-input" id="stars-{{ item.id }}">
+                    {% for i in range(5, 0, -1) %}
+                    <input type="radio" name="rating" value="{{ i }}" id="star{{ i }}-{{ item.id }}" {% if i == 5 %}required{% endif %}>
+                    <label for="star{{ i }}-{{ item.id }}"><i class="bi bi-star-fill"></i></label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label-tm small fw-bold">متن دیدگاه</label>
+                <textarea name="body" class="form-control form-control-tm" rows="3" placeholder="نظر خود را درباره این محصول بنویسید..." required></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label-tm small fw-bold">تصاویر (اختیاری)</label>
+                <input type="file" name="files" class="form-control form-control-tm form-control-sm" accept="image/*" multiple>
+            </div>
+
+            <button type="submit" class="btn btn-tm-primary">
+                <i class="bi bi-send me-1"></i>ثبت دیدگاه
+            </button>
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 {% endblock %}
