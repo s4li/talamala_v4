@@ -297,17 +297,12 @@
 
         {% if user and not user.is_staff %}
         <!-- Comment Form -->
-        <form method="POST" action="/product/{{ p.id }}/comment"{% if has_purchased %} enctype="multipart/form-data"{% endif %}>
+        <form method="POST" action="/reviews/comment">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="product_id" value="{{ p.id }}">
             <div class="mb-2">
                 <textarea name="body" class="form-control form-control-tm" rows="3" placeholder="سوال یا نظر خود را بنویسید..." required></textarea>
             </div>
-            {% if has_purchased %}
-            <div class="mb-2">
-                <label class="form-label-tm small">تصاویر (اختیاری)</label>
-                <input type="file" name="files" class="form-control form-control-tm form-control-sm" accept="image/*" multiple>
-            </div>
-            {% endif %}
             <button type="submit" class="btn btn-tm-primary">
                 <i class="bi bi-send me-1"></i>ارسال نظر
             </button>
@@ -375,15 +370,13 @@
                 <i class="bi bi-reply me-1"></i>پاسخ
             </button>
             <div class="collapse mt-2" id="reply-{{ c.id }}">
-                <form method="POST" action="/product/{{ p.id }}/comment"{% if has_purchased %} enctype="multipart/form-data"{% endif %}>
+                <form method="POST" action="/reviews/comment">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="product_id" value="{{ p.id }}">
                     <input type="hidden" name="parent_id" value="{{ c.id }}">
                     <div class="mb-2">
                         <textarea name="body" class="form-control form-control-tm form-control-sm" rows="2" placeholder="پاسخ خود را بنویسید..." required></textarea>
                     </div>
-                    {% if has_purchased %}
-                    <input type="file" name="files" class="form-control form-control-tm form-control-sm mb-2" accept="image/*" multiple>
-                    {% endif %}
                     <button type="submit" class="btn btn-sm btn-tm-primary">
                         <i class="bi bi-send me-1"></i>ارسال
                     </button>
