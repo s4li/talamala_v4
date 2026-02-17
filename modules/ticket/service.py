@@ -376,10 +376,41 @@ class TicketService:
         if ticket.category == new_category:
             return {"success": True, "message": "دپارتمان تغییری نکرد"}
 
+        # Category label for message
+        labels = {
+            TicketCategory.FINANCIAL: "مالی",
+            TicketCategory.TECHNICAL: "فنی",
+            TicketCategory.SALES: "فروش",
+            TicketCategory.COMPLAINTS: "شکایات",
+            TicketCategory.OTHER: "سایر",
+        }
+        old_label = labels.get(ticket.category, ticket.category)
+        new_label = labels.get(new_category, new_category)
+
         ticket.category = new_category
         ticket.updated_at = now_utc()
+
+        # Log internal note for audit trail
+        note = TicketMessage(
+            ticket_id=ticket.id,
+            sender_type=SenderType.STAFF,
+            sender_name="سیستم",
+            body=f"تیکت از دپارتمان «{old_label}» به «{new_label}» منتقل شد.",
+            is_internal=True,
+        )
+        db.add(note)
+
+        # Notify customer/dealer
+        try:
+            if ticket.sender_type == SenderType.CUSTOMER and ticket.customer:
+                notify_ticket_update(ticket.customer.mobile, ticket.id, "status_changed")
+            elif ticket.sender_type == SenderType.DEALER and ticket.dealer:
+                notify_ticket_update(ticket.dealer.mobile, ticket.id, "status_changed")
+        except Exception:
+            pass
+
         db.flush()
-        return {"success": True, "message": "دپارتمان تیکت تغییر کرد"}
+        return {"success": True, "message": f"تیکت به دپارتمان «{new_label}» منتقل شد"}
 
     # ------------------------------------------
     # Admin Stats

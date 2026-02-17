@@ -224,11 +224,11 @@ class CustomerAdminService:
             if dup:
                 return {"success": False, "error": "این کد ملی قبلا ثبت شده است"}
 
-        # Apply updates
+        # Apply updates (first_name & last_name: keep old value if empty)
         if first_name is not None:
-            customer.first_name = first_name or None
+            customer.first_name = first_name.strip() or customer.first_name
         if last_name is not None:
-            customer.last_name = last_name or None
+            customer.last_name = last_name.strip() or customer.last_name
         if national_id is not None:
             customer.national_id = national_id or customer.national_id
         if mobile is not None:
