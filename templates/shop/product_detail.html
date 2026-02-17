@@ -175,7 +175,7 @@
                         <span class="fw-bold small">{{ pkg.name }}</span>
                     </div>
                     {% if pkg.price > 0 %}
-                    <span class="text-tm-primary fw-bold small">+{{ pkg.price | toman }} تومان</span>
+                    <span class="text-tm-primary fw-bold small">{{ pkg.price | toman }} تومان</span>
                     {% else %}
                     <span class="text-success fw-bold small">رایگان</span>
                     {% endif %}
