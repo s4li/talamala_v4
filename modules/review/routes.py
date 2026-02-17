@@ -64,18 +64,24 @@ async def submit_review(
 async def add_product_comment(
     request: Request,
     product_id: int,
-    body: str = Form(""),
-    parent_id: Optional[int] = Form(None),
-    csrf_token: str = Form(""),
-    files: List[UploadFile] = File(default=[]),
     me=Depends(require_customer),
     db: Session = Depends(get_db),
 ):
+    form_data = await request.form()
+    csrf_token = form_data.get("csrf_token", "")
     csrf_check(request, csrf_token)
+
+    body = form_data.get("body", "")
+    parent_id_raw = form_data.get("parent_id")
+    parent_id = int(parent_id_raw) if parent_id_raw else None
 
     # Only buyers can upload images
     has_purchased = review_service.customer_has_purchased(db, me.id, product_id)
-    upload_files = files if (files and has_purchased) else None
+    upload_files = None
+    if has_purchased:
+        raw_files = form_data.getlist("files")
+        valid = [f for f in raw_files if isinstance(f, UploadFile) and f.filename]
+        upload_files = valid or None
 
     sender_name = me.full_name or "مشتری"
 
