@@ -64,6 +64,7 @@
                     <tr>
                         <th>#</th>
                         <th>مشتری</th>
+                        <th>شماره تماس</th>
                         <th>تعداد</th>
                         <th>مبلغ (تومان)</th>
                         <th>تحویل</th>
@@ -81,11 +82,10 @@
                             {% if order.is_gift %}<span class="badge-tm badge-tm-info ms-1" title="سفارش هدیه"><i class="bi bi-gift"></i></span>{% endif %}
                         </td>
                         <td>
-                            {% if order.customer %}
-                            {{ order.customer.full_name }}
-                            <small class="text-muted d-block">شماره تماس:</small>
-                            <small class="text-muted d-block" dir="ltr">{{ order.customer.mobile }}</small>
-                            {% else %}—{% endif %}
+                            {% if order.customer %}{{ order.customer.full_name }}{% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if order.customer %}<small dir="ltr">{{ order.customer.mobile }}</small>{% else %}—{% endif %}
                         </td>
                         <td>{{ order.items|length }}</td>
                         <td class="fw-bold">{{ order.grand_total | toman }}</td>
@@ -148,7 +148,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="9" class="text-center text-muted py-4">سفارشی یافت نشد</td></tr>
+                    <tr><td colspan="10" class="text-center text-muted py-4">سفارشی یافت نشد</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
