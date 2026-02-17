@@ -134,6 +134,7 @@ from modules.ticket.routes import router as ticket_router
 from modules.ticket.admin_routes import router as ticket_admin_router
 from modules.ownership.routes import router as ownership_router
 from modules.admin.staff_routes import router as staff_admin_router
+from modules.pos.routes import router as pos_router
 
 
 # ==========================================
@@ -411,6 +412,7 @@ app.include_router(ticket_router)
 app.include_router(ticket_admin_router)
 app.include_router(ownership_router)
 app.include_router(staff_admin_router)
+app.include_router(pos_router)
 
 
 # ==========================================

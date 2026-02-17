@@ -1,7 +1,19 @@
-# CLAUDE.md — TalaMala v4 Full Project Context
+# CLAUDE.md — TalaMala v4 Full Project Context (Backend)
 
 > **این فایل تمام دانش، معماری، قراردادها، باگ‌های شناخته‌شده و نقشه راه توسعه پروژه TalaMala v4 را شامل می‌شود.**
 > **Claude Code: هر تغییری در پروژه بدی، اول این فایل رو بخون.**
+
+---
+
+## ⚠️ Multi-Repo Workspace
+
+> این پروژه بخش **بک‌اند** است. فرانت POS در فولدر کناری `talamala_pos/` قرار دارد.
+> هر کدام **git مستقل** دارند. کامیت و پوش باید جداگانه انجام شود.
+>
+> ```bash
+> # فقط بک‌اند
+> git -C /path/to/talamala_v4 add . && git -C /path/to/talamala_v4 commit -m "..." && git -C /path/to/talamala_v4 push
+> ```
 
 ---
 
