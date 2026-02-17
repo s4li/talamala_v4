@@ -1,0 +1,153 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}نظرات و دیدگاه‌ها - طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-chat-square-text text-tm-primary"></i>
+        نظرات و دیدگاه‌ها
+    </h4>
+</div>
+
+<!-- Search -->
+<div class="mb-3 tm-animate-fade-in-up tm-delay-1">
+    <form method="GET" action="/admin/reviews" class="d-flex gap-2">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        <input type="text" name="search" value="{{ search }}" class="form-control form-control-tm form-control-sm"
+               placeholder="جستجو: نام محصول، متن نظر، موبایل..." style="max-width:400px;">
+        <button class="btn btn-sm btn-tm-outline"><i class="bi bi-search"></i></button>
+        {% if search %}
+        <a href="/admin/reviews?tab={{ tab }}" class="btn btn-sm btn-tm-outline">پاک کردن</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Tabs: Reviews / Comments -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'reviews' %}active{% endif %}"
+           href="/admin/reviews?tab=reviews{% if search %}&search={{ search }}{% endif %}">
+            <i class="bi bi-star me-1"></i> دیدگاه‌ها (امتیاز)
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'comments' %}active{% endif %}"
+           href="/admin/reviews?tab=comments{% if search %}&search={{ search }}{% endif %}">
+            <i class="bi bi-chat-dots me-1"></i> پرسش و پاسخ
+        </a>
+    </li>
+</ul>
+
+<!-- Table -->
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+    <div class="table-responsive">
+        <table class="table table-tm mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>محصول</th>
+                    {% if tab == 'reviews' %}
+                    <th>مشتری</th>
+                    <th>امتیاز</th>
+                    <th>متن</th>
+                    <th>پاسخ ادمین</th>
+                    {% else %}
+                    <th>فرستنده</th>
+                    <th>متن</th>
+                    {% endif %}
+                    <th>تاریخ</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if tab == 'reviews' %}
+                    {% for r in reviews %}
+                    <tr>
+                        <td class="fw-bold">{{ r.id }}</td>
+                        <td>
+                            <a href="/product/{{ r.product_id }}" target="_blank" class="text-decoration-none">
+                                {{ r.product.name[:30] if r.product else '—' }}
+                            </a>
+                        </td>
+                        <td>
+                            <small class="fw-bold">{{ r.customer.full_name if r.customer else '—' }}</small>
+                            {% if r.customer %}
+                            <br><small class="text-muted" dir="ltr">{{ r.customer.mobile }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% for i in range(5) %}
+                            <i class="bi bi-star{% if i < r.rating %}-fill text-warning{% endif %}" style="font-size:0.8rem;"></i>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <small>{{ r.body[:50] }}{% if r.body|length > 50 %}...{% endif %}</small>
+                        </td>
+                        <td>
+                            {% if r.admin_reply %}
+                            <span class="badge-tm badge-tm-success">پاسخ داده شده</span>
+                            {% else %}
+                            <span class="badge-tm badge-tm-warning">بدون پاسخ</span>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ r.created_at | jdate }}</small></td>
+                        <td>
+                            <a href="/admin/reviews/{{ r.id }}" class="btn btn-sm btn-tm-outline">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            <i class="bi bi-star" style="font-size:2rem;"></i>
+                            <br>دیدگاهی یافت نشد
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    {% for c in comments %}
+                    <tr>
+                        <td class="fw-bold">{{ c.id }}</td>
+                        <td>
+                            <a href="/product/{{ c.product_id }}" target="_blank" class="text-decoration-none">
+                                {{ c.product.name[:30] if c.product else '—' }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if c.sender_type.value == 'ADMIN' %}
+                            <span class="badge-tm badge-tm-success">مدیریت</span>
+                            {% else %}
+                            <span class="badge-tm badge-tm-info">مشتری</span>
+                            {% endif %}
+                            <br><small class="fw-bold">{{ c.sender_name }}</small>
+                        </td>
+                        <td>
+                            <small>{{ c.body[:60] }}{% if c.body|length > 60 %}...{% endif %}</small>
+                        </td>
+                        <td><small>{{ c.created_at | jdate }}</small></td>
+                        <td>
+                            <a href="/admin/reviews/comments/{{ c.id }}" class="btn btn-sm btn-tm-outline">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="bi bi-chat-dots" style="font-size:2rem;"></i>
+                            <br>نظری یافت نشد
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% from "components/pagination.html" import pagination %}
+{% set qs %}&tab={{ tab }}{% if search %}&search={{ search }}{% endif %}{% endset %}
+{{ pagination(page, total_pages, '/admin/reviews', qs) }}
+{% endblock %}

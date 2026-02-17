@@ -32,6 +32,8 @@
         font-size: 1.1rem;
         padding-top: 0.75rem;
     }
+    .review-img { width:64px; height:64px; object-fit:cover; border-radius:8px; cursor:pointer; border:2px solid var(--tm-border); }
+    .comment-thread { border-right: 3px solid var(--tm-border); padding-right: 1rem; margin-right: 0.5rem; }
 </style>
 {% endblock %}
 
@@ -225,6 +227,136 @@
             {% endif %}
         </div>
     </div>
+</div>
+
+<!-- ========================= REVIEWS ========================= -->
+{% if reviews %}
+<div class="mt-4">
+    <div class="card-tm no-hover">
+        <h5 class="fw-bold mb-3"><i class="bi bi-star me-2"></i>دیدگاه خریداران
+            {% if review_stats.count %}<span class="badge bg-warning text-dark ms-2">{{ review_stats.avg }} از ۵ ({{ review_stats.count }} نظر)</span>{% endif %}
+        </h5>
+        {% for r in reviews %}
+        <div class="pb-3 mb-3 {% if not loop.last %}border-bottom{% endif %}">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+                <div>
+                    <span class="text-warning">{% for i in range(1,6) %}<i class="bi bi-star{% if i <= r.rating %}-fill{% endif %}"></i>{% endfor %}</span>
+                    <span class="fw-bold small ms-2">{{ r.customer.full_name if r.customer else 'مشتری' }}</span>
+                </div>
+                <span class="text-muted small">{{ r.created_at | jdate }}</span>
+            </div>
+            <p class="mb-1">{{ r.body }}</p>
+            {% if r.images %}
+            <div class="d-flex gap-2 flex-wrap mb-2">
+                {% for img in r.images %}
+                <img src="/{{ img.file_path }}" class="review-img" alt="تصویر">
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% if r.admin_reply %}
+            <div class="p-2 bg-success bg-opacity-10 rounded-3 mt-2 small">
+                <span class="badge-tm badge-tm-success me-1">پشتیبانی</span>{{ r.admin_reply }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- ========================= COMMENTS & Q&A ========================= -->
+<div class="mt-4" id="comments">
+    <div class="card-tm no-hover mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-chat-dots me-2"></i>پرسش و پاسخ</h5>
+
+        {% if user and not user.is_staff %}
+        <form method="POST" action="/reviews/comment" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="product_id" value="{{ p.id }}">
+            <div class="mb-2">
+                <textarea name="body" class="form-control form-control-tm" rows="3" placeholder="سوال یا نظر خود را بنویسید..." required></textarea>
+            </div>
+            {% if has_purchased %}
+            <div class="mb-2">
+                <label class="form-label-tm small">تصاویر (اختیاری)</label>
+                <input type="file" name="files" class="form-control form-control-tm form-control-sm" accept="image/*" multiple>
+            </div>
+            {% endif %}
+            <button type="submit" class="btn btn-tm-primary">
+                <i class="bi bi-send me-1"></i>ارسال نظر
+            </button>
+        </form>
+        {% elif not user %}
+        <div class="alert-tm-warning py-2 small">
+            <i class="bi bi-info-circle me-1"></i>
+            برای ثبت نظر ابتدا <a href="/auth/login?next=/product/{{ p.id }}" class="fw-bold">وارد شوید</a>.
+        </div>
+        {% endif %}
+    </div>
+
+    {% if product_comments %}
+    {% for c in product_comments %}
+    <div class="card-tm no-hover mb-3">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+                <span class="badge-tm badge-tm-{{ c.sender_badge_color }} me-1">{{ c.sender_type_label }}</span>
+                <span class="fw-bold small">{{ c.sender_name }}</span>
+            </div>
+            <span class="text-muted small">{{ c.created_at | jdate }}</span>
+        </div>
+        <p class="mb-2">{{ c.body }}</p>
+        {% if c.images %}
+        <div class="d-flex gap-2 flex-wrap mb-2">
+            {% for img in c.images %}
+            <img src="/{{ img.file_path }}" class="review-img" alt="تصویر">
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if c.replies %}
+        <div class="comment-thread mt-3">
+            {% for reply in c.replies %}
+            <div class="mb-2 pb-2 {% if not loop.last %}border-bottom{% endif %}">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <div>
+                        <span class="badge-tm badge-tm-{{ reply.sender_badge_color }} me-1">{{ reply.sender_type_label }}</span>
+                        <span class="fw-bold small">{{ reply.sender_name }}</span>
+                    </div>
+                    <span class="text-muted small">{{ reply.created_at | jdate }}</span>
+                </div>
+                <p class="mb-0 small">{{ reply.body }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if user and not user.is_staff %}
+        <div class="mt-2">
+            <button class="btn btn-sm btn-tm-outline" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#reply-{{ c.id }}">
+                <i class="bi bi-reply me-1"></i>پاسخ
+            </button>
+            <div class="collapse mt-2" id="reply-{{ c.id }}">
+                <form method="POST" action="/reviews/comment" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="product_id" value="{{ p.id }}">
+                    <input type="hidden" name="parent_id" value="{{ c.id }}">
+                    <div class="mb-2">
+                        <textarea name="body" class="form-control form-control-tm form-control-sm" rows="2" placeholder="پاسخ خود را بنویسید..." required></textarea>
+                    </div>
+                    {% if has_purchased %}
+                    <input type="file" name="files" class="form-control form-control-tm form-control-sm mb-2" accept="image/*" multiple>
+                    {% endif %}
+                    <button type="submit" class="btn btn-sm btn-tm-primary">
+                        <i class="bi bi-send me-1"></i>ارسال
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
 </div>
 {% endblock %}
 

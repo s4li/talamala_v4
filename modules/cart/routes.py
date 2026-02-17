@@ -364,6 +364,11 @@ async def order_detail(
         from modules.wallet.service import wallet_service
         wallet_balance = wallet_service.get_balance(db, user.id)
 
+    # Get existing reviews for order items (to show/hide review form)
+    from modules.review.service import review_service
+    order_item_ids = [item.id for item in order.items]
+    item_reviews = review_service.get_reviews_for_order_items(db, order_item_ids)
+
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/order_detail.html", {
         "request": request,
@@ -375,6 +380,7 @@ async def order_detail(
         "msg": msg,
         "error": error,
         "wallet_balance": wallet_balance,
+        "item_reviews": item_reviews,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response

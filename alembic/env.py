@@ -35,6 +35,7 @@ from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalR
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory  # noqa: F401
 from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest  # noqa: F401
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment  # noqa: F401
+from modules.review.models import Review, ReviewImage, ProductComment, CommentImage  # noqa: F401
 
 # Alembic Config
 config = context.config
