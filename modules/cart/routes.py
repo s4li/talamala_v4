@@ -358,17 +358,11 @@ async def order_detail(
 
     cart_map, cart_count = {}, 0
     wallet_balance = None
-    item_reviews = {}
     if not is_staff:
         cart_map, cart_count = cart_service.get_cart_map(db, user.id)
         # Get wallet balance for payment
         from modules.wallet.service import wallet_service
         wallet_balance = wallet_service.get_balance(db, user.id)
-        # Get existing reviews for order items
-        if order.status == "Paid" and order.items:
-            from modules.review.service import review_service
-            item_ids = [item.id for item in order.items]
-            item_reviews = review_service.get_reviews_for_order_items(db, item_ids)
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/order_detail.html", {
@@ -381,7 +375,6 @@ async def order_detail(
         "msg": msg,
         "error": error,
         "wallet_balance": wallet_balance,
-        "item_reviews": item_reviews,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response

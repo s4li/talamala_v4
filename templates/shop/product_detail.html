@@ -32,11 +32,6 @@
         font-size: 1.1rem;
         padding-top: 0.75rem;
     }
-    .star-rating { direction: rtl; display: inline-flex; gap: 2px; }
-    .star-rating i { font-size: 1.1rem; color: #ddd; cursor: default; }
-    .star-rating i.filled { color: #f5a623; }
-    .review-img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; cursor: pointer; }
-    .comment-thread { border-right: 3px solid var(--tm-border); padding-right: 1rem; margin-right: 0.5rem; }
 </style>
 {% endblock %}
 
@@ -172,14 +167,13 @@
                     <input type="radio" name="package_choice" value="{{ pkg.id }}" class="form-check-input"
                            onchange="selectPackage(this)">
                     {% if pkg.default_image %}
-                    <img src="/{{ pkg.default_image }}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;cursor:zoom-in;" alt="{{ pkg.name }}"
-                         onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('pkgModalImg').src=this.src; document.getElementById('pkgModalLabel').textContent=this.alt; new bootstrap.Modal(document.getElementById('pkgModal')).show();">
+                    <img src="/{{ pkg.default_image }}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;" alt="{{ pkg.name }}">
                     {% endif %}
                     <div class="flex-grow-1">
                         <span class="fw-bold small">{{ pkg.name }}</span>
                     </div>
                     {% if pkg.price > 0 %}
-                    <span class="text-tm-primary fw-bold small">{{ pkg.price | toman }} تومان</span>
+                    <span class="text-tm-primary fw-bold small">+{{ pkg.price | toman }} تومان</span>
                     {% else %}
                     <span class="text-success fw-bold small">رایگان</span>
                     {% endif %}
@@ -229,177 +223,6 @@
                 <i class="bi bi-x-circle me-1"></i> ناموجود
             </button>
             {% endif %}
-        </div>
-    </div>
-</div>
-
-<!-- ========================= REVIEWS & COMMENTS ========================= -->
-<div class="mt-5" id="reviews">
-    <!-- Review Summary -->
-    <div class="card-tm no-hover mb-4">
-        <div class="d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold mb-0"><i class="bi bi-star me-2"></i>دیدگاه خریداران</h5>
-            {% if review_stats and review_stats.count > 0 %}
-            <div class="d-flex align-items-center gap-2">
-                <span class="text-warning">
-                    {% for i in range(1, 6) %}
-                    <i class="bi bi-star{% if i <= review_stats.avg|round %}-fill{% endif %}"></i>
-                    {% endfor %}
-                </span>
-                <span class="fw-bold">{{ review_stats.avg }}</span>
-                <span class="text-muted small">({{ review_stats.count }} دیدگاه)</span>
-            </div>
-            {% else %}
-            <span class="text-muted small">هنوز دیدگاهی ثبت نشده</span>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Reviews List -->
-    {% if reviews %}
-    {% for r in reviews %}
-    <div class="card-tm no-hover mb-3">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-            <div>
-                <span class="fw-bold small">{{ r.customer.full_name if r.customer else 'مشتری' }}</span>
-                <span class="text-warning ms-2">
-                    {% for i in range(1, 6) %}
-                    <i class="bi bi-star{% if i <= r.rating %}-fill{% endif %}"></i>
-                    {% endfor %}
-                </span>
-            </div>
-            <span class="text-muted small">{{ r.created_at | jdate }}</span>
-        </div>
-        <p class="mb-2">{{ r.body }}</p>
-        {% if r.images %}
-        <div class="d-flex gap-2 flex-wrap mb-2">
-            {% for img in r.images %}
-            <img src="/{{ img.file_path }}" class="review-img" alt="تصویر"
-                 onclick="document.getElementById('pkgModalImg').src=this.src; document.getElementById('pkgModalLabel').textContent='تصویر دیدگاه'; new bootstrap.Modal(document.getElementById('pkgModal')).show();">
-            {% endfor %}
-        </div>
-        {% endif %}
-        {% if r.admin_reply %}
-        <div class="p-2 bg-success bg-opacity-10 rounded-3 mt-2">
-            <div class="small fw-bold text-success mb-1"><i class="bi bi-check-circle me-1"></i>پاسخ طلاملا</div>
-            <div class="small">{{ r.admin_reply }}</div>
-        </div>
-        {% endif %}
-    </div>
-    {% endfor %}
-    {% endif %}
-</div>
-
-<!-- ========================= COMMENTS & Q&A ========================= -->
-<div class="mt-4" id="comments">
-    <div class="card-tm no-hover mb-4">
-        <h5 class="fw-bold mb-3"><i class="bi bi-chat-dots me-2"></i>پرسش و پاسخ</h5>
-
-        {% if user and not user.is_staff %}
-        <!-- Comment Form -->
-        <form method="POST" action="/reviews/comment">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <input type="hidden" name="product_id" value="{{ p.id }}">
-            <div class="mb-2">
-                <textarea name="body" class="form-control form-control-tm" rows="3" placeholder="سوال یا نظر خود را بنویسید..." required></textarea>
-            </div>
-            <button type="submit" class="btn btn-tm-primary">
-                <i class="bi bi-send me-1"></i>ارسال نظر
-            </button>
-        </form>
-        {% elif not user %}
-        <div class="alert-tm-warning py-2 small">
-            <i class="bi bi-info-circle me-1"></i>
-            برای ثبت نظر ابتدا <a href="/auth/login?next=/product/{{ p.id }}" class="fw-bold">وارد شوید</a>.
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Comments List -->
-    {% if product_comments %}
-    {% for c in product_comments %}
-    <div class="card-tm no-hover mb-3">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-            <div>
-                <span class="badge-tm badge-tm-{{ c.sender_badge_color }} me-1">{{ c.sender_type_label }}</span>
-                <span class="fw-bold small">{{ c.sender_name }}</span>
-            </div>
-            <span class="text-muted small">{{ c.created_at | jdate }}</span>
-        </div>
-        <p class="mb-2">{{ c.body }}</p>
-        {% if c.images %}
-        <div class="d-flex gap-2 flex-wrap mb-2">
-            {% for img in c.images %}
-            <img src="/{{ img.file_path }}" class="review-img" alt="تصویر"
-                 onclick="document.getElementById('pkgModalImg').src=this.src; document.getElementById('pkgModalLabel').textContent='تصویر'; new bootstrap.Modal(document.getElementById('pkgModal')).show();">
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        <!-- Replies -->
-        {% if c.replies %}
-        <div class="comment-thread mt-3">
-            {% for reply in c.replies %}
-            <div class="mb-2 pb-2 {% if not loop.last %}border-bottom{% endif %}">
-                <div class="d-flex justify-content-between align-items-start mb-1">
-                    <div>
-                        <span class="badge-tm badge-tm-{{ reply.sender_badge_color }} me-1">{{ reply.sender_type_label }}</span>
-                        <span class="fw-bold small">{{ reply.sender_name }}</span>
-                    </div>
-                    <span class="text-muted small">{{ reply.created_at | jdate }}</span>
-                </div>
-                <p class="mb-0 small">{{ reply.body }}</p>
-                {% if reply.images %}
-                <div class="d-flex gap-2 flex-wrap mt-1">
-                    {% for img in reply.images %}
-                    <img src="/{{ img.file_path }}" class="review-img" alt="تصویر" style="width:48px;height:48px;"
-                         onclick="document.getElementById('pkgModalImg').src=this.src; document.getElementById('pkgModalLabel').textContent='تصویر'; new bootstrap.Modal(document.getElementById('pkgModal')).show();">
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        <!-- Reply Form -->
-        {% if user and not user.is_staff %}
-        <div class="mt-2">
-            <button class="btn btn-sm btn-tm-outline" type="button"
-                    data-bs-toggle="collapse" data-bs-target="#reply-{{ c.id }}">
-                <i class="bi bi-reply me-1"></i>پاسخ
-            </button>
-            <div class="collapse mt-2" id="reply-{{ c.id }}">
-                <form method="POST" action="/reviews/comment">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <input type="hidden" name="product_id" value="{{ p.id }}">
-                    <input type="hidden" name="parent_id" value="{{ c.id }}">
-                    <div class="mb-2">
-                        <textarea name="body" class="form-control form-control-tm form-control-sm" rows="2" placeholder="پاسخ خود را بنویسید..." required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-sm btn-tm-primary">
-                        <i class="bi bi-send me-1"></i>ارسال
-                    </button>
-                </form>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-    {% endfor %}
-    {% endif %}
-</div>
-
-<!-- Package Image Modal -->
-<div class="modal fade" id="pkgModal" tabindex="-1" aria-labelledby="pkgModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius:16px;overflow:hidden;">
-            <div class="modal-header border-0 pb-0">
-                <h6 class="modal-title fw-bold" id="pkgModalLabel"></h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
-            </div>
-            <div class="modal-body text-center p-4">
-                <img id="pkgModalImg" src="" alt="" style="max-width:100%;max-height:70vh;object-fit:contain;border-radius:12px;">
-            </div>
         </div>
     </div>
 </div>
