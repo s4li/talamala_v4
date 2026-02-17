@@ -14,19 +14,19 @@
 <ul class="nav nav-tabs mb-3 tm-animate-fade-in-up tm-delay-1">
     <li class="nav-item">
         <a class="nav-link {% if not delivery_filter %}active{% endif %}"
-           href="/admin/orders{% if status_filter %}?status={{ status_filter }}{% endif %}">
+           href="/admin/orders{% if status_filter %}?status={{ status_filter }}{% endif %}{% if search_query %}{{ '&' if status_filter else '?' }}search={{ search_query }}{% endif %}">
             <i class="bi bi-list-ul me-1"></i> همه
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {% if delivery_filter == 'Pickup' %}active{% endif %}"
-           href="/admin/orders?delivery=Pickup{% if status_filter %}&status={{ status_filter }}{% endif %}">
+           href="/admin/orders?delivery=Pickup{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
             <i class="bi bi-shop me-1"></i> تحویل حضوری
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link {% if delivery_filter == 'Postal' %}active{% endif %}"
-           href="/admin/orders?delivery=Postal{% if status_filter %}&status={{ status_filter }}{% endif %}">
+           href="/admin/orders?delivery=Postal{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
             <i class="bi bi-envelope me-1"></i> ارسال پستی
         </a>
     </li>
@@ -35,10 +35,15 @@
 <!-- Status Filter -->
 <div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-2">
     <div class="py-2">
-        <form method="GET" action="/admin/orders" class="d-flex gap-2 align-items-center">
+        <form method="GET" action="/admin/orders" class="d-flex gap-2 align-items-center flex-wrap">
             {% if delivery_filter %}
             <input type="hidden" name="delivery" value="{{ delivery_filter }}">
             {% endif %}
+            <div class="input-group input-group-sm" style="max-width:280px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control form-control-tm" placeholder="نام مشتری یا موبایل..."
+                       value="{{ search_query }}">
+            </div>
             <select name="status" class="form-select form-select-tm form-select-sm" style="max-width:200px;">
                 <option value="">همه وضعیت‌ها</option>
                 {% for s in order_statuses %}
@@ -78,6 +83,7 @@
                         <td>
                             {% if order.customer %}
                             {{ order.customer.full_name }}
+                            <small class="text-muted d-block">شماره تماس:</small>
                             <small class="text-muted d-block" dir="ltr">{{ order.customer.mobile }}</small>
                             {% else %}—{% endif %}
                         </td>
