@@ -137,7 +137,6 @@ from modules.ownership.routes import router as ownership_router
 from modules.admin.staff_routes import router as staff_admin_router
 from modules.pos.routes import router as pos_router
 from modules.review.routes import router as review_router
-from modules.review.admin_routes import router as review_admin_router
 
 
 # ==========================================
@@ -417,7 +416,6 @@ app.include_router(ownership_router)
 app.include_router(staff_admin_router)
 app.include_router(pos_router)
 app.include_router(review_router)
-app.include_router(review_admin_router)
 
 
 # ==========================================

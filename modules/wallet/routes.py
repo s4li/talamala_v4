@@ -8,7 +8,7 @@ import logging
 import urllib.parse
 import httpx
 
-from fastapi import APIRouter, Request, Depends, Form, HTTPException
+from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -18,7 +18,7 @@ from common.templating import templates
 from common.security import csrf_check, new_csrf_token
 from modules.auth.deps import require_customer
 from modules.wallet.service import wallet_service
-from modules.wallet.models import AssetCode, OwnerType, WithdrawalStatus, WithdrawalRequest, WalletTopup
+from modules.wallet.models import WithdrawalStatus, WithdrawalRequest, WalletTopup
 
 logger = logging.getLogger("talamala.wallet")
 
@@ -42,7 +42,6 @@ async def wallet_dashboard(
     me=Depends(require_customer),
 ):
     balance = wallet_service.get_balance(db, me.id)
-    gold_balance = wallet_service.get_balance(db, me.id, asset_code=AssetCode.XAU_MG)
     entries, total = wallet_service.get_transactions(db, me.id, per_page=10)
 
     # Pending withdrawals
@@ -57,7 +56,6 @@ async def wallet_dashboard(
         "request": request,
         "user": me,
         "balance": balance,
-        "gold_balance": gold_balance,
         "entries": entries,
         "pending_withdrawals": pending_wr,
         "cart_count": 0,
@@ -265,84 +263,3 @@ async def wallet_withdraw_submit(
         return RedirectResponse(f"/wallet/withdraw?error={str(e)}", status_code=302)
 
 
-# ==========================================
-# 🥇 Gold Conversion (rial ↔ gold)
-# ==========================================
-
-@router.get("/gold", response_class=HTMLResponse)
-async def wallet_gold_page(
-    request: Request,
-    msg: str = None,
-    error: str = None,
-    db: Session = Depends(get_db),
-    me=Depends(require_customer),
-):
-    """Page for buying/selling gold via wallet."""
-    balance = wallet_service.get_balance(db, me.id)
-    gold_balance = wallet_service.get_balance(db, me.id, asset_code=AssetCode.XAU_MG)
-    rates = wallet_service.get_gold_rates(db)
-
-    csrf = new_csrf_token()
-    resp = templates.TemplateResponse("shop/wallet_gold.html", {
-        "request": request,
-        "user": me,
-        "balance": balance,
-        "gold_balance": gold_balance,
-        "rates": rates,
-        "csrf_token": csrf,
-        "cart_count": 0,
-        "msg": msg,
-        "error": error,
-    })
-    resp.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
-    return resp
-
-
-@router.post("/gold/buy")
-async def wallet_gold_buy(
-    request: Request,
-    amount_toman: int = Form(...),
-    csrf_token: str = Form(""),
-    db: Session = Depends(get_db),
-    me=Depends(require_customer),
-):
-    """Buy gold with rials from wallet."""
-    csrf_check(request, csrf_token)
-    amount_irr = amount_toman * 10
-
-    try:
-        result = wallet_service.convert_rial_to_gold(db, me.id, amount_irr)
-        db.commit()
-        gold_mg = result["gold_mg"]
-        msg = urllib.parse.quote(f"خرید {gold_mg / 1000:.3f} گرم طلا با موفقیت انجام شد")
-        return RedirectResponse(f"/wallet/gold?msg={msg}", status_code=302)
-    except ValueError as e:
-        db.rollback()
-        error = urllib.parse.quote(str(e))
-        return RedirectResponse(f"/wallet/gold?error={error}", status_code=302)
-
-
-@router.post("/gold/sell")
-async def wallet_gold_sell(
-    request: Request,
-    gold_grams: str = Form(...),
-    csrf_token: str = Form(""),
-    db: Session = Depends(get_db),
-    me=Depends(require_customer),
-):
-    """Sell gold for rials to wallet."""
-    csrf_check(request, csrf_token)
-
-    try:
-        gold_mg = int(float(gold_grams) * 1000)
-        if gold_mg <= 0:
-            raise ValueError("مقدار طلا باید بیشتر از صفر باشد")
-        result = wallet_service.convert_gold_to_rial(db, me.id, gold_mg)
-        db.commit()
-        rial = result["amount_irr"]
-        msg = urllib.parse.quote(f"فروش {gold_mg / 1000:.3f} گرم طلا — {rial // 10:,} تومان واریز شد")
-        return RedirectResponse(f"/wallet/gold?msg={msg}", status_code=302)
-    except ValueError as e:
-        db.rollback()
-        error = urllib.parse.quote(str(e))
-        return RedirectResponse(f"/wallet/gold?error={error}", status_code=302)
