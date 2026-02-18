@@ -9,9 +9,18 @@ NOTE on Relationships:
     See modules/<module>/models.py for relationship setup.
 """
 
+import secrets
+import string
+
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.sql import func
 from config.database import Base
+
+
+def generate_referral_code(length: int = 8) -> str:
+    """Generate a random uppercase alphanumeric referral code."""
+    chars = string.ascii_uppercase + string.digits
+    return "".join(secrets.choice(chars) for _ in range(length))
 
 
 class Customer(Base):
@@ -34,6 +43,11 @@ class Customer(Base):
     address = Column(String, nullable=True)         # نشانی
     phone = Column(String, nullable=True)           # شماره تماس ثابت
 
+    # Referral
+    referral_code = Column(String(10), unique=True, nullable=True, index=True)
+    referred_by = Column(Integer, nullable=True)        # customer_id of referrer
+    referral_rewarded = Column(Boolean, default=False, server_default="false")
+
     # OTP fields (used by auth module)
     otp_code = Column(String, nullable=True)
     otp_expiry = Column(DateTime(timezone=True), nullable=True)
@@ -55,9 +69,11 @@ class Customer(Base):
     @property
     def is_profile_complete(self) -> bool:
         """Check if required profile fields are filled for ordering."""
-        if not self.first_name or not self.last_name:
+        if not self.first_name or self.first_name == "کاربر":
             return False
-        if not self.national_id:
+        if not self.last_name or self.last_name == "مهمان":
+            return False
+        if not self.national_id or self.national_id.startswith("GUEST_"):
             return False
         if not self.customer_type:
             return False

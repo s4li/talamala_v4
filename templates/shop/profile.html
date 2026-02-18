@@ -143,12 +143,12 @@
                     <div class="col-md-6">
                         <label class="form-label-tm small fw-bold">نام <span class="text-danger">*</span></label>
                         <input type="text" name="first_name" class="form-control form-control-tm"
-                               value="{{ user.first_name or '' }}" placeholder="نام">
+                               value="{{ '' if user.first_name == 'کاربر' else (user.first_name or '') }}" placeholder="نام">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm small fw-bold">نام خانوادگی <span class="text-danger">*</span></label>
                         <input type="text" name="last_name" class="form-control form-control-tm"
-                               value="{{ user.last_name or '' }}" placeholder="نام خانوادگی">
+                               value="{{ '' if user.last_name == 'مهمان' else (user.last_name or '') }}" placeholder="نام خانوادگی">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm small fw-bold">
@@ -156,7 +156,7 @@
                             <span class="text-danger">*</span>
                         </label>
                         <input type="text" name="national_id" class="form-control form-control-tm" dir="ltr"
-                               value="{{ user.national_id or '' }}" placeholder="۱۰ رقم" maxlength="10">
+                               value="{{ '' if user.national_id and user.national_id.startswith('GUEST_') else (user.national_id or '') }}" placeholder="۱۰ رقم" maxlength="10">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm small text-muted">شماره موبایل</label>
