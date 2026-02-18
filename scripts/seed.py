@@ -52,6 +52,8 @@ from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalR
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory
 from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment, TicketStatus, TicketPriority, TicketCategory, SenderType
+from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike
+from modules.dealer_request.models import DealerRequest, DealerRequestAttachment
 
 
 def generate_serial() -> str:

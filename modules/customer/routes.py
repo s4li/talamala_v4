@@ -7,7 +7,7 @@ Customer profile view/edit + address book CRUD.
 import urllib.parse
 from typing import Optional
 
-from fastapi import APIRouter, Request, Depends, Form, HTTPException
+from fastapi import APIRouter, Request, Depends, Form, Query, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 
@@ -30,6 +30,7 @@ async def profile_page(
     request: Request,
     msg: str = None,
     error: str = None,
+    return_to: str = None,
     db: Session = Depends(get_db),
     me=Depends(require_customer),
 ):
@@ -41,6 +42,7 @@ async def profile_page(
         "csrf_token": csrf,
         "msg": msg,
         "error": error,
+        "next_url": return_to or "",
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
@@ -49,6 +51,9 @@ async def profile_page(
 @router.post("/profile")
 async def profile_update(
     request: Request,
+    first_name: str = Form(""),
+    last_name: str = Form(""),
+    national_id: str = Form(""),
     customer_type: str = Form("real"),
     company_name: str = Form(""),
     economic_code: str = Form(""),
@@ -57,11 +62,27 @@ async def profile_update(
     phone: str = Form(""),
     birth_date: str = Form(""),
     csrf_token: str = Form(""),
+    return_to: str = Query(None),
     db: Session = Depends(get_db),
     me=Depends(require_customer),
 ):
-    """Update editable profile fields only (name/national_id locked for shahkar)."""
+    """Update profile fields (identity fields editable until Shahkar verification)."""
     csrf_check(request, csrf_token)
+
+    # Identity fields (editable until Shahkar is implemented)
+    if first_name.strip():
+        me.first_name = first_name.strip()
+    if last_name.strip():
+        me.last_name = last_name.strip()
+    if national_id.strip():
+        # Check uniqueness of national_id (if changed)
+        if national_id.strip() != me.national_id:
+            existing = db.query(Customer).filter(
+                Customer.national_id == national_id.strip(),
+                Customer.id != me.id,
+            ).first()
+            if not existing:
+                me.national_id = national_id.strip()
 
     # Customer type
     if customer_type in ("real", "legal"):
@@ -85,7 +106,10 @@ async def profile_update(
     db.commit()
 
     msg = urllib.parse.quote("اطلاعات پروفایل بروزرسانی شد.")
-    return RedirectResponse(f"/profile?msg={msg}", status_code=303)
+    redirect_url = f"/profile?msg={msg}"
+    if return_to and return_to.startswith("/"):
+        redirect_url += f"&return_to={urllib.parse.quote(return_to)}"
+    return RedirectResponse(redirect_url, status_code=303)
 
 
 # ==========================================
@@ -233,3 +257,41 @@ async def api_geo_dealers(
         q = q.filter(Dealer.district_id == district_id)
     dealers = q.order_by(Dealer.full_name).all()
     return [{"id": d.id, "full_name": d.full_name, "type_label": d.type_label} for d in dealers]
+
+
+# ==========================================
+# 🎁 Invite Friends (Referral)
+# ==========================================
+
+@router.get("/invite", response_class=HTMLResponse)
+async def invite_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    me=Depends(require_customer),
+):
+    from modules.customer.models import generate_referral_code
+    from config.settings import BASE_URL
+
+    # Generate referral code if not set
+    if not me.referral_code:
+        # Ensure uniqueness
+        for _ in range(10):
+            code = generate_referral_code()
+            existing = db.query(Customer).filter(Customer.referral_code == code).first()
+            if not existing:
+                break
+        me.referral_code = code
+        db.commit()
+
+    referral_link = f"{BASE_URL}/auth/login?ref={me.referral_code}"
+
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("shop/invite.html", {
+        "request": request,
+        "user": me,
+        "referral_code": me.referral_code,
+        "referral_link": referral_link,
+        "csrf_token": csrf,
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
