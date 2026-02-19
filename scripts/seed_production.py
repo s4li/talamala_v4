@@ -28,6 +28,8 @@ import os
 import io
 import json
 import shutil
+import random
+import string
 import openpyxl
 
 # Fix Windows console encoding for Persian text
@@ -669,6 +671,59 @@ def seed():
             db.flush()
             print(f"  + {inserted} bars imported")
             print(f"  + Customers: {len(customer_mobile_to_id)}")
+
+        # ==========================================
+        # 9. New Inventory Bars (gold only)
+        # ==========================================
+        print("\n[9] New Inventory Bars (gold only)")
+
+        # Collect all existing serials (old + any already in DB)
+        all_serials = {row[0] for row in db.query(Bar.serial_code).all()}
+
+        def gen_serial(existing: set) -> str:
+            chars = string.ascii_uppercase + string.digits
+            while True:
+                code = "".join(random.choices(chars, k=8))
+                if code not in existing:
+                    existing.add(code)
+                    return code
+
+        new_bar_counts = {
+            0.1: 100,
+            0.2: 80,
+            0.5: 60,
+            1.0: 50,
+            2.5: 30,
+            5.0: 20,
+            10.0: 10,
+            20.0: 5,
+            31.1: 3,
+            50.0: 2,
+            100.0: 1,
+        }
+
+        # Get batch for new bars
+        new_batch = db.query(Batch).filter(Batch.batch_number == "BATCH-20241203").first()
+        new_batch_id = new_batch.id if new_batch else None
+
+        gold_slugs = ["gold-talamala", "gold-investment"]
+        new_bar_total = 0
+
+        for slug in gold_slugs:
+            for weight, count in new_bar_counts.items():
+                pname = resolve_product_name(slug, weight)
+                if not pname or pname not in v4_name_to_id:
+                    continue
+                pid = v4_name_to_id[pname]
+                for _ in range(count):
+                    serial = gen_serial(all_serials)
+                    db.add(Bar(serial_code=serial, status="Assigned", product_id=pid, batch_id=new_batch_id))
+                    new_bar_total += 1
+
+        db.flush()
+        print(f"  + {new_bar_total} new bars generated (gold-talamala + gold-investment)")
+        for weight, count in new_bar_counts.items():
+            print(f"    {weight}g: {count} × 2 = {count * 2}")
 
         # ==========================================
         # Commit
