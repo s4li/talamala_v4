@@ -81,15 +81,20 @@ def seed():
         # ==========================================
         # 1. Admin User (super_admin only)
         # ==========================================
-        print("\n[1] Admin User")
+        print("\n[1] Admin Users")
 
-        admin_data = {"mobile": "09120725564", "full_name": "مدیر سیستم", "role": "admin"}
-        existing = db.query(SystemUser).filter(SystemUser.mobile == admin_data["mobile"]).first()
-        if not existing:
-            db.add(SystemUser(**admin_data))
-            print(f"  + super_admin: {admin_data['mobile']}")
-        else:
-            print(f"  = exists: {admin_data['mobile']}")
+        admins_data = [
+            {"mobile": "09120725564", "full_name": "مدیر سیستم", "role": "admin"},
+            {"mobile": "09121023589", "full_name": "مدیر سیستم", "role": "admin"},
+            {"mobile": "09123016442", "full_name": "مدیر سیستم", "role": "admin"},
+        ]
+        for admin_data in admins_data:
+            existing = db.query(SystemUser).filter(SystemUser.mobile == admin_data["mobile"]).first()
+            if not existing:
+                db.add(SystemUser(**admin_data))
+                print(f"  + admin: {admin_data['mobile']}")
+            else:
+                print(f"  = exists: {admin_data['mobile']}")
 
         db.flush()
 
