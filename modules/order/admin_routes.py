@@ -85,7 +85,7 @@ async def cancel_order_admin(
 ):
     """Admin cancels a pending order and releases bars."""
     csrf_check(request, csrf_token)
-    result = order_service.cancel_order(db, order_id, reason="لغو توسط مدیر سیستم", changed_by=user.username)
+    result = order_service.cancel_order(db, order_id, reason="لغو توسط مدیر سیستم", changed_by=user.full_name)
     db.commit()
     if result:
         msg = urllib.parse.quote(f"سفارش #{order_id} لغو و شمش‌ها آزاد شد.")
@@ -124,7 +124,7 @@ async def update_delivery_status(
     order_service.log_status_change(
         db, order_id, "delivery_status",
         old_value=old_delivery, new_value=delivery_status,
-        changed_by=user.username, description="بروزرسانی وضعیت تحویل",
+        changed_by=user.full_name, description="بروزرسانی وضعیت تحویل",
     )
 
     if postal_tracking_code:
@@ -192,7 +192,7 @@ async def confirm_pickup_delivery(
     order_service.log_status_change(
         db, order_id, "delivery_status",
         old_value=old_delivery, new_value=DeliveryStatus.DELIVERED,
-        changed_by=user.username, description="تأیید تحویل حضوری با کد تحویل",
+        changed_by=user.full_name, description="تأیید تحویل حضوری با کد تحویل",
     )
 
     # Settle cashback coupon if applicable
