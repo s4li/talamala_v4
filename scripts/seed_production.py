@@ -60,6 +60,7 @@ from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment, TicketStatus, TicketPriority, TicketCategory, SenderType
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment
+from modules.pricing.models import Asset, GOLD_18K, SILVER
 
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -110,9 +111,6 @@ def seed():
             "site_logo":            ("", "لوگوی سایت"),
             "support_phone":        ("02112345678", "شماره پشتیبانی"),
             "support_telegram":     ("@talamala", "تلگرام پشتیبانی"),
-            "gold_price":           ("52000000", "قیمت طلای ۱۸ عیار هر گرم (ریال)"),
-            "silver_price":         ("550000", "قیمت نقره خالص هر گرم (ریال)"),
-            "gold_price_source":    ("tgju", "منبع قیمت طلا"),
             "tax_percent":          ("10", "درصد مالیات بر ارزش افزوده"),
             "min_order_amount":     ("10000000", "حداقل مبلغ سفارش (ریال)"),
             "reservation_minutes":  ("15", "مدت زمان رزرو (دقیقه)"),
@@ -129,6 +127,39 @@ def seed():
                 print(f"  + {key} = {value}")
             else:
                 print(f"  = exists: {key}")
+
+        db.flush()
+
+        # ==========================================
+        # 2b. Assets (Gold / Silver price tracking)
+        # ==========================================
+        print("\n[2b] Assets")
+        if not db.query(Asset).filter(Asset.asset_code == GOLD_18K).first():
+            db.add(Asset(
+                asset_code=GOLD_18K,
+                asset_label="طلای ۱۸ عیار",
+                price_per_gram=0,
+                stale_after_minutes=15,
+                auto_update=True,
+                update_interval_minutes=5,
+                source_url="https://goldis.ir/price/api/v1/price/assets/gold18k/final-prices",
+            ))
+            print("  + Asset: gold_18k (auto_update=True)")
+        else:
+            print("  = exists: gold_18k")
+
+        if not db.query(Asset).filter(Asset.asset_code == SILVER).first():
+            db.add(Asset(
+                asset_code=SILVER,
+                asset_label="نقره",
+                price_per_gram=0,
+                stale_after_minutes=30,
+                auto_update=False,
+                update_interval_minutes=10,
+            ))
+            print("  + Asset: silver (auto_update=False)")
+        else:
+            print("  = exists: silver")
 
         db.flush()
 
