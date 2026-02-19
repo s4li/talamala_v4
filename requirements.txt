@@ -27,6 +27,9 @@ requests==2.32.3
 # --- Image Processing ---
 Pillow==11.1.0
 
+# --- Excel (seed reads wage data from xlsx) ---
+openpyxl==3.1.5
+
 # --- QR Code ---
 qrcode[pil]==8.0
 

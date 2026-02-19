@@ -22,8 +22,8 @@ static/uploads/*
 .claude/
 templates_v2/
 
-# Private (personal notes, screenshots, etc.)
-_private/
+# Private (keep product images & pricing Excel in git for server deployment)
+_private/screenshots/
 
 # Screenshots (dev only)
 screenshots/

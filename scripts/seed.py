@@ -25,6 +25,7 @@ import io
 import random
 import string
 import shutil
+import openpyxl
 
 # Fix Windows console encoding for Persian text
 if sys.stdout.encoding != "utf-8":
@@ -247,8 +248,6 @@ def seed():
         # ==========================================
         # 5. Products (Real products from _private data)
         # ==========================================
-        print("\n[5/9] Products (44 = 11 weights × 4 types)")
-
         PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         IMG_SRC_BASE = os.path.join(PROJECT_ROOT, "_private", "عکس محصولات")
         IMG_DST_BASE = os.path.join(PROJECT_ROOT, "static", "uploads", "products")
@@ -258,6 +257,7 @@ def seed():
         product_types = [
             {
                 "folder": "شمش طلا با بسته بندی",
+                "excel_sheet": "شمش طلاملا",
                 "slug": "gold-talamala",
                 "category_slug": "gold-talamala",
                 "name_prefix": "شمش طلا طلاملا",
@@ -265,6 +265,7 @@ def seed():
             },
             {
                 "folder": "شمش طلا بدون بسته بندی",
+                "excel_sheet": "شمش سرمایه ای",
                 "slug": "gold-investment",
                 "category_slug": "gold-investment",
                 "name_prefix": "شمش طلا سرمایه‌ای",
@@ -272,6 +273,7 @@ def seed():
             },
             {
                 "folder": "شمش نقره با بسته بندی",
+                "excel_sheet": "شمش نقره طلاملا",
                 "slug": "silver-talamala",
                 "category_slug": "silver-talamala",
                 "name_prefix": "شمش نقره طلاملا",
@@ -279,6 +281,7 @@ def seed():
             },
             {
                 "folder": "شمش نقره بدون بسته بندی",
+                "excel_sheet": "شمش سرمایه ای نقره",
                 "slug": "silver-investment",
                 "category_slug": "silver-investment",
                 "name_prefix": "شمش نقره سرمایه‌ای",
@@ -316,62 +319,42 @@ def seed():
                 return f"{int(weight_grams)}g"
             return f"{weight_grams}g"
 
-        # Wage data from Excel (× 100 = percentages)
-        # {type_slug: {weight: [distributor%, wholesaler%, store%, end_customer%]}}
-        wage_data = {
-            "gold-talamala": {
-                0.1:  [14.0, 17.0, 18.5, 42.0],
-                0.2:  [7.0,  8.4,  9.2,  25.0],
-                0.5:  [5.0,  6.3,  6.5,  16.0],
-                1.0:  [3.8,  5.1,  5.3,  13.0],
-                2.5:  [2.8,  4.1,  4.3,  11.0],
-                5.0:  [2.4,  3.7,  3.9,  9.0],
-                10.0: [1.3,  2.1,  2.3,  8.7],
-                20.0: [1.0,  1.8,  2.0,  5.8],
-                31.1: [0.6,  1.3,  1.5,  5.6],
-                50.0: [0.4,  0.6,  0.9,  4.8],
-                100.0:[0.2,  0.4,  0.7,  3.8],
-            },
-            "gold-investment": {
-                0.1:  [3.5,  5.0,  7.0,  11.0],
-                0.2:  [3.5,  5.0,  7.0,  11.0],
-                0.5:  [2.0,  2.8,  4.0,  7.0],
-                1.0:  [1.5,  2.3,  3.0,  6.0],
-                2.5:  [1.5,  2.3,  3.0,  6.0],
-                5.0:  [1.3,  1.7,  2.5,  4.5],
-                10.0: [1.0,  1.5,  2.1,  4.0],
-                20.0: [1.0,  1.2,  1.9,  3.5],
-                31.1: [0.6,  1.2,  1.7,  3.0],
-                50.0: [0.4,  0.8,  1.0,  2.5],
-                100.0:[0.2,  0.6,  0.8,  1.5],
-            },
-            "silver-talamala": {
-                0.1:  [56.0,  68.0,  74.0,  168.0],
-                0.2:  [28.0,  33.6,  36.8,  100.0],
-                0.5:  [20.0,  25.2,  26.0,  64.0],
-                1.0:  [15.2,  20.4,  21.2,  52.0],
-                2.5:  [11.2,  16.4,  17.2,  44.0],
-                5.0:  [9.6,   14.8,  15.6,  36.0],
-                10.0: [5.2,   8.4,   9.2,   34.8],
-                20.0: [4.0,   7.2,   8.0,   23.2],
-                31.1: [2.4,   5.2,   6.0,   22.4],
-                50.0: [1.5,   2.4,   3.6,   19.2],
-                100.0:[0.8,   1.6,   2.8,   15.2],
-            },
-            "silver-investment": {
-                0.1:  [42.0,  51.0,  55.5,  126.0],
-                0.2:  [21.0,  25.2,  27.6,  75.0],
-                0.5:  [15.0,  18.9,  19.5,  48.0],
-                1.0:  [11.4,  15.3,  15.9,  39.0],
-                2.5:  [8.4,   12.3,  12.9,  33.0],
-                5.0:  [7.2,   11.1,  11.7,  27.0],
-                10.0: [3.9,   6.3,   6.9,   26.1],
-                20.0: [3.0,   5.4,   6.0,   17.4],
-                31.1: [2.4,   3.9,   4.5,   16.8],
-                50.0: [1.6,   1.8,   2.7,   14.4],
-                100.0:[0.8,   1.2,   2.1,   11.4],
-            },
-        }
+        # --- Read wage data from Excel file ---
+        # Excel format: col A = weight (grams), B-E = tier wages (decimal → × 100 = percent)
+        EXCEL_PATH = os.path.join(IMG_SRC_BASE, "سطوح قیمت گذاری طلا ونقره.xlsx")
+        wage_data = {}  # {type_slug: {weight: [tier1%, tier2%, tier3%, end_customer%]}}
+
+        if os.path.exists(EXCEL_PATH):
+            wb = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
+            for ptype in product_types:
+                sheet_name = ptype["excel_sheet"]
+                if sheet_name not in wb.sheetnames:
+                    print(f"  ⚠ Excel sheet '{sheet_name}' not found for {ptype['slug']}")
+                    continue
+                ws = wb[sheet_name]
+                slug_wages = {}
+                for row in ws.iter_rows(min_row=3, max_col=5, values_only=True):
+                    weight_val, t1, t2, t3, t4 = row
+                    if weight_val is None or t4 is None:
+                        continue
+                    w = round(float(weight_val), 2)
+                    # Excel stores as decimal (e.g. 0.14), convert to percent (14.0)
+                    slug_wages[w] = [
+                        round(float(t1 or 0) * 100, 2),
+                        round(float(t2 or 0) * 100, 2),
+                        round(float(t3 or 0) * 100, 2),
+                        round(float(t4 or 0) * 100, 2),
+                    ]
+                wage_data[ptype["slug"]] = slug_wages
+            wb.close()
+            print(f"  Wage data loaded from Excel ({len(wage_data)} types)")
+            for slug, wd in wage_data.items():
+                print(f"    {slug}: {len(wd)} weights")
+        else:
+            print(f"  ⚠ Excel file not found: {EXCEL_PATH}")
+            print("    Products will be created without wage data!")
+
+        print(f"\n[5/9] Products ({len(weights_def)} weights x {len(product_types)} types)")
 
         product_map = {}
         default_design = db.query(CardDesign).first()
@@ -383,10 +366,18 @@ def seed():
 
             for weight_grams, weight_label, folder_overrides in weights_def:
                 name = f"{ptype['name_prefix']} {weight_label}"
+                tier_wages_list = type_wages.get(weight_grams, [0, 0, 0, 0])
+                end_customer_wage = tier_wages_list[3]
+
                 existing = db.query(Product).filter(Product.name == name).first()
                 if existing:
                     p = existing
                     product_map[name] = p
+
+                    # Update wage from Excel
+                    if end_customer_wage and p.wage != end_customer_wage:
+                        p.wage = end_customer_wage
+                        print(f"  ~ wage updated: {name} → {end_customer_wage}%")
 
                     # Refresh images: delete old ones, copy new ones
                     old_images = db.query(ProductImage).filter(ProductImage.product_id == p.id).all()
@@ -398,10 +389,6 @@ def seed():
                     db.flush()
                     print(f"  ~ refreshing images: {name}")
                 else:
-                    # End-customer wage (index 3) for product.wage
-                    tier_wages_list = type_wages.get(weight_grams, [0, 0, 0, 0])
-                    end_customer_wage = tier_wages_list[3]
-
                     p = Product(
                         name=name,
                         weight=weight_grams,
@@ -872,43 +859,47 @@ def seed():
         # {type_slug: {weight: [distributor%, wholesaler%, store%, end_customer%]}}
         tier_slugs_order = ["distributor", "wholesaler", "store", "end_customer"]
 
+        # Always refresh tier wages from Excel data
+        # Delete existing tier wages and recreate from current Excel
         existing_tw = db.query(ProductTierWage).count()
-        if existing_tw == 0:
-            tw_count = 0
-            # Build category_id → type_slug lookup
-            cat_id_to_slug = {}
-            for slug, cat_obj in cat_map.items():
-                cat_id_to_slug[cat_obj.id] = slug
-
-            all_products = db.query(Product).filter(Product.is_active == True).all()
-            for p in all_products:
-                # Determine product type from category
-                type_slug = None
-                for cid in p.category_ids:
-                    if cid in cat_id_to_slug:
-                        type_slug = cat_id_to_slug[cid]
-                        break
-                if not type_slug or type_slug not in wage_data:
-                    continue
-
-                weight_key = float(p.weight)
-                wages = wage_data[type_slug].get(weight_key)
-                if not wages:
-                    continue
-
-                for idx, tier_slug in enumerate(tier_slugs_order):
-                    tier = tier_map.get(tier_slug)
-                    if tier:
-                        db.add(ProductTierWage(
-                            product_id=p.id,
-                            tier_id=tier.id,
-                            wage_percent=wages[idx],
-                        ))
-                        tw_count += 1
+        if existing_tw > 0:
+            db.query(ProductTierWage).delete()
             db.flush()
-            print(f"  + {tw_count} tier wages created")
-        else:
-            print(f"  = {existing_tw} tier wages exist, skipping")
+            print(f"  ~ deleted {existing_tw} old tier wages, recreating from Excel...")
+
+        tw_count = 0
+        # Build category_id → type_slug lookup
+        cat_id_to_slug = {}
+        for slug, cat_obj in cat_map.items():
+            cat_id_to_slug[cat_obj.id] = slug
+
+        all_products = db.query(Product).filter(Product.is_active == True).all()
+        for p in all_products:
+            # Determine product type from category
+            type_slug = None
+            for cid in p.category_ids:
+                if cid in cat_id_to_slug:
+                    type_slug = cat_id_to_slug[cid]
+                    break
+            if not type_slug or type_slug not in wage_data:
+                continue
+
+            weight_key = float(p.weight)
+            wages = wage_data[type_slug].get(weight_key)
+            if not wages:
+                continue
+
+            for idx, tier_slug in enumerate(tier_slugs_order):
+                tier = tier_map.get(tier_slug)
+                if tier:
+                    db.add(ProductTierWage(
+                        product_id=p.id,
+                        tier_id=tier.id,
+                        wage_percent=wages[idx],
+                    ))
+                    tw_count += 1
+        db.flush()
+        print(f"  + {tw_count} tier wages created from Excel")
 
         # ==========================================
         # 10. Dealers
