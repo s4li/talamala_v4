@@ -21,6 +21,59 @@ router = APIRouter(prefix="/admin/dealers", tags=["admin-dealer"])
 
 
 # ==========================================
+# Dealer Sales (Admin view of ALL POS sales)
+# ==========================================
+
+@router.get("/sales", response_class=HTMLResponse)
+async def dealer_sales_admin(
+    request: Request,
+    page: int = 1,
+    dealer_id: str = "",
+    search: str = "",
+    date_from: str = "",
+    date_to: str = "",
+    has_discount: str = "",
+    user=Depends(require_permission("dealers")),
+    db: Session = Depends(get_db),
+):
+    from modules.dealer.models import Dealer as DealerModel
+
+    # Parse dealer_id filter
+    did = None
+    if dealer_id and dealer_id.strip().isdigit():
+        did = int(dealer_id.strip())
+
+    sales, total, stats = dealer_service.list_all_sales_admin(
+        db, page=page, per_page=30,
+        dealer_id=did, search=search.strip(),
+        date_from=date_from.strip(), date_to=date_to.strip(),
+        has_discount=has_discount.strip(),
+    )
+    total_pages = (total + 29) // 30
+
+    # Load dealer list for dropdown filter
+    dealers = db.query(DealerModel).filter(DealerModel.is_active == True).order_by(DealerModel.full_name).all()
+
+    response = templates.TemplateResponse("admin/dealers/sales.html", {
+        "request": request,
+        "user": user,
+        "sales": sales,
+        "total": total,
+        "page": page,
+        "total_pages": total_pages,
+        "stats": stats,
+        "dealers": dealers,
+        "filter_dealer_id": dealer_id,
+        "filter_search": search,
+        "filter_date_from": date_from,
+        "filter_date_to": date_to,
+        "filter_has_discount": has_discount,
+        "active_page": "dealer_sales",
+    })
+    return response
+
+
+# ==========================================
 # Dealer List
 # ==========================================
 

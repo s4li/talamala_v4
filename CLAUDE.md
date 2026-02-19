@@ -519,6 +519,7 @@ total    = raw_gold + wage + tax
 - `/admin/wallets` — حساب‌ها, `/admin/wallets/withdrawals/list` — برداشت‌ها
 - `/admin/coupons`
 - `/admin/dealers` — Dealer list + create/edit
+- `GET /admin/dealers/sales` — گزارش فروش نمایندگان (فیلتر: نماینده، تاریخ، جستجو، تخفیف + آمار تجمیعی)
 - `POST /admin/dealers/{id}/generate-api-key` — Generate POS API key
 - `POST /admin/dealers/{id}/revoke-api-key` — Revoke POS API key
 - `/admin/dealers/buybacks` — Buyback approval/rejection

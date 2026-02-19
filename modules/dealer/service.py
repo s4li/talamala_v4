@@ -9,7 +9,7 @@ from typing import List, Tuple, Dict, Any, Optional
 from decimal import Decimal
 
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func as sa_func
+from sqlalchemy import func as sa_func, or_
 
 from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest, BuybackStatus
 from modules.inventory.models import Bar, BarStatus, OwnershipHistory
@@ -586,6 +586,110 @@ class DealerService:
             "total_gold_profit_mg": total_gold_profit_mg,
             "pending_buybacks": pending_buybacks,
         }
+
+    # ------------------------------------------
+    # Admin: All Dealer Sales (with filters)
+    # ------------------------------------------
+
+    def list_all_sales_admin(
+        self, db: Session,
+        page: int = 1, per_page: int = 30,
+        dealer_id: int = None,
+        search: str = "",
+        date_from: str = "",
+        date_to: str = "",
+        has_discount: str = "",
+    ) -> Tuple[List[DealerSale], int, Dict[str, Any]]:
+        """List all dealer sales with filters + aggregate stats for the filtered set."""
+        from modules.inventory.models import Bar
+
+        q = db.query(DealerSale).options(
+            joinedload(DealerSale.dealer),
+            joinedload(DealerSale.bar),
+        )
+
+        # --- Filters ---
+        if dealer_id:
+            q = q.filter(DealerSale.dealer_id == dealer_id)
+
+        if search:
+            search_term = f"%{search.strip()}%"
+            q = q.outerjoin(Bar, DealerSale.bar_id == Bar.id).filter(
+                or_(
+                    DealerSale.customer_name.ilike(search_term),
+                    DealerSale.customer_mobile.ilike(search_term),
+                    DealerSale.customer_national_id.ilike(search_term),
+                    Bar.serial_code.ilike(search_term),
+                    DealerSale.description.ilike(search_term),
+                )
+            )
+
+        if date_from:
+            try:
+                from datetime import datetime
+                dt_from = datetime.strptime(date_from, "%Y-%m-%d")
+                q = q.filter(DealerSale.created_at >= dt_from)
+            except ValueError:
+                pass
+
+        if date_to:
+            try:
+                from datetime import datetime, timedelta
+                dt_to = datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1)
+                q = q.filter(DealerSale.created_at < dt_to)
+            except ValueError:
+                pass
+
+        if has_discount == "yes":
+            q = q.filter(DealerSale.discount_wage_percent > 0)
+        elif has_discount == "no":
+            q = q.filter(DealerSale.discount_wage_percent == 0)
+
+        # --- Aggregates on filtered set ---
+        # Build a clean filter-only query (no joinedload) for aggregates
+        ids_subq = q.with_entities(DealerSale.id).subquery()
+        total = q.count()
+
+        if total > 0:
+            filtered_revenue = (
+                db.query(sa_func.coalesce(sa_func.sum(DealerSale.sale_price), 0))
+                .filter(DealerSale.id.in_(db.query(ids_subq.c.id)))
+                .scalar()
+            )
+            filtered_gold_profit = (
+                db.query(sa_func.coalesce(sa_func.sum(DealerSale.gold_profit_mg), 0))
+                .filter(DealerSale.id.in_(db.query(ids_subq.c.id)))
+                .scalar()
+            )
+            filtered_discount_count = (
+                db.query(sa_func.count(DealerSale.id))
+                .filter(
+                    DealerSale.id.in_(db.query(ids_subq.c.id)),
+                    DealerSale.discount_wage_percent > 0,
+                )
+                .scalar()
+            )
+        else:
+            filtered_revenue = 0
+            filtered_gold_profit = 0
+            filtered_discount_count = 0
+
+        stats = {
+            "total": total,
+            "total_revenue": filtered_revenue,
+            "total_gold_profit_mg": filtered_gold_profit,
+            "discount_count": filtered_discount_count,
+        }
+
+        # --- Paginate ---
+        sales = (
+            q.order_by(DealerSale.created_at.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+
+        return sales, total, stats
 
 
 dealer_service = DealerService()

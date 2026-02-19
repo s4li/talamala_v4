@@ -1,0 +1,199 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}گزارش فروش نمایندگان - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-receipt-cutoff text-tm-primary"></i>
+        گزارش فروش نمایندگان (POS)
+    </h4>
+    <span class="badge-tm badge-tm-info">{{ stats.total | persian_number }} فروش</span>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-1">
+        <div class="card-tm no-hover text-center p-3 h-100 d-flex flex-column justify-content-center">
+            <div class="fs-4 fw-bold">{{ stats.total | persian_number }}</div>
+            <small class="text-muted">تعداد فروش</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-2">
+        <div class="card-tm no-hover text-center p-3 h-100 d-flex flex-column justify-content-center">
+            <div class="fs-4 fw-bold text-success">{{ stats.total_revenue | toman }}</div>
+            <small class="text-muted">مجموع فروش (تومان)</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-3">
+        <div class="card-tm no-hover text-center p-3 h-100 d-flex flex-column justify-content-center">
+            <div class="fs-4 fw-bold" style="color:#fbbf24;">{{ stats.total_gold_profit_mg | gold_gram }}</div>
+            <small class="text-muted">سود طلایی کل</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-4">
+        <div class="card-tm no-hover text-center p-3 h-100 d-flex flex-column justify-content-center">
+            <div class="fs-4 fw-bold text-warning">{{ stats.discount_count | persian_number }}</div>
+            <small class="text-muted">فروش با تخفیف اجرت</small>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-5">
+    <form method="GET" action="/admin/dealers/sales" class="row g-2 align-items-end">
+        <!-- Search -->
+        <div class="col-12 col-md-3">
+            <label class="form-label-tm small mb-1">جستجو</label>
+            <input type="text" name="search" class="form-control form-control-tm form-control-sm"
+                   placeholder="نام، موبایل، سریال شمش..."
+                   value="{{ filter_search }}">
+        </div>
+        <!-- Dealer Filter -->
+        <div class="col-6 col-md-2">
+            <label class="form-label-tm small mb-1">نماینده</label>
+            <select name="dealer_id" class="form-select form-select-tm form-select-sm">
+                <option value="">همه نمایندگان</option>
+                {% for d in dealers %}
+                <option value="{{ d.id }}" {% if filter_dealer_id == d.id|string %}selected{% endif %}>
+                    {{ d.full_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <!-- Date From -->
+        <div class="col-6 col-md-2">
+            <label class="form-label-tm small mb-1">از تاریخ</label>
+            <input type="date" name="date_from" class="form-control form-control-tm form-control-sm"
+                   value="{{ filter_date_from }}">
+        </div>
+        <!-- Date To -->
+        <div class="col-6 col-md-2">
+            <label class="form-label-tm small mb-1">تا تاریخ</label>
+            <input type="date" name="date_to" class="form-control form-control-tm form-control-sm"
+                   value="{{ filter_date_to }}">
+        </div>
+        <!-- Discount Filter -->
+        <div class="col-6 col-md-1">
+            <label class="form-label-tm small mb-1">تخفیف</label>
+            <select name="has_discount" class="form-select form-select-tm form-select-sm">
+                <option value="">همه</option>
+                <option value="yes" {% if filter_has_discount == 'yes' %}selected{% endif %}>دارد</option>
+                <option value="no" {% if filter_has_discount == 'no' %}selected{% endif %}>ندارد</option>
+            </select>
+        </div>
+        <!-- Buttons -->
+        <div class="col-12 col-md-2 d-flex gap-1">
+            <button type="submit" class="btn btn-tm-primary btn-sm flex-grow-1">
+                <i class="bi bi-funnel"></i> فیلتر
+            </button>
+            {% if filter_search or filter_dealer_id or filter_date_from or filter_date_to or filter_has_discount %}
+            <a href="/admin/dealers/sales" class="btn btn-tm-outline btn-sm">
+                <i class="bi bi-x-lg"></i>
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Sales Table -->
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-6">
+    <div class="p-0">
+        {% if sales %}
+        <div class="table-responsive">
+            <table class="table table-tm table-sm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th style="width:50px;">#</th>
+                        <th>نماینده</th>
+                        <th>سریال شمش</th>
+                        <th>مشتری</th>
+                        <th>مبلغ فروش</th>
+                        <th>سود طلایی</th>
+                        <th>تخفیف اجرت</th>
+                        <th>توضیحات</th>
+                        <th>تاریخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sales %}
+                    <tr>
+                        <td class="text-muted">{{ s.id }}</td>
+                        <td>
+                            {% if s.dealer %}
+                            <a href="/admin/dealers/{{ s.dealer.id }}/edit" class="text-decoration-none fw-bold">
+                                {{ s.dealer.full_name }}
+                            </a>
+                            <br><small class="text-muted" dir="ltr">{{ s.dealer.mobile }}</small>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if s.bar %}
+                            <code class="font-monospace" dir="ltr">{{ s.bar.serial_code }}</code>
+                            {% if s.bar.claim_code %}
+                            <br><small class="text-tm-primary fw-bold" dir="ltr">{{ s.bar.claim_code }}</small>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if s.customer_name %}
+                            {{ s.customer_name }}
+                            {% endif %}
+                            {% if s.customer_mobile %}
+                            <br><small class="text-muted" dir="ltr">{{ s.customer_mobile }}</small>
+                            {% endif %}
+                            {% if s.customer_national_id %}
+                            <br><small class="text-muted" dir="ltr">{{ s.customer_national_id }}</small>
+                            {% endif %}
+                            {% if not s.customer_name and not s.customer_mobile %}
+                            <span class="text-muted small">بدون اطلاعات</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold text-nowrap">
+                            {{ s.sale_price | toman }}
+                            <small class="text-muted">تومان</small>
+                        </td>
+                        <td class="text-nowrap">
+                            {% if s.gold_profit_mg and s.gold_profit_mg > 0 %}
+                            <span style="color:#fbbf24;" class="fw-bold">{{ s.gold_profit_mg | gold_gram }}</span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if s.discount_wage_percent and s.discount_wage_percent > 0 %}
+                            <span class="badge-tm badge-tm-warning">{{ s.discount_wage_percent }}%</span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if s.description %}
+                            <small class="text-muted">{{ s.description[:50] }}{% if s.description|length > 50 %}...{% endif %}</small>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted text-nowrap">{{ s.created_at | jdate }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% set qs %}{% if filter_search %}&search={{ filter_search }}{% endif %}{% if filter_dealer_id %}&dealer_id={{ filter_dealer_id }}{% endif %}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}{% if filter_has_discount %}&has_discount={{ filter_has_discount }}{% endif %}{% endset %}
+        {% from "components/pagination.html" import pagination %}
+        {{ pagination(page, total_pages, '/admin/dealers/sales', qs) }}
+
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-receipt" style="font-size:2rem;"></i>
+            <p class="mt-2">فروشی یافت نشد</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
