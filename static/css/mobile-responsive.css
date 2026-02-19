@@ -1,0 +1,565 @@
+/* ═══════════════════════════════════════════════════════════════
+   TalaMala Mobile Responsive CSS
+   Fixes and enhancements for mobile & small screen displays
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── GLOBAL MOBILE FIXES ─── */
+@media (max-width: 767px) {
+  /* Reduce overall container padding */
+  .container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .container.py-4 {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+
+  /* Headings */
+  h3, .text-h3 { font-size: 20px; line-height: 32px; }
+  h4, .text-h4 { font-size: 17px; line-height: 28px; }
+  h5 { font-size: 15px; }
+
+  /* Cards: reduce padding on mobile */
+  .card-tm {
+    padding: 16px;
+  }
+
+  /* Stat cards: more compact */
+  .stat-card-tm {
+    padding: 14px;
+  }
+  .stat-card-tm .stat-value {
+    font-size: 22px;
+  }
+
+  /* Tables: smaller font and padding */
+  .table-tm thead th {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+  .table-tm tbody td {
+    font-size: 12px;
+    padding: 10px;
+  }
+
+  /* Alerts: smaller */
+  .alert-tm-success, .alert-tm-danger, .alert-tm-warning, .alert-tm-info {
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+
+  /* Page header: stack on mobile */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+/* ─── LOGIN PAGE ─── */
+@media (max-width: 576px) {
+  .login-card {
+    padding: 1.5rem 1.25rem;
+    margin: 0 8px;
+    border-radius: 16px;
+  }
+  .login-card.expanded {
+    max-width: 100%;
+  }
+  .login-logo {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .login-card h4 {
+    font-size: 1.1rem;
+  }
+  .login-card p {
+    font-size: 0.85rem;
+  }
+  /* Registration form: stack col-6 to full width */
+  .login-card .row.g-2 > .col-6,
+  .login-card .row.g-2 > [class*="col-6"] {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .reg-section-title {
+    font-size: 0.75rem;
+  }
+  /* OTP inputs: smaller on very small screens */
+  .otp-inputs {
+    gap: 5px;
+  }
+  .otp-inputs input {
+    width: 40px;
+    height: 46px;
+    font-size: 1.25rem;
+    border-radius: 10px;
+  }
+  .auth-tab {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+}
+@media (max-width: 360px) {
+  .login-card {
+    padding: 1.25rem 1rem;
+    margin: 0 4px;
+  }
+  .otp-inputs input {
+    width: 36px;
+    height: 42px;
+    font-size: 1.1rem;
+  }
+}
+
+/* ─── SHOP NAVBAR ─── */
+@media (max-width: 767px) {
+  .shop-navbar .container {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+  .shop-navbar .price-ticker {
+    font-size: 11px;
+    padding: 5px 0;
+  }
+}
+
+/* ─── PRODUCT GRID (Shop Home) ─── */
+@media (max-width: 576px) {
+  /* Product cards in col-6 grid */
+  .card-tm.product-card .product-card-body {
+    padding: 10px;
+  }
+  .card-tm.product-card .product-card-body h6 {
+    font-size: 0.78rem !important;
+    line-height: 1.3;
+  }
+  .card-tm.product-card .product-card-body .text-muted.small {
+    font-size: 0.68rem !important;
+  }
+  .card-tm.product-card .price-tag {
+    font-size: 13px;
+  }
+  .card-tm.product-card .stock-badge {
+    font-size: 10px;
+  }
+  .card-tm.product-card .product-card-footer {
+    padding: 0 10px 10px;
+  }
+
+  /* Sort buttons: wrap and shrink */
+  .btn-group .btn-tm-primary,
+  .btn-group .btn-tm-outline {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+    height: 32px !important;
+  }
+
+  /* Category filter pills */
+  .btn-sm.rounded-pill {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+  }
+}
+
+/* ─── PRODUCT DETAIL ─── */
+@media (max-width: 767px) {
+  .detail-gallery img {
+    max-height: 300px;
+  }
+  .gallery-thumbs img {
+    width: 50px;
+    height: 50px;
+  }
+  /* Add to cart buttons: stack vertically */
+  .col-md-7 .d-flex.align-items-center.gap-3 {
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+  .col-md-7 .d-flex.align-items-center.gap-3 .btn {
+    flex: 1;
+    min-width: 0;
+  }
+  /* Package options: tighter */
+  .package-option {
+    padding: 8px !important;
+  }
+  .package-option img {
+    width: 40px !important;
+    height: 40px !important;
+  }
+}
+
+/* ─── CART PAGE ─── */
+@media (max-width: 576px) {
+  .cart-item {
+    padding: 12px;
+    gap: 10px;
+    flex-wrap: wrap;
+    position: relative;
+  }
+  .cart-item-img,
+  .cart-item-img-placeholder {
+    width: 56px;
+    height: 56px;
+  }
+  .cart-item-info {
+    flex: 1 1 calc(100% - 72px);
+  }
+  .cart-item-info h6 {
+    font-size: 0.85rem;
+  }
+  .cart-item-info .cart-item-specs {
+    font-size: 0.72rem;
+  }
+  .cart-item-info .cart-item-unit-price {
+    font-size: 0.72rem;
+  }
+  /* Quantity + total + remove: full-width row below image/info */
+  .qty-controls {
+    order: 3;
+  }
+  .cart-item-total {
+    order: 4;
+    text-align: right;
+    flex: 1;
+  }
+  .cart-item-total .price {
+    font-size: 0.9rem;
+  }
+  .cart-item-remove {
+    order: 5;
+    position: absolute;
+    top: 8px;
+    left: 8px;
+  }
+}
+
+/* ─── CHECKOUT ─── */
+/* Summary sidebar: sticky on desktop, static on mobile */
+.checkout-summary-sticky {
+  position: sticky;
+  top: 80px;
+  z-index: 1;
+}
+@media (max-width: 991px) {
+  .checkout-summary-sticky {
+    position: static !important;
+  }
+}
+@media (max-width: 767px) {
+  .delivery-option {
+    padding: 14px;
+  }
+  .delivery-option .option-icon {
+    font-size: 2rem;
+  }
+  .delivery-option h5 {
+    font-size: 1rem;
+  }
+  .location-card {
+    padding: 10px;
+  }
+}
+
+/* ─── ORDER DETAIL ─── */
+@media (max-width: 576px) {
+  /* Invoice item rows: stack product info */
+  .invoice-header-row {
+    display: none !important;
+  }
+  .invoice-item-row {
+    flex-direction: column !important;
+    gap: 4px;
+    padding: 12px !important;
+  }
+  .invoice-item-row > div {
+    flex: unset !important;
+    text-align: right !important;
+  }
+  .invoice-item-row .item-weight,
+  .invoice-item-row .item-purity {
+    display: inline-block;
+    font-size: 0.78rem;
+  }
+  .invoice-item-row .item-price {
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+  /* Buyer/seller cards */
+  .row.g-3 > .col-sm-6 {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  /* Breakdown panels */
+  .btn-breakdown {
+    font-size: 0.72rem;
+    padding: 3px 10px;
+  }
+  .breakdown-panel .breakdown-item {
+    font-size: 0.75rem;
+  }
+}
+
+/* ─── WALLET ─── */
+@media (max-width: 576px) {
+  .wallet-card {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+  /* Stack wallet balance columns (col-6 col-md) */
+  .wallet-card .row > [class*="col-"] {
+    margin-bottom: 0.75rem;
+  }
+  .wallet-balance {
+    font-size: 1.4rem !important;
+  }
+  .wallet-label {
+    font-size: 0.75rem !important;
+  }
+  .wallet-card .wallet-unit {
+    font-size: 0.7rem !important;
+  }
+  /* Action cards */
+  .action-card .text-center.p-4 {
+    padding: 1rem !important;
+  }
+  .action-card i[style*="font-size:2.5rem"] {
+    font-size: 1.8rem !important;
+  }
+  .action-card h5 {
+    font-size: 0.95rem;
+  }
+  .action-card p {
+    font-size: 0.75rem;
+  }
+  /* Topup form: stack amount + button */
+  .action-card .d-flex.gap-2 {
+    flex-direction: column;
+  }
+  /* Quick amount buttons */
+  .quick-amount {
+    font-size: 0.72rem !important;
+    padding: 3px 8px !important;
+  }
+  /* Transaction items */
+  .txn-item {
+    padding: 0.65rem 0.75rem;
+  }
+  .txn-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+  }
+  .txn-amount-val {
+    font-size: 0.85rem;
+  }
+}
+
+/* ─── WALLET TRANSACTIONS ─── */
+@media (max-width: 576px) {
+  .balance-chip {
+    font-size: 0.85rem;
+    padding: 0.2rem 0.5rem;
+  }
+}
+
+/* ─── PROFILE ─── */
+@media (max-width: 576px) {
+  .profile-nav-card {
+    padding: 0.85rem 0.5rem;
+  }
+  .profile-nav-card .nav-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+    border-radius: 10px;
+  }
+  .profile-nav-card .nav-label {
+    font-size: 0.75rem;
+  }
+  .profile-nav-card .nav-desc {
+    font-size: 0.65rem;
+  }
+}
+
+/* ─── ADDRESSES ─── */
+@media (max-width: 576px) {
+  /* Address form columns: stack on small screens */
+  #addAddressForm .col-md-4,
+  #addAddressForm .col-md-3,
+  #addAddressForm .col-md-8 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  /* Make the default checkbox align properly */
+  #addAddressForm .col-md-2 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+/* ─── FOOTER ─── */
+@media (max-width: 767px) {
+  .shop-footer {
+    padding: 32px 0 24px;
+    text-align: center;
+  }
+  .shop-footer .col-lg-4,
+  .shop-footer .col-lg-2,
+  .shop-footer .col-lg-3 {
+    text-align: center;
+  }
+  .shop-footer h6 {
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+  .shop-footer p {
+    font-size: 12px;
+  }
+  .shop-footer .d-flex.flex-column {
+    align-items: center;
+  }
+  .shop-footer .d-flex.gap-3.align-items-center {
+    justify-content: center;
+  }
+  .shop-footer .text-lg-end {
+    text-align: center !important;
+  }
+  .shop-footer .justify-content-lg-end {
+    justify-content: center !important;
+  }
+}
+
+/* ─── ADMIN SIDEBAR ─── */
+@media (max-width: 991px) {
+  .admin-sidebar .sidebar-logo {
+    padding: 0 12px 16px;
+  }
+  .admin-sidebar .nav-link {
+    height: 42px;
+    font-size: 13px;
+    padding: 0 12px;
+  }
+  .admin-content {
+    padding: 12px !important;
+  }
+}
+
+/* ─── BUTTONS ON MOBILE ─── */
+@media (max-width: 576px) {
+  /* Make buttons more touch-friendly but not too tall */
+  .btn-tm-primary, .btn-tm-outline, .btn-tm-danger,
+  .btn-tm-success, .btn-tm-warning, .btn-tm-info {
+    font-size: 13px;
+    height: 42px;
+    padding: 8px 16px;
+  }
+  .btn-sm.btn-tm-primary, .btn-sm.btn-tm-outline, .btn-sm.btn-tm-danger,
+  .btn-sm.btn-tm-success, .btn-sm.btn-tm-warning, .btn-sm.btn-tm-info {
+    height: 34px;
+    padding: 4px 12px;
+    font-size: 12px;
+  }
+  .btn-lg.btn-tm-primary, .btn-lg.btn-tm-outline, .btn-lg.btn-tm-danger,
+  .btn-lg.btn-tm-success, .btn-lg.btn-tm-warning, .btn-lg.btn-tm-info {
+    height: 48px;
+    padding: 8px 20px;
+    font-size: 15px;
+  }
+}
+
+/* ─── FORM CONTROLS ON MOBILE ─── */
+@media (max-width: 576px) {
+  .form-control-tm {
+    height: 42px;
+    font-size: 13px;
+  }
+  .form-select-tm {
+    height: 42px;
+    font-size: 13px;
+  }
+  .form-label-tm {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  textarea.form-control-tm {
+    min-height: 80px;
+  }
+}
+
+/* ─── BADGES ON MOBILE ─── */
+@media (max-width: 576px) {
+  .badge-tm {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+}
+
+/* ─── STICKY ELEMENTS: DISABLE ON MOBILE ─── */
+@media (max-width: 767px) {
+  .cart-summary {
+    position: static !important;
+  }
+}
+
+/* ─── OFFCANVAS FIXES ─── */
+@media (max-width: 767px) {
+  .offcanvas-start {
+    border-left: none !important;
+  }
+  .offcanvas .list-group-item {
+    font-size: 14px;
+    padding: 10px 16px;
+  }
+}
+
+/* ─── TICKET PAGES ─── */
+@media (max-width: 576px) {
+  .ticket-detail .message-bubble {
+    max-width: 95% !important;
+  }
+}
+
+/* ─── MISC MOBILE ADJUSTMENTS ─── */
+@media (max-width: 576px) {
+  /* Breadcrumbs */
+  .breadcrumb {
+    font-size: 0.75rem;
+  }
+
+  /* Generic table responsive wrapper */
+  .table-responsive {
+    border-radius: 8px;
+  }
+
+  /* Input groups */
+  .input-group .form-control-tm {
+    font-size: 12px;
+  }
+  .input-group .btn-tm-outline {
+    font-size: 12px;
+    padding: 4px 12px;
+  }
+
+  /* Modal adjustments */
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  .modal-content {
+    border-radius: 12px !important;
+  }
+
+  /* Pagination */
+  .pagination-tm .page-link {
+    width: 34px;
+    height: 34px;
+    font-size: 12px;
+  }
+}

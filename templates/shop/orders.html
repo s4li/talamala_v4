@@ -9,7 +9,9 @@
 {% endif %}
 
 {% if orders %}
-<div class="table-responsive tm-animate-fade-in-up tm-delay-2">
+<!-- Desktop: Table view -->
+<div class="d-none d-md-block tm-animate-fade-in-up tm-delay-2">
+    <div class="table-responsive">
     <table class="table table-tm align-middle">
         <thead>
             <tr>
@@ -67,6 +69,59 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
+</div>
+
+<!-- Mobile: Card view -->
+<div class="d-md-none tm-animate-fade-in-up tm-delay-2">
+    {% for order in orders %}
+    <div class="card-tm no-hover mb-3">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+                <span class="fw-bold">سفارش #{{ order.id }}</span>
+                <div class="text-muted small">{{ order.created_at | time_ago if order.created_at else '' }}</div>
+            </div>
+            <span class="badge-tm badge-tm-{{ order.status_color }}">{{ order.status_label }}</span>
+        </div>
+        <div class="small mb-2">
+            {% for item in order.items %}
+            <div{% if not loop.last %} class="mb-1"{% endif %}>
+                {{ item.product.name if item.product else 'محصول حذف‌شده' }}
+                {% if order.status == 'Paid' and item.bar %}
+                <br><small class="text-muted">سریال: <code>{{ item.bar.serial_code }}</code></small>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold text-tm-primary">{{ order.grand_total | toman }} <small class="text-muted">تومان</small></span>
+            {% if order.delivery_method %}
+            <span class="badge-tm badge-tm-{{ 'info' if order.delivery_method == 'Pickup' else 'primary' }}">
+                <i class="bi bi-{{ 'shop' if order.delivery_method == 'Pickup' else 'envelope' }} me-1"></i>{{ order.delivery_method_label }}
+            </span>
+            {% endif %}
+        </div>
+        {% if order.status == 'Paid' and order.delivery_status %}
+        <div class="mb-2">
+            <small class="badge-tm badge-tm-{{ order.delivery_status_color }}">{{ order.delivery_status_label }}</small>
+        </div>
+        {% endif %}
+        <div class="d-flex gap-2">
+            <a href="/orders/{{ order.id }}" class="btn btn-sm btn-tm-outline flex-grow-1">
+                <i class="bi bi-eye me-1"></i>جزئیات
+            </a>
+            {% if order.status == 'Pending' %}
+            <form method="POST" action="/orders/{{ order.id }}/cancel" class="d-inline"
+                  onsubmit="return confirm('آیا از لغو سفارش مطمئنید؟')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-sm btn-tm-danger">
+                    <i class="bi bi-x-lg me-1"></i>لغو
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
 </div>
 {% else %}
 <div class="text-center py-5">

@@ -198,7 +198,7 @@
             {% if inventory > 0 and gold_price %}
                 {% set in_cart = cart_map.get(p.id, 0) %}
                 {% if in_cart %}
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                     <form method="POST" action="/cart/update">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <input type="hidden" name="product_id" value="{{ p.id }}">
@@ -213,7 +213,7 @@
                         <input type="hidden" name="package_type_id" class="pkg-hidden" value="">
                         <button class="btn btn-lg btn-tm-success"><i class="bi bi-plus-lg"></i></button>
                     </form>
-                    <a href="/cart" class="btn btn-lg btn-tm-primary me-2">
+                    <a href="/cart" class="btn btn-lg btn-tm-primary flex-grow-1">
                         <i class="bi bi-cart-check me-1"></i> مشاهده سبد
                     </a>
                 </div>
@@ -223,7 +223,7 @@
                     <input type="hidden" name="product_id" value="{{ p.id }}">
                     <input type="hidden" name="action" value="increase">
                     <input type="hidden" name="package_type_id" class="pkg-hidden" value="">
-                    <button class="btn btn-lg btn-tm-primary">
+                    <button class="btn btn-lg btn-tm-primary w-100 w-sm-auto">
                         <i class="bi bi-cart-plus me-1"></i> افزودن به سبد خرید
                     </button>
                 </form>

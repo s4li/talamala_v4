@@ -198,24 +198,24 @@
                 <!-- اطلاعات هویتی -->
                 <div class="reg-section-title"><i class="bi bi-person me-1"></i>اطلاعات هویتی</div>
                 <div class="row g-2 mb-3">
-                    <div class="col-6">
+                    <div class="col-6 col-sm-6">
                         <label class="form-label-tm fw-bold">نام <span class="text-danger">*</span></label>
                         <input type="text" name="first_name" class="form-control form-control-tm"
                                placeholder="نام" value="{{ first_name or '' }}" required>
                     </div>
-                    <div class="col-6">
+                    <div class="col-6 col-sm-6">
                         <label class="form-label-tm fw-bold">نام خانوادگی <span class="text-danger">*</span></label>
                         <input type="text" name="last_name" class="form-control form-control-tm"
                                placeholder="نام خانوادگی" value="{{ last_name or '' }}" required>
                     </div>
                 </div>
                 <div class="row g-2 mb-3">
-                    <div class="col-6">
+                    <div class="col-6 col-sm-6">
                         <label class="form-label-tm fw-bold">کد ملی <span class="text-danger">*</span></label>
                         <input type="text" name="national_id" class="form-control form-control-tm" dir="ltr"
                                placeholder="۱۰ رقم" value="{{ reg_national_id or '' }}" maxlength="10" required>
                     </div>
-                    <div class="col-6">
+                    <div class="col-6 col-sm-6">
                         <label class="form-label-tm fw-bold">تاریخ تولد</label>
                         <input type="text" name="birth_date" class="form-control form-control-tm" dir="ltr"
                                placeholder="1370/01/15" value="{{ reg_birth_date or '' }}">
