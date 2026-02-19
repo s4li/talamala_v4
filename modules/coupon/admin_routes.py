@@ -52,7 +52,8 @@ async def coupon_list(
     total_pages = max(1, (total + per_page - 1) // per_page)
     stats = coupon_service.get_stats(db)
 
-    return templates.TemplateResponse("admin/coupon/list.html", {
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("admin/coupon/list.html", {
         "request": request,
         "user": user,
         "coupons": coupons,
@@ -62,8 +63,11 @@ async def coupon_list(
         "total": total,
         "status_filter": status,
         "search": search or "",
+        "csrf_token": csrf,
         "active_page": "coupons",
     })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
 
 
 # ==========================================
@@ -341,6 +345,31 @@ async def coupon_delete(
     except ValueError as e:
         db.rollback()
         return RedirectResponse(f"/admin/coupons/{coupon_id}?error={str(e)}", status_code=302)
+
+
+# ==========================================
+# 🔄 Toggle Coupon Status
+# ==========================================
+
+@router.post("/{coupon_id}/toggle")
+async def coupon_toggle(
+    request: Request,
+    coupon_id: int,
+    csrf_token: str = Form(""),
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("coupons")),
+):
+    csrf_check(request, csrf_token)
+    coupon = coupon_service.get_coupon_by_id(db, coupon_id)
+    if not coupon:
+        return RedirectResponse("/admin/coupons?error=کوپن+یافت+نشد", status_code=302)
+
+    new_status = CouponStatus.INACTIVE if coupon.status == CouponStatus.ACTIVE else CouponStatus.ACTIVE
+    coupon_service.update_coupon(db, coupon_id, {"status": new_status})
+    db.commit()
+
+    label = "فعال" if new_status == CouponStatus.ACTIVE else "غیرفعال"
+    return RedirectResponse(f"/admin/coupons?msg=کوپن+{label}+شد", status_code=302)
 
 
 # ==========================================
