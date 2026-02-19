@@ -243,7 +243,15 @@ class PosService:
             tax_percent=tax_percent,
         ) if product else {}
 
-        sale_price = payment_amount or price_info.get("total", 0)
+        expected_price = price_info.get("total", 0)
+        sale_price = payment_amount or expected_price
+
+        # Server-side price validation: reject if payment deviates > 10 rial
+        if payment_amount and expected_price and abs(payment_amount - expected_price) > 10:
+            bar.status = BarStatus.ASSIGNED
+            bar.reserved_until = None
+            db.flush()
+            return {"success": False, "message": "مبلغ پرداخت با قیمت محاسباتی مطابقت ندارد"}
 
         # Mark sold
         bar.status = BarStatus.SOLD

@@ -26,6 +26,10 @@ from common.helpers import now_utc
 # In-memory rate limiter storage
 # ==========================================
 _otp_attempts: dict[str, list] = defaultdict(list)
+_otp_verify_attempts: dict[str, list] = defaultdict(list)
+
+OTP_VERIFY_MAX_ATTEMPTS = 5   # max verify tries per mobile
+OTP_VERIFY_WINDOW = 10        # minutes
 
 
 # ==========================================
@@ -39,10 +43,7 @@ def hash_otp(mobile: str, otp: str) -> str:
 
 
 def generate_otp(length: int = 6) -> str:
-    """Generate a random numeric OTP code. In DEBUG mode, always returns 111111."""
-    from config.settings import DEBUG
-    if DEBUG:
-        return "1" * length
+    """Generate a random numeric OTP code."""
     lower = 10 ** (length - 1)
     upper = 10 ** length - 1
     return str(secrets.randbelow(upper - lower) + lower)
@@ -63,6 +64,23 @@ def check_otp_rate_limit(mobile: str) -> bool:
         return False
 
     _otp_attempts[mobile].append(now)
+    return True
+
+
+def check_otp_verify_rate_limit(mobile: str) -> bool:
+    """
+    Check if mobile number has exceeded OTP verification attempts.
+    Returns True if allowed, False if rate limited.
+    """
+    now = now_utc()
+    cutoff = now - timedelta(minutes=OTP_VERIFY_WINDOW)
+
+    _otp_verify_attempts[mobile] = [t for t in _otp_verify_attempts[mobile] if t > cutoff]
+
+    if len(_otp_verify_attempts[mobile]) >= OTP_VERIFY_MAX_ATTEMPTS:
+        return False
+
+    _otp_verify_attempts[mobile].append(now)
     return True
 
 

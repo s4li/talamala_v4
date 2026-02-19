@@ -21,7 +21,7 @@ from config.database import Base
 # ==========================================
 # Import ALL models here for autogenerate
 # ==========================================
-from modules.admin.models import SystemUser, SystemSetting  # noqa: F401
+from modules.admin.models import SystemUser, SystemSetting, RequestLog  # noqa: F401
 from modules.customer.models import Customer  # noqa: F401
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress  # noqa: F401
 from modules.catalog.models import (  # noqa: F401

@@ -102,6 +102,8 @@ async def toggle_comment_like(
     me=Depends(require_customer),
     db: Session = Depends(get_db),
 ):
+    # CSRF check via header (AJAX call sends X-CSRF-Token header)
+    csrf_check(request, request.headers.get("X-CSRF-Token", ""))
     result = review_service.toggle_like(db, comment_id, me.id)
     db.commit()
     return JSONResponse(result)

@@ -4,6 +4,7 @@ Order Module - Admin Routes
 Order management for admin: list, approve (finalize), cancel.
 """
 
+import logging
 import urllib.parse
 from typing import Optional
 
@@ -17,6 +18,8 @@ from common.security import csrf_check, new_csrf_token
 from modules.auth.deps import require_permission
 from modules.order.service import order_service
 from modules.order.models import OrderStatus, DeliveryStatus, DeliveryMethod
+
+logger = logging.getLogger("talamala.order.admin")
 
 router = APIRouter(tags=["order-admin"])
 
@@ -135,8 +138,8 @@ async def update_delivery_status(
                     idempotency_key=f"cashback:order:{order.id}",
                 )
                 order.cashback_settled = True
-            except Exception:
-                pass  # Don't block delivery confirmation
+            except Exception as e:
+                logger.error(f"Cashback settlement failed for order #{order.id}: {e}")
 
     db.commit()
     msg = urllib.parse.quote("وضعیت تحویل بروزرسانی شد.")
@@ -190,8 +193,8 @@ async def confirm_pickup_delivery(
                 idempotency_key=f"cashback:order:{order.id}",
             )
             order.cashback_settled = True
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Cashback settlement failed for order #{order.id}: {e}")
 
     db.commit()
 

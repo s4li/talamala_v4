@@ -127,6 +127,11 @@ async def send_otp(
         resp.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
         return resp
 
+    # Server-side mobile validation
+    from common.helpers import validate_iranian_mobile, validate_iranian_national_id
+    if not validate_iranian_mobile(mobile.strip()):
+        return _error_response("شماره موبایل نامعتبر است. فرمت صحیح: ۰۹XXXXXXXXX")
+
     # Registration mode: validate fields
     if mode == "register":
         first_name = first_name.strip()
@@ -140,6 +145,9 @@ async def send_otp(
 
         if not national_id:
             return _error_response("لطفاً کد ملی را وارد کنید.")
+
+        if not validate_iranian_national_id(national_id):
+            return _error_response("کد ملی نامعتبر است. لطفاً یک کد ملی ۱۰ رقمی معتبر وارد کنید.")
 
         if not postal_code:
             return _error_response("لطفاً کد پستی را وارد کنید.")
@@ -242,9 +250,8 @@ async def verify_otp(
     try:
         token, cookie_name, redirect_url = auth_service.verify_otp(db, mobile, code)
 
-        # Referral reward: credit referrer's wallet (only once per customer)
-        if cookie_name == "customer_token" and ref_code:
-            _process_referral_reward(db, mobile, ref_code.strip().upper())
+        # NOTE: Referral reward is processed on first purchase (order finalization),
+        # not on registration, to prevent abuse via mass fake registrations.
 
         # For customers, use next_url if provided (return to original page)
         if next_url and cookie_name == "customer_token":
@@ -274,43 +281,6 @@ async def verify_otp(
         })
         response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
         return response
-
-
-def _process_referral_reward(db: Session, new_mobile: str, ref_code: str):
-    """Credit referrer's wallet if this is a new registration with valid referral code."""
-    from modules.customer.models import Customer
-    from modules.wallet.service import wallet_service
-
-    REFERRAL_REWARD_RIAL = 500_000  # 50,000 toman = 500,000 rial
-
-    # Find the new customer
-    customer = db.query(Customer).filter(Customer.mobile == new_mobile.strip()).first()
-    if not customer or customer.referral_rewarded:
-        return  # Already rewarded or not found
-
-    if not customer.referred_by:
-        return  # No referrer set
-
-    # Find the referrer
-    referrer = db.query(Customer).filter(Customer.id == customer.referred_by).first()
-    if not referrer:
-        return
-
-    # Credit referrer's wallet
-    try:
-        wallet_service.deposit(
-            db,
-            owner_id=referrer.id,
-            amount=REFERRAL_REWARD_RIAL,
-            reference_type="referral",
-            reference_id=str(customer.id),
-            description=f"پاداش معرفی کاربر جدید ({customer.full_name})",
-            idempotency_key=f"referral_reward:{customer.id}",
-        )
-        customer.referral_rewarded = True
-        db.commit()
-    except Exception:
-        db.rollback()
 
 
 @router.get("/logout")

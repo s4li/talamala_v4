@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 
 from common.helpers import now_utc
 from common.security import (
-    hash_otp, generate_otp, check_otp_rate_limit,
+    hash_otp, generate_otp, check_otp_rate_limit, check_otp_verify_rate_limit,
     create_staff_token, create_customer_token, create_dealer_token,
 )
 from common.exceptions import OTPError, AuthenticationError
@@ -156,6 +156,10 @@ class AuthService:
         mobile = mobile.strip()
         code = code.strip()
         now = now_utc()
+
+        # Rate limit verification attempts (brute-force protection)
+        if not check_otp_verify_rate_limit(mobile):
+            raise AuthenticationError("⛔ تعداد تلاش بیش از حد مجاز! ۱۰ دقیقه صبر کنید.")
 
         # Check Staff
         system_user = db.query(SystemUser).filter(SystemUser.mobile == mobile).first()

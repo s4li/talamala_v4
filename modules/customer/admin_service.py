@@ -13,7 +13,7 @@ from modules.customer.models import Customer
 from modules.order.models import Order
 from modules.wallet.models import Account, WithdrawalRequest, OwnerType, AssetCode
 from modules.inventory.models import Bar, BarStatus
-from common.helpers import now_utc
+from common.helpers import now_utc, validate_iranian_national_id, validate_iranian_mobile
 from datetime import timedelta
 
 
@@ -199,6 +199,9 @@ class CustomerAdminService:
             return {"success": False, "error": "شماره موبایل الزامی است"}
 
         mobile = mobile.strip()
+        if not validate_iranian_mobile(mobile):
+            return {"success": False, "error": "شماره موبایل نامعتبر است (فرمت: ۰۹XXXXXXXXX)"}
+
         # Check duplicate mobile
         dup = db.query(Customer).filter(Customer.mobile == mobile).first()
         if dup:
@@ -207,6 +210,8 @@ class CustomerAdminService:
         # Check duplicate national_id
         national_id = national_id.strip() if national_id else ""
         if national_id:
+            if not validate_iranian_national_id(national_id):
+                return {"success": False, "error": "کد ملی نامعتبر است (باید ۱۰ رقم معتبر باشد)"}
             dup = db.query(Customer).filter(Customer.national_id == national_id).first()
             if dup:
                 return {"success": False, "error": "این کد ملی قبلا ثبت شده است"}
@@ -243,16 +248,20 @@ class CustomerAdminService:
         if not customer:
             return {"success": False, "error": "مشتری یافت نشد"}
 
-        # Uniqueness: mobile
+        # Validate and check uniqueness: mobile
         if mobile and mobile != customer.mobile:
+            if not validate_iranian_mobile(mobile):
+                return {"success": False, "error": "شماره موبایل نامعتبر است (فرمت: ۰۹XXXXXXXXX)"}
             dup = db.query(Customer).filter(
                 Customer.mobile == mobile, Customer.id != customer_id
             ).first()
             if dup:
                 return {"success": False, "error": "این شماره موبایل قبلا ثبت شده است"}
 
-        # Uniqueness: national_id
+        # Validate and check uniqueness: national_id
         if national_id and national_id != (customer.national_id or ""):
+            if not validate_iranian_national_id(national_id):
+                return {"success": False, "error": "کد ملی نامعتبر است (باید ۱۰ رقم معتبر باشد)"}
             dup = db.query(Customer).filter(
                 Customer.national_id == national_id, Customer.id != customer_id
             ).first()

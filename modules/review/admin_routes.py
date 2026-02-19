@@ -32,13 +32,10 @@ async def admin_review_list(
     db: Session = Depends(get_db),
 ):
     per_page = 30
-    comments = []
-    reviews = []
-    total_comments = 0
-    total_reviews = 0
 
-    comments, total_comments = review_service.list_comments_admin(db, page=1, per_page=9999)
-    reviews, total_reviews = review_service.list_reviews_admin(db, page=1, per_page=9999)
+    # Get counts for tab badges (per_page=1 to avoid loading all records)
+    _, total_comments = review_service.list_comments_admin(db, page=1, per_page=1)
+    _, total_reviews = review_service.list_reviews_admin(db, page=1, per_page=1)
 
     if tab == "comments":
         items, total = review_service.list_comments_admin(db, page=page, per_page=per_page, search=search)

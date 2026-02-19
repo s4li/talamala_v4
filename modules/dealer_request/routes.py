@@ -83,12 +83,24 @@ async def dealer_request_submit(
     me=Depends(require_customer),
 ):
     csrf_check(request, csrf_token)
+    from common.helpers import validate_iranian_mobile
 
     # Validate required fields
     if not first_name.strip() or not last_name.strip():
-        return await _render_form_with_error(request, db, me, "\u0646\u0627\u0645 \u0648 \u0646\u0627\u0645 \u062e\u0627\u0646\u0648\u0627\u062f\u06af\u06cc \u0627\u0644\u0632\u0627\u0645\u06cc \u0627\u0633\u062a.")
+        return await _render_form_with_error(request, db, me, "نام و نام خانوادگی الزامی است.")
     if not mobile.strip():
-        return await _render_form_with_error(request, db, me, "\u0634\u0645\u0627\u0631\u0647 \u062a\u0645\u0627\u0633 \u0627\u0644\u0632\u0627\u0645\u06cc \u0627\u0633\u062a.")
+        return await _render_form_with_error(request, db, me, "شماره تماس الزامی است.")
+    if not validate_iranian_mobile(mobile.strip()):
+        return await _render_form_with_error(request, db, me, "شماره موبایل نامعتبر است. فرمت صحیح: ۰۹XXXXXXXXX")
+
+    # Validate gender
+    if gender and gender not in ("male", "female"):
+        return await _render_form_with_error(request, db, me, "جنسیت نامعتبر است.")
+
+    # Limit file uploads
+    valid_files = [f for f in (files or []) if f and f.filename]
+    if len(valid_files) > 5:
+        return await _render_form_with_error(request, db, me, "حداکثر ۵ فایل مجاز است.")
 
     result = dealer_request_service.create_request(
         db,

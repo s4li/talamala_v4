@@ -167,9 +167,19 @@ async def wallet_topup_callback(
     if not trackId or not topup_id:
         return RedirectResponse("/wallet?error=پارامترهای+نامعتبر", status_code=302)
 
+    # Validate trackId is numeric
+    try:
+        track_id_int = int(trackId)
+    except (ValueError, TypeError):
+        return RedirectResponse("/wallet?error=پارامترهای+نامعتبر", status_code=302)
+
     topup = db.query(WalletTopup).filter(WalletTopup.id == topup_id).first()
     if not topup:
         return RedirectResponse("/wallet?error=تراکنش+یافت+نشد", status_code=302)
+
+    # Verify trackId matches stored value (defense-in-depth)
+    if topup.track_id and topup.track_id != str(track_id_int):
+        return RedirectResponse("/wallet?error=پارامترهای+نامعتبر", status_code=302)
 
     # Already processed (double callback protection)
     if topup.status == "PAID":
@@ -187,7 +197,7 @@ async def wallet_topup_callback(
     try:
         resp = httpx.post(ZIBAL_VERIFY_URL, json={
             "merchant": ZIBAL_MERCHANT,
-            "trackId": int(trackId),
+            "trackId": track_id_int,
         }, timeout=15)
         data = resp.json()
         logger.info(f"Zibal topup verify #{topup.id}: {data}")

@@ -284,8 +284,43 @@ class OrderService:
                         ))
 
         order.status = OrderStatus.PAID
+
+        # Process referral reward on first purchase (not registration)
+        self._process_referral_reward_on_first_purchase(db, order.customer_id)
+
         db.flush()
         return order
+
+    def _process_referral_reward_on_first_purchase(self, db: Session, customer_id: int):
+        """Credit referrer's wallet when referred customer makes their first purchase."""
+        from modules.customer.models import Customer
+        from modules.wallet.service import wallet_service
+
+        REFERRAL_REWARD_RIAL = 500_000  # 50,000 toman
+
+        customer = db.query(Customer).filter(Customer.id == customer_id).first()
+        if not customer or customer.referral_rewarded:
+            return
+        if not customer.referred_by:
+            return
+
+        referrer = db.query(Customer).filter(Customer.id == customer.referred_by).first()
+        if not referrer:
+            return
+
+        try:
+            wallet_service.deposit(
+                db,
+                owner_id=referrer.id,
+                amount=REFERRAL_REWARD_RIAL,
+                reference_type="referral",
+                reference_id=str(customer.id),
+                description=f"پاداش معرفی کاربر جدید ({customer.full_name})",
+                idempotency_key=f"referral_reward:{customer.id}",
+            )
+            customer.referral_rewarded = True
+        except Exception:
+            logger.warning(f"Failed to process referral reward for customer {customer_id}")
 
     # ==========================================
     # Cancel
@@ -293,7 +328,7 @@ class OrderService:
 
     def cancel_order(self, db: Session, order_id: int, reason: str = "") -> Optional[Order]:
         """Cancel order and release reserved bars."""
-        order = db.query(Order).filter(Order.id == order_id).first()
+        order = db.query(Order).filter(Order.id == order_id).with_for_update().first()
         if not order or order.status != OrderStatus.PENDING:
             return None
 

@@ -115,6 +115,46 @@ def generate_unique_claim_code(db, length: int = 6, max_retries: int = 10) -> st
     raise RuntimeError("Failed to generate unique claim code after retries")
 
 
+def validate_iranian_national_id(value: str) -> bool:
+    """
+    Validate Iranian National ID (کد ملی) format and check digit.
+    Returns True if valid, False otherwise.
+    """
+    if not value:
+        return False
+    value = value.strip()
+    if len(value) != 10 or not value.isdigit():
+        return False
+    # Reject all-same digits (e.g., 1111111111)
+    if len(set(value)) == 1:
+        return False
+    # Check digit algorithm
+    digits = [int(d) for d in value]
+    check = digits[9]
+    total = sum(digits[i] * (10 - i) for i in range(9))
+    remainder = total % 11
+    if remainder < 2:
+        return check == remainder
+    return check == (11 - remainder)
+
+
+def validate_iranian_mobile(value: str) -> bool:
+    """
+    Validate Iranian mobile number format (09XXXXXXXXX — 11 digits).
+    Returns True if valid, False otherwise.
+    """
+    if not value:
+        return False
+    value = value.strip()
+    if len(value) != 11:
+        return False
+    if not value.startswith("09"):
+        return False
+    if not value.isdigit():
+        return False
+    return True
+
+
 def format_time_ago(value) -> str:
     """Relative time display in Persian.
 

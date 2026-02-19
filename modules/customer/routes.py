@@ -68,21 +68,30 @@ async def profile_update(
 ):
     """Update profile fields (identity fields editable until Shahkar verification)."""
     csrf_check(request, csrf_token)
+    from common.helpers import validate_iranian_national_id
 
-    # Identity fields (editable until Shahkar is implemented)
+    # Identity fields
     if first_name.strip():
         me.first_name = first_name.strip()
     if last_name.strip():
         me.last_name = last_name.strip()
-    if national_id.strip():
-        # Check uniqueness of national_id (if changed)
+
+    # National ID: only editable if not set yet (GUEST_ prefix or empty)
+    has_real_national_id = me.national_id and not me.national_id.startswith("GUEST_")
+    if national_id.strip() and not has_real_national_id:
+        if not validate_iranian_national_id(national_id.strip()):
+            msg = urllib.parse.quote("کد ملی نامعتبر است. لطفاً یک کد ملی ۱۰ رقمی معتبر وارد کنید.")
+            return RedirectResponse(f"/profile?error={msg}", status_code=303)
+        # Check uniqueness
         if national_id.strip() != me.national_id:
             existing = db.query(Customer).filter(
                 Customer.national_id == national_id.strip(),
                 Customer.id != me.id,
             ).first()
-            if not existing:
-                me.national_id = national_id.strip()
+            if existing:
+                msg = urllib.parse.quote("این کد ملی قبلاً ثبت شده است.")
+                return RedirectResponse(f"/profile?error={msg}", status_code=303)
+            me.national_id = national_id.strip()
 
     # Customer type
     if customer_type in ("real", "legal"):
@@ -274,12 +283,16 @@ async def invite_page(
 
     # Generate referral code if not set
     if not me.referral_code:
-        # Ensure uniqueness
+        code = None
         for _ in range(10):
-            code = generate_referral_code()
-            existing = db.query(Customer).filter(Customer.referral_code == code).first()
+            candidate = generate_referral_code()
+            existing = db.query(Customer).filter(Customer.referral_code == candidate).first()
             if not existing:
+                code = candidate
                 break
+        if not code:
+            # Fallback: use longer code to avoid collision
+            code = generate_referral_code(length=12)
         me.referral_code = code
         db.commit()
 
