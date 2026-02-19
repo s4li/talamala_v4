@@ -11,11 +11,11 @@ from decimal import Decimal
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func as sa_func, or_
 
-from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest, BuybackStatus
+from modules.dealer.models import Dealer, DealerSale, BuybackRequest, BuybackStatus
 from modules.inventory.models import Bar, BarStatus, OwnershipHistory
 from modules.catalog.models import ProductTierWage
 from modules.customer.models import Customer
-from modules.pricing.service import get_end_customer_wage
+from modules.pricing.service import get_end_customer_wage, get_dealer_margin
 from common.helpers import now_utc, generate_unique_claim_code
 
 
@@ -173,23 +173,8 @@ class DealerService:
         ec_wage_pct = 0.0
         dealer_wage_pct = 0.0
         margin_pct = 0.0
-        if product and dealer.tier_id:
-            ec_tier = db.query(DealerTier).filter(
-                DealerTier.is_end_customer == True,
-                DealerTier.is_active == True,
-            ).first()
-            if ec_tier:
-                ec_wage_row = db.query(ProductTierWage).filter(
-                    ProductTierWage.product_id == product.id,
-                    ProductTierWage.tier_id == ec_tier.id,
-                ).first()
-                dealer_wage_row = db.query(ProductTierWage).filter(
-                    ProductTierWage.product_id == product.id,
-                    ProductTierWage.tier_id == dealer.tier_id,
-                ).first()
-                ec_wage_pct = float(ec_wage_row.wage_percent) if ec_wage_row else 0
-                dealer_wage_pct = float(dealer_wage_row.wage_percent) if dealer_wage_row else 0
-                margin_pct = ec_wage_pct - dealer_wage_pct
+        if product:
+            ec_wage_pct, dealer_wage_pct, margin_pct = get_dealer_margin(db, product, dealer)
 
         # Validate discount range
         if discount_wage_percent < 0:
@@ -475,11 +460,28 @@ class DealerService:
             return {"products": [], "gold_price_18k": gold_price, "tax_percent": tax_percent}
 
         # Get products that have bars
+        product_ids = list(bars_by_product.keys())
         products = (
             db.query(Product)
-            .filter(Product.id.in_(bars_by_product.keys()), Product.is_active == True)
+            .filter(Product.id.in_(product_ids), Product.is_active == True)
             .all()
         )
+
+        # Batch: default images for all products (avoid N+1)
+        default_images = db.query(ProductImage).filter(
+            ProductImage.product_id.in_(product_ids),
+            ProductImage.is_default == True,
+        ).all()
+        img_map = {img.product_id: img.file_path for img in default_images}
+
+        # Batch: dealer tier wages for all products (avoid N+1)
+        dealer_wage_map: Dict[int, float] = {}
+        if dealer.tier_id:
+            dealer_wages = db.query(ProductTierWage).filter(
+                ProductTierWage.product_id.in_(product_ids),
+                ProductTierWage.tier_id == dealer.tier_id,
+            ).all()
+            dealer_wage_map = {dw.product_id: float(dw.wage_percent) for dw in dealer_wages}
 
         result_products = []
         for p in products:
@@ -491,21 +493,12 @@ class DealerService:
                 tax_percent=float(tax_percent),
             )
 
-            # Dealer's tier wage for margin calculation
-            dealer_wage_pct = 0.0
-            if dealer.tier_id:
-                dealer_wage_row = db.query(ProductTierWage).filter(
-                    ProductTierWage.product_id == p.id,
-                    ProductTierWage.tier_id == dealer.tier_id,
-                ).first()
-                dealer_wage_pct = float(dealer_wage_row.wage_percent) if dealer_wage_row else 0
+            # Dealer's tier wage from batch map
+            dealer_wage_pct = dealer_wage_map.get(p.id, 0.0)
             margin_pct = round(ec_wage - dealer_wage_pct, 2)
 
-            # Get default image
-            default_img = db.query(ProductImage).filter(
-                ProductImage.product_id == p.id, ProductImage.is_default == True
-            ).first()
-            img_path = default_img.file_path if default_img else None
+            # Default image from batch map
+            img_path = img_map.get(p.id)
 
             product_bars = bars_by_product.get(p.id, [])
             result_products.append({

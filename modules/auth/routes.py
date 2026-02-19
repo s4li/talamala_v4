@@ -196,6 +196,7 @@ async def send_otp(
             ref_code=ref_code if mode == "register" else "",
             profile_data=profile_data if mode == "register" else {},
         )
+        db.commit()
 
         # Send SMS (debug mode prints to console)
         sms_sender.send_otp_lookup(
@@ -249,6 +250,7 @@ async def verify_otp(
 
     try:
         token, cookie_name, redirect_url = auth_service.verify_otp(db, mobile, code)
+        db.commit()
 
         # NOTE: Referral reward is processed on first purchase (order finalization),
         # not on registration, to prevent abuse via mass fake registrations.

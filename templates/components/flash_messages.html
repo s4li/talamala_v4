@@ -1,0 +1,20 @@
+{# Flash Messages Component
+   Usage: {% include "components/flash_messages.html" %}
+   Displays queued flash messages from cookies (set via common.flash).
+   Category maps: success → alert-tm-success, danger → alert-tm-danger, etc.
+#}
+{% set flashes = get_flashed_messages(request) %}
+{% for msg in flashes %}
+<div class="alert-tm-{{ msg.category }} py-2 mb-2">
+    {% if msg.category == 'success' %}
+    <i class="bi bi-check-circle me-1"></i>
+    {% elif msg.category == 'danger' %}
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    {% elif msg.category == 'warning' %}
+    <i class="bi bi-exclamation-circle me-1"></i>
+    {% else %}
+    <i class="bi bi-info-circle me-1"></i>
+    {% endif %}
+    {{ msg.text }}
+</div>
+{% endfor %}

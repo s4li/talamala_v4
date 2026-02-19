@@ -6,7 +6,7 @@ Product, ProductCategory, CardDesign, PackageType, Batch and their images.
 
 from sqlalchemy import (
     Column, Integer, String, Text, BigInteger, Numeric, Boolean,
-    ForeignKey, DateTime, UniqueConstraint,
+    ForeignKey, DateTime, UniqueConstraint, CheckConstraint,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -40,8 +40,8 @@ class ProductCategoryLink(Base):
     __tablename__ = "product_category_links"
 
     id = Column(Integer, primary_key=True)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
-    category_id = Column(Integer, ForeignKey("product_categories.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
+    category_id = Column(Integer, ForeignKey("product_categories.id", ondelete="CASCADE"), nullable=False, index=True)
 
     product = relationship("Product", back_populates="category_links")
     category = relationship("ProductCategory", back_populates="product_links")
@@ -65,8 +65,14 @@ class Product(Base):
     wage = Column(Numeric(5, 2), default=0, nullable=False)     # اجرت ساخت (درصدی)
     is_wage_percent = Column(Boolean, default=True, nullable=False)  # همیشه True برای شمش
     design = Column(String, nullable=True)
-    card_design_id = Column(Integer, ForeignKey("card_designs.id", ondelete="SET NULL"), nullable=True)
-    package_type_id = Column(Integer, ForeignKey("package_types.id", ondelete="SET NULL"), nullable=True)
+    card_design_id = Column(Integer, ForeignKey("card_designs.id", ondelete="SET NULL"), nullable=True, index=True)
+    package_type_id = Column(Integer, ForeignKey("package_types.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    __table_args__ = (
+        CheckConstraint("purity > 0 AND purity <= 999.9", name="ck_product_purity_range"),
+        CheckConstraint("weight > 0", name="ck_product_weight_positive"),
+        CheckConstraint("wage >= 0", name="ck_product_wage_nonneg"),
+    )
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
 
@@ -111,7 +117,7 @@ class ProductImage(Base):
     id = Column(Integer, primary_key=True)
     file_path = Column(String, nullable=False)
     is_default = Column(Boolean, default=False, nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
 
     product = relationship("Product", back_populates="images")
 
@@ -137,12 +143,12 @@ class CardDesign(Base):
 
 
 class CardDesignImage(Base):
-    __tablename__ = "design_images"
+    __tablename__ = "card_design_images"
 
     id = Column(Integer, primary_key=True)
     file_path = Column(String, nullable=False)
     is_default = Column(Boolean, default=False, nullable=False)
-    design_id = Column(Integer, ForeignKey("card_designs.id", ondelete="CASCADE"), nullable=True)
+    design_id = Column(Integer, ForeignKey("card_designs.id", ondelete="CASCADE"), nullable=True, index=True)
 
     design = relationship("CardDesign", back_populates="images")
 
@@ -170,12 +176,12 @@ class PackageType(Base):
 
 
 class PackageTypeImage(Base):
-    __tablename__ = "package_images"
+    __tablename__ = "package_type_images"
 
     id = Column(Integer, primary_key=True)
     file_path = Column(String, nullable=False)
     is_default = Column(Boolean, default=False, nullable=False)
-    package_id = Column(Integer, ForeignKey("package_types.id", ondelete="CASCADE"), nullable=True)
+    package_id = Column(Integer, ForeignKey("package_types.id", ondelete="CASCADE"), nullable=True, index=True)
 
     package = relationship("PackageType", back_populates="images")
 
@@ -210,7 +216,7 @@ class BatchImage(Base):
     id = Column(Integer, primary_key=True)
     file_path = Column(String, nullable=False)
     is_default = Column(Boolean, default=False, nullable=False)
-    batch_id = Column(Integer, ForeignKey("batches.id", ondelete="CASCADE"), nullable=False)
+    batch_id = Column(Integer, ForeignKey("batches.id", ondelete="CASCADE"), nullable=False, index=True)
 
     batch = relationship("Batch", back_populates="images")
 
@@ -223,8 +229,8 @@ class ProductTierWage(Base):
     __tablename__ = "product_tier_wages"
 
     id = Column(Integer, primary_key=True)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
-    tier_id = Column(Integer, ForeignKey("dealer_tiers.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
+    tier_id = Column(Integer, ForeignKey("dealer_tiers.id", ondelete="CASCADE"), nullable=False, index=True)
     wage_percent = Column(Numeric(5, 2), nullable=False)
 
     product = relationship("Product", back_populates="tier_wages")

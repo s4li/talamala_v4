@@ -31,7 +31,7 @@ class GeoCity(Base):
     __tablename__ = "geo_cities"
 
     id = Column(Integer, primary_key=True)
-    province_id = Column(Integer, ForeignKey("geo_provinces.id", ondelete="CASCADE"), nullable=False)
+    province_id = Column(Integer, ForeignKey("geo_provinces.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String, nullable=False)
     sort_order = Column(Integer, default=0)
 
@@ -43,7 +43,7 @@ class GeoDistrict(Base):
     __tablename__ = "geo_districts"
 
     id = Column(Integer, primary_key=True)
-    city_id = Column(Integer, ForeignKey("geo_cities.id", ondelete="CASCADE"), nullable=False)
+    city_id = Column(Integer, ForeignKey("geo_cities.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String, nullable=False)
 
     city = relationship("GeoCity", back_populates="districts")
@@ -57,15 +57,15 @@ class CustomerAddress(Base):
     __tablename__ = "customer_addresses"
 
     id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String, nullable=False)  # عنوان: خانه، محل کار، ...
-    province_id = Column(Integer, ForeignKey("geo_provinces.id"), nullable=False)
-    city_id = Column(Integer, ForeignKey("geo_cities.id"), nullable=False)
-    district_id = Column(Integer, ForeignKey("geo_districts.id"), nullable=True)
+    province_id = Column(Integer, ForeignKey("geo_provinces.id", ondelete="RESTRICT"), nullable=False, index=True)
+    city_id = Column(Integer, ForeignKey("geo_cities.id", ondelete="RESTRICT"), nullable=False, index=True)
+    district_id = Column(Integer, ForeignKey("geo_districts.id", ondelete="SET NULL"), nullable=True, index=True)
     address = Column(Text, nullable=False)
     postal_code = Column(String(10), nullable=True)
     receiver_name = Column(String, nullable=True)
-    receiver_phone = Column(String, nullable=True)
+    receiver_phone = Column(String(15), nullable=True)
     is_default = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

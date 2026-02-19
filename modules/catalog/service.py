@@ -60,7 +60,7 @@ class ImageManager:
                 db.add(img)
                 count += 1
         if count:
-            db.commit()
+            db.flush()
         return count
 
     @staticmethod
@@ -77,7 +77,7 @@ class ImageManager:
                 parent_id = getattr(img, col.name)
                 break
         db.delete(img)
-        db.commit()
+        db.flush()
         return parent_id
 
     @staticmethod
@@ -91,7 +91,7 @@ class ImageManager:
             getattr(image_model, fk_field) == parent_id
         ).update({"is_default": False})
         target.is_default = True
-        db.commit()
+        db.flush()
         return parent_id
 
 
@@ -124,14 +124,14 @@ class ProductService:
             is_active=data.get("is_active", True),
         )
         db.add(product)
-        db.commit()
+        db.flush()
         db.refresh(product)
 
         # M2M categories
         for cat_id in (data.get("category_ids") or []):
             db.add(ProductCategoryLink(product_id=product.id, category_id=int(cat_id)))
         if data.get("category_ids"):
-            db.commit()
+            db.flush()
 
         # Auto-sync end_customer tier wage from product wage
         ec_tier = db.query(DealerTier).filter(DealerTier.is_end_customer == True, DealerTier.is_active == True).first()
@@ -173,7 +173,7 @@ class ProductService:
             for cat_id in (data["category_ids"] or []):
                 db.add(ProductCategoryLink(product_id=p.id, category_id=int(cat_id)))
 
-        db.commit()
+        db.flush()
 
         # Auto-sync end_customer tier wage from product wage
         ec_tier = db.query(DealerTier).filter(DealerTier.is_end_customer == True, DealerTier.is_active == True).first()
@@ -220,7 +220,7 @@ class SimpleEntityService:
     def create(self, db: Session, name: str, files: List[UploadFile] = None):
         item = self.model(name=name)
         db.add(item)
-        db.commit()
+        db.flush()
         db.refresh(item)
 
         if files:
@@ -233,7 +233,7 @@ class SimpleEntityService:
         if not item:
             return None
         item.name = name
-        db.commit()
+        db.flush()
 
         if files:
             images.save_images(db, item.id, files, self.image_model, self.fk_field,
@@ -242,7 +242,7 @@ class SimpleEntityService:
 
     def delete(self, db: Session, item_id: int):
         db.query(self.model).filter(self.model.id == item_id).delete()
-        db.commit()
+        db.flush()
 
 
 # ==========================================
@@ -265,7 +265,7 @@ class BatchService:
             purity=safe_int(data.get("purity")),
         )
         db.add(batch)
-        db.commit()
+        db.flush()
         db.refresh(batch)
 
         if files:
@@ -281,7 +281,7 @@ class BatchService:
         b.melt_number = data.get("melt_number")
         b.operator = data.get("operator")
         b.purity = safe_int(data.get("purity"))
-        db.commit()
+        db.flush()
 
         if files:
             has_default = any(img.is_default for img in b.images)
@@ -293,7 +293,7 @@ class BatchService:
 
     def delete(self, db: Session, batch_id: int):
         db.query(Batch).filter(Batch.id == batch_id).delete()
-        db.commit()
+        db.flush()
 
 
 # ==========================================
@@ -316,7 +316,7 @@ class PackageService:
                files: List[UploadFile] = None) -> PackageType:
         item = PackageType(name=name, price=price, is_active=is_active)
         db.add(item)
-        db.commit()
+        db.flush()
         db.refresh(item)
         if files:
             images.save_images(db, item.id, files, PackageTypeImage, "package_id",
@@ -331,7 +331,7 @@ class PackageService:
         item.name = name
         item.price = price
         item.is_active = is_active
-        db.commit()
+        db.flush()
         if files:
             images.save_images(db, item.id, files, PackageTypeImage, "package_id",
                              set_first_default=False, subfolder="packages")
@@ -339,7 +339,7 @@ class PackageService:
 
     def delete(self, db: Session, item_id: int):
         db.query(PackageType).filter(PackageType.id == item_id).delete()
-        db.commit()
+        db.flush()
 
 
 # ==========================================

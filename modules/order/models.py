@@ -7,7 +7,7 @@ Order with full price snapshot per item for audit trail.
 import enum
 from sqlalchemy import (
     Column, Integer, String, BigInteger, Numeric, Boolean, Text,
-    ForeignKey, DateTime, text,
+    ForeignKey, DateTime, CheckConstraint, text,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -145,9 +145,9 @@ class OrderItem(Base):
     __tablename__ = "order_items"
 
     id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="RESTRICT"), nullable=False)
-    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="SET NULL"), nullable=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="RESTRICT"), nullable=False, index=True)
+    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Price snapshot at time of purchase
     applied_gold_price = Column(BigInteger, nullable=False)
@@ -164,7 +164,7 @@ class OrderItem(Base):
     line_total = Column(BigInteger, nullable=False)
 
     # Package snapshot
-    package_type_id = Column(Integer, ForeignKey("package_types.id", ondelete="SET NULL"), nullable=True)
+    package_type_id = Column(Integer, ForeignKey("package_types.id", ondelete="SET NULL"), nullable=True, index=True)
     applied_package_price = Column(BigInteger, default=0, nullable=False)   # ریال — snapshot at checkout
 
     # Relationships
@@ -172,3 +172,7 @@ class OrderItem(Base):
     product = relationship("Product")
     bar = relationship("Bar")
     package_type = relationship("PackageType")
+
+    __table_args__ = (
+        CheckConstraint("line_total >= 0", name="ck_order_item_line_total_nonneg"),
+    )

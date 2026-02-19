@@ -6,7 +6,7 @@ Product reviews (star rating from order page) and comments/Q&A (from product pag
 
 import enum
 from sqlalchemy import (
-    Column, Integer, String, DateTime, ForeignKey, Text, Index, UniqueConstraint,
+    Column, Integer, String, DateTime, ForeignKey, Text, Index, UniqueConstraint, CheckConstraint,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -42,6 +42,7 @@ class Review(Base):
     images = relationship("ReviewImage", back_populates="review", cascade="all, delete-orphan")
 
     __table_args__ = (
+        CheckConstraint("rating >= 1 AND rating <= 5", name="ck_review_rating_range"),
         Index("ix_review_product", "product_id"),
         Index("ix_review_customer", "customer_id"),
     )

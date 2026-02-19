@@ -30,7 +30,7 @@ class Customer(Base):
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
     national_id = Column(String, unique=True, index=True, nullable=False)
-    mobile = Column(String, unique=True, index=True, nullable=False)
+    mobile = Column(String(11), unique=True, index=True, nullable=False)
     birth_date = Column(String, nullable=True)
     avatar_path = Column(String, nullable=True)
     is_active = Column(Boolean, default=True, server_default="true", nullable=False)
@@ -53,6 +53,7 @@ class Customer(Base):
     otp_expiry = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     @property
     def full_name(self) -> str:

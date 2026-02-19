@@ -86,3 +86,7 @@ templates.env.filters["ticket_category_label"] = lambda v: _TICKET_CAT_LABELS.ge
 
 # Globals (usage in template: {{ get_setting_value('key') }})
 templates.env.globals["get_setting_value"] = get_setting_value
+
+# Flash messages: available in templates via get_flashed_messages(request)
+from common.flash import get_flashed_messages
+templates.env.globals["get_flashed_messages"] = get_flashed_messages

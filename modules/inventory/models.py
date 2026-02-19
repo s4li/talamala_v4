@@ -39,12 +39,12 @@ class Bar(Base):
     status = Column(String, default=BarStatus.RAW, nullable=False)
 
     # Foreign keys to catalog + customer
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
-    batch_id = Column(Integer, ForeignKey("batches.id", ondelete="SET NULL"), nullable=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)
+    batch_id = Column(Integer, ForeignKey("batches.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Dealer/warehouse tracking (dealer IS the location)
-    dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True)
+    dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Claim code (for POS sales and gift orders)
     claim_code = Column(String(8), unique=True, nullable=True, index=True)
@@ -104,7 +104,7 @@ class BarImage(Base):
 
     id = Column(Integer, primary_key=True)
     file_path = Column(String, nullable=False)
-    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False)
+    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False, index=True)
 
     bar = relationship("Bar", back_populates="images")
 
@@ -117,7 +117,7 @@ class OwnershipHistory(Base):
     __tablename__ = "ownership_history"
 
     id = Column(Integer, primary_key=True)
-    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False)
+    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False, index=True)
     previous_owner_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
     new_owner_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
     transfer_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -136,9 +136,9 @@ class DealerTransfer(Base):
     __tablename__ = "dealer_location_transfers"
 
     id = Column(Integer, primary_key=True)
-    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False)
-    from_dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True)
-    to_dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True)
+    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False, index=True)
+    from_dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True, index=True)
+    to_dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True, index=True)
     transferred_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     transferred_by = Column(String, nullable=True)   # نام اپراتور / سیستم
     description = Column(String, nullable=True)       # توضیح: "ارسال با پست پیشتاز"
@@ -163,8 +163,8 @@ class BarTransfer(Base):
     __tablename__ = "bar_transfers"
 
     id = Column(Integer, primary_key=True)
-    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False)
-    from_customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False, index=True)
+    from_customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
     to_mobile = Column(String(11), nullable=False)
     otp_hash = Column(String, nullable=True)
     otp_expiry = Column(DateTime(timezone=True), nullable=True)

@@ -1334,8 +1334,12 @@ def reset_and_seed():
     """Drop all tables and recreate + seed."""
     from sqlalchemy import text
     with engine.connect() as conn:
+        # Drop legacy/renamed tables that may have FK constraints
         conn.execute(text("DROP TABLE IF EXISTS location_transfers CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS package_images CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS design_images CASCADE"))
         conn.commit()
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     print("All tables recreated")
     seed()

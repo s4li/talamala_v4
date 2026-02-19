@@ -323,8 +323,8 @@ class TicketService:
                 notify_ticket_update(ticket.customer.mobile, ticket.id, "status_changed")
             elif ticket.sender_type == SenderType.DEALER and ticket.dealer:
                 notify_ticket_update(ticket.dealer.mobile, ticket.id, "status_changed")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Notification error on status change for ticket #{ticket_id}: {e}")
 
         return {"success": True, "message": "وضعیت تیکت بروزرسانی شد"}
 
@@ -406,8 +406,8 @@ class TicketService:
                 notify_ticket_update(ticket.customer.mobile, ticket.id, "status_changed")
             elif ticket.sender_type == SenderType.DEALER and ticket.dealer:
                 notify_ticket_update(ticket.dealer.mobile, ticket.id, "status_changed")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Notification error on category change for ticket #{ticket_id}: {e}")
 
         db.flush()
         return {"success": True, "message": f"تیکت به دپارتمان «{new_label}» منتقل شد"}

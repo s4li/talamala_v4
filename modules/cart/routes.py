@@ -98,11 +98,17 @@ async def api_update_cart(
     csrf_token = request.headers.get("X-CSRF-Token")
     csrf_check(request, csrf_token)
 
-    product_id = int(data.get("product_id"))
-    change = int(data.get("change"))
+    try:
+        product_id = int(data.get("product_id"))
+        change = int(data.get("change"))
+    except (TypeError, ValueError):
+        return JSONResponse({"status": "error", "message": "پارامترهای نامعتبر"}, status_code=400)
     pkg_id = data.get("package_type_id")
     if pkg_id is not None:
-        pkg_id = int(pkg_id)
+        try:
+            pkg_id = int(pkg_id)
+        except (TypeError, ValueError):
+            pkg_id = None
 
     new_qty, cart_count = cart_service.update_item(db, me.id, product_id, change,
                                                    package_type_id=pkg_id)

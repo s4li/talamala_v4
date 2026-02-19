@@ -214,6 +214,23 @@ app.add_exception_handler(StarletteHTTPException, auth_exception_handler)
 
 
 # ==========================================
+# Middleware: Flash Messages
+# ==========================================
+@app.middleware("http")
+async def flash_message_middleware(request: Request, call_next):
+    """Transfer flash messages from request.state to response cookie."""
+    from common.flash import set_flash_cookie, clear_flash_cookie, FLASH_COOKIE
+    response = await call_next(request)
+    # If route set flash messages, write them to cookie
+    if hasattr(request.state, "_flash_messages") and request.state._flash_messages:
+        set_flash_cookie(response, request.state._flash_messages)
+    elif request.method == "GET" and request.cookies.get(FLASH_COOKIE):
+        # Flash messages were displayed on this GET, clear the cookie
+        clear_flash_cookie(response)
+    return response
+
+
+# ==========================================
 # Middleware: CSRF Cookie Refresh
 # ==========================================
 @app.middleware("http")

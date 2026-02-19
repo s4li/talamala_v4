@@ -232,9 +232,9 @@ class OrderService:
                     new_order.promo_choice = "DISCOUNT"
                     new_order.promo_amount = coupon_result["discount_amount"]
             except CouponValidationError:
-                pass  # Silently skip invalid coupon at checkout
-            except Exception:
-                pass  # Don't block checkout for coupon errors
+                pass  # Skip invalid coupon at checkout
+            except Exception as e:
+                logger.warning(f"Coupon apply error for order #{new_order.id}: {e}")
 
         # Clear cart
         db.query(CartItem).filter(CartItem.cart_id == cart.id).delete()
@@ -319,8 +319,8 @@ class OrderService:
                 idempotency_key=f"referral_reward:{customer.id}",
             )
             customer.referral_rewarded = True
-        except Exception:
-            logger.warning(f"Failed to process referral reward for customer {customer_id}")
+        except Exception as e:
+            logger.warning(f"Failed to process referral reward for customer {customer_id}: {e}")
 
     # ==========================================
     # Cancel

@@ -19,7 +19,7 @@ from modules.wallet.service import wallet_service
 from modules.wallet.models import AssetCode, OwnerType
 from modules.admin.models import SystemSetting
 from modules.pricing.calculator import calculate_bar_price
-from modules.pricing.service import get_end_customer_wage
+from modules.pricing.service import get_end_customer_wage, get_dealer_margin
 from modules.inventory.models import Bar, BarStatus
 
 router = APIRouter(prefix="/dealer", tags=["dealer"])
@@ -69,25 +69,12 @@ def _calc_bar_prices(db: Session, bars, dealer):
     gold_price = int(gold_setting.value) if gold_setting else 0
     tax_percent = float(tax_setting.value) if tax_setting else 10.0
 
-    from modules.catalog.models import ProductTierWage
-    dealer_tier_id = dealer.tier_id
-
     prices = {}
     for bar in bars:
         p = bar.product
         if not p:
             continue
-        ec_wage = get_end_customer_wage(db, p)
-
-        # Dealer's own wage for this product
-        dealer_wage_pct = 0.0
-        if dealer_tier_id:
-            dw_row = db.query(ProductTierWage).filter(
-                ProductTierWage.product_id == p.id,
-                ProductTierWage.tier_id == dealer_tier_id,
-            ).first()
-            dealer_wage_pct = float(dw_row.wage_percent) if dw_row else 0
-        margin_pct = round(ec_wage - dealer_wage_pct, 2)
+        ec_wage, dealer_wage_pct, margin_pct = get_dealer_margin(db, p, dealer)
 
         info = calculate_bar_price(
             weight=p.weight, purity=p.purity,

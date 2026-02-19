@@ -19,7 +19,7 @@ Features:
 import enum
 from sqlalchemy import (
     Column, Integer, String, BigInteger, Boolean, Text,
-    DateTime, ForeignKey, Numeric, Index, text,
+    DateTime, ForeignKey, Numeric, Index, CheckConstraint, text,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -74,7 +74,7 @@ class Coupon(Base):
 
     # Scope
     scope = Column(String, default=CouponScope.GLOBAL, nullable=False)
-    scope_product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
+    scope_product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
     scope_category = Column(String, nullable=True)  # legacy (use coupon_categories M2M)
 
     # Constraints
@@ -97,7 +97,7 @@ class Coupon(Base):
     is_private = Column(Boolean, default=False, nullable=False)  # فقط با کد (نه در لیست عمومی)
 
     # Referral
-    referrer_customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
+    referrer_customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Status
     status = Column(String, default=CouponStatus.ACTIVE, nullable=False)
@@ -113,6 +113,9 @@ class Coupon(Base):
 
     __table_args__ = (
         Index("ix_coupon_code_status", "code", "status"),
+        CheckConstraint("discount_value >= 0", name="ck_coupon_discount_value_nonneg"),
+        CheckConstraint("min_order_amount >= 0", name="ck_coupon_min_order_nonneg"),
+        CheckConstraint("current_uses >= 0", name="ck_coupon_current_uses_nonneg"),
     )
 
     @property

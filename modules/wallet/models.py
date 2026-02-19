@@ -67,7 +67,7 @@ class Account(Base):
     id = Column(Integer, primary_key=True)
     owner_type = Column(String, nullable=False, default=OwnerType.CUSTOMER)
     owner_id = Column(Integer, nullable=False)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=True)  # backward compat
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=True, index=True)  # backward compat
     asset_code = Column(String, nullable=False)
     balance = Column(BigInteger, default=0, nullable=False)
     locked_balance = Column(BigInteger, default=0, nullable=False)
@@ -176,7 +176,7 @@ class WalletTopup(Base):
     __tablename__ = "wallet_topups"
 
     id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
     amount_irr = Column(BigInteger, nullable=False)
     track_id = Column(String, unique=True, nullable=True)
     ref_number = Column(String, nullable=True)
@@ -194,7 +194,7 @@ class WithdrawalRequest(Base):
     __tablename__ = "withdrawal_requests"
 
     id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
     amount_irr = Column(BigInteger, nullable=False)
     shaba_number = Column(String, nullable=False)
     account_holder = Column(String, nullable=True)

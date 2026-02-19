@@ -59,10 +59,10 @@ class Dealer(Base):
     __tablename__ = "dealers"
 
     id = Column(Integer, primary_key=True)
-    mobile = Column(String, unique=True, nullable=False, index=True)
+    mobile = Column(String(11), unique=True, nullable=False, index=True)
     full_name = Column(String, nullable=False)
     national_id = Column(String, nullable=True)
-    tier_id = Column(Integer, ForeignKey("dealer_tiers.id", ondelete="SET NULL"), nullable=True)
+    tier_id = Column(Integer, ForeignKey("dealer_tiers.id", ondelete="SET NULL"), nullable=True, index=True)
     commission_percent = Column(Numeric(5, 2), default=2.0, nullable=False)  # legacy
     is_active = Column(Boolean, default=True, nullable=False)
 
@@ -71,9 +71,9 @@ class Dealer(Base):
     is_postal_hub = Column(Boolean, default=False, nullable=False)    # انبار ارسال پستی
 
     # Address fields
-    province_id = Column(Integer, ForeignKey("geo_provinces.id", ondelete="SET NULL"), nullable=True)
-    city_id = Column(Integer, ForeignKey("geo_cities.id", ondelete="SET NULL"), nullable=True)
-    district_id = Column(Integer, ForeignKey("geo_districts.id", ondelete="SET NULL"), nullable=True)
+    province_id = Column(Integer, ForeignKey("geo_provinces.id", ondelete="SET NULL"), nullable=True, index=True)
+    city_id = Column(Integer, ForeignKey("geo_cities.id", ondelete="SET NULL"), nullable=True, index=True)
+    district_id = Column(Integer, ForeignKey("geo_districts.id", ondelete="SET NULL"), nullable=True, index=True)
     address = Column(Text, nullable=True)
     postal_code = Column(String(10), nullable=True)
     landline_phone = Column(String(15), nullable=True)
@@ -86,6 +86,7 @@ class Dealer(Base):
     otp_expiry = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
     tier = relationship("DealerTier", back_populates="dealers")
@@ -165,10 +166,10 @@ class DealerSale(Base):
     __tablename__ = "dealer_sales"
 
     id = Column(Integer, primary_key=True)
-    dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
-    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="SET NULL"), nullable=True)
+    dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False, index=True)
+    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="SET NULL"), nullable=True, index=True)
     customer_name = Column(String, nullable=True)
-    customer_mobile = Column(String, nullable=True)
+    customer_mobile = Column(String(15), nullable=True)
     customer_national_id = Column(String, nullable=True)
     sale_price = Column(BigInteger, nullable=False)           # ریال
     commission_amount = Column(BigInteger, default=0, nullable=False)  # ریال (legacy)
@@ -189,10 +190,10 @@ class BuybackRequest(Base):
     __tablename__ = "buyback_requests"
 
     id = Column(Integer, primary_key=True)
-    dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
-    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="SET NULL"), nullable=True)
+    dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False, index=True)
+    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="SET NULL"), nullable=True, index=True)
     customer_name = Column(String, nullable=True)
-    customer_mobile = Column(String, nullable=True)
+    customer_mobile = Column(String(15), nullable=True)
     buyback_price = Column(BigInteger, nullable=False)        # ریال - مبلغ پیشنهادی بازخرید
     status = Column(String, default=BuybackStatus.PENDING, nullable=False)
     admin_note = Column(Text, nullable=True)

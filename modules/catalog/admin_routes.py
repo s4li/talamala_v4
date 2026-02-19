@@ -73,6 +73,7 @@ async def add_product(
         "wage": wage,
         "is_active": is_active,
     }, files)
+    db.commit()
     return RedirectResponse("/admin/products", status_code=303)
 
 
@@ -115,6 +116,7 @@ async def update_product(
         "wage": wage,
         "is_active": is_active,
     }, new_files)
+    db.commit()
     return RedirectResponse("/admin/products", status_code=303)
 
 
@@ -123,6 +125,7 @@ async def delete_product_image(request: Request, img_id: int, csrf_token: Option
                                 db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     pid = images.delete_image(db, ProductImage, img_id)
+    db.commit()
     return RedirectResponse(f"/admin/products/edit/{pid}" if pid else "/admin/products", status_code=303)
 
 
@@ -131,6 +134,7 @@ async def set_product_default(request: Request, img_id: int, csrf_token: Optiona
                                db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     pid = images.set_default(db, ProductImage, img_id, "product_id")
+    db.commit()
     return RedirectResponse(f"/admin/products/edit/{pid}" if pid else "/admin/products", status_code=303)
 
 
@@ -152,6 +156,7 @@ async def add_design(request: Request, name: str = Form(...), files: List[Upload
                       csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     design_service.create(db, name, files)
+    db.commit()
     return RedirectResponse("/admin/designs", status_code=303)
 
 
@@ -160,6 +165,7 @@ async def update_design(request: Request, item_id: int, name: str = Form(...), f
                           csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     design_service.update(db, item_id, name, files)
+    db.commit()
     return RedirectResponse("/admin/designs", status_code=303)
 
 
@@ -168,6 +174,7 @@ async def delete_design(request: Request, item_id: int, csrf_token: Optional[str
                           db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     design_service.delete(db, item_id)
+    db.commit()
     return RedirectResponse("/admin/designs", status_code=303)
 
 
@@ -176,6 +183,7 @@ async def delete_design_image(request: Request, img_id: int, csrf_token: Optiona
                                 db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     images.delete_image(db, CardDesignImage, img_id)
+    db.commit()
     return RedirectResponse("/admin/designs", status_code=303)
 
 
@@ -184,6 +192,7 @@ async def set_default_design_image(request: Request, img_id: int, csrf_token: Op
                                      db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     images.set_default(db, CardDesignImage, img_id, "design_id")
+    db.commit()
     return RedirectResponse("/admin/designs", status_code=303)
 
 
@@ -207,6 +216,7 @@ async def add_package(request: Request, name: str = Form(...), price: str = Form
     csrf_check(request, csrf_token)
     price_rial = int(price) * 10 if price.strip().isdigit() else 0
     package_service.create(db, name, price=price_rial, is_active=(is_active == "on"), files=files)
+    db.commit()
     return RedirectResponse("/admin/packages", status_code=303)
 
 
@@ -217,6 +227,7 @@ async def update_package(request: Request, item_id: int, name: str = Form(...), 
     csrf_check(request, csrf_token)
     price_rial = int(price) * 10 if price.strip().isdigit() else 0
     package_service.update(db, item_id, name, price=price_rial, is_active=(is_active == "on"), files=files)
+    db.commit()
     return RedirectResponse("/admin/packages", status_code=303)
 
 
@@ -225,6 +236,7 @@ async def delete_package(request: Request, item_id: int, csrf_token: Optional[st
                            db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     package_service.delete(db, item_id)
+    db.commit()
     return RedirectResponse("/admin/packages", status_code=303)
 
 
@@ -233,6 +245,7 @@ async def delete_package_image(request: Request, img_id: int, csrf_token: Option
                                  db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     images.delete_image(db, PackageTypeImage, img_id)
+    db.commit()
     return RedirectResponse("/admin/packages", status_code=303)
 
 
@@ -241,6 +254,7 @@ async def set_default_package_image(request: Request, img_id: int, csrf_token: O
                                       db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     csrf_check(request, csrf_token)
     images.set_default(db, PackageTypeImage, img_id, "package_id")
+    db.commit()
     return RedirectResponse("/admin/packages", status_code=303)
 
 
@@ -270,6 +284,7 @@ async def add_batch(
             "batch_number": batch_number, "melt_number": melt_number,
             "operator": operator, "purity": purity,
         }, files)
+        db.commit()
     except IntegrityError:
         db.rollback()
     return RedirectResponse("/admin/batches", status_code=303)
@@ -299,6 +314,7 @@ async def update_batch(
         "batch_number": batch_number, "melt_number": melt_number,
         "operator": operator, "purity": purity,
     }, new_files)
+    db.commit()
     return RedirectResponse(f"/admin/batches/edit/{batch_id}", status_code=303)
 
 
@@ -307,6 +323,7 @@ async def delete_batch(request: Request, item_id: int, csrf_token: Optional[str]
                          db: Session = Depends(get_db), user=Depends(require_permission("batches"))):
     csrf_check(request, csrf_token)
     batch_service.delete(db, item_id)
+    db.commit()
     return RedirectResponse("/admin/batches", status_code=303)
 
 
@@ -315,6 +332,7 @@ async def delete_batch_image(request: Request, img_id: int, csrf_token: Optional
                                db: Session = Depends(get_db), user=Depends(require_permission("batches"))):
     csrf_check(request, csrf_token)
     bid = images.delete_image(db, BatchImage, img_id)
+    db.commit()
     return RedirectResponse(f"/admin/batches/edit/{bid}" if bid else "/admin/batches", status_code=303)
 
 
@@ -323,6 +341,7 @@ async def set_batch_default_image(request: Request, img_id: int, csrf_token: Opt
                                     db: Session = Depends(get_db), user=Depends(require_permission("batches"))):
     csrf_check(request, csrf_token)
     bid = images.set_default(db, BatchImage, img_id, "batch_id")
+    db.commit()
     return RedirectResponse(f"/admin/batches/edit/{bid}" if bid else "/admin/batches", status_code=303)
 
 

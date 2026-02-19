@@ -78,8 +78,8 @@ class PaymentService:
                     description=f"بازگشت وجه سفارش #{order_id} (خطا)",
                     idempotency_key=f"refund:finalize_fail:{order_id}",
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error(f"Failed to refund wallet after finalize failure for order #{order_id}: {e}")
             return {"success": False, "message": "خطا در نهایی‌سازی سفارش"}
 
         logger.info(f"Order #{order_id} paid from wallet by customer #{customer_id}")

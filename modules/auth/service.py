@@ -89,7 +89,7 @@ class AuthService:
                     customer.economic_code = profile_data.get("economic_code") or None
 
             db.add(customer)
-            db.commit()
+            db.flush()
             db.refresh(customer)
             return customer, "customer"
         except IntegrityError:
@@ -131,7 +131,7 @@ class AuthService:
         # Store hashed OTP
         user.otp_code = hash_otp(mobile, otp_raw)
         user.otp_expiry = now_utc() + timedelta(minutes=OTP_EXPIRE_MINUTES)
-        db.commit()
+        db.flush()
 
         # Display name for SMS
         if user_type == "staff":
@@ -167,7 +167,7 @@ class AuthService:
             if system_user.otp_code == hash_otp(mobile, code):
                 system_user.otp_code = None
                 system_user.otp_expiry = None
-                db.commit()
+                db.flush()
                 token = create_staff_token({"sub": system_user.mobile, "type": "staff"})
                 return token, "auth_token", "/admin/dashboard"
 
@@ -177,7 +177,7 @@ class AuthService:
             if dealer.otp_code == hash_otp(mobile, code):
                 dealer.otp_code = None
                 dealer.otp_expiry = None
-                db.commit()
+                db.flush()
                 token = create_dealer_token({"sub": dealer.mobile, "type": "dealer"})
                 return token, "dealer_token", "/dealer/dashboard"
 
@@ -187,7 +187,7 @@ class AuthService:
             if customer.otp_code == hash_otp(mobile, code):
                 customer.otp_code = None
                 customer.otp_expiry = None
-                db.commit()
+                db.flush()
                 token = create_customer_token({"sub": customer.mobile, "type": "customer"})
                 return token, "customer_token", "/"
 
