@@ -14,6 +14,8 @@ from common.security import new_csrf_token
 from modules.auth.deps import get_current_active_user
 from modules.shop.service import shop_service
 from modules.cart.service import cart_service
+from modules.pricing.service import is_price_fresh
+from modules.pricing.models import GOLD_18K
 
 router = APIRouter(tags=["shop"])
 
@@ -63,6 +65,7 @@ async def home_page(
         "products": products,
         "user": user,
         "gold_price": gold_price_rial,
+        "price_stale": not is_price_fresh(db, GOLD_18K),
         "cart_map": cart_map,
         "cart_count": cart_count,
         "current_sort": sort,
@@ -124,6 +127,7 @@ async def product_detail(
         "p": product,
         "user": user,
         "gold_price": gold_price,
+        "price_stale": not is_price_fresh(db, GOLD_18K),
         "invoice": invoice,
         "tax_percent": tax_percent,
         "inventory": inventory,

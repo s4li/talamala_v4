@@ -17,9 +17,9 @@ from modules.auth.deps import require_dealer
 from modules.dealer.service import dealer_service
 from modules.wallet.service import wallet_service
 from modules.wallet.models import AssetCode, OwnerType
-from modules.admin.models import SystemSetting
 from modules.pricing.calculator import calculate_bar_price
-from modules.pricing.service import get_end_customer_wage, get_dealer_margin
+from modules.pricing.service import get_end_customer_wage, get_dealer_margin, get_price_value, is_price_fresh
+from modules.pricing.models import GOLD_18K
 from modules.inventory.models import Bar, BarStatus
 
 router = APIRouter(prefix="/dealer", tags=["dealer"])
@@ -64,10 +64,9 @@ def _calc_bar_prices(db: Session, bars, dealer):
     """Calculate system price + dealer margin for each bar."""
     if not bars:
         return {}
-    gold_setting = db.query(SystemSetting).filter(SystemSetting.key == "gold_price").first()
-    tax_setting = db.query(SystemSetting).filter(SystemSetting.key == "tax_percent").first()
-    gold_price = int(gold_setting.value) if gold_setting else 0
-    tax_percent = float(tax_setting.value) if tax_setting else 10.0
+    from common.templating import get_setting_from_db
+    gold_price = get_price_value(db, GOLD_18K)
+    tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
 
     prices = {}
     for bar in bars:
@@ -331,8 +330,8 @@ async def buyback_lookup(
         return JSONResponse({"found": False, "error": "محصول مرتبط یافت نشد"})
 
     # Calculate raw gold value (buyback = gold value without wage/profit/tax)
-    gold_setting = db.query(SystemSetting).filter(SystemSetting.key == "gold_price").first()
-    gold_price = int(gold_setting.value) if gold_setting else 0
+    from common.templating import get_setting_from_db
+    gold_price = get_price_value(db, GOLD_18K)
 
     info = calculate_bar_price(
         weight=product.weight, purity=product.purity,
@@ -342,8 +341,7 @@ async def buyback_lookup(
     raw_gold_toman = info.get("total", 0) // 10
 
     # Also calc full retail price for reference
-    tax_setting = db.query(SystemSetting).filter(SystemSetting.key == "tax_percent").first()
-    tax_percent = float(tax_setting.value) if tax_setting else 10.0
+    tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
     ec_wage = get_end_customer_wage(db, product)
     full_info = calculate_bar_price(
         weight=product.weight, purity=product.purity,

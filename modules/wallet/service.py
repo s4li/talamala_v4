@@ -367,10 +367,11 @@ class WalletService:
     # ------------------------------------------
 
     def _get_gold_price_per_mg(self, db: Session) -> float:
-        """Gold price per milligram (rial). From SystemSetting 'gold_price' / 1000."""
-        from modules.admin.models import SystemSetting
-        s = db.query(SystemSetting).filter(SystemSetting.key == "gold_price").first()
-        gp = int(s.value) if s else 0
+        """Gold price per milligram (rial). From Asset table / 1000."""
+        from modules.pricing.service import get_price_value, require_fresh_price
+        from modules.pricing.models import GOLD_18K
+        require_fresh_price(db, GOLD_18K)
+        gp = get_price_value(db, GOLD_18K)
         if gp <= 0:
             raise ValueError("قیمت طلا در تنظیمات سیستم ثبت نشده")
         return gp / 1000.0

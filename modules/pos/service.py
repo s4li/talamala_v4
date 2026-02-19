@@ -16,8 +16,9 @@ from modules.catalog.models import (
 )
 from modules.inventory.models import Bar, BarStatus, OwnershipHistory
 from modules.dealer.models import Dealer, DealerSale
-from modules.admin.models import SystemSetting
 from modules.pricing.calculator import calculate_bar_price
+from modules.pricing.service import get_price_value, require_fresh_price
+from modules.pricing.models import GOLD_18K
 from modules.pricing.service import get_end_customer_wage
 from common.helpers import now_utc, generate_unique_claim_code
 
@@ -161,6 +162,12 @@ class PosService:
 
     def reserve_bar(self, db: Session, dealer_id: int, product_id: int) -> Dict[str, Any]:
         """Reserve an available bar for POS payment (2-minute hold)."""
+        # Staleness guard
+        try:
+            require_fresh_price(db, GOLD_18K)
+        except ValueError as e:
+            return {"success": False, "message": str(e)}
+
         bar = (
             db.query(Bar)
             .filter(
@@ -217,6 +224,12 @@ class PosService:
         customer_national_id: str = "",
     ) -> Dict[str, Any]:
         """Confirm POS sale after successful card payment."""
+        # Staleness guard
+        try:
+            require_fresh_price(db, GOLD_18K)
+        except ValueError as e:
+            return {"success": False, "message": str(e)}
+
         bar = db.query(Bar).filter(Bar.id == bar_id).with_for_update().first()
         if not bar:
             return {"success": False, "message": "شمش یافت نشد"}
@@ -403,10 +416,9 @@ class PosService:
     # ------------------------------------------
 
     def _get_price_settings(self, db: Session):
-        gold_setting = db.query(SystemSetting).filter(SystemSetting.key == "gold_price").first()
-        tax_setting = db.query(SystemSetting).filter(SystemSetting.key == "tax_percent").first()
-        gold_price = int(gold_setting.value) if gold_setting else 0
-        tax_percent = float(tax_setting.value) if tax_setting else 10.0
+        from common.templating import get_setting_from_db
+        gold_price = get_price_value(db, GOLD_18K)
+        tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
         return gold_price, tax_percent
 
 

@@ -104,6 +104,11 @@ class OrderService:
         if not gold_price_rial:
             raise ValueError("قیمت طلا تنظیم نشده است")
 
+        # Staleness guard: block checkout if gold price is expired
+        from modules.pricing.service import require_fresh_price
+        from modules.pricing.models import GOLD_18K
+        require_fresh_price(db, GOLD_18K)
+
         delivery_data = delivery_data or {}
         delivery_method = delivery_data.get("delivery_method")
 
@@ -526,8 +531,9 @@ class OrderService:
                     bar.reserved_until = None
 
     def _gold_price(self, db: Session) -> int:
-        val = get_setting_from_db(db, "gold_price", "0")
-        return int(val) if val.isdigit() else 0
+        from modules.pricing.service import get_price_value
+        from modules.pricing.models import GOLD_18K
+        return get_price_value(db, GOLD_18K)
 
     def _tax_percent(self, db: Session) -> str:
         return get_setting_from_db(db, "tax_percent", "9")

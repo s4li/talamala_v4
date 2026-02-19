@@ -84,9 +84,11 @@ class DashboardService:
             .count()
         )
 
-        # Gold price
-        gold_setting = db.query(SystemSetting).filter(SystemSetting.key == "gold_price").first()
-        gold_price = int(gold_setting.value) if gold_setting else 0
+        # Gold price (from Asset table — display only, no staleness block)
+        from modules.pricing.service import get_price_value, is_price_fresh
+        from modules.pricing.models import GOLD_18K
+        gold_price = get_price_value(db, GOLD_18K)
+        gold_price_fresh = is_price_fresh(db, GOLD_18K)
 
         return {
             # Orders
@@ -117,6 +119,7 @@ class DashboardService:
             "pending_buybacks": pending_buybacks,
             # Gold
             "gold_price": gold_price,
+            "gold_price_fresh": gold_price_fresh,
         }
 
     def get_recent_orders(self, db: Session, limit: int = 10) -> List[Order]:

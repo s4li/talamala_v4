@@ -176,8 +176,9 @@ class CartService:
         ).filter(CartItem.cart_id == cart_id).scalar() or 0
 
     def _gold_price(self, db: Session) -> int:
-        val = get_setting_from_db(db, "gold_price", "0")
-        return int(val) if val.isdigit() else 0
+        from modules.pricing.service import get_price_value
+        from modules.pricing.models import GOLD_18K
+        return get_price_value(db, GOLD_18K)
 
     def _tax_percent(self, db: Session) -> str:
         return get_setting_from_db(db, "tax_percent", "9")

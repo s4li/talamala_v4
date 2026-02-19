@@ -84,7 +84,7 @@ talamala_v4/
 │   ├── admin/
 │   │   ├── base_admin.html      # Admin sidebar layout
 │   │   ├── dashboard.html
-│   │   ├── settings.html        # Gold price, tax, shipping config
+│   │   ├── settings.html        # Asset prices (gold/silver) + tax, shipping config
 │   │   ├── catalog/             # products, categories, designs, packages, batches
 │   │   ├── inventory/           # bars, edit_bar
 │   │   ├── orders/list.html     # Order management + delivery status
@@ -185,6 +185,11 @@ talamala_v4/
 - **TicketAttachment**: id, message_id (FK→ticket_messages, CASCADE), file_path, created_at
   - Relationship: message
 
+### pricing/models.py
+- **Asset**: id, asset_code (unique, e.g. "gold_18k", "silver"), asset_label, price_per_gram (BigInteger, rial), stale_after_minutes (default 15), auto_update (bool, default True), update_interval_minutes (default 5), source_url, updated_at, updated_by
+  - Properties: `is_fresh` (bool), `minutes_since_update` (float)
+  - Constants: `GOLD_18K = "gold_18k"`, `SILVER = "silver"`
+
 ---
 
 ## 4. اصول و قراردادهای کدنویسی
@@ -232,8 +237,13 @@ return response
 
 ### Pricing
 `modules/pricing/calculator.py` → `calculate_bar_price()`
-- Gold price from SystemSetting key `gold_price_per_gram_18k` (rial)
+- Gold price from `Asset` table (asset_code="gold_18k"), NOT SystemSetting
 - Tax from SystemSetting key `tax_percent`
+- `modules/pricing/models.py` → `Asset` model (per-asset price with staleness guard)
+- `modules/pricing/service.py` → `get_price_value()`, `require_fresh_price()`, `is_price_fresh()`
+- `modules/pricing/feed_service.py` → `fetch_gold_price_goldis()` (auto-fetch from goldis.ir)
+- Background scheduler fetches gold price every N minutes (configurable per asset)
+- Staleness guard: blocks checkout/POS/wallet if price expired (configurable per asset)
 
 ### Currency
 - **تمام مبالغ در دیتابیس به ریال ذخیره می‌شوند**

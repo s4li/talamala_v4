@@ -37,6 +37,7 @@ from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment  # noqa: F401
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike  # noqa: F401
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment  # noqa: F401
+from modules.pricing.models import Asset  # noqa: F401
 
 # Alembic Config
 config = context.config

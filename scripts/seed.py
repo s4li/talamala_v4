@@ -55,6 +55,7 @@ from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment, TicketStatus, TicketPriority, TicketCategory, SenderType
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment
+from modules.pricing.models import Asset, GOLD_18K, SILVER
 
 
 def generate_serial() -> str:
@@ -159,9 +160,6 @@ def seed():
             "site_logo":            ("", "لوگوی سایت"),
             "support_phone":        ("02112345678", "شماره پشتیبانی"),
             "support_telegram":     ("@talamala", "تلگرام پشتیبانی"),
-            "gold_price":           ("52000000", "قیمت طلای ۱۸ عیار هر گرم (ریال)"),
-            "silver_price":         ("550000", "قیمت نقره خالص هر گرم (ریال)"),
-            "gold_price_source":    ("tgju", "منبع قیمت طلا"),
             "tax_percent":          ("10", "درصد مالیات بر ارزش افزوده"),
             "min_order_amount":     ("10000000", "حداقل مبلغ سفارش (ریال)"),
             "reservation_minutes":  ("15", "مدت زمان رزرو (دقیقه)"),
@@ -178,6 +176,35 @@ def seed():
                 print(f"  + {key} = {value}")
             else:
                 print(f"  = exists: {key}")
+
+        # Asset prices (gold + silver)
+        asset_seed = [
+            {
+                "asset_code": GOLD_18K,
+                "asset_label": "طلای ۱۸ عیار",
+                "price_per_gram": 52_000_000,
+                "stale_after_minutes": 15,
+                "auto_update": True,
+                "update_interval_minutes": 5,
+                "source_url": "https://goldis.ir/price/api/v1/price/assets/gold18k/final-prices",
+            },
+            {
+                "asset_code": SILVER,
+                "asset_label": "نقره خالص",
+                "price_per_gram": 550_000,
+                "stale_after_minutes": 30,
+                "auto_update": False,
+                "update_interval_minutes": 30,
+                "source_url": None,
+            },
+        ]
+        for data in asset_seed:
+            existing = db.query(Asset).filter(Asset.asset_code == data["asset_code"]).first()
+            if not existing:
+                db.add(Asset(**data))
+                print(f"  + Asset: {data['asset_code']} = {data['price_per_gram']:,}")
+            else:
+                print(f"  = Asset exists: {data['asset_code']}")
 
         db.flush()
 

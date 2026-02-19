@@ -156,6 +156,14 @@ class DealerService:
         discount_wage_percent: float = 0.0,
     ) -> Dict[str, Any]:
         """Process a POS sale: dealer sells a bar to a walk-in customer."""
+        # Staleness guard: block sale if gold price is expired
+        from modules.pricing.service import require_fresh_price
+        from modules.pricing.models import GOLD_18K
+        try:
+            require_fresh_price(db, GOLD_18K)
+        except ValueError as e:
+            return {"success": False, "message": str(e)}
+
         dealer = self.get_dealer(db, dealer_id)
         if not dealer or not dealer.is_active:
             return {"success": False, "message": "نماینده غیرفعال یا نامعتبر"}
@@ -187,11 +195,10 @@ class DealerService:
         # Server-side price verification
         if product and discount_wage_percent > 0:
             from modules.pricing.calculator import calculate_bar_price
-            from modules.admin.models import SystemSetting
-            gold_setting = db.query(SystemSetting).filter(SystemSetting.key == "gold_price").first()
-            tax_setting = db.query(SystemSetting).filter(SystemSetting.key == "tax_percent").first()
-            gold_price = int(gold_setting.value) if gold_setting else 0
-            tax_pct = float(tax_setting.value) if tax_setting else 10.0
+            from modules.pricing.service import get_price_value
+            from common.templating import get_setting_from_db
+            gold_price = get_price_value(db, GOLD_18K)
+            tax_pct = float(get_setting_from_db(db, "tax_percent", "10"))
             effective_wage = ec_wage_pct - discount_wage_percent
             expected = calculate_bar_price(
                 weight=product.weight, purity=product.purity,
@@ -427,18 +434,17 @@ class DealerService:
     def get_products_for_dealer(self, db: Session, dealer_id: int) -> Dict[str, Any]:
         """Get products with pricing + available bar serials for a dealer's location (JSON-ready)."""
         from modules.catalog.models import Product, ProductImage
-        from modules.admin.models import SystemSetting
         from modules.pricing.calculator import calculate_bar_price
 
         dealer = self.get_dealer(db, dealer_id)
         if not dealer:
             return {"products": [], "gold_price_18k": 0, "tax_percent": "0"}
 
-        # Get gold price + tax from system settings
-        gold_setting = db.query(SystemSetting).filter(SystemSetting.key == "gold_price").first()
-        tax_setting = db.query(SystemSetting).filter(SystemSetting.key == "tax_percent").first()
-        gold_price = int(gold_setting.value) if gold_setting else 0
-        tax_percent = tax_setting.value if tax_setting else "10"
+        # Get gold price + tax
+        from modules.pricing.service import get_price_value
+        from common.templating import get_setting_from_db
+        gold_price = get_price_value(db, GOLD_18K)
+        tax_percent = get_setting_from_db(db, "tax_percent", "10")
 
         # Get available bars at dealer, grouped by product
         bars = (

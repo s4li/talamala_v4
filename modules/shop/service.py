@@ -13,20 +13,24 @@ from sqlalchemy import func, desc, asc
 from modules.catalog.models import Product, ProductCategoryLink
 from modules.inventory.models import Bar, BarStatus
 from modules.pricing.calculator import calculate_bar_price
-from modules.pricing.service import get_end_customer_wage
+from modules.pricing.service import get_end_customer_wage, get_price_value, is_price_fresh
+from modules.pricing.models import GOLD_18K
 from common.templating import get_setting_from_db
 
 
 class ShopService:
 
     def get_gold_price(self, db: Session) -> int:
-        """Get current gold price (18K per gram in Rials) from system settings."""
-        val = get_setting_from_db(db, "gold_price", "0")
-        return int(val) if val.isdigit() else 0
+        """Get current gold price (18K per gram in Rials) from Asset table."""
+        return get_price_value(db, GOLD_18K)
 
     def get_tax_percent(self, db: Session) -> str:
         """Get current tax percentage from system settings."""
         return get_setting_from_db(db, "tax_percent", "9")
+
+    def is_gold_price_fresh(self, db: Session) -> bool:
+        """Check if gold price is within staleness threshold."""
+        return is_price_fresh(db, GOLD_18K)
 
     def list_products_with_pricing(
         self,

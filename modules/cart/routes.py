@@ -17,6 +17,8 @@ from common.security import csrf_check, new_csrf_token
 from modules.auth.deps import require_customer, get_current_active_user
 from modules.cart.service import cart_service
 from modules.order.service import order_service
+from modules.pricing.service import is_price_fresh
+from modules.pricing.models import GOLD_18K
 
 router = APIRouter(tags=["cart"])
 
@@ -47,6 +49,7 @@ async def view_cart(
         "total_price": total_price,
         "cart_count": sum(it["quantity"] for it in items),
         "gold_price": cart_service._gold_price(db),
+        "price_stale": not is_price_fresh(db, GOLD_18K),
         "packages": packages,
         "csrf_token": csrf,
         "msg": msg,
@@ -190,6 +193,7 @@ async def checkout_page(
         "postal_stock": postal_stock,
         "customer_addresses": customer_addresses,
         "gold_price": cart_service._gold_price(db),
+        "price_stale": not is_price_fresh(db, GOLD_18K),
         "csrf_token": csrf,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")

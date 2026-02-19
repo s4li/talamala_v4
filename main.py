@@ -109,6 +109,7 @@ from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment  # noqa: F401
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike  # noqa: F401
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment  # noqa: F401
+from modules.pricing.models import Asset  # noqa: F401
 
 # ==========================================
 # Import routers
@@ -178,6 +179,40 @@ def _cleanup_old_request_logs():
         db.close()
 
 
+def _auto_update_prices():
+    """Background job: fetch prices for assets with auto_update=True, respecting per-asset intervals."""
+    db = SessionLocal()
+    try:
+        from common.helpers import now_utc
+        from modules.pricing.models import Asset as AssetModel
+        from modules.pricing.feed_service import fetch_gold_price_goldis
+
+        assets = db.query(AssetModel).filter(AssetModel.auto_update == True).all()
+        for asset in assets:
+            # Check if enough time has passed since last update
+            if asset.updated_at:
+                elapsed_minutes = (now_utc() - asset.updated_at).total_seconds() / 60
+                if elapsed_minutes < asset.update_interval_minutes:
+                    continue  # not time yet for this asset
+
+            try:
+                if asset.asset_code == "gold_18k":
+                    new_price = fetch_gold_price_goldis()
+                    asset.price_per_gram = new_price
+                    asset.updated_at = now_utc()
+                    asset.updated_by = "system:goldis"
+                    scheduler_logger.info(f"Updated {asset.asset_code}: {new_price:,} rial")
+            except Exception as e:
+                scheduler_logger.warning(f"Failed to update {asset.asset_code}: {e}")
+
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        scheduler_logger.error(f"Price update error: {e}")
+    finally:
+        db.close()
+
+
 scheduler = BackgroundScheduler()
 
 
@@ -185,8 +220,9 @@ scheduler = BackgroundScheduler()
 async def lifespan(app):
     scheduler.add_job(_cleanup_expired_orders, 'interval', seconds=60, id='expired_orders')
     scheduler.add_job(_cleanup_old_request_logs, 'interval', hours=6, id='log_cleanup')
+    scheduler.add_job(_auto_update_prices, 'interval', seconds=60, id='price_update')
     scheduler.start()
-    scheduler_logger.info("Background scheduler started (orders: 60s, logs: 6h)")
+    scheduler_logger.info("Background scheduler started (orders: 60s, logs: 6h, prices: 60s)")
     yield
     scheduler.shutdown()
     scheduler_logger.info("Background scheduler stopped")

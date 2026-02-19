@@ -15,28 +15,120 @@
     <form method="POST" action="/admin/settings/update">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-currency-exchange me-1"></i> قیمت‌گذاری</h6>
+        <!-- ===== قیمت دارایی‌ها ===== -->
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-currency-exchange me-1"></i> قیمت دارایی‌ها</h6>
+
+        {% set gold = assets.get('gold_18k') %}
+        {% set silver = assets.get('silver') %}
+
+        <!-- طلای ۱۸ عیار -->
+        <div class="card-tm no-hover mb-3" style="background:var(--tm-info-900);border:1px solid var(--tm-border);">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="fw-bold"><i class="bi bi-gem me-1"></i> {{ gold.asset_label if gold else 'طلای ۱۸ عیار' }}</span>
+                {% if gold %}
+                    {% if gold.is_fresh %}
+                    <span class="badge-tm badge-tm-success"><i class="bi bi-check-circle me-1"></i>به‌روز</span>
+                    {% else %}
+                    <span class="badge-tm badge-tm-danger"><i class="bi bi-exclamation-triangle me-1"></i>منقضی</span>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label-tm">قیمت (ریال / هر گرم)</label>
+                    <input type="text" name="gold_price" class="form-control form-control-tm form-control-lg"
+                           value="{{ gold.price_per_gram if gold else '0' }}" dir="ltr" placeholder="مثال: 52000000">
+                    <small class="text-muted">
+                        معادل تومانی: <strong id="tomanDisplay">—</strong>
+                    </small>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label-tm">انقضای قیمت (دقیقه)</label>
+                    <input type="text" name="gold_stale_minutes" class="form-control form-control-tm"
+                           value="{{ gold.stale_after_minutes if gold else '15' }}" dir="ltr">
+                    <small class="text-muted">بعد از این مدت، خرید/فروش بلاک می‌شود</small>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label-tm">بازه آپدیت خودکار (دقیقه)</label>
+                    <input type="text" name="gold_update_interval" class="form-control form-control-tm"
+                           value="{{ gold.update_interval_minutes if gold else '5' }}" dir="ltr">
+                    <small class="text-muted">هر چند دقیقه از گلدیس بخواند</small>
+                </div>
+            </div>
+            <div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="gold_auto_update" id="goldAutoUpdate"
+                               {{ 'checked' if gold and gold.auto_update else '' }}>
+                        <label class="form-check-label" for="goldAutoUpdate">آپدیت خودکار از گلدیس</label>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-tm-outline" id="fetchGoldBtn" onclick="fetchPrice('gold_18k')">
+                        <i class="bi bi-arrow-clockwise me-1"></i>بروزرسانی دستی
+                    </button>
+                </div>
+                <small class="text-muted" id="goldLastUpdate">
+                    {% if gold and gold.updated_at %}
+                    آخرین بروزرسانی: {{ gold.updated_at | jdate }} — {{ gold.updated_at | time_ago }}
+                    {% if gold.updated_by %} ({{ gold.updated_by }}){% endif %}
+                    {% else %}
+                    هنوز بروزرسانی نشده
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+
+        <!-- نقره -->
+        <div class="card-tm no-hover mb-4" style="background:var(--tm-info-900);border:1px solid var(--tm-border);">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="fw-bold"><i class="bi bi-gem me-1"></i> {{ silver.asset_label if silver else 'نقره خالص' }}</span>
+                {% if silver %}
+                    {% if silver.is_fresh %}
+                    <span class="badge-tm badge-tm-success"><i class="bi bi-check-circle me-1"></i>به‌روز</span>
+                    {% else %}
+                    <span class="badge-tm badge-tm-danger"><i class="bi bi-exclamation-triangle me-1"></i>منقضی</span>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label-tm">قیمت (ریال / هر گرم)</label>
+                    <input type="text" name="silver_price" class="form-control form-control-tm form-control-lg"
+                           value="{{ silver.price_per_gram if silver else '0' }}" dir="ltr" placeholder="مثال: 550000">
+                    <small class="text-muted">
+                        معادل تومانی: <strong id="silverTomanDisplay">—</strong>
+                    </small>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label-tm">انقضای قیمت (دقیقه)</label>
+                    <input type="text" name="silver_stale_minutes" class="form-control form-control-tm"
+                           value="{{ silver.stale_after_minutes if silver else '30' }}" dir="ltr">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label-tm">بازه آپدیت خودکار (دقیقه)</label>
+                    <input type="text" name="silver_update_interval" class="form-control form-control-tm"
+                           value="{{ silver.update_interval_minutes if silver else '30' }}" dir="ltr">
+                </div>
+            </div>
+            <div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="silver_auto_update" id="silverAutoUpdate"
+                           {{ 'checked' if silver and silver.auto_update else '' }}>
+                    <label class="form-check-label" for="silverAutoUpdate">آپدیت خودکار</label>
+                </div>
+                <small class="text-muted">
+                    {% if silver and silver.updated_at %}
+                    آخرین بروزرسانی: {{ silver.updated_at | jdate }} — {{ silver.updated_at | time_ago }}
+                    {% if silver.updated_by %} ({{ silver.updated_by }}){% endif %}
+                    {% else %}
+                    هنوز بروزرسانی نشده
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+
+        <!-- ===== مالیات ===== -->
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-percent me-1"></i> مالیات</h6>
         <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <label class="form-label-tm">قیمت طلای ۱۸ عیار (ریال / هر گرم)</label>
-                <input type="text" name="gold_price" class="form-control form-control-tm form-control-lg"
-                       value="{{ settings.get('gold_price', {}).value if settings.get('gold_price') else '0' }}"
-                       dir="ltr" placeholder="مثال: 52000000">
-                <small class="text-muted">
-                    معادل تومانی:
-                    <strong id="tomanDisplay">—</strong>
-                </small>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label-tm">قیمت نقره خالص (ریال / هر گرم)</label>
-                <input type="text" name="silver_price" class="form-control form-control-tm form-control-lg"
-                       value="{{ settings.get('silver_price', {}).value if settings.get('silver_price') else '0' }}"
-                       dir="ltr" placeholder="مثال: 550000">
-                <small class="text-muted">
-                    معادل تومانی:
-                    <strong id="silverTomanDisplay">—</strong>
-                </small>
-            </div>
             <div class="col-md-4">
                 <label class="form-label-tm">درصد مالیات بر ارزش افزوده</label>
                 <div class="input-group">
@@ -78,8 +170,7 @@
                        value="{{ settings.get('shipping_cost', {}).value if settings.get('shipping_cost') else '500000' }}"
                        placeholder="500000">
                 <small class="text-muted">
-                    معادل:
-                    <strong id="shippingToman">—</strong> تومان
+                    معادل: <strong id="shippingToman">—</strong> تومان
                 </small>
             </div>
             <div class="col-md-4">
@@ -112,22 +203,19 @@
 
 {% block page_js %}
 <script>
+// Rial → Toman live conversion
 document.querySelector('input[name="gold_price"]').addEventListener('input', function() {
     const val = parseInt(this.value) || 0;
-    const toman = Math.floor(val / 10).toLocaleString('fa-IR');
-    document.getElementById('tomanDisplay').textContent = toman + ' تومان';
+    document.getElementById('tomanDisplay').textContent = Math.floor(val / 10).toLocaleString('fa-IR') + ' تومان';
 });
-// Init
 document.querySelector('input[name="gold_price"]').dispatchEvent(new Event('input'));
 
 document.querySelector('input[name="silver_price"]').addEventListener('input', function() {
     const val = parseInt(this.value) || 0;
-    const toman = Math.floor(val / 10).toLocaleString('fa-IR');
-    document.getElementById('silverTomanDisplay').textContent = toman + ' تومان';
+    document.getElementById('silverTomanDisplay').textContent = Math.floor(val / 10).toLocaleString('fa-IR') + ' تومان';
 });
 document.querySelector('input[name="silver_price"]').dispatchEvent(new Event('input'));
 
-// Shipping toman
 function toToman(el, displayId) {
     el.addEventListener('input', function() {
         const val = parseInt(this.value) || 0;
@@ -137,5 +225,41 @@ function toToman(el, displayId) {
 }
 toToman(document.querySelector('input[name="shipping_cost"]'), 'shippingToman');
 toToman(document.querySelector('input[name="insurance_cap"]'), 'capToman');
+
+// Manual price fetch (AJAX)
+function fetchPrice(assetCode) {
+    const btn = document.getElementById('fetchGoldBtn');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>در حال دریافت...';
+
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    const formData = new FormData();
+    formData.append('asset_code', assetCode);
+    formData.append('csrf_token', csrfToken);
+
+    fetch('/admin/settings/fetch-price', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelector('input[name="gold_price"]').value = data.new_price;
+                document.querySelector('input[name="gold_price"]').dispatchEvent(new Event('input'));
+                document.getElementById('goldLastUpdate').textContent = 'بروزرسانی شد توسط ' + data.updated_by + ' — همین الان';
+                // Change stale badge to fresh
+                const badge = btn.closest('.card-tm').querySelector('.badge-tm');
+                if (badge) {
+                    badge.className = 'badge-tm badge-tm-success';
+                    badge.innerHTML = '<i class="bi bi-check-circle me-1"></i>به‌روز';
+                }
+            } else {
+                alert(data.error || 'خطا در دریافت قیمت');
+            }
+        })
+        .catch(() => alert('خطا در ارتباط با سرور'))
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        });
+}
 </script>
 {% endblock %}
