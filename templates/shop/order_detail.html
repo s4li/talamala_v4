@@ -84,6 +84,40 @@
                 <span class="badge-tm badge-tm-{{ order.status_color }} fs-6">{{ order.status_label }}</span>
             </div>
 
+            <!-- Buyer / Seller Info -->
+            <div class="row g-3 mb-3">
+                <div class="col-sm-6">
+                    <div class="bg-light rounded-3 p-3 h-100">
+                        <div class="fw-bold small mb-2"><i class="bi bi-shop me-1"></i>فروشنده</div>
+                        <div class="small">
+                            <div class="fw-bold">{{ get_setting_value('site_name', 'طلاملا') }}</div>
+                            {% set seller_phone = get_setting_value('support_phone', '') %}
+                            {% if seller_phone %}<div class="text-muted mt-1"><i class="bi bi-telephone me-1"></i><span dir="ltr">{{ seller_phone }}</span></div>{% endif %}
+                            {% set seller_telegram = get_setting_value('support_telegram', '') %}
+                            {% if seller_telegram %}<div class="text-muted"><i class="bi bi-send me-1"></i>{{ seller_telegram }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% if order.customer %}
+                <div class="col-sm-6">
+                    <div class="bg-light rounded-3 p-3 h-100">
+                        <div class="fw-bold small mb-2"><i class="bi bi-person me-1"></i>خریدار</div>
+                        <div class="small">
+                            {% if order.customer.customer_type == 'legal' and order.customer.company_name %}
+                            <div class="fw-bold">{{ order.customer.company_name }}</div>
+                            {% else %}
+                            <div class="fw-bold">{{ order.customer.full_name }}</div>
+                            {% endif %}
+                            {% if order.customer.national_id %}<div class="text-muted mt-1"><i class="bi bi-card-text me-1"></i>{{ 'شناسه ملی' if order.customer.customer_type == 'legal' else 'کد ملی' }}: <span dir="ltr">{{ order.customer.national_id }}</span></div>{% endif %}
+                            <div class="text-muted"><i class="bi bi-phone me-1"></i><span dir="ltr">{{ order.customer.mobile }}</span></div>
+                            {% if order.customer.address %}<div class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ order.customer.address }}</div>{% endif %}
+                            {% if order.customer.postal_code %}<div class="text-muted"><i class="bi bi-mailbox me-1"></i>کد پستی: <span dir="ltr">{{ order.customer.postal_code }}</span></div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
             <!-- Header Row -->
             <div class="d-flex px-3 py-2 bg-light fw-bold small text-muted">
                 <div style="flex:3;">محصول</div>
@@ -366,41 +400,6 @@
             {% endif %}
             {% endif %}
         </div>
-
-        <!-- Customer Billing Info (on invoice) -->
-        {% if order.customer %}
-        <div class="card-tm no-hover mt-3">
-            <div class="border-bottom pb-3 mb-3 fw-bold small">
-                <i class="bi bi-person-vcard me-1"></i>اطلاعات خریدار
-            </div>
-            <table class="table table-tm table-borderless mb-0">
-                {% if order.customer.customer_type == 'legal' %}
-                <tr><td class="text-muted">نوع</td><td><span class="badge-tm badge-tm-info">حقوقی</span></td></tr>
-                {% if order.customer.company_name %}
-                <tr><td class="text-muted">نام شرکت</td><td class="fw-bold">{{ order.customer.company_name }}</td></tr>
-                {% endif %}
-                <tr><td class="text-muted">شناسه ملی</td><td dir="ltr">{{ order.customer.national_id or '—' }}</td></tr>
-                {% if order.customer.economic_code %}
-                <tr><td class="text-muted">کد اقتصادی</td><td dir="ltr">{{ order.customer.economic_code }}</td></tr>
-                {% endif %}
-                {% else %}
-                <tr><td class="text-muted">نوع</td><td><span class="badge-tm badge-tm-success">حقیقی</span></td></tr>
-                <tr><td class="text-muted">نام</td><td class="fw-bold">{{ order.customer.full_name }}</td></tr>
-                <tr><td class="text-muted">کد ملی</td><td dir="ltr">{{ order.customer.national_id or '—' }}</td></tr>
-                {% endif %}
-                <tr><td class="text-muted">موبایل</td><td dir="ltr">{{ order.customer.mobile }}</td></tr>
-                {% if order.customer.phone %}
-                <tr><td class="text-muted">تلفن ثابت</td><td dir="ltr">{{ order.customer.phone }}</td></tr>
-                {% endif %}
-                {% if order.customer.postal_code %}
-                <tr><td class="text-muted">کد پستی</td><td dir="ltr">{{ order.customer.postal_code }}</td></tr>
-                {% endif %}
-                {% if order.customer.address %}
-                <tr><td class="text-muted">نشانی</td><td>{{ order.customer.address }}</td></tr>
-                {% endif %}
-            </table>
-        </div>
-        {% endif %}
 
         {% if user.is_staff %}
         <!-- Admin: Gift claim codes for packaging -->
