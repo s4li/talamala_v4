@@ -83,6 +83,7 @@ class Order(Base):
     customer = relationship("Customer", foreign_keys=[customer_id])
     pickup_dealer = relationship("Dealer", foreign_keys=[pickup_dealer_id])
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    status_logs = relationship("OrderStatusLog", back_populates="order", order_by="OrderStatusLog.created_at.desc()", cascade="all, delete-orphan")
 
     @property
     def status_label(self) -> str:
@@ -176,3 +177,19 @@ class OrderItem(Base):
     __table_args__ = (
         CheckConstraint("line_total >= 0", name="ck_order_item_line_total_nonneg"),
     )
+
+
+class OrderStatusLog(Base):
+    """Audit trail for order status and delivery status changes."""
+    __tablename__ = "order_status_logs"
+
+    id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    field = Column(String, nullable=False)              # "status" or "delivery_status"
+    old_value = Column(String, nullable=True)
+    new_value = Column(String, nullable=False)
+    changed_by = Column(String, nullable=True)          # username or "system"
+    description = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    order = relationship("Order", back_populates="status_logs")

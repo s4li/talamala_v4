@@ -47,7 +47,7 @@ from modules.inventory.models import (
     DealerTransfer, BarTransfer,
 )
 from modules.cart.models import Cart, CartItem
-from modules.order.models import Order, OrderItem
+from modules.order.models import Order, OrderItem, OrderStatusLog
 from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest, OwnerType
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory
 from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest

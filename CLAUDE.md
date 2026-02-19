@@ -151,6 +151,7 @@ talamala_v4/
 ### order/models.py
 - **Order**: id, customer_id, status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_dealer_id (FK→dealers), shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at
 - **OrderItem**: id, order_id, product_id, bar_id, applied_gold_price, applied_unit_price, applied_weight, applied_purity, applied_wage_percent, applied_tax_percent, final_gold_amount, final_wage_amount, final_tax_amount, package_type_id (FK→package_types, nullable), applied_package_price (BigInteger, default=0), line_total (= gold_total + package_price)
+- **OrderStatusLog**: id, order_id (FK→orders, CASCADE), field ("status"/"delivery_status"), old_value, new_value, changed_by, description, created_at — audit trail for status changes
 
 ### wallet/models.py
 - **Account**: id, customer_id, asset_code (IRR/XAU_MG), owner_type, owner_id, balance, locked_balance, credit_balance (non-withdrawable store credit)

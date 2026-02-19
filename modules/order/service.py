@@ -14,7 +14,7 @@ from sqlalchemy import desc, or_
 
 from common.helpers import now_utc, generate_unique_claim_code
 from common.templating import get_setting_from_db
-from modules.order.models import Order, OrderItem, OrderStatus, DeliveryMethod, DeliveryStatus
+from modules.order.models import Order, OrderItem, OrderStatus, OrderStatusLog, DeliveryMethod, DeliveryStatus
 from modules.cart.models import Cart, CartItem
 from modules.catalog.models import Product
 from modules.inventory.models import Bar, BarStatus, OwnershipHistory
@@ -48,6 +48,26 @@ def build_order_item(product, bar, invoice: dict, gold_price_rial: int, tax_perc
 
 
 class OrderService:
+
+    # ==========================================
+    # Status Change Logging
+    # ==========================================
+
+    def log_status_change(
+        self, db: Session, order_id: int, field: str,
+        old_value: str = None, new_value: str = "",
+        changed_by: str = None, description: str = None,
+    ):
+        """Record a status or delivery_status change in the audit log."""
+        log = OrderStatusLog(
+            order_id=order_id,
+            field=field,
+            old_value=old_value,
+            new_value=new_value,
+            changed_by=changed_by,
+            description=description,
+        )
+        db.add(log)
 
     # ==========================================
     # Checkout
@@ -117,6 +137,12 @@ class OrderService:
 
         db.add(new_order)
         db.flush()  # get order.id
+
+        self.log_status_change(
+            db, new_order.id, "status",
+            old_value=None, new_value=OrderStatus.PENDING,
+            changed_by="system", description="ثبت سفارش جدید",
+        )
 
         order_items = []
         cart_raw_total = 0
@@ -284,6 +310,11 @@ class OrderService:
                         ))
 
         order.status = OrderStatus.PAID
+        self.log_status_change(
+            db, order.id, "status",
+            old_value=OrderStatus.PENDING, new_value=OrderStatus.PAID,
+            changed_by="system", description="پرداخت موفق و انتقال مالکیت شمش‌ها",
+        )
 
         # Process referral reward on first purchase (not registration)
         self._process_referral_reward_on_first_purchase(db, order.customer_id)
@@ -326,7 +357,7 @@ class OrderService:
     # Cancel
     # ==========================================
 
-    def cancel_order(self, db: Session, order_id: int, reason: str = "") -> Optional[Order]:
+    def cancel_order(self, db: Session, order_id: int, reason: str = "", changed_by: str = "system") -> Optional[Order]:
         """Cancel order and release reserved bars."""
         order = db.query(Order).filter(Order.id == order_id).with_for_update().first()
         if not order or order.status != OrderStatus.PENDING:
@@ -336,6 +367,11 @@ class OrderService:
         order.status = OrderStatus.CANCELLED
         order.cancellation_reason = reason or None
         order.cancelled_at = now_utc()
+        self.log_status_change(
+            db, order.id, "status",
+            old_value=OrderStatus.PENDING, new_value=OrderStatus.CANCELLED,
+            changed_by=changed_by, description=reason or "لغو سفارش",
+        )
         db.flush()
         return order
 
@@ -362,9 +398,15 @@ class OrderService:
         now_ts = now_utc()
         for order in expired:
             self._release_order_bars(db, order)
+            reason = f"عدم پرداخت در مهلت مقرر ({reservation_minutes} دقیقه)"
             order.status = OrderStatus.CANCELLED
-            order.cancellation_reason = f"عدم پرداخت در مهلت مقرر ({reservation_minutes} دقیقه)"
+            order.cancellation_reason = reason
             order.cancelled_at = now_ts
+            self.log_status_change(
+                db, order.id, "status",
+                old_value=OrderStatus.PENDING, new_value=OrderStatus.CANCELLED,
+                changed_by="system", description=reason,
+            )
             count += 1
 
         if count:

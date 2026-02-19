@@ -102,7 +102,7 @@ from modules.catalog.models import (  # noqa: F401
 )
 from modules.inventory.models import Bar, BarImage, OwnershipHistory, DealerTransfer, BarTransfer  # noqa: F401
 from modules.cart.models import Cart, CartItem  # noqa: F401
-from modules.order.models import Order, OrderItem  # noqa: F401
+from modules.order.models import Order, OrderItem, OrderStatusLog  # noqa: F401
 from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest  # noqa: F401
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory  # noqa: F401
 from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest  # noqa: F401
