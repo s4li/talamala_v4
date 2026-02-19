@@ -31,6 +31,9 @@
 {% endblock %}
 
 {% block body %}
+<!-- Sidebar Overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
 <!-- Sidebar -->
 <nav class="admin-sidebar" id="adminSidebar">
     <div class="sidebar-logo">
@@ -140,7 +143,7 @@
 <!-- Main Content -->
 <div class="admin-content">
     <!-- Mobile toggle -->
-    <button class="btn btn-sm btn-tm-primary d-lg-none mb-3" onclick="document.getElementById('adminSidebar').classList.toggle('show')">
+    <button class="btn btn-sm btn-tm-primary d-lg-none mb-3" onclick="toggleSidebar()">
         <i class="bi bi-list"></i> منو
     </button>
 
@@ -150,5 +153,15 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+function toggleSidebar() {
+    document.getElementById('adminSidebar').classList.toggle('show');
+    document.getElementById('sidebarOverlay').classList.toggle('show');
+}
+function closeSidebar() {
+    document.getElementById('adminSidebar').classList.remove('show');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+}
+</script>
 {% block page_js %}{% endblock %}
 {% endblock %}

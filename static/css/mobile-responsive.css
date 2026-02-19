@@ -563,3 +563,170 @@
     font-size: 12px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   TABLET BREAKPOINTS (768px – 1024px)
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Stat cards: fit 2x2 grid nicely */
+  .stat-card-tm .stat-value {
+    font-size: 1.15rem;
+  }
+  .stat-card-tm .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+
+  /* Chart cards: reduce padding */
+  .chart-card {
+    padding: 1rem;
+  }
+
+  /* Admin content: less padding */
+  .admin-content {
+    padding: 20px;
+  }
+  .dealer-content {
+    padding: 20px;
+  }
+
+  /* Product grid: ensure 3-col on tablet */
+  .card-tm.product-card .product-card-body h6 {
+    font-size: 0.85rem;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADMIN PANEL – MOBILE IMPROVEMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Admin page headers: wrap on mobile */
+@media (max-width: 767px) {
+  .admin-content .d-flex.justify-content-between {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .admin-content .d-flex.justify-content-between h4,
+  .admin-content .d-flex.justify-content-between h5 {
+    width: 100%;
+    margin-bottom: 4px;
+  }
+
+  /* Dealer content same treatment */
+  .dealer-content .d-flex.justify-content-between {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+/* Admin filter sections: stack on mobile */
+@media (max-width: 576px) {
+  .admin-content .d-flex.gap-2.flex-wrap {
+    flex-direction: column;
+  }
+  .admin-content .d-flex.gap-2.flex-wrap > * {
+    width: 100%;
+  }
+  .admin-content .d-flex.gap-2.flex-wrap > .form-select-tm,
+  .admin-content .d-flex.gap-2.flex-wrap > .form-control-tm {
+    width: 100%;
+  }
+
+  /* btn-group in admin: horizontal scroll on mobile */
+  .admin-content .btn-group {
+    display: inline-flex;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .admin-content .btn-group::-webkit-scrollbar {
+    display: none;
+  }
+  .admin-content .btn-group .btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+/* Admin tables: scroll indicator shadow */
+@media (max-width: 991px) {
+  .table-responsive {
+    position: relative;
+  }
+  .table-responsive::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 24px;
+    height: 100%;
+    background: linear-gradient(to right, rgba(0,0,0,0.06), transparent);
+    pointer-events: none;
+    border-radius: 8px 0 0 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .table-responsive:hover::after {
+    opacity: 1;
+  }
+}
+
+/* Admin stat cards: prevent value overflow */
+@media (max-width: 576px) {
+  .stat-card-tm .stat-value {
+    font-size: 1rem;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+  .stat-card-tm .d-flex.gap-3 {
+    gap: 8px !important;
+  }
+  .stat-card-tm .stat-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  /* Dashboard charts: reduce height */
+  .chart-card canvas {
+    max-height: 200px;
+  }
+
+  /* Quick links: smaller */
+  .quick-link {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* ─── DEALER PANEL MOBILE ─── */
+@media (max-width: 576px) {
+  .dealer-content .stat-card-tm {
+    padding: 12px;
+  }
+  .dealer-content .stat-card-tm .stat-value {
+    font-size: 1rem;
+  }
+}
+
+/* ─── ADMIN MODALS ─── */
+@media (max-width: 576px) {
+  .modal-dialog {
+    margin: 8px;
+  }
+  .modal-body .row > [class*="col-md-"] {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  .modal-footer {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .modal-footer .btn {
+    width: 100%;
+  }
+}

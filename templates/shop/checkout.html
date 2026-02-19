@@ -293,7 +293,8 @@
             </div>
 
             <button type="submit" class="btn btn-tm-primary w-100 mt-3 py-2" id="submitBtn" disabled>
-                <i class="bi bi-lock me-1"></i> ثبت سفارش و پرداخت
+                <span class="submit-text"><i class="bi bi-lock me-1"></i> ثبت سفارش و پرداخت</span>
+                <span class="submit-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span> در حال ثبت...</span>
             </button>
 
             <a href="/cart" class="btn btn-sm btn-tm-outline w-100 mt-2">
@@ -562,6 +563,14 @@
 
     // Listen for commitment checkbox
     document.getElementById('commitmentCheck').addEventListener('change', updateSubmitButton);
+
+    // Show loading state on form submit
+    document.getElementById('checkoutForm').addEventListener('submit', function() {
+        var btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.querySelector('.submit-text').classList.add('d-none');
+        btn.querySelector('.submit-loading').classList.remove('d-none');
+    });
 
     // ==============================
     // Format

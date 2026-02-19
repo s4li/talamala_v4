@@ -63,7 +63,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+<div class="page-header tm-animate-fade-in">
     <h4 class="fw-bold mb-0"><i class="bi bi-speedometer2 me-2 text-tm-primary"></i>داشبورد</h4>
     <span class="text-muted">{{ user.full_name }}</span>
 </div>
@@ -385,11 +385,18 @@
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: true,
                 interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { position: 'top' } },
+                plugins: {
+                    legend: {
+                        position: window.innerWidth < 768 ? 'bottom' : 'top',
+                        labels: { font: { size: window.innerWidth < 576 ? 10 : 12 }, boxWidth: window.innerWidth < 576 ? 12 : 40 }
+                    }
+                },
                 scales: {
-                    y: { type: 'linear', position: 'right', title: { display: true, text: 'تومان' } },
-                    y1: { type: 'linear', position: 'left', title: { display: true, text: 'تعداد' }, grid: { drawOnChartArea: false } },
+                    y: { type: 'linear', position: 'right', title: { display: window.innerWidth >= 768, text: 'تومان' }, ticks: { font: { size: window.innerWidth < 576 ? 9 : 11 } } },
+                    y1: { type: 'linear', position: 'left', title: { display: window.innerWidth >= 768, text: 'تعداد' }, grid: { drawOnChartArea: false }, ticks: { font: { size: window.innerWidth < 576 ? 9 : 11 } } },
+                    x: { ticks: { maxRotation: 45, font: { size: window.innerWidth < 576 ? 8 : 10 } } }
                 }
             }
         });
@@ -434,8 +441,12 @@
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: true,
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: window.innerWidth < 576 ? 10 : 12 }, boxWidth: window.innerWidth < 576 ? 12 : 40, padding: window.innerWidth < 576 ? 8 : 10 }
+                    }
                 }
             }
         });

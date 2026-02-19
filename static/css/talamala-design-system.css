@@ -234,15 +234,7 @@ p, .text-body-lg { font-size: 16px; line-height: 24px; font-weight: 400; }
 .btn-group > [class*="btn-tm-"]:last-child { border-radius: 8px 0 0 8px; }
 .btn-group > [class*="btn-tm-"]:only-child { border-radius: 8px; }
 
-/* ─── 5b. FORM-SELECT ARROW (standalone) ─── */
-.form-select-tm {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23595959' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: left 12px center;
-  background-size: 16px 12px;
-  padding-left: 36px;
-}
+/* ─── 5b. FORM-SELECT ARROW (merged into section 6) ─── */
 
 /* ─── 6. FORM CONTROLS ─── */
 .form-control-tm {
@@ -261,8 +253,13 @@ textarea.form-control-tm { height: auto; min-height: 120px; padding: 12px; }
 .form-select-tm {
   height: 48px; border-radius: 8px; background-color: var(--tm-info-900);
   border: 1px solid transparent; font-family: 'IRANYekan', sans-serif;
-  font-size: 14px; color: var(--tm-subtitle); padding: 0 12px; width: 100%;
+  font-size: 14px; color: var(--tm-subtitle); padding: 0 12px; padding-left: 36px; width: 100%;
   transition: border-color 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23595959' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: left 12px center;
+  background-size: 16px 12px;
 }
 .form-select-tm:focus { border-color: var(--tm-primary); box-shadow: none; }
 
@@ -462,6 +459,15 @@ textarea.form-control-tm { height: auto; min-height: 120px; padding: 12px; }
 .admin-content { margin-right: 260px; padding: 24px 32px; background: var(--tm-info-900); min-height: 100vh; }
 .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 
+/* Sidebar overlay for mobile */
+.sidebar-overlay {
+  display: none;
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); z-index: 1039;
+  opacity: 0; transition: opacity 0.3s ease;
+}
+.sidebar-overlay.show { display: block; opacity: 1; }
+
 @media (max-width: 991px) {
   .admin-sidebar { transform: translateX(100%); }
   .admin-sidebar.show { transform: translateX(0); }
@@ -563,12 +569,21 @@ textarea.form-control-tm { height: auto; min-height: 120px; padding: 12px; }
 
 /* ─── 19. PRINT STYLES ─── */
 @media print {
-  body { background: white !important; color: black !important; }
+  body { background: white !important; color: black !important; font-size: 12pt; }
   .shop-navbar, .shop-footer, .admin-sidebar,
-  .dealer-sidebar, .no-print, .price-ticker { display: none !important; }
+  .dealer-sidebar, .no-print, .price-ticker,
+  .sidebar-overlay, .offcanvas, .modal { display: none !important; }
   .admin-content, .dealer-content { margin-right: 0 !important; padding: 0 !important; }
-  .card-tm, .stat-card-tm, .chart-card { border: 1px solid #ccc !important; box-shadow: none !important; break-inside: avoid; }
+  .card-tm, .stat-card-tm, .chart-card {
+    border: 1px solid #ccc !important; box-shadow: none !important;
+    break-inside: avoid; background: white !important;
+  }
+  .badge-tm { border: 1px solid #999 !important; background: transparent !important; color: black !important; }
   a { color: black !important; text-decoration: none !important; }
   .btn, [class*="btn-tm-"] { display: none !important; }
-  .table-tm thead th { background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .table-tm thead th { background: #f5f5f5 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .table-tm tbody td { font-size: 11pt; }
+  .breakdown-panel { background: #fafafa !important; border: 1px solid #ddd !important; }
+  img { max-width: 100% !important; }
+  .container { max-width: 100% !important; padding: 0 !important; }
 }
