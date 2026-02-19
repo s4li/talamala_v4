@@ -317,7 +317,7 @@
             <input type="hidden" name="ref_code" value="{{ ref_code or '' }}">
             <input type="hidden" name="code" id="otpHidden">
 
-            <div class="otp-inputs mb-4">
+            <div class="otp-inputs mb-4" role="group" aria-label="کد تأیید ۶ رقمی">
                 {% for i in range(6) %}
                 <input type="text"
                        class="otp-digit"
@@ -325,6 +325,7 @@
                        inputmode="numeric"
                        pattern="[0-9]"
                        autocomplete="one-time-code"
+                       aria-label="رقم {{ i + 1 }} کد تأیید"
                        data-index="{{ i }}">
                 {% endfor %}
             </div>

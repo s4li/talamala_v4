@@ -36,6 +36,7 @@
                         {% for att in ns.initial_msg.attachments %}
                         <a href="/{{ att.file_path }}" target="_blank">
                             <img src="/{{ att.file_path }}" class="rounded border me-1 mb-1"
+                                 loading="lazy" alt="پیوست تیکت"
                                  style="max-width:150px; max-height:150px; object-fit:cover;">
                         </a>
                         {% endfor %}
@@ -63,6 +64,7 @@
                         {% for att in msg.attachments %}
                         <a href="/{{ att.file_path }}" target="_blank">
                             <img src="/{{ att.file_path }}" class="rounded border me-1 mb-1"
+                                 loading="lazy" alt="پیوست تیکت"
                                  style="max-width:150px; max-height:150px; object-fit:cover;">
                         </a>
                         {% endfor %}

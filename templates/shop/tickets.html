@@ -43,10 +43,13 @@
     </div>
 </div>
 {% else %}
-<div class="text-center py-5">
-    <div style="font-size:4rem;"><i class="bi bi-chat-dots text-muted"></i></div>
-    <h5 class="text-muted mt-3">هنوز تیکتی ارسال نکرده‌اید</h5>
-    <a href="/tickets/new" class="btn btn-tm-primary mt-2">
+<div class="text-center py-5 tm-animate-fade-in">
+    <div class="mb-3">
+        <i class="bi bi-chat-dots" style="font-size: 4rem; color: var(--tm-info-700);" aria-hidden="true"></i>
+    </div>
+    <h5 class="text-muted mt-2">هنوز تیکتی ارسال نکرده‌اید</h5>
+    <p class="text-muted small mb-3">سوال یا مشکلی دارید؟ یک تیکت پشتیبانی ارسال کنید</p>
+    <a href="/tickets/new" class="btn btn-tm-primary">
         <i class="bi bi-plus-lg me-1"></i> ارسال تیکت جدید
     </a>
 </div>

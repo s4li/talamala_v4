@@ -37,10 +37,12 @@
                     <!-- SHABA -->
                     <div class="mb-3">
                         <label class="form-label-tm fw-bold">شماره شبا <span class="text-danger">*</span></label>
-                        <input type="text" name="shaba_number" class="form-control form-control-tm" dir="ltr"
+                        <input type="text" name="shaba_number" id="shabaInput" class="form-control form-control-tm" dir="ltr"
                                placeholder="IR000000000000000000000000" maxlength="26" required
-                               pattern="IR[0-9]{24}" style="font-family:monospace;">
-                        <div class="form-text">فرمت: IR + ۲۴ رقم</div>
+                               pattern="IR[0-9]{24}" style="font-family:monospace;"
+                               aria-describedby="shabaHelp shabaError">
+                        <div class="form-text" id="shabaHelp">فرمت: IR + ۲۴ رقم</div>
+                        <div class="invalid-feedback" id="shabaError">شماره شبا باید با IR شروع شده و ۲۴ رقم بعد آن باشد</div>
                     </div>
 
                     <!-- Account Holder -->
@@ -114,5 +116,36 @@ function updateWdWords() {
     }
 }
 wdInp.addEventListener('input', updateWdWords);
+
+// SHABA real-time validation
+var shabaInp = document.getElementById('shabaInput');
+if (shabaInp) {
+    shabaInp.addEventListener('input', function() {
+        var val = this.value.trim();
+        if (val && !/^IR[0-9]{0,24}$/.test(val)) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
+    });
+}
+
+// Form validation on submit
+var wdForm = document.getElementById('withdrawForm');
+if (wdForm) {
+    wdForm.addEventListener('submit', function(e) {
+        var shaba = shabaInp.value.trim();
+        if (!/^IR[0-9]{24}$/.test(shaba)) {
+            e.preventDefault();
+            shabaInp.classList.add('is-invalid');
+            shabaInp.focus();
+            return;
+        }
+        // Show loading
+        var btn = this.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> در حال ارسال...';
+    });
+}
 </script>
 {% endblock %}

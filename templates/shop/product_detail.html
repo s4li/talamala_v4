@@ -56,6 +56,7 @@
             <div class="gallery-thumbs d-flex gap-2 mt-2 justify-content-center">
                 {% for img in p.images %}
                 <img src="/{{ img.file_path }}"
+                     alt="{{ p.name }} - تصویر {{ loop.index }}"
                      class="{% if loop.first %}active{% endif %}"
                      onclick="document.getElementById('mainImage').src=this.src; document.querySelectorAll('.gallery-thumbs img').forEach(i=>i.classList.remove('active')); this.classList.add('active');">
                 {% endfor %}
@@ -144,7 +145,9 @@
                         <i class="bi bi-arrow-repeat me-1"></i>مبلغ بازخرید
                         <i class="bi bi-exclamation-circle-fill text-warning ms-1"
                            style="cursor:pointer;"
+                           tabindex="0" role="button"
                            data-bs-toggle="tooltip"
+                           data-bs-trigger="hover focus"
                            data-bs-placement="top"
                            title="این مبلغ در زمان فروش بصورت اعتبار کیف پول جهت خرید‌های دیگر به حساب شما واریز می‌گردد"></i>
                     </td>

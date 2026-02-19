@@ -123,21 +123,21 @@
 async function loadCities(provinceId) {
     const citySelect = document.getElementById('addrCity');
     const distSelect = document.getElementById('addrDistrict');
-    citySelect.innerHTML = '<option value="">در حال بارگذاری...</option>';
+    citySelect.innerHTML = '<option value="">\u23F3 در حال بارگذاری...</option>';
     distSelect.innerHTML = '<option value="">ابتدا شهر...</option>';
     distSelect.disabled = true;
-    if (!provinceId) { citySelect.disabled = true; return; }
+    if (!provinceId) { citySelect.innerHTML = '<option value="">ابتدا استان...</option>'; citySelect.disabled = true; return; }
     try {
         const r = await fetch(`/api/geo/cities?province_id=${provinceId}`);
         const cities = await r.json();
         citySelect.innerHTML = '<option value="">انتخاب شهر...</option>';
         cities.forEach(c => { citySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
         citySelect.disabled = false;
-    } catch(e) { console.error(e); }
+    } catch(e) { citySelect.innerHTML = '<option value="">خطا در بارگذاری</option>'; console.error(e); }
 }
 async function loadDistricts(cityId) {
     const distSelect = document.getElementById('addrDistrict');
-    distSelect.innerHTML = '<option value="">در حال بارگذاری...</option>';
+    distSelect.innerHTML = '<option value="">\u23F3 در حال بارگذاری...</option>';
     if (!cityId) { distSelect.disabled = true; return; }
     try {
         const r = await fetch(`/api/geo/districts?city_id=${cityId}`);
@@ -145,7 +145,7 @@ async function loadDistricts(cityId) {
         distSelect.innerHTML = '<option value="">همه محله‌ها</option>';
         districts.forEach(d => { distSelect.innerHTML += `<option value="${d.id}">${d.name}</option>`; });
         distSelect.disabled = false;
-    } catch(e) { console.error(e); }
+    } catch(e) { distSelect.innerHTML = '<option value="">خطا در بارگذاری</option>'; console.error(e); }
 }
 </script>
 {% endblock %}

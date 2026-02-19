@@ -163,6 +163,11 @@ document.addEventListener('click', function(e) {
     if (!btn) return;
     e.preventDefault();
     btn.disabled = true;
+    // Show spinner on "add to cart" button
+    var origHtml = btn.innerHTML;
+    if (btn.classList.contains('w-100')) {
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> ...';
+    }
     const pid = btn.dataset.pid;
     const change = parseInt(btn.dataset.change);
     fetch('/api/cart/update', {
@@ -195,10 +200,11 @@ document.addEventListener('click', function(e) {
                 }
             }
         } else {
+            btn.innerHTML = origHtml;
             btn.disabled = false;
         }
     })
-    .catch(() => { btn.disabled = false; });
+    .catch(() => { btn.innerHTML = origHtml; btn.disabled = false; });
 });
 </script>
 {% endblock %}
