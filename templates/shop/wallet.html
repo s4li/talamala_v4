@@ -232,13 +232,24 @@
                 {% if entries %}
                 <div>
                     {% for e in entries %}
-                    {% set sign = 'positive' if e.delta_balance > 0 else 'negative' if e.delta_balance < 0 else 'neutral' %}
+                    {% if e.delta_locked != 0 and e.delta_balance == 0 %}
+                        {# Hold/Release: only locked changes, show locked amount #}
+                        {% set display_amount = e.delta_locked %}
+                        {% set sign = 'negative' if e.delta_locked > 0 else 'positive' %}
+                    {% else %}
+                        {% set display_amount = e.delta_balance %}
+                        {% set sign = 'positive' if e.delta_balance > 0 else 'negative' if e.delta_balance < 0 else 'neutral' %}
+                    {% endif %}
                     <div class="txn-item d-flex align-items-center gap-3">
                         <div class="txn-icon {{ sign }}">
                             {% if e.delta_balance > 0 %}
                             <i class="bi bi-arrow-down-left"></i>
                             {% elif e.delta_balance < 0 %}
                             <i class="bi bi-arrow-up-right"></i>
+                            {% elif e.delta_locked > 0 %}
+                            <i class="bi bi-lock"></i>
+                            {% elif e.delta_locked < 0 %}
+                            <i class="bi bi-unlock"></i>
                             {% else %}
                             <i class="bi bi-arrow-left-right"></i>
                             {% endif %}
@@ -247,7 +258,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="fw-bold small">{{ e.txn_type_label }}</span>
                                 <span class="txn-amount-val fw-bold {{ sign }}">
-                                    {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }} تومان
+                                    {% if display_amount > 0 and e.delta_balance > 0 %}+{% endif %}{{ display_amount | toman }} تومان
                                 </span>
                             </div>
                             <div class="d-flex justify-content-between align-items-center mt-1">
