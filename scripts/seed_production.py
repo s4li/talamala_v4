@@ -695,8 +695,9 @@ def seed():
         print(f"  Tier Wages:     {db.query(ProductTierWage).count()}")
         print(f"  Dealers:        {db.query(Dealer).count()}")
 
-        print(f"\n--- Admin ---")
-        print(f"  Super Admin: 09120725564")
+        print(f"\n--- Admins ---")
+        for au in db.query(SystemUser).all():
+            print(f"  {au.role}: {au.mobile}")
 
     except Exception as e:
         db.rollback()
