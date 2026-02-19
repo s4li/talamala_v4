@@ -53,7 +53,7 @@
             {% if p.images %}
             <img src="/{{ p.images[0].file_path }}" id="mainImage" alt="{{ p.name }}">
             {% if p.images|length > 1 %}
-            <div class="gallery-thumbs d-flex gap-2 mt-2">
+            <div class="gallery-thumbs d-flex gap-2 mt-2 justify-content-center">
                 {% for img in p.images %}
                 <img src="/{{ img.file_path }}"
                      class="{% if loop.first %}active{% endif %}"
@@ -67,6 +67,13 @@
             </div>
             {% endif %}
         </div>
+
+        {% if p.description %}
+        <div class="card-tm no-hover mt-3">
+            <h6 class="fw-bold mb-2"><i class="bi bi-file-text me-1"></i>توضیحات محصول</h6>
+            <p class="mb-0 text-muted" style="white-space: pre-line;">{{ p.description }}</p>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Product Info -->
@@ -169,7 +176,8 @@
                     <input type="radio" name="package_choice" value="{{ pkg.id }}" class="form-check-input"
                            onchange="selectPackage(this)">
                     {% if pkg.default_image %}
-                    <img src="/{{ pkg.default_image }}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;" alt="{{ pkg.name }}">
+                    <img src="/{{ pkg.default_image }}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;cursor:zoom-in;" alt="{{ pkg.name }}"
+                         onclick="event.preventDefault(); event.stopPropagation(); openPkgGallery({{ pkg.id }})">
                     {% endif %}
                     <div class="flex-grow-1">
                         <span class="fw-bold small">{{ pkg.name }}</span>
@@ -267,7 +275,7 @@
 <!-- ========================= COMMENTS & Q&A ========================= -->
 <div class="mt-4" id="comments">
     <div class="card-tm no-hover mb-4">
-        <h5 class="fw-bold mb-3"><i class="bi bi-chat-dots me-2"></i>پرسش و پاسخ</h5>
+        <h5 class="fw-bold mb-3"><i class="bi bi-chat-dots me-2"></i>نظرات و دیدگاه‌ها</h5>
 
         {% if user and not user.is_staff %}
         <form method="POST" action="/reviews/comment" enctype="multipart/form-data">
@@ -296,7 +304,7 @@
 
     {% if product_comments %}
     {% for c in product_comments %}
-    <div class="card-tm no-hover mb-3">
+    <div class="card-tm no-hover mb-3" {% if c.is_admin %}style="border-right:3px solid var(--tm-positive);background:rgba(var(--tm-positive-rgb,40,167,69),0.07);"{% endif %}>
         <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
                 <span class="badge-tm badge-tm-{{ c.sender_badge_color }} me-1">{{ c.sender_type_label }}</span>
@@ -313,10 +321,18 @@
         </div>
         {% endif %}
 
+        <!-- Like button for parent comment -->
+        {% set cl = comment_likes.get(c.id, {"count": 0, "liked": false}) %}
+        <button class="btn btn-sm {% if cl.liked %}btn-tm-primary{% else %}btn-tm-outline{% endif %} like-btn"
+                data-comment-id="{{ c.id }}" onclick="toggleLike(this)">
+            <i class="bi {% if cl.liked %}bi-heart-fill{% else %}bi-heart{% endif %} me-1"></i>
+            <span class="like-count">{{ cl.count }}</span>
+        </button>
+
         {% if c.replies %}
         <div class="comment-thread mt-3">
             {% for reply in c.replies %}
-            <div class="mb-2 pb-2 {% if not loop.last %}border-bottom{% endif %}">
+            <div class="mb-2 pb-2 {% if not loop.last %}border-bottom{% endif %}" {% if reply.is_admin %}style="border-right:3px solid var(--tm-positive);background:rgba(var(--tm-positive-rgb,40,167,69),0.07);padding:0.5rem;border-radius:8px;"{% endif %}>
                 <div class="d-flex justify-content-between align-items-start mb-1">
                     <div>
                         <span class="badge-tm badge-tm-{{ reply.sender_badge_color }} me-1">{{ reply.sender_type_label }}</span>
@@ -324,7 +340,14 @@
                     </div>
                     <span class="text-muted small">{{ reply.created_at | jdate }}</span>
                 </div>
-                <p class="mb-0 small">{{ reply.body }}</p>
+                <p class="mb-1 small">{{ reply.body }}</p>
+                <!-- Like button for reply -->
+                {% set rl = comment_likes.get(reply.id, {"count": 0, "liked": false}) %}
+                <button class="btn btn-sm {% if rl.liked %}btn-tm-primary{% else %}btn-tm-outline{% endif %} like-btn"
+                        data-comment-id="{{ reply.id }}" onclick="toggleLike(this)" style="font-size:0.75rem;">
+                    <i class="bi {% if rl.liked %}bi-heart-fill{% else %}bi-heart{% endif %} me-1"></i>
+                    <span class="like-count">{{ rl.count }}</span>
+                </button>
             </div>
             {% endfor %}
         </div>
@@ -357,6 +380,22 @@
     </div>
     {% endfor %}
     {% endif %}
+<!-- Package Image Modal -->
+<div class="modal fade" id="pkgImageModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius:16px;overflow:hidden;background:var(--tm-info-900);">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold" id="pkgModalTitle"></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center p-3">
+                <img id="pkgModalImg" src="" alt="" style="max-width:100%;max-height:70vh;border-radius:12px;object-fit:contain;">
+                <div id="pkgModalThumbs" class="d-flex justify-content-center gap-2 mt-3 flex-wrap"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 </div>
 {% endblock %}
 
@@ -366,6 +405,35 @@
         new bootstrap.Tooltip(el);
     });
 
+    var pkgImages = {
+        {% for pkg in packages %}
+        {{ pkg.id }}: { name: "{{ pkg.name }}", images: [{% for img in pkg.images %}"/{{ img.file_path }}"{% if not loop.last %},{% endif %}{% endfor %}] },
+        {% endfor %}
+    };
+
+    function openPkgGallery(pkgId) {
+        var data = pkgImages[pkgId];
+        if (!data || data.images.length === 0) return;
+        document.getElementById('pkgModalTitle').textContent = data.name;
+        document.getElementById('pkgModalImg').src = data.images[0];
+        var thumbsEl = document.getElementById('pkgModalThumbs');
+        thumbsEl.innerHTML = '';
+        if (data.images.length > 1) {
+            data.images.forEach(function(src, i) {
+                var thumb = document.createElement('img');
+                thumb.src = src;
+                thumb.style.cssText = 'width:56px;height:56px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid ' + (i === 0 ? 'var(--tm-primary)' : 'transparent');
+                thumb.onclick = function() {
+                    document.getElementById('pkgModalImg').src = src;
+                    thumbsEl.querySelectorAll('img').forEach(function(t) { t.style.borderColor = 'transparent'; });
+                    thumb.style.borderColor = 'var(--tm-primary)';
+                };
+                thumbsEl.appendChild(thumb);
+            });
+        }
+        new bootstrap.Modal(document.getElementById('pkgImageModal')).show();
+    }
+
     function selectPackage(radio) {
         document.querySelectorAll('.package-option').forEach(function(el) {
             el.classList.remove('border-warning', 'bg-warning-subtle');
@@ -374,6 +442,35 @@
         document.querySelectorAll('.pkg-hidden').forEach(function(h) {
             h.value = radio.value;
         });
+    }
+
+    function toggleLike(btn) {
+        var commentId = btn.getAttribute('data-comment-id');
+        fetch('/reviews/comment/' + commentId + '/like', { method: 'POST' })
+            .then(function(res) {
+                if (res.status === 401 || res.status === 403) {
+                    window.location.href = '/auth/login?next=/product/{{ p.id }}';
+                    return null;
+                }
+                return res.json();
+            })
+            .then(function(data) {
+                if (!data) return;
+                var icon = btn.querySelector('i');
+                var countEl = btn.querySelector('.like-count');
+                countEl.textContent = data.count;
+                if (data.liked) {
+                    btn.classList.remove('btn-tm-outline');
+                    btn.classList.add('btn-tm-primary');
+                    icon.classList.remove('bi-heart');
+                    icon.classList.add('bi-heart-fill');
+                } else {
+                    btn.classList.remove('btn-tm-primary');
+                    btn.classList.add('btn-tm-outline');
+                    icon.classList.remove('bi-heart-fill');
+                    icon.classList.add('bi-heart');
+                }
+            });
     }
 </script>
 {% endblock %}

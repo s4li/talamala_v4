@@ -8,7 +8,7 @@ Uses same File() pattern as ticket module.
 from typing import List
 
 from fastapi import APIRouter, Request, Depends, Form, UploadFile, File
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 
 from config.database import get_db
@@ -89,3 +89,19 @@ async def add_product_comment(
         db.rollback()
 
     return RedirectResponse(f"/product/{product_id}#comments", status_code=302)
+
+
+# ==========================================
+# Toggle Like on Comment (AJAX)
+# ==========================================
+
+@router.post("/comment/{comment_id}/like")
+async def toggle_comment_like(
+    request: Request,
+    comment_id: int,
+    me=Depends(require_customer),
+    db: Session = Depends(get_db),
+):
+    result = review_service.toggle_like(db, comment_id, me.id)
+    db.commit()
+    return JSONResponse(result)

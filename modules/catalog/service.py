@@ -160,6 +160,7 @@ class ProductService:
         p.weight = data["weight"]
         p.purity = safe_decimal(data.get("purity", "750"), Decimal("750"))
         p.design = data.get("design")
+        p.description = data.get("description") or None
         p.card_design_id = data.get("card_design_id")
         p.package_type_id = data.get("package_type_id")
         p.wage = data.get("wage", 0)

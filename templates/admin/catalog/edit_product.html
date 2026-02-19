@@ -84,6 +84,10 @@
                         </div>
                     </div>
                     <div class="col-12">
+                        <label class="form-label-tm">توضیحات محصول</label>
+                        <textarea name="description" class="form-control form-control-tm" rows="4" placeholder="توضیحات تکمیلی محصول (اختیاری)">{{ p.description or '' }}</textarea>
+                    </div>
+                    <div class="col-12">
                         <label class="form-label-tm">افزودن تصاویر جدید</label>
                         <input type="file" name="new_files" class="form-control form-control-tm" multiple accept="image/*" id="editProductFiles">
                         <div id="editProductPreview" class="d-flex flex-wrap gap-2 mt-2"></div>

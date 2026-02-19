@@ -187,6 +187,41 @@ class CustomerAdminService:
         return items, total
 
 
+    def create_customer(
+        self,
+        db: Session,
+        mobile: str,
+        first_name: str = "",
+        last_name: str = "",
+        national_id: str = "",
+    ) -> Dict[str, Any]:
+        if not mobile or not mobile.strip():
+            return {"success": False, "error": "شماره موبایل الزامی است"}
+
+        mobile = mobile.strip()
+        # Check duplicate mobile
+        dup = db.query(Customer).filter(Customer.mobile == mobile).first()
+        if dup:
+            return {"success": False, "error": "این شماره موبایل قبلا ثبت شده است"}
+
+        # Check duplicate national_id
+        national_id = national_id.strip() if national_id else ""
+        if national_id:
+            dup = db.query(Customer).filter(Customer.national_id == national_id).first()
+            if dup:
+                return {"success": False, "error": "این کد ملی قبلا ثبت شده است"}
+
+        customer = Customer(
+            mobile=mobile,
+            first_name=first_name.strip() or None,
+            last_name=last_name.strip() or None,
+            national_id=national_id or mobile,
+            is_active=True,
+        )
+        db.add(customer)
+        db.flush()
+        return {"success": True, "customer": customer}
+
     def update_customer(
         self,
         db: Session,

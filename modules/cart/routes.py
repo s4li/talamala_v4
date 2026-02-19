@@ -150,7 +150,7 @@ async def checkout_page(
     # Profile completion check
     if not me.is_profile_complete:
         error = urllib.parse.quote("لطفاً ابتدا پروفایل خود را تکمیل کنید تا بتوانید سفارش ثبت کنید.")
-        return RedirectResponse(f"/profile?error={error}", status_code=302)
+        return RedirectResponse(f"/profile?error={error}&return_to=/cart", status_code=302)
 
     items, total_price = cart_service.get_cart_items_with_pricing(db, me.id)
     if not items:

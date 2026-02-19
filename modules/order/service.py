@@ -10,7 +10,7 @@ from datetime import timedelta
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 
 from common.helpers import now_utc, generate_unique_claim_code
 from common.templating import get_setting_from_db
@@ -350,12 +350,88 @@ class OrderService:
     def get_order_by_id(self, db: Session, order_id: int) -> Optional[Order]:
         return db.query(Order).filter(Order.id == order_id).first()
 
-    def get_all_orders(self, db: Session, status: str = None, delivery: str = None) -> List[Order]:
+    def _get_metal_type(self, product) -> str:
+        """Determine metal type from product categories (slug prefix)."""
+        if product and hasattr(product, 'categories'):
+            for cat in product.categories:
+                if cat.slug and cat.slug.startswith("silver"):
+                    return "silver"
+        return "gold"
+
+    def get_pending_delivery_stats(self, db: Session):
+        """Get separate gold/silver stats for paid pickup orders not yet delivered."""
+        from sqlalchemy.orm import joinedload
+        orders = (
+            db.query(Order)
+            .options(joinedload(Order.items), joinedload(Order.customer))
+            .filter(
+                Order.status == OrderStatus.PAID,
+                Order.delivery_method == DeliveryMethod.PICKUP,
+                Order.delivery_status.notin_([DeliveryStatus.DELIVERED, DeliveryStatus.RETURNED]),
+            )
+            .order_by(desc(Order.id))
+            .all()
+        )
+
+        gold_weight = Decimal("0")
+        silver_weight = Decimal("0")
+        gold_bars = []
+        silver_bars = []
+        gold_order_ids = set()
+        silver_order_ids = set()
+
+        for order in orders:
+            for oi in order.items:
+                weight = oi.applied_weight or Decimal("0")
+                metal = self._get_metal_type(oi.product)
+                bar_info = {
+                    "order_id": order.id,
+                    "customer_name": order.customer.full_name if order.customer else "—",
+                    "customer_mobile": order.customer.mobile if order.customer else "",
+                    "serial_code": oi.bar.serial_code if oi.bar else "—",
+                    "product_name": oi.product.name if oi.product else "—",
+                    "weight": float(weight),
+                    "delivery_status": order.delivery_status_label if order.delivery_status else "—",
+                    "order_date": order.created_at,
+                }
+                if metal == "silver":
+                    silver_weight += weight
+                    silver_bars.append(bar_info)
+                    silver_order_ids.add(order.id)
+                else:
+                    gold_weight += weight
+                    gold_bars.append(bar_info)
+                    gold_order_ids.add(order.id)
+
+        return {
+            "gold": {
+                "total_weight": float(gold_weight),
+                "total_bars": len(gold_bars),
+                "total_orders": len(gold_order_ids),
+                "bars": gold_bars,
+            },
+            "silver": {
+                "total_weight": float(silver_weight),
+                "total_bars": len(silver_bars),
+                "total_orders": len(silver_order_ids),
+                "bars": silver_bars,
+            },
+        }
+
+    def get_all_orders(self, db: Session, status: str = None, delivery: str = None, search: str = None) -> List[Order]:
         q = db.query(Order).order_by(desc(Order.id))
         if status:
             q = q.filter(Order.status == status)
         if delivery:
             q = q.filter(Order.delivery_method == delivery)
+        if search:
+            from modules.customer.models import Customer
+            term = f"%{search.strip()}%"
+            q = q.join(Order.customer).filter(
+                or_(Customer.first_name.ilike(term),
+                    Customer.last_name.ilike(term),
+                    Customer.mobile.ilike(term))
+            )
         return q.all()
 
     # ==========================================

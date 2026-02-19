@@ -5,7 +5,7 @@ Product, ProductCategory, CardDesign, PackageType, Batch and their images.
 """
 
 from sqlalchemy import (
-    Column, Integer, String, BigInteger, Numeric, Boolean,
+    Column, Integer, String, Text, BigInteger, Numeric, Boolean,
     ForeignKey, DateTime, UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
@@ -67,6 +67,7 @@ class Product(Base):
     design = Column(String, nullable=True)
     card_design_id = Column(Integer, ForeignKey("card_designs.id", ondelete="SET NULL"), nullable=True)
     package_type_id = Column(Integer, ForeignKey("package_types.id", ondelete="SET NULL"), nullable=True)
+    description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
 
     # Relationships

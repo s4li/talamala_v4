@@ -1,0 +1,110 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}وضعیت درخواست نمایندگی - طلاملا{% endblock %}
+
+{% block shop_content %}
+<nav class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="/" class="text-decoration-none">خانه</a></li>
+        <li class="breadcrumb-item active">درخواست نمایندگی</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 tm-animate-fade-in-up">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-shop-window me-2"></i>وضعیت درخواست نمایندگی</h5>
+            </div>
+
+            <!-- Status Badge -->
+            <div class="text-center mb-4">
+                {% if dealer_request.status == 'Pending' %}
+                <div class="d-inline-flex align-items-center gap-2 px-4 py-2 rounded-pill"
+                     style="background:rgba(255,193,7,0.12);color:#856404;">
+                    <i class="bi bi-hourglass-split" style="font-size:1.3rem;"></i>
+                    <span class="fw-bold">درخواست شما در حال بررسی است</span>
+                </div>
+                <p class="text-muted small mt-2">به محض بررسی توسط کارشناسان، نتیجه به شما اطلاع داده خواهد شد.</p>
+                {% elif dealer_request.status == 'Approved' %}
+                <div class="d-inline-flex align-items-center gap-2 px-4 py-2 rounded-pill"
+                     style="background:rgba(25,135,84,0.12);color:#198754;">
+                    <i class="bi bi-check-circle-fill" style="font-size:1.3rem;"></i>
+                    <span class="fw-bold">درخواست شما تایید شده است</span>
+                </div>
+                {% elif dealer_request.status == 'Rejected' %}
+                <div class="d-inline-flex align-items-center gap-2 px-4 py-2 rounded-pill"
+                     style="background:rgba(220,53,69,0.12);color:#dc3545;">
+                    <i class="bi bi-x-circle-fill" style="font-size:1.3rem;"></i>
+                    <span class="fw-bold">درخواست شما رد شده است</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Request Info -->
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <small class="text-muted">نام و نام خانوادگی</small>
+                    <div class="fw-bold">{{ dealer_request.full_name }}</div>
+                </div>
+                <div class="col-md-6">
+                    <small class="text-muted">شماره تماس</small>
+                    <div class="fw-bold">{{ dealer_request.mobile }}</div>
+                </div>
+                {% if dealer_request.email %}
+                <div class="col-md-6">
+                    <small class="text-muted">پست الکترونیک</small>
+                    <div dir="ltr">{{ dealer_request.email }}</div>
+                </div>
+                {% endif %}
+                {% if dealer_request.birth_date %}
+                <div class="col-md-6">
+                    <small class="text-muted">تاریخ تولد</small>
+                    <div>{{ dealer_request.birth_date }}</div>
+                </div>
+                {% endif %}
+                {% if dealer_request.gender %}
+                <div class="col-md-6">
+                    <small class="text-muted">جنسیت</small>
+                    <div>{{ dealer_request.gender_label }}</div>
+                </div>
+                {% endif %}
+                <div class="col-md-6">
+                    <small class="text-muted">استان / شهر</small>
+                    <div>{{ dealer_request.province_name }} / {{ dealer_request.city_name }}</div>
+                </div>
+                <div class="col-md-6">
+                    <small class="text-muted">تاریخ ثبت</small>
+                    <div>{{ dealer_request.created_at | jdate }}</div>
+                </div>
+            </div>
+
+            <!-- Attachments -->
+            {% if dealer_request.attachments %}
+            <div class="mt-4">
+                <small class="text-muted fw-bold">مدارک بارگذاری شده</small>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    {% for att in dealer_request.attachments %}
+                    <a href="/{{ att.file_path }}" target="_blank">
+                        <img src="/{{ att.file_path }}" alt="مدرک" class="rounded border"
+                             style="width:80px;height:80px;object-fit:cover;">
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Admin Note (if rejected) -->
+            {% if dealer_request.admin_note %}
+            <div class="alert-tm-{% if dealer_request.status == 'Rejected' %}danger{% else %}info{% endif %} py-2 mt-4">
+                <i class="bi bi-chat-left-text me-1"></i>
+                <strong>یادداشت کارشناس:</strong> {{ dealer_request.admin_note }}
+            </div>
+            {% endif %}
+
+            <div class="mt-4">
+                <a href="/" class="btn btn-tm-outline"><i class="bi bi-arrow-right me-1"></i>بازگشت به فروشگاه</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

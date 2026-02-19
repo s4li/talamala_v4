@@ -100,12 +100,18 @@
         <a href="/admin/dealers/buybacks" class="nav-link {% if active_page == 'dealer_buybacks' %}active{% endif %}">
             <i class="bi bi-arrow-return-left"></i> بازخرید نمایندگان
         </a>
+        <a href="/admin/dealer-requests" class="nav-link {% if active_page == 'dealer_requests' %}active{% endif %}">
+            <i class="bi bi-person-plus"></i> درخواست نمایندگی
+        </a>
         {% endif %}
         {% if user.has_permission('tickets') %}
         <a href="/admin/tickets" class="nav-link {% if active_page == 'tickets' %}active{% endif %}">
             <i class="bi bi-headset"></i> تیکت‌های پشتیبانی
         </a>
         {% endif %}
+        <a href="/admin/reviews" class="nav-link {% if active_page == 'reviews' %}active{% endif %}">
+            <i class="bi bi-chat-dots"></i> نظرات و دیدگاه‌ها
+        </a>
         {% if user.has_permission('logs') %}
         <a href="/admin/logs" class="nav-link {% if active_page == 'logs' %}active{% endif %}">
             <i class="bi bi-journal-text"></i> لاگ درخواست‌ها

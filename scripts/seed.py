@@ -1332,14 +1332,10 @@ def seed():
 
 def reset_and_seed():
     """Drop all tables and recreate + seed."""
-    print("WARNING: Dropping ALL tables...")
-    # Drop orphan tables (created by migrations but no longer have models)
     from sqlalchemy import text
     with engine.connect() as conn:
         conn.execute(text("DROP TABLE IF EXISTS location_transfers CASCADE"))
         conn.commit()
-    Base.metadata.drop_all(bind=engine)
-    print("All tables dropped")
     Base.metadata.create_all(bind=engine)
     print("All tables recreated")
     seed()

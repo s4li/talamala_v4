@@ -6,7 +6,7 @@ Product reviews (star rating from order page) and comments/Q&A (from product pag
 
 import enum
 from sqlalchemy import (
-    Column, Integer, String, DateTime, ForeignKey, Text, Index,
+    Column, Integer, String, DateTime, ForeignKey, Text, Index, UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -89,6 +89,13 @@ class ProductComment(Base):
         return self.sender_type == CommentSenderType.ADMIN
 
     @property
+    def has_admin_reply(self) -> bool:
+        for r in (self.replies or []):
+            if r.sender_type == CommentSenderType.ADMIN:
+                return True
+        return False
+
+    @property
     def sender_badge_color(self) -> str:
         return "success" if self.is_admin else "info"
 
@@ -105,3 +112,20 @@ class CommentImage(Base):
     file_path = Column(String, nullable=False)
 
     comment = relationship("ProductComment", back_populates="images")
+
+
+# ==========================================
+# Comment Like
+# ==========================================
+
+class CommentLike(Base):
+    __tablename__ = "comment_likes"
+
+    id = Column(Integer, primary_key=True)
+    comment_id = Column(Integer, ForeignKey("product_comments.id", ondelete="CASCADE"), nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("comment_id", "customer_id", name="uq_comment_like"),
+    )

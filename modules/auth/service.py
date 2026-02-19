@@ -26,14 +26,20 @@ from modules.dealer.models import Dealer
 class AuthService:
     """Handles all authentication logic: OTP send, verify, and token creation."""
 
-    def find_or_create_user(self, db: Session, mobile: str) -> Tuple[object, str]:
+    def find_or_create_user(
+        self, db: Session, mobile: str,
+        first_name: str = "", last_name: str = "",
+        ref_code: str = "", profile_data: dict = None,
+    ) -> Tuple[object, str]:
         """
         Find existing user (staff, dealer, or customer) by mobile.
-        If not found, create a guest customer.
+        If not found, create a new customer.
 
         Returns:
             (user_object, user_type)  where user_type is 'staff', 'dealer', or 'customer'
         """
+        profile_data = profile_data or {}
+
         # Check staff first
         system_user = db.query(SystemUser).filter(SystemUser.mobile == mobile).first()
         if system_user:
@@ -49,15 +55,39 @@ class AuthService:
         if customer:
             return customer, "customer"
 
-        # Create new guest customer
+        # Create new customer (with real name and profile if provided)
         try:
-            guest_nid = f"GUEST_{secrets.token_hex(4)}_{mobile}"
+            # Use real national_id from registration, or generate guest placeholder
+            national_id = profile_data.get("national_id", "").strip()
+            if not national_id:
+                national_id = f"GUEST_{secrets.token_hex(4)}_{mobile}"
+
+            # Resolve referral code to referrer ID
+            referred_by = None
+            if ref_code:
+                referrer = db.query(Customer).filter(Customer.referral_code == ref_code).first()
+                if referrer:
+                    referred_by = referrer.id
+
             customer = Customer(
                 mobile=mobile,
-                first_name="کاربر",
-                last_name="مهمان",
-                national_id=guest_nid,
+                first_name=first_name or "کاربر",
+                last_name=last_name or "مهمان",
+                national_id=national_id,
+                referred_by=referred_by,
             )
+
+            # Set profile fields from registration
+            if profile_data:
+                customer.birth_date = profile_data.get("birth_date") or None
+                customer.customer_type = profile_data.get("customer_type", "real")
+                customer.postal_code = profile_data.get("postal_code") or None
+                customer.address = profile_data.get("address") or None
+                customer.phone = profile_data.get("phone") or None
+                if customer.customer_type == "legal":
+                    customer.company_name = profile_data.get("company_name") or None
+                    customer.economic_code = profile_data.get("economic_code") or None
+
             db.add(customer)
             db.commit()
             db.refresh(customer)
@@ -70,7 +100,11 @@ class AuthService:
                 return customer, "customer"
             raise AuthenticationError("خطای ثبت نام. لطفا مجدد تلاش کنید.")
 
-    def send_otp(self, db: Session, mobile: str) -> Tuple[str, str]:
+    def send_otp(
+        self, db: Session, mobile: str,
+        first_name: str = "", last_name: str = "",
+        ref_code: str = "", profile_data: dict = None,
+    ) -> Tuple[str, str]:
         """
         Generate and store OTP for a mobile number.
 
@@ -86,7 +120,10 @@ class AuthService:
         if not check_otp_rate_limit(mobile):
             raise OTPError("⛔ درخواست زیاد! ۱۰ دقیقه صبر کنید.")
 
-        user, user_type = self.find_or_create_user(db, mobile)
+        user, user_type = self.find_or_create_user(
+            db, mobile, first_name=first_name, last_name=last_name,
+            ref_code=ref_code, profile_data=profile_data or {},
+        )
 
         # Generate OTP
         otp_raw = generate_otp()

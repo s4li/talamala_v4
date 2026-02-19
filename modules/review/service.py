@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func as sa_func
 
 from modules.review.models import (
-    Review, ReviewImage, ProductComment, CommentImage, CommentSenderType,
+    Review, ReviewImage, ProductComment, CommentImage, CommentSenderType, CommentLike,
 )
 from modules.order.models import Order, OrderItem
 from modules.customer.models import Customer
@@ -193,7 +193,8 @@ class ReviewService:
 
     def list_comments_admin(self, db, page=1, per_page=30, search=None):
         q = db.query(ProductComment).options(
-            joinedload(ProductComment.product), joinedload(ProductComment.customer), joinedload(ProductComment.images),
+            joinedload(ProductComment.product), joinedload(ProductComment.customer),
+            joinedload(ProductComment.images), joinedload(ProductComment.replies),
         ).filter(ProductComment.parent_id == None)
         if search and search.strip():
             term = f"%{search.strip()}%"
@@ -212,6 +213,49 @@ class ReviewService:
         return db.query(ProductComment).options(
             joinedload(ProductComment.product), joinedload(ProductComment.customer), joinedload(ProductComment.images),
         ).filter(ProductComment.id == comment_id).first()
+
+    # ------------------------------------------
+    # Comment Likes
+    # ------------------------------------------
+
+    def toggle_like(self, db: Session, comment_id: int, customer_id: int):
+        existing = db.query(CommentLike).filter(
+            CommentLike.comment_id == comment_id,
+            CommentLike.customer_id == customer_id,
+        ).first()
+        if existing:
+            db.delete(existing)
+            liked = False
+        else:
+            db.add(CommentLike(comment_id=comment_id, customer_id=customer_id))
+            liked = True
+        db.flush()
+        count = db.query(sa_func.count(CommentLike.id)).filter(
+            CommentLike.comment_id == comment_id,
+        ).scalar() or 0
+        return {"liked": liked, "count": count}
+
+    def get_comment_likes_map(self, db: Session, comment_ids: list, customer_id: int = None):
+        """Returns {comment_id: {"count": N, "liked": bool}}"""
+        if not comment_ids:
+            return {}
+        counts = dict(
+            db.query(CommentLike.comment_id, sa_func.count(CommentLike.id))
+            .filter(CommentLike.comment_id.in_(comment_ids))
+            .group_by(CommentLike.comment_id)
+            .all()
+        )
+        liked_set = set()
+        if customer_id:
+            liked_set = set(
+                r[0] for r in db.query(CommentLike.comment_id)
+                .filter(CommentLike.comment_id.in_(comment_ids), CommentLike.customer_id == customer_id)
+                .all()
+            )
+        return {
+            cid: {"count": counts.get(cid, 0), "liked": cid in liked_set}
+            for cid in comment_ids
+        }
 
 
 review_service = ReviewService()

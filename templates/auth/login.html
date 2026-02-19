@@ -46,6 +46,18 @@
         border: 1px solid rgba(255,255,255,0.2);
         position: relative;
         z-index: 1;
+        transition: max-width 0.4s ease;
+    }
+    .login-card.expanded {
+        max-width: 560px;
+    }
+    .reg-section-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--tm-primary);
+        border-bottom: 1px solid #eee;
+        padding-bottom: 6px;
+        margin-bottom: 12px;
     }
     .login-logo {
         width: 80px;
@@ -90,6 +102,35 @@
         color: #888;
         font-size: 0.85rem;
     }
+    .auth-tabs {
+        display: flex;
+        background: #f0f0f0;
+        border-radius: 12px;
+        padding: 4px;
+        gap: 4px;
+    }
+    .auth-tab {
+        flex: 1;
+        border: none;
+        background: transparent;
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #666;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-family: inherit;
+    }
+    .auth-tab.active {
+        background: var(--tm-primary);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(107,0,45,0.25);
+    }
+    .auth-tab:not(.active):hover {
+        background: rgba(107,0,45,0.08);
+        color: var(--tm-primary);
+    }
 </style>
 {% endblock %}
 
@@ -109,30 +150,159 @@
         {% endif %}
 
         {% if step == "mobile" %}
-        <!-- ========== STEP 1: Mobile Number ========== -->
-        <form method="POST" action="/auth/send-otp">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <input type="hidden" name="next_url" value="{{ next_url or '' }}">
-
-            <div class="mb-3">
-                <label class="form-label-tm fw-bold">شماره موبایل</label>
-                <input type="tel"
-                       name="mobile"
-                       class="form-control form-control-tm form-control-lg text-center"
-                       dir="ltr"
-                       placeholder="09xxxxxxxxx"
-                       value="{{ mobile or '' }}"
-                       maxlength="11"
-                       pattern="09[0-9]{9}"
-                       required
-                       autofocus>
-            </div>
-
-            <button type="submit" class="btn-tm-primary btn btn-lg w-100 mt-2">
-                <i class="bi bi-send-fill me-1"></i>
-                ارسال کد تأیید
+        <!-- ========== TAB SWITCHER ========== -->
+        <div class="auth-tabs mb-4">
+            <button class="auth-tab active" data-tab="login" type="button">
+                <i class="bi bi-box-arrow-in-left me-1"></i>ورود
             </button>
-        </form>
+            <button class="auth-tab" data-tab="register" type="button">
+                <i class="bi bi-person-plus me-1"></i>ثبت نام
+            </button>
+        </div>
+
+        <!-- ========== LOGIN TAB ========== -->
+        <div class="auth-panel" id="panel-login">
+            <form method="POST" action="/auth/send-otp">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" name="next_url" value="{{ next_url or '' }}">
+                <input type="hidden" name="mode" value="login">
+
+                <div class="mb-3">
+                    <label class="form-label-tm fw-bold">شماره موبایل</label>
+                    <input type="tel"
+                           name="mobile"
+                           class="form-control form-control-tm form-control-lg text-center"
+                           dir="ltr"
+                           placeholder="09xxxxxxxxx"
+                           value="{{ mobile or '' }}"
+                           maxlength="11"
+                           pattern="09[0-9]{9}"
+                           required
+                           autofocus>
+                </div>
+
+                <button type="submit" class="btn-tm-primary btn btn-lg w-100 mt-2">
+                    <i class="bi bi-send-fill me-1"></i>
+                    ارسال کد تأیید
+                </button>
+            </form>
+        </div>
+
+        <!-- ========== REGISTER TAB ========== -->
+        <div class="auth-panel d-none" id="panel-register">
+            <form method="POST" action="/auth/send-otp">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" name="next_url" value="{{ next_url or '' }}">
+                <input type="hidden" name="mode" value="register">
+
+                <!-- اطلاعات هویتی -->
+                <div class="reg-section-title"><i class="bi bi-person me-1"></i>اطلاعات هویتی</div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label-tm fw-bold">نام <span class="text-danger">*</span></label>
+                        <input type="text" name="first_name" class="form-control form-control-tm"
+                               placeholder="نام" value="{{ first_name or '' }}" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-tm fw-bold">نام خانوادگی <span class="text-danger">*</span></label>
+                        <input type="text" name="last_name" class="form-control form-control-tm"
+                               placeholder="نام خانوادگی" value="{{ last_name or '' }}" required>
+                    </div>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label-tm fw-bold">کد ملی <span class="text-danger">*</span></label>
+                        <input type="text" name="national_id" class="form-control form-control-tm" dir="ltr"
+                               placeholder="۱۰ رقم" value="{{ reg_national_id or '' }}" maxlength="10" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-tm fw-bold">تاریخ تولد</label>
+                        <input type="text" name="birth_date" class="form-control form-control-tm" dir="ltr"
+                               placeholder="1370/01/15" value="{{ reg_birth_date or '' }}">
+                    </div>
+                </div>
+
+                <!-- نوع شخصیت -->
+                <div class="reg-section-title"><i class="bi bi-building me-1"></i>نوع شخصیت</div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="form-check border rounded p-2 {% if (reg_customer_type or 'real') == 'real' %}border-success bg-light{% endif %}"
+                             style="cursor:pointer;" onclick="this.querySelector('input').checked=true; toggleRegType('real');">
+                            <input class="form-check-input" type="radio" name="customer_type" value="real" id="regTypeReal"
+                                   {% if (reg_customer_type or 'real') == 'real' %}checked{% endif %}
+                                   onchange="toggleRegType('real')">
+                            <label class="form-check-label" for="regTypeReal">
+                                <strong><i class="bi bi-person me-1"></i>حقیقی</strong>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="form-check border rounded p-2 {% if reg_customer_type == 'legal' %}border-success bg-light{% endif %}"
+                             style="cursor:pointer;" onclick="this.querySelector('input').checked=true; toggleRegType('legal');">
+                            <input class="form-check-input" type="radio" name="customer_type" value="legal" id="regTypeLegal"
+                                   {% if reg_customer_type == 'legal' %}checked{% endif %}
+                                   onchange="toggleRegType('legal')">
+                            <label class="form-check-label" for="regTypeLegal">
+                                <strong><i class="bi bi-building me-1"></i>حقوقی</strong>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-2 mb-3" id="regLegalFields" style="{% if reg_customer_type != 'legal' %}display:none;{% endif %}">
+                    <div class="col-6">
+                        <label class="form-label-tm fw-bold">نام شرکت <span class="text-danger">*</span></label>
+                        <input type="text" name="company_name" class="form-control form-control-tm"
+                               placeholder="نام رسمی شرکت" value="{{ reg_company_name or '' }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-tm fw-bold">کد اقتصادی</label>
+                        <input type="text" name="economic_code" class="form-control form-control-tm" dir="ltr"
+                               placeholder="اختیاری" value="{{ reg_economic_code or '' }}">
+                    </div>
+                </div>
+
+                <!-- اطلاعات تماس -->
+                <div class="reg-section-title"><i class="bi bi-telephone me-1"></i>اطلاعات تماس</div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label-tm fw-bold">شماره موبایل <span class="text-danger">*</span></label>
+                        <input type="tel" name="mobile" class="form-control form-control-tm text-center" dir="ltr"
+                               placeholder="09xxxxxxxxx" value="{{ mobile or '' }}" maxlength="11" pattern="09[0-9]{9}" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-tm fw-bold">تلفن ثابت</label>
+                        <input type="text" name="phone" class="form-control form-control-tm" dir="ltr"
+                               placeholder="021-12345678" value="{{ reg_phone or '' }}">
+                    </div>
+                </div>
+
+                <!-- نشانی -->
+                <div class="reg-section-title"><i class="bi bi-geo-alt me-1"></i>نشانی</div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label-tm fw-bold">کد پستی <span class="text-danger">*</span></label>
+                        <input type="text" name="postal_code" class="form-control form-control-tm" dir="ltr"
+                               placeholder="۱۰ رقم" value="{{ reg_postal_code or '' }}" maxlength="10" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-tm fw-bold">کد معرف <small class="text-muted">(اختیاری)</small></label>
+                        <input type="text" name="ref_code" class="form-control form-control-tm text-center" dir="ltr"
+                               placeholder="ABC12345" value="{{ ref_code or '' }}" maxlength="10"
+                               style="letter-spacing: 2px; font-weight: 600;">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label-tm fw-bold">نشانی کامل <span class="text-danger">*</span></label>
+                    <textarea name="address" class="form-control form-control-tm" rows="2"
+                              placeholder="استان، شهر، خیابان، پلاک" required>{{ reg_address or '' }}</textarea>
+                </div>
+
+                <button type="submit" class="btn-tm-primary btn btn-lg w-100 mt-2">
+                    <i class="bi bi-person-plus-fill me-1"></i>
+                    ثبت نام و ارسال کد تأیید
+                </button>
+            </form>
+        </div>
 
         {% elif step == "verify" %}
         <!-- ========== STEP 2: OTP Verification ========== -->
@@ -144,6 +314,7 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input type="hidden" name="mobile" value="{{ mobile }}">
             <input type="hidden" name="next_url" value="{{ next_url or '' }}">
+            <input type="hidden" name="ref_code" value="{{ ref_code or '' }}">
             <input type="hidden" name="code" id="otpHidden">
 
             <div class="otp-inputs mb-4">
@@ -181,7 +352,54 @@
 {% endblock %}
 
 {% block extra_js %}
-{% if step == "verify" %}
+{% if step == "mobile" %}
+<script>
+(function() {
+    const tabs = document.querySelectorAll('.auth-tab');
+    const panels = document.querySelectorAll('.auth-panel');
+    const card = document.querySelector('.login-card');
+
+    function switchTab(target) {
+        tabs.forEach(t => t.classList.remove('active'));
+        document.querySelector('[data-tab="' + target + '"]').classList.add('active');
+        panels.forEach(p => p.classList.add('d-none'));
+        document.getElementById('panel-' + target).classList.remove('d-none');
+
+        // Expand card for register, shrink for login
+        if (target === 'register') {
+            card.classList.add('expanded');
+        } else {
+            card.classList.remove('expanded');
+        }
+
+        // Focus first input
+        var firstInput = document.querySelector('#panel-' + target + ' input[type="tel"], #panel-' + target + ' input[type="text"]');
+        if (firstInput) firstInput.focus();
+    }
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            switchTab(this.dataset.tab);
+        });
+    });
+
+    // If mode=register came back with error, show register tab
+    {% if mode == 'register' %}
+    switchTab('register');
+    {% endif %}
+})();
+
+// Toggle legal/real fields in register form
+function toggleRegType(type) {
+    var legalFields = document.getElementById('regLegalFields');
+    if (type === 'legal') {
+        legalFields.style.display = '';
+    } else {
+        legalFields.style.display = 'none';
+    }
+}
+</script>
+{% elif step == "verify" %}
 <script>
 (function() {
     const digits = document.querySelectorAll('.otp-digit');

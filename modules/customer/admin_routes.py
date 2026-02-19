@@ -40,7 +40,8 @@ async def admin_customer_list(
     total_pages = max(1, (total + per_page - 1) // per_page)
     stats = customer_admin_service.get_customer_stats(db)
 
-    return templates.TemplateResponse("admin/customers/list.html", {
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("admin/customers/list.html", {
         "request": request,
         "user": user,
         "customers": customers,
@@ -51,7 +52,52 @@ async def admin_customer_list(
         "search_query": search or "",
         "status_filter": status or "",
         "active_page": "customers",
+        "csrf_token": csrf,
+        "error": request.query_params.get("error", ""),
     })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+# ==========================================
+# Create Customer
+# ==========================================
+
+@router.get("/create")
+async def admin_customer_create_redirect():
+    return RedirectResponse("/admin/customers", status_code=302)
+
+
+@router.post("/create")
+async def admin_customer_create(
+    request: Request,
+    mobile: str = Form(""),
+    first_name: str = Form(""),
+    last_name: str = Form(""),
+    national_id: str = Form(""),
+    csrf_token: str = Form(""),
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("customers")),
+):
+    csrf_check(request, csrf_token)
+
+    result = customer_admin_service.create_customer(
+        db,
+        mobile=mobile,
+        first_name=first_name,
+        last_name=last_name,
+        national_id=national_id,
+    )
+
+    if not result["success"]:
+        error = urllib.parse.quote(result["error"])
+        return RedirectResponse(f"/admin/customers?error={error}", status_code=303)
+
+    db.commit()
+    msg = urllib.parse.quote("کاربر جدید با موفقیت ایجاد شد.")
+    return RedirectResponse(
+        f"/admin/customers/{result['customer'].id}?msg={msg}", status_code=303,
+    )
 
 
 # ==========================================

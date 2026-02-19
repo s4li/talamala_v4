@@ -95,9 +95,6 @@ async def send_otp(
     """Send OTP to mobile number."""
     csrf_check(request, csrf_token)
 
-    # Debug: log received mode and key fields
-    print(f"[AUTH] send-otp | mode={mode} | mobile={mobile} | first_name={first_name!r} | national_id={national_id!r}")
-
     ref_code = ref_code.strip().upper()
 
     # Collect all reg fields for re-rendering on error

@@ -10,6 +10,114 @@
 {% if msg %}<div class="alert-tm-success py-2">{{ msg }}</div>{% endif %}
 {% if error %}<div class="alert-tm-danger py-2">{{ error }}</div>{% endif %}
 
+<!-- Pending Delivery Stats: Gold -->
+{% if pending_stats and pending_stats.gold.total_bars > 0 %}
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up" style="border-right:3px solid var(--tm-warning);">
+    <div class="d-flex justify-content-between align-items-center"
+         data-bs-toggle="collapse" data-bs-target="#pendingGoldDetail" role="button" style="cursor:pointer;">
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-center" style="min-width:50px;">
+                <i class="bi bi-safe2 text-warning" style="font-size:1.8rem;"></i>
+            </div>
+            <div>
+                <div class="fw-bold">طلای امانی (تحویل حضوری — منتظر مراجعه)</div>
+                <div class="text-muted small">
+                    {{ pending_stats.gold.total_bars }} شمش &bull;
+                    <span class="fw-bold text-warning">{{ pending_stats.gold.total_weight }} گرم</span>
+                </div>
+            </div>
+        </div>
+        <i class="bi bi-chevron-down text-muted"></i>
+    </div>
+    <div class="collapse mt-3" id="pendingGoldDetail">
+        <div class="table-responsive">
+            <table class="table table-tm table-sm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>سفارش</th>
+                        <th>مشتری</th>
+                        <th>شماره تماس</th>
+                        <th>محصول</th>
+                        <th>سریال</th>
+                        <th>وزن (گرم)</th>
+                        <th>وضعیت تحویل</th>
+                        <th>تاریخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bar in pending_stats.gold.bars %}
+                    <tr>
+                        <td><a href="/orders/{{ bar.order_id }}" class="fw-bold text-decoration-none">#{{ bar.order_id }}</a></td>
+                        <td>{{ bar.customer_name }}</td>
+                        <td><small dir="ltr">{{ bar.customer_mobile }}</small></td>
+                        <td>{{ bar.product_name }}</td>
+                        <td><code dir="ltr">{{ bar.serial_code }}</code></td>
+                        <td class="fw-bold">{{ bar.weight }}</td>
+                        <td>{{ bar.delivery_status }}</td>
+                        <td><small>{{ bar.order_date | jdate if bar.order_date else '' }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Pending Delivery Stats: Silver -->
+{% if pending_stats and pending_stats.silver.total_bars > 0 %}
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up" style="border-right:3px solid #adb5bd;">
+    <div class="d-flex justify-content-between align-items-center"
+         data-bs-toggle="collapse" data-bs-target="#pendingSilverDetail" role="button" style="cursor:pointer;">
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-center" style="min-width:50px;">
+                <i class="bi bi-safe2" style="font-size:1.8rem;color:#adb5bd;"></i>
+            </div>
+            <div>
+                <div class="fw-bold">نقره امانی (تحویل حضوری — منتظر مراجعه)</div>
+                <div class="text-muted small">
+                    {{ pending_stats.silver.total_bars }} شمش &bull;
+                    <span class="fw-bold" style="color:#6c757d;">{{ pending_stats.silver.total_weight }} گرم</span>
+                </div>
+            </div>
+        </div>
+        <i class="bi bi-chevron-down text-muted"></i>
+    </div>
+    <div class="collapse mt-3" id="pendingSilverDetail">
+        <div class="table-responsive">
+            <table class="table table-tm table-sm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>سفارش</th>
+                        <th>مشتری</th>
+                        <th>شماره تماس</th>
+                        <th>محصول</th>
+                        <th>سریال</th>
+                        <th>وزن (گرم)</th>
+                        <th>وضعیت تحویل</th>
+                        <th>تاریخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bar in pending_stats.silver.bars %}
+                    <tr>
+                        <td><a href="/orders/{{ bar.order_id }}" class="fw-bold text-decoration-none">#{{ bar.order_id }}</a></td>
+                        <td>{{ bar.customer_name }}</td>
+                        <td><small dir="ltr">{{ bar.customer_mobile }}</small></td>
+                        <td>{{ bar.product_name }}</td>
+                        <td><code dir="ltr">{{ bar.serial_code }}</code></td>
+                        <td class="fw-bold">{{ bar.weight }}</td>
+                        <td>{{ bar.delivery_status }}</td>
+                        <td><small>{{ bar.order_date | jdate if bar.order_date else '' }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Delivery Method Tabs -->
 <ul class="nav nav-tabs mb-3 tm-animate-fade-in-up tm-delay-1">
     <li class="nav-item">
@@ -70,6 +178,7 @@
                         <th>تحویل</th>
                         <th>وضعیت سفارش</th>
                         <th>وضعیت تحویل</th>
+                        <th>شماره مرسوله</th>
                         <th>تاریخ</th>
                         <th>عملیات</th>
                     </tr>
@@ -114,9 +223,11 @@
                         <td>
                             {% if order.delivery_status and order.status == 'Paid' %}
                             <span class="badge bg-{{ order.delivery_status_color }}">{{ order.delivery_status_label }}</span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
                             {% if order.postal_tracking_code %}
-                            <small class="d-block text-muted" dir="ltr">{{ order.postal_tracking_code }}</small>
-                            {% endif %}
+                            <small dir="ltr">{{ order.postal_tracking_code }}</small>
                             {% else %}—{% endif %}
                         </td>
                         <td><small>{{ order.created_at | jdate if order.created_at else '' }}</small></td>
@@ -148,7 +259,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="10" class="text-center text-muted py-4">سفارشی یافت نشد</td></tr>
+                    <tr><td colspan="11" class="text-center text-muted py-4">سفارشی یافت نشد</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

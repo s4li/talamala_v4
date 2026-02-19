@@ -1,0 +1,155 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "dealer_requests" %}
+{% block title %}جزئیات درخواست #{{ dealer_request.id }} - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <a href="/admin/dealer-requests" class="text-decoration-none text-muted me-2"><i class="bi bi-arrow-right"></i></a>
+        درخواست نمایندگی #{{ dealer_request.id }}
+    </h4>
+    <span class="badge-tm badge-tm-{{ dealer_request.status_color }} fs-6">{{ dealer_request.status_label }}</span>
+</div>
+
+<div class="row g-4">
+    <!-- Info Card -->
+    <div class="col-lg-8 tm-animate-fade-in-up">
+        <div class="card-tm no-hover">
+            <div class="border-bottom pb-3 mb-3 fw-bold">
+                <i class="bi bi-person me-1"></i>اطلاعات متقاضی
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <small class="text-muted">نام و نام خانوادگی</small>
+                    <div class="fw-bold">{{ dealer_request.full_name }}</div>
+                </div>
+                {% if dealer_request.birth_date %}
+                <div class="col-md-6">
+                    <small class="text-muted">تاریخ تولد</small>
+                    <div>{{ dealer_request.birth_date }}</div>
+                </div>
+                {% endif %}
+                <div class="col-md-6">
+                    <small class="text-muted">شماره تماس</small>
+                    <div class="fw-bold">{{ dealer_request.mobile }}</div>
+                </div>
+                {% if dealer_request.email %}
+                <div class="col-md-6">
+                    <small class="text-muted">پست الکترونیک</small>
+                    <div dir="ltr">{{ dealer_request.email }}</div>
+                </div>
+                {% endif %}
+                {% if dealer_request.gender %}
+                <div class="col-md-6">
+                    <small class="text-muted">جنسیت</small>
+                    <div>{{ dealer_request.gender_label }}</div>
+                </div>
+                {% endif %}
+                <div class="col-md-6">
+                    <small class="text-muted">استان / شهر</small>
+                    <div>{{ dealer_request.province_name }} / {{ dealer_request.city_name }}</div>
+                </div>
+                <div class="col-md-6">
+                    <small class="text-muted">تاریخ ثبت</small>
+                    <div>{{ dealer_request.created_at | jdate }}</div>
+                </div>
+                {% if dealer_request.customer %}
+                <div class="col-md-6">
+                    <small class="text-muted">حساب کاربری</small>
+                    <div>
+                        <a href="/admin/customers/{{ dealer_request.customer_id }}" class="text-decoration-none">
+                            <i class="bi bi-person-circle me-1"></i>{{ dealer_request.customer.full_name or dealer_request.customer.mobile }}
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Attachments -->
+        {% if dealer_request.attachments %}
+        <div class="card-tm no-hover mt-3">
+            <div class="border-bottom pb-3 mb-3 fw-bold">
+                <i class="bi bi-paperclip me-1"></i>مدارک بارگذاری شده
+                <span class="badge-tm badge-tm-info ms-1">{{ dealer_request.attachments | length }}</span>
+            </div>
+            <div class="d-flex flex-wrap gap-3">
+                {% for att in dealer_request.attachments %}
+                <a href="/{{ att.file_path }}" target="_blank" class="text-decoration-none">
+                    <div class="text-center">
+                        <img src="/{{ att.file_path }}" alt="{{ att.original_filename or 'مدرک' }}"
+                             class="rounded border" style="width:120px;height:120px;object-fit:cover;">
+                        {% if att.original_filename %}
+                        <div class="small text-muted mt-1" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            {{ att.original_filename }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Action Sidebar -->
+    <div class="col-lg-4 tm-animate-fade-in-up tm-delay-1">
+        {% if dealer_request.status == 'Pending' %}
+        <!-- Approve Form -->
+        <div class="card-tm no-hover mb-3" style="border-right:3px solid var(--tm-success);">
+            <div class="fw-bold mb-3"><i class="bi bi-check-circle text-success me-1"></i>تایید درخواست</div>
+            <form method="POST" action="/admin/dealer-requests/{{ dealer_request.id }}/approve">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="mb-3">
+                    <label class="form-label-tm small">یادداشت (اختیاری)</label>
+                    <textarea name="admin_note" class="form-control form-control-tm" rows="3"
+                              placeholder="توضیحات برای متقاضی..."></textarea>
+                </div>
+                <button class="btn btn-sm btn-success w-100">
+                    <i class="bi bi-check-lg me-1"></i>تایید
+                </button>
+            </form>
+        </div>
+
+        <!-- Reject Form -->
+        <div class="card-tm no-hover" style="border-right:3px solid var(--tm-danger);">
+            <div class="fw-bold mb-3"><i class="bi bi-x-circle text-danger me-1"></i>رد درخواست</div>
+            <form method="POST" action="/admin/dealer-requests/{{ dealer_request.id }}/reject">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="mb-3">
+                    <label class="form-label-tm small">دلیل رد <span class="text-danger">*</span></label>
+                    <textarea name="admin_note" class="form-control form-control-tm" rows="3"
+                              placeholder="دلیل رد درخواست..." required></textarea>
+                </div>
+                <button class="btn btn-sm btn-danger w-100">
+                    <i class="bi bi-x-lg me-1"></i>رد کردن
+                </button>
+            </form>
+        </div>
+
+        {% else %}
+        <!-- Already decided -->
+        <div class="card-tm no-hover">
+            <div class="fw-bold mb-3">
+                {% if dealer_request.status == 'Approved' %}
+                <i class="bi bi-check-circle-fill text-success me-1"></i>تایید شده
+                {% else %}
+                <i class="bi bi-x-circle-fill text-danger me-1"></i>رد شده
+                {% endif %}
+            </div>
+            {% if dealer_request.admin_note %}
+            <div class="small">
+                <strong>یادداشت:</strong><br>
+                {{ dealer_request.admin_note }}
+            </div>
+            {% endif %}
+            {% if dealer_request.updated_at %}
+            <div class="small text-muted mt-2">
+                <i class="bi bi-clock me-1"></i>{{ dealer_request.updated_at | jdate }}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -107,7 +107,8 @@ from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalR
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory  # noqa: F401
 from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest  # noqa: F401
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment  # noqa: F401
-from modules.review.models import Review, ReviewImage, ProductComment, CommentImage  # noqa: F401
+from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike  # noqa: F401
+from modules.dealer_request.models import DealerRequest, DealerRequestAttachment  # noqa: F401
 
 # ==========================================
 # Import routers
@@ -137,6 +138,9 @@ from modules.ownership.routes import router as ownership_router
 from modules.admin.staff_routes import router as staff_admin_router
 from modules.pos.routes import router as pos_router
 from modules.review.routes import router as review_router
+from modules.review.admin_routes import router as review_admin_router
+from modules.dealer_request.routes import router as dealer_request_router
+from modules.dealer_request.admin_routes import router as dealer_request_admin_router
 
 
 # ==========================================
@@ -416,6 +420,9 @@ app.include_router(ownership_router)
 app.include_router(staff_admin_router)
 app.include_router(pos_router)
 app.include_router(review_router)
+app.include_router(review_admin_router)
+app.include_router(dealer_request_router)
+app.include_router(dealer_request_admin_router)
 
 
 # ==========================================
@@ -483,11 +490,13 @@ async def admin_dashboard(
     user=Depends(require_permission("dashboard")),
 ):
     from modules.admin.dashboard_service import dashboard_service
+    from modules.order.service import order_service
 
     stats = dashboard_service.get_overview_stats(db)
     recent_orders = dashboard_service.get_recent_orders(db, limit=8)
     daily_revenue = dashboard_service.get_daily_revenue(db, days=30)
     inventory_status = dashboard_service.get_inventory_by_status(db)
+    pending_stats = order_service.get_pending_delivery_stats(db)
 
     return templates.TemplateResponse("admin/dashboard.html", {
         "request": request,
@@ -496,6 +505,7 @@ async def admin_dashboard(
         "recent_orders": recent_orders,
         "daily_revenue": daily_revenue,
         "inventory_status": inventory_status,
+        "pending_stats": pending_stats,
         "active_page": "dashboard",
     })
 

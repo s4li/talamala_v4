@@ -1,0 +1,207 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}دعوت از دوستان - طلاملا{% endblock %}
+
+{% block shop_css %}
+<style>
+    .invite-hero {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        background: linear-gradient(135deg, rgba(212,168,67,0.08) 0%, rgba(212,168,67,0.02) 100%);
+        border-radius: 16px;
+        border: 1px solid rgba(212,168,67,0.15);
+    }
+    .invite-hero-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(212,168,67,0.12);
+        color: var(--tm-primary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    .invite-reward {
+        display: inline-block;
+        background: var(--tm-primary);
+        color: #fff;
+        padding: 0.4rem 1.2rem;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-top: 0.5rem;
+    }
+    .copy-box {
+        position: relative;
+        background: var(--tm-info-900, #f8f9fa);
+        border: 2px dashed var(--tm-border, #dee2e6);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        transition: border-color 0.3s;
+    }
+    .copy-box:hover {
+        border-color: var(--tm-primary);
+    }
+    .copy-box .copy-text {
+        flex: 1;
+        font-family: monospace;
+        font-size: 0.95rem;
+        word-break: break-all;
+        direction: ltr;
+        text-align: left;
+        color: #333;
+    }
+    .copy-box .copy-btn {
+        white-space: nowrap;
+    }
+    .copy-success {
+        display: none;
+        color: var(--tm-success, #198754);
+        font-size: 0.85rem;
+        margin-top: 0.35rem;
+    }
+    .copy-success.show {
+        display: block;
+        animation: fadeIn 0.3s;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .invite-steps {
+        counter-reset: steps;
+    }
+    .invite-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 0.75rem 0;
+    }
+    .invite-step-num {
+        counter-increment: steps;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(212,168,67,0.12);
+        color: var(--tm-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+    .invite-step-num::before {
+        content: counter(steps);
+    }
+</style>
+{% endblock %}
+
+{% block shop_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7 col-md-9">
+
+        <!-- Hero -->
+        <div class="invite-hero mb-4 tm-animate-fade-in">
+            <div class="invite-hero-icon">
+                <i class="bi bi-gift"></i>
+            </div>
+            <h4 class="fw-bold mb-2">دعوت از دوستان</h4>
+            <p class="text-muted mb-2">با دعوت از دوستان خود</p>
+            <div class="invite-reward">۵۰,۰۰۰ تومان دریافت کنید</div>
+        </div>
+
+        <!-- Referral Code -->
+        <div class="card-tm no-hover mb-3 tm-animate-fade-in-up">
+            <div class="border-bottom pb-3 mb-3 fw-bold">
+                <i class="bi bi-key me-1"></i>کد معرف شما
+            </div>
+            <div class="copy-box" id="codeBox">
+                <span class="copy-text fw-bold" style="font-size:1.3rem;letter-spacing:3px;" id="refCode">{{ referral_code }}</span>
+                <button class="btn btn-sm btn-tm-primary copy-btn" onclick="copyText('refCode','codeCopied')">
+                    <i class="bi bi-clipboard me-1"></i>کپی
+                </button>
+            </div>
+            <div class="copy-success" id="codeCopied">
+                <i class="bi bi-check-circle me-1"></i>کد معرف کپی شد!
+            </div>
+        </div>
+
+        <!-- Referral Link -->
+        <div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-1">
+            <div class="border-bottom pb-3 mb-3 fw-bold">
+                <i class="bi bi-link-45deg me-1"></i>لینک اختصاصی شما
+            </div>
+            <div class="copy-box" id="linkBox">
+                <span class="copy-text" id="refLink">{{ referral_link }}</span>
+                <button class="btn btn-sm btn-tm-primary copy-btn" onclick="copyText('refLink','linkCopied')">
+                    <i class="bi bi-clipboard me-1"></i>کپی
+                </button>
+            </div>
+            <div class="copy-success" id="linkCopied">
+                <i class="bi bi-check-circle me-1"></i>لینک کپی شد!
+            </div>
+        </div>
+
+        <!-- How it works -->
+        <div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+            <div class="border-bottom pb-3 mb-3 fw-bold">
+                <i class="bi bi-info-circle me-1"></i>نحوه عملکرد
+            </div>
+            <div class="invite-steps">
+                <div class="invite-step">
+                    <div class="invite-step-num"></div>
+                    <div>
+                        <div class="fw-bold">لینک یا کد خود را به اشتراک بگذارید</div>
+                        <small class="text-muted">لینک اختصاصی یا کد معرف خود را برای دوستانتان ارسال کنید.</small>
+                    </div>
+                </div>
+                <div class="invite-step">
+                    <div class="invite-step-num"></div>
+                    <div>
+                        <div class="fw-bold">دوستتان ثبت‌نام می‌کند</div>
+                        <small class="text-muted">دوست شما با استفاده از لینک یا کد معرف شما در طلاملا ثبت‌نام می‌کند.</small>
+                    </div>
+                </div>
+                <div class="invite-step">
+                    <div class="invite-step-num"></div>
+                    <div>
+                        <div class="fw-bold">پاداش دریافت کنید</div>
+                        <small class="text-muted">پس از اولین خرید دوستتان، ۵۰,۰۰۰ تومان به کیف پول شما واریز می‌شود.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block shop_js %}
+<script>
+function copyText(elementId, successId) {
+    const text = document.getElementById(elementId).textContent.trim();
+    navigator.clipboard.writeText(text).then(function() {
+        const el = document.getElementById(successId);
+        el.classList.add('show');
+        setTimeout(function() { el.classList.remove('show'); }, 2500);
+    }).catch(function() {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        const el = document.getElementById(successId);
+        el.classList.add('show');
+        setTimeout(function() { el.classList.remove('show'); }, 2500);
+    });
+}
+</script>
+{% endblock %}

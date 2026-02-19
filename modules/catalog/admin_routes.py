@@ -104,11 +104,13 @@ async def update_product(
 ):
     csrf_check(request, csrf_token)
     form = await request.form()
+    description = form.get("description", "")
     category_ids = [int(v) for v in form.getlist("category_ids") if str(v).isdigit()]
     cd_id = int(card_design_id) if card_design_id.strip().isdigit() else None
     pt_id = int(package_type_id) if package_type_id.strip().isdigit() else None
     product_service.update(db, p_id, {
         "name": name, "weight": weight, "purity": purity, "design": design,
+        "description": description,
         "category_ids": category_ids, "card_design_id": cd_id, "package_type_id": pt_id,
         "wage": wage,
         "is_active": is_active,

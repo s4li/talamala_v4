@@ -1,0 +1,145 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "reviews" %}
+{% block title %}جزئیات نظر - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-chat-dots text-tm-primary"></i>
+        جزئیات نظر
+    </h4>
+    <a href="/admin/reviews{% if item_type == 'review' %}?tab=reviews{% endif %}" class="btn btn-sm btn-tm-outline">
+        <i class="bi bi-arrow-right me-1"></i>بازگشت
+    </a>
+</div>
+
+{% if request.query_params.get('msg') %}
+<div class="alert-tm-success py-2">{{ request.query_params.get('msg') }}</div>
+{% endif %}
+{% if request.query_params.get('error') %}
+<div class="alert-tm-danger py-2">{{ request.query_params.get('error') }}</div>
+{% endif %}
+
+<!-- Original Comment/Review -->
+<div class="card-tm no-hover mb-4 tm-animate-fade-in-up">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            {% if item_type == "comment" %}
+                <span class="badge-tm badge-tm-{{ item.sender_badge_color }} me-1">{{ item.sender_type_label }}</span>
+                <strong>{{ item.sender_name }}</strong>
+            {% else %}
+                {% if item.customer %}
+                <strong>{{ item.customer.full_name or item.customer.mobile }}</strong>
+                {% else %}
+                <strong>مشتری حذف شده</strong>
+                {% endif %}
+            {% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <small class="text-muted">{{ item.created_at | jdate }}</small>
+            <form method="POST" action="/admin/reviews/{{ item_type }}/{{ item.id }}/delete"
+                  onsubmit="return confirm('آیا از حذف این نظر اطمینان دارید؟')" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-sm btn-tm-danger" title="حذف نظر">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Product Info -->
+    {% if item.product %}
+    <div class="mb-3 p-2 rounded-3" style="background:var(--tm-info-900);">
+        <small class="text-muted">محصول:</small>
+        <a href="/product/{{ item.product_id }}" target="_blank" class="fw-bold text-decoration-none">
+            {{ item.product.name }}
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Star Rating (only for reviews) -->
+    {% if item_type == "review" %}
+    <div class="mb-3">
+        <span class="text-warning">
+            {% for i in range(item.rating) %}<i class="bi bi-star-fill"></i>{% endfor %}
+            {% for i in range(5 - item.rating) %}<i class="bi bi-star"></i>{% endfor %}
+        </span>
+        <span class="text-muted small ms-2">({{ item.rating }} از ۵)</span>
+    </div>
+    {% endif %}
+
+    <!-- Body -->
+    <div class="p-3 rounded-3" style="background:var(--tm-info-900);">
+        <p class="mb-0" style="white-space:pre-wrap;">{{ item.body }}</p>
+    </div>
+
+    <!-- Images -->
+    {% if item.images %}
+    <div class="d-flex gap-2 mt-3 flex-wrap">
+        {% for img in item.images %}
+        <a href="/{{ img.file_path }}" target="_blank">
+            <img src="/{{ img.file_path }}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;">
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Existing Replies -->
+{% if item_type == "comment" and item.replies %}
+<h6 class="fw-bold mb-3"><i class="bi bi-chat-left-dots me-1"></i>پاسخ‌ها ({{ item.replies | length }})</h6>
+{% for reply in item.replies %}
+<div class="card-tm no-hover mb-2 tm-animate-fade-in-up" style="{% if reply.is_admin %}border-right:3px solid var(--tm-positive);{% endif %}">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <span class="badge-tm badge-tm-{{ reply.sender_badge_color }} me-1">{{ reply.sender_type_label }}</span>
+            <strong>{{ reply.sender_name }}</strong>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <small class="text-muted">{{ reply.created_at | jdate }}</small>
+            <form method="POST" action="/admin/reviews/comment/{{ reply.id }}/delete"
+                  onsubmit="return confirm('آیا از حذف این پاسخ اطمینان دارید؟')" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" name="parent_id" value="{{ item.id }}">
+                <button type="submit" class="btn btn-sm btn-tm-danger" title="حذف پاسخ">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+    <p class="mt-2 mb-0" style="white-space:pre-wrap;">{{ reply.body }}</p>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if item_type == "review" and item.admin_reply %}
+<h6 class="fw-bold mb-3"><i class="bi bi-reply me-1"></i>پاسخ ادمین</h6>
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up" style="border-right:3px solid var(--tm-positive);">
+    <div class="d-flex justify-content-between">
+        <strong><span class="badge-tm badge-tm-success me-1">پشتیبانی</span></strong>
+        {% if item.admin_reply_at %}
+        <small class="text-muted">{{ item.admin_reply_at | jdate }}</small>
+        {% endif %}
+    </div>
+    <p class="mt-2 mb-0" style="white-space:pre-wrap;">{{ item.admin_reply }}</p>
+</div>
+{% endif %}
+
+<!-- Reply Form -->
+<div class="card-tm no-hover tm-animate-fade-in-up">
+    <h6 class="fw-bold mb-3">
+        <i class="bi bi-reply me-1"></i>
+        {% if item_type == "review" and item.admin_reply %}ویرایش پاسخ{% else %}ارسال پاسخ{% endif %}
+    </h6>
+    <form method="POST" action="/admin/reviews/{{ item_type }}/{{ item.id }}/reply">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="mb-3">
+            <textarea name="body" rows="4" class="form-control form-control-tm"
+                      placeholder="پاسخ خود را بنویسید..." required>{% if item_type == "review" and item.admin_reply %}{{ item.admin_reply }}{% endif %}</textarea>
+        </div>
+        <button type="submit" class="btn btn-tm-primary">
+            <i class="bi bi-send me-1"></i>ارسال پاسخ
+        </button>
+    </form>
+</div>
+{% endblock %}

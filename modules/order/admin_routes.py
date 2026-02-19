@@ -26,20 +26,24 @@ async def admin_orders(
     request: Request,
     status: str = Query(None),
     delivery: str = Query(None),
+    search: str = Query(None),
     msg: str = Query(None),
     error: str = Query(None),
     db: Session = Depends(get_db),
     user=Depends(require_permission("orders")),
 ):
-    orders = order_service.get_all_orders(db, status=status, delivery=delivery)
+    orders = order_service.get_all_orders(db, status=status, delivery=delivery, search=search)
+    pending_stats = order_service.get_pending_delivery_stats(db)
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("admin/orders/list.html", {
         "request": request,
         "user": user,
         "orders": orders,
+        "pending_stats": pending_stats,
         "status_filter": status or "",
         "delivery_filter": delivery or "",
+        "search_query": search or "",
         "order_statuses": OrderStatus,
         "csrf_token": csrf,
         "msg": msg,

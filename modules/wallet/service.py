@@ -271,6 +271,7 @@ class WalletService:
         reference_id: str = "",
         description: str = "برداشت",
         asset_code: str = AssetCode.IRR,
+        idempotency_key: Optional[str] = None,
         owner_type: str = OwnerType.CUSTOMER,
         consume_credit: bool = True,
     ) -> LedgerEntry:
@@ -297,7 +298,7 @@ class WalletService:
                 raise ValueError("موجودی قابل برداشت کافی نیست")
             credit_consumed = 0
 
-        key = self._gen_key("withdraw", reference_type, reference_id)
+        key = idempotency_key or self._gen_key("withdraw", reference_type, reference_id)
         return self._write_entry(
             db, acct, TransactionType.WITHDRAW,
             delta_balance=-amount, delta_locked=0,
@@ -698,15 +699,18 @@ class WalletService:
         """Manual admin adjustment (deposit or withdraw)."""
         desc = description or ("واریز دستی مدیر" if direction == "deposit" else "برداشت دستی مدیر")
         ref_id = str(admin_id) if admin_id else ""
+        unique_key = f"admin_adjust:{direction}:{owner_type}:{owner_id}:{uuid.uuid4().hex[:12]}"
         if direction == "deposit":
             return self.deposit(
                 db, owner_id, amount, "admin_adjust", ref_id, desc,
                 asset_code=asset_code, owner_type=owner_type,
+                idempotency_key=unique_key,
             )
         elif direction == "withdraw":
             return self.withdraw(
                 db, owner_id, amount, "admin_adjust", ref_id, desc,
-                asset_code=asset_code, owner_type=owner_type,
+                asset_code=asset_code, idempotency_key=unique_key,
+                owner_type=owner_type,
             )
         else:
             raise ValueError("نوع عملیات نامعتبر")

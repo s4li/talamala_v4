@@ -101,8 +101,18 @@ async def product_detail(
     review_stats = review_service.get_product_review_stats(db, product_id)
     product_comments = review_service.get_product_comments(db, product_id)
     has_purchased = False
+    customer_id = None
     if user and not getattr(user, "is_staff", False):
         has_purchased = review_service.customer_has_purchased(db, user.id, product_id)
+        customer_id = user.id
+
+    # Collect all comment IDs (parents + replies) for like counts
+    all_comment_ids = []
+    for c in product_comments:
+        all_comment_ids.append(c.id)
+        for r in (c.replies or []):
+            all_comment_ids.append(r.id)
+    comment_likes = review_service.get_comment_likes_map(db, all_comment_ids, customer_id)
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/product_detail.html", {
@@ -121,6 +131,7 @@ async def product_detail(
         "review_stats": review_stats,
         "product_comments": product_comments,
         "has_purchased": has_purchased,
+        "comment_likes": comment_likes,
         "csrf_token": csrf,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")

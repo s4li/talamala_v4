@@ -1,0 +1,353 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "reviews" %}
+{% block title %}نظرات و دیدگاه‌ها - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-chat-dots text-tm-primary"></i>
+        نظرات و دیدگاه‌ها
+    </h4>
+</div>
+
+{% if request.query_params.get('msg') %}
+<div class="alert-tm-success py-2">{{ request.query_params.get('msg') }}</div>
+{% endif %}
+{% if request.query_params.get('error') %}
+<div class="alert-tm-danger py-2">{{ request.query_params.get('error') }}</div>
+{% endif %}
+
+<!-- Tabs: Comments / Reviews -->
+<ul class="nav nav-tabs mb-3 tm-animate-fade-in-up tm-delay-1">
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'comments' %}active{% endif %}"
+           href="/admin/reviews?tab=comments">
+            <i class="bi bi-chat-left-text me-1"></i>دیدگاه‌ها
+            <span class="badge-tm badge-tm-info ms-1">{{ total_comments }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'reviews' %}active{% endif %}"
+           href="/admin/reviews?tab=reviews">
+            <i class="bi bi-star me-1"></i>امتیازات
+            <span class="badge-tm badge-tm-warning ms-1">{{ total_reviews }}</span>
+        </a>
+    </li>
+</ul>
+
+<!-- Search -->
+<div class="mb-3 tm-animate-fade-in-up tm-delay-1">
+    <form method="GET" action="/admin/reviews" class="d-flex gap-2">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        <input type="text" name="search" value="{{ search_query }}" class="form-control form-control-tm form-control-sm"
+               placeholder="جستجو: نام محصول، متن نظر، نام کاربر..." style="max-width:400px;">
+        <button class="btn btn-sm btn-tm-outline"><i class="bi bi-search"></i></button>
+        {% if search_query %}
+        <a href="/admin/reviews?tab={{ tab }}" class="btn btn-sm btn-tm-outline">پاک کردن</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Comments Tab -->
+{% if tab == "comments" %}
+{% set unanswered = items | rejectattr("has_admin_reply") | list %}
+{% set answered = items | selectattr("has_admin_reply") | list %}
+
+{% if unanswered %}
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2 mb-3" style="border-right:3px solid var(--tm-warning);">
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-exclamation-circle text-warning"></i>
+        <span class="fw-bold">منتظر پاسخ</span>
+        <span class="badge-tm badge-tm-warning">{{ unanswered | length }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-tm table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>محصول</th>
+                    <th>نام فرستنده</th>
+                    <th>متن نظر</th>
+                    <th>پاسخ‌ها</th>
+                    <th>تاریخ</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in unanswered %}
+                <tr>
+                    <td>{{ c.id }}</td>
+                    <td>
+                        {% if c.product %}
+                        <a href="/product/{{ c.product_id }}" target="_blank" class="text-decoration-none fw-bold">
+                            {{ c.product.name }}
+                        </a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge-tm badge-tm-{{ c.sender_badge_color }} me-1">{{ c.sender_type_label }}</span>
+                        {{ c.sender_name }}
+                    </td>
+                    <td style="max-width:300px;">
+                        <div class="text-truncate">{{ c.body }}</div>
+                    </td>
+                    <td>
+                        {% if c.replies %}
+                        <span class="badge-tm badge-tm-info">{{ c.replies | length }} پاسخ</span>
+                        {% else %}
+                        <span class="badge-tm badge-tm-success">بدون پاسخ</span>
+                        {% endif %}
+                    </td>
+                    <td class="small text-muted">{{ c.created_at | jdate }}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="/admin/reviews/comment/{{ c.id }}" class="btn btn-sm btn-tm-outline" title="مشاهده و پاسخ">
+                                <i class="bi bi-reply"></i>
+                            </a>
+                            <form method="POST" action="/admin/reviews/comment/{{ c.id }}/delete"
+                                  onsubmit="return confirm('آیا از حذف این نظر اطمینان دارید؟')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if answered %}
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-check-circle text-success"></i>
+        <span class="fw-bold">پاسخ داده شده</span>
+        <span class="badge-tm badge-tm-success">{{ answered | length }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-tm table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>محصول</th>
+                    <th>نام فرستنده</th>
+                    <th>متن نظر</th>
+                    <th>پاسخ‌ها</th>
+                    <th>تاریخ</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in answered %}
+                <tr>
+                    <td>{{ c.id }}</td>
+                    <td>
+                        {% if c.product %}
+                        <a href="/product/{{ c.product_id }}" target="_blank" class="text-decoration-none fw-bold">
+                            {{ c.product.name }}
+                        </a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge-tm badge-tm-{{ c.sender_badge_color }} me-1">{{ c.sender_type_label }}</span>
+                        {{ c.sender_name }}
+                    </td>
+                    <td style="max-width:300px;">
+                        <div class="text-truncate">{{ c.body }}</div>
+                    </td>
+                    <td>
+                        <span class="badge-tm badge-tm-success">{{ c.replies | length }} پاسخ</span>
+                    </td>
+                    <td class="small text-muted">{{ c.created_at | jdate }}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="/admin/reviews/comment/{{ c.id }}" class="btn btn-sm btn-tm-outline" title="مشاهده و پاسخ">
+                                <i class="bi bi-reply"></i>
+                            </a>
+                            <form method="POST" action="/admin/reviews/comment/{{ c.id }}/delete"
+                                  onsubmit="return confirm('آیا از حذف این نظر اطمینان دارید؟')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if not items %}
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-chat-left-text" style="font-size:3rem;opacity:0.3;"></i>
+        <p class="mt-2">هنوز نظری ثبت نشده</p>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Reviews Tab -->
+{% if tab == "reviews" %}
+{% set unanswered_reviews = items | rejectattr("admin_reply") | list %}
+{% set answered_reviews = items | selectattr("admin_reply") | list %}
+
+{% if unanswered_reviews %}
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2 mb-3" style="border-right:3px solid var(--tm-warning);">
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-exclamation-circle text-warning"></i>
+        <span class="fw-bold">منتظر پاسخ</span>
+        <span class="badge-tm badge-tm-warning">{{ unanswered_reviews | length }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-tm table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>محصول</th>
+                    <th>مشتری</th>
+                    <th>امتیاز</th>
+                    <th>متن</th>
+                    <th>تاریخ</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in unanswered_reviews %}
+                <tr>
+                    <td>{{ r.id }}</td>
+                    <td>
+                        {% if r.product %}
+                        <a href="/product/{{ r.product_id }}" target="_blank" class="text-decoration-none fw-bold">
+                            {{ r.product.name }}
+                        </a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if r.customer %}
+                        {{ r.customer.full_name or r.customer.mobile }}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <span class="text-warning">
+                            {% for i in range(r.rating) %}<i class="bi bi-star-fill"></i>{% endfor %}
+                            {% for i in range(5 - r.rating) %}<i class="bi bi-star"></i>{% endfor %}
+                        </span>
+                    </td>
+                    <td style="max-width:250px;">
+                        <div class="text-truncate">{{ r.body }}</div>
+                    </td>
+                    <td class="small text-muted">{{ r.created_at | jdate }}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="/admin/reviews/review/{{ r.id }}" class="btn btn-sm btn-tm-outline" title="مشاهده و پاسخ">
+                                <i class="bi bi-reply"></i>
+                            </a>
+                            <form method="POST" action="/admin/reviews/review/{{ r.id }}/delete"
+                                  onsubmit="return confirm('آیا از حذف این نظر اطمینان دارید؟')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if answered_reviews %}
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-check-circle text-success"></i>
+        <span class="fw-bold">پاسخ داده شده</span>
+        <span class="badge-tm badge-tm-success">{{ answered_reviews | length }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-tm table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>محصول</th>
+                    <th>مشتری</th>
+                    <th>امتیاز</th>
+                    <th>متن</th>
+                    <th>تاریخ</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in answered_reviews %}
+                <tr>
+                    <td>{{ r.id }}</td>
+                    <td>
+                        {% if r.product %}
+                        <a href="/product/{{ r.product_id }}" target="_blank" class="text-decoration-none fw-bold">
+                            {{ r.product.name }}
+                        </a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if r.customer %}
+                        {{ r.customer.full_name or r.customer.mobile }}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <span class="text-warning">
+                            {% for i in range(r.rating) %}<i class="bi bi-star-fill"></i>{% endfor %}
+                            {% for i in range(5 - r.rating) %}<i class="bi bi-star"></i>{% endfor %}
+                        </span>
+                    </td>
+                    <td style="max-width:250px;">
+                        <div class="text-truncate">{{ r.body }}</div>
+                    </td>
+                    <td class="small text-muted">{{ r.created_at | jdate }}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="/admin/reviews/review/{{ r.id }}" class="btn btn-sm btn-tm-outline" title="مشاهده و پاسخ">
+                                <i class="bi bi-reply"></i>
+                            </a>
+                            <form method="POST" action="/admin/reviews/review/{{ r.id }}/delete"
+                                  onsubmit="return confirm('آیا از حذف این نظر اطمینان دارید؟')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if not items %}
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-star" style="font-size:3rem;opacity:0.3;"></i>
+        <p class="mt-2">هنوز امتیازی ثبت نشده</p>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<nav class="mt-3">
+    <ul class="pagination pagination-sm justify-content-center">
+        {% for p in range(1, total_pages + 1) %}
+        <li class="page-item {% if p == page %}active{% endif %}">
+            <a class="page-link" href="/admin/reviews?tab={{ tab }}&page={{ p }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ p | persian_number }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

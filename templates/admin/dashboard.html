@@ -124,6 +124,42 @@
     </div>
 </div>
 
+<!-- ========== ROW 1.5: Pending Delivery (Gold & Silver) ========== -->
+{% if pending_stats %}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up">
+        <a href="/admin/orders?delivery=Pickup" class="text-decoration-none">
+            <div class="stat-card-tm" style="border-right:3px solid var(--tm-warning);">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon" style="background:rgba(212,168,67,0.15);">
+                        <i class="bi bi-safe2 text-warning"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value text-warning">{{ pending_stats.gold.total_weight }} گرم</div>
+                        <div class="stat-label">طلای امانی ({{ pending_stats.gold.total_bars }} شمش)</div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up">
+        <a href="/admin/orders?delivery=Pickup" class="text-decoration-none">
+            <div class="stat-card-tm" style="border-right:3px solid #adb5bd;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon" style="background:rgba(108,117,125,0.12);">
+                        <i class="bi bi-safe2" style="color:#adb5bd;"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value" style="color:#6c757d;">{{ pending_stats.silver.total_weight }} گرم</div>
+                        <div class="stat-label">نقره امانی ({{ pending_stats.silver.total_bars }} شمش)</div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+{% endif %}
+
 <!-- ========== ROW 2: Secondary Stats ========== -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-4 col-lg-2">
