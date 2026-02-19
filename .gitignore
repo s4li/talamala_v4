@@ -24,6 +24,7 @@ templates_v2/
 
 # Private (keep product images & pricing Excel in git for server deployment)
 _private/screenshots/
+_private/*.sql
 
 # Screenshots (dev only)
 screenshots/
