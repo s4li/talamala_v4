@@ -6,6 +6,7 @@ JWT tokens, CSRF protection, OTP hashing, and rate limiting.
 
 import hmac
 import hashlib
+import logging
 import secrets
 from datetime import timedelta
 from typing import Optional
@@ -20,6 +21,8 @@ from config.settings import (
     OTP_MAX_ATTEMPTS, OTP_RATE_LIMIT_WINDOW,
 )
 from common.helpers import now_utc
+
+logger = logging.getLogger("talamala.security")
 
 
 # ==========================================
@@ -46,7 +49,7 @@ def generate_otp(length: int = 6) -> str:
     """Generate a random numeric OTP code. In DEBUG mode returns fixed code for local dev."""
     from config.settings import DEBUG
     if DEBUG:
-        print(f"⚠️  DEBUG OTP: {'1' * length} — اگر این پیام را در production می‌بینید، DEBUG=false کنید!")
+        logger.warning("DEBUG OTP: %s (set DEBUG=false for production)", "1" * length)
         return "1" * length
     lower = 10 ** (length - 1)
     upper = 10 ** length - 1
