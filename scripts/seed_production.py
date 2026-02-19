@@ -643,7 +643,7 @@ def seed():
                 for serial in serials:
                     if serial in existing_serials:
                         continue
-                    db.add(Bar(serial_code=serial, status="Assigned", product_id=pid, batch_id=batch_id))
+                    db.add(Bar(serial_code=serial, status="Sold", product_id=pid, batch_id=batch_id))
                     existing_serials.add(serial)
                     inserted += 1
 
