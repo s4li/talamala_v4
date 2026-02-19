@@ -97,12 +97,9 @@
             <div class="d-flex align-items-center px-3 py-3 item-row">
                 <div style="flex:3;">
                     <div class="fw-bold">{{ item.product.name if item.product else 'محصول حذف‌شده' }}</div>
-                    {% if item.bar %}
+                    {% if order.status == 'Paid' and item.bar %}
                     <small class="text-muted">
                         سریال شمش: <code>{{ item.bar.serial_code }}</code>
-                        {% if item.bar.dealer_location %}
-                        <span class="ms-1"><i class="bi bi-geo-alt"></i> {{ item.bar.dealer_location.full_name }}</span>
-                        {% endif %}
                     </small>
                     {% endif %}
                     {% if item.package_type %}
@@ -235,6 +232,20 @@
                 این سفارش در انتظار پرداخت است. شمش‌ها به مدت محدود رزرو شده‌اند.
             </div>
 
+            {% if order.grand_total == 0 %}
+            <!-- Free order (100% discount) -->
+            <div class="alert-tm-success py-2 small mb-3">
+                <i class="bi bi-gift me-1"></i>
+                این سفارش با تخفیف ۱۰۰٪ رایگان شده است.
+            </div>
+            <form method="POST" action="/payment/{{ order.id }}/wallet"
+                  onsubmit="return confirm('آیا از تأیید سفارش رایگان مطمئنید؟')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-tm-primary w-100 mb-2">
+                    <i class="bi bi-check-circle me-1"></i> تأیید و ثبت نهایی سفارش
+                </button>
+            </form>
+            {% else %}
             <!-- Pay from Wallet -->
             {% if wallet_balance and wallet_balance.available >= order.grand_total %}
             <form method="POST" action="/payment/{{ order.id }}/wallet"
@@ -273,6 +284,7 @@
                     <i class="bi bi-credit-card me-1"></i> پرداخت آنلاین
                 </button>
             </form>
+            {% endif %}
 
             <hr class="my-2">
 

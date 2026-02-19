@@ -32,14 +32,14 @@
 {% if categories %}
 <div class="mb-4">
     <div class="d-flex flex-wrap gap-2">
-        <a href="/?sort={{ current_sort }}" class="btn btn-sm {% if not current_category %}btn-dark{% else %}btn-tm-outline{% endif %} rounded-pill">
-            <i class="bi bi-grid-3x3-gap me-1"></i>همه
-        </a>
         {% for cat in categories %}
         <a href="/?sort={{ current_sort }}&category={{ cat.id }}" class="btn btn-sm {% if current_category == cat.id|string %}btn-dark{% else %}btn-tm-outline{% endif %} rounded-pill">
             {{ cat.name }}
         </a>
         {% endfor %}
+        <a href="/?sort={{ current_sort }}&category=all" class="btn btn-sm {% if current_category == 'all' %}btn-dark{% else %}btn-tm-outline{% endif %} rounded-pill">
+            <i class="bi bi-grid-3x3-gap me-1"></i>همه
+        </a>
     </div>
 </div>
 {% endif %}

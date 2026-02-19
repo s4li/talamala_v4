@@ -42,44 +42,47 @@ class PaymentService:
             return {"success": False, "message": "این سفارش قابل پرداخت نیست"}
 
         amount = order.grand_total
-        if amount <= 0:
+        if amount < 0:
             return {"success": False, "message": "مبلغ سفارش نامعتبر است"}
 
-        balance = wallet_service.get_balance(db, customer_id, AssetCode.IRR)
-        if balance["available"] < amount:
-            deficit = amount - balance["available"]
-            return {
-                "success": False,
-                "message": f"موجودی کیف پول کافی نیست. کسری: {deficit // 10:,} تومان",
-            }
+        # Zero-amount order (100% discount) — no wallet deduction needed
+        if amount > 0:
+            balance = wallet_service.get_balance(db, customer_id, AssetCode.IRR)
+            if balance["available"] < amount:
+                deficit = amount - balance["available"]
+                return {
+                    "success": False,
+                    "message": f"موجودی کیف پول کافی نیست. کسری: {deficit // 10:,} تومان",
+                }
 
-        try:
-            wallet_service.withdraw(
-                db, customer_id, amount,
-                reference_type="order",
-                reference_id=str(order_id),
-                description=f"پرداخت سفارش #{order_id}",
-                consume_credit=True,
-            )
-        except ValueError as e:
-            return {"success": False, "message": f"خطا در کسر از کیف پول: {e}"}
+            try:
+                wallet_service.withdraw(
+                    db, customer_id, amount,
+                    reference_type="order",
+                    reference_id=str(order_id),
+                    description=f"پرداخت سفارش #{order_id}",
+                    consume_credit=True,
+                )
+            except ValueError as e:
+                return {"success": False, "message": f"خطا در کسر از کیف پول: {e}"}
 
-        order.payment_method = "wallet"
-        order.payment_ref = f"WALLET-{customer_id}-{order_id}"
+        order.payment_method = "coupon_free" if amount == 0 else "wallet"
+        order.payment_ref = f"COUPON-FREE-{order_id}" if amount == 0 else f"WALLET-{customer_id}-{order_id}"
         order.paid_at = now_utc()
         result = order_service.finalize_order(db, order_id)
 
         if not result:
-            try:
-                wallet_service.deposit(
-                    db, customer_id, amount,
-                    reference_type="refund",
-                    reference_id=str(order_id),
-                    description=f"بازگشت وجه سفارش #{order_id} (خطا)",
-                    idempotency_key=f"refund:finalize_fail:{order_id}",
-                )
-            except Exception as e:
-                logger.error(f"Failed to refund wallet after finalize failure for order #{order_id}: {e}")
+            if amount > 0:
+                try:
+                    wallet_service.deposit(
+                        db, customer_id, amount,
+                        reference_type="refund",
+                        reference_id=str(order_id),
+                        description=f"بازگشت وجه سفارش #{order_id} (خطا)",
+                        idempotency_key=f"refund:finalize_fail:{order_id}",
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to refund wallet after finalize failure for order #{order_id}: {e}")
             return {"success": False, "message": "خطا در نهایی‌سازی سفارش"}
 
         logger.info(f"Order #{order_id} paid from wallet by customer #{customer_id}")

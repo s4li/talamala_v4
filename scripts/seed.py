@@ -385,50 +385,53 @@ def seed():
                 name = f"{ptype['name_prefix']} {weight_label}"
                 existing = db.query(Product).filter(Product.name == name).first()
                 if existing:
-                    product_map[name] = existing
-                    print(f"  = exists: {name}")
-                    continue
+                    p = existing
+                    product_map[name] = p
 
-                # End-customer wage (index 3) for product.wage
-                tier_wages_list = type_wages.get(weight_grams, [0, 0, 0, 0])
-                end_customer_wage = tier_wages_list[3]
+                    # Refresh images: delete old ones, copy new ones
+                    old_images = db.query(ProductImage).filter(ProductImage.product_id == p.id).all()
+                    for old_img in old_images:
+                        old_file = os.path.join(PROJECT_ROOT, old_img.file_path)
+                        if os.path.exists(old_file):
+                            os.remove(old_file)
+                        db.delete(old_img)
+                    db.flush()
+                    print(f"  ~ refreshing images: {name}")
+                else:
+                    # End-customer wage (index 3) for product.wage
+                    tier_wages_list = type_wages.get(weight_grams, [0, 0, 0, 0])
+                    end_customer_wage = tier_wages_list[3]
 
-                p = Product(
-                    name=name,
-                    weight=weight_grams,
-                    purity=ptype["purity"],
-                    card_design_id=default_design.id if default_design else None,
-                    package_type_id=default_package.id if default_package else None,
-                    wage=end_customer_wage,
-                    is_wage_percent=True,
-                    is_active=True,
-                )
-                db.add(p)
-                db.flush()
+                    p = Product(
+                        name=name,
+                        weight=weight_grams,
+                        purity=ptype["purity"],
+                        card_design_id=default_design.id if default_design else None,
+                        package_type_id=default_package.id if default_package else None,
+                        wage=end_customer_wage,
+                        is_wage_percent=True,
+                        is_active=True,
+                    )
+                    db.add(p)
+                    db.flush()
 
-                # M2M category link
-                if cat:
-                    db.add(ProductCategoryLink(product_id=p.id, category_id=cat.id))
+                    # M2M category link
+                    if cat:
+                        db.add(ProductCategoryLink(product_id=p.id, category_id=cat.id))
 
-                # Copy images from _private to static/uploads/products/
+                    print(f"  + {name} ({weight_grams}g, purity={ptype['purity']}, wage={end_customer_wage}%)")
+
+                # Copy ALL images from _private to static/uploads/products/
                 folder_name = weight_to_folder(weight_grams, ptype["folder"], folder_overrides)
                 img_src_dir = os.path.join(IMG_SRC_BASE, ptype["folder"], folder_name)
                 if os.path.isdir(img_src_dir):
-                    # Prefer website-sized images if available
-                    site_dir = os.path.join(img_src_dir, "ابعاد سایت")
-                    if os.path.isdir(site_dir):
-                        src_files = [
-                            os.path.join(site_dir, f)
-                            for f in sorted(os.listdir(site_dir))
-                            if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))
-                        ]
-                    else:
-                        src_files = [
-                            os.path.join(img_src_dir, f)
-                            for f in sorted(os.listdir(img_src_dir))
-                            if os.path.isfile(os.path.join(img_src_dir, f))
-                            and f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))
-                        ]
+                    # Collect all image files (main folder + subfolders like ابعاد سایت)
+                    src_files = []
+                    for root, _dirs, files in os.walk(img_src_dir):
+                        for f in sorted(files):
+                            if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
+                                src_files.append(os.path.join(root, f))
+                    src_files.sort()
 
                     for idx, src_path in enumerate(src_files):
                         ext = os.path.splitext(src_path)[1].lower()
@@ -443,7 +446,6 @@ def seed():
                         ))
 
                 product_map[name] = p
-                print(f"  + {name} ({weight_grams}g, purity={ptype['purity']}, wage={end_customer_wage}%)")
 
         db.flush()
 

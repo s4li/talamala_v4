@@ -15,7 +15,7 @@
             <tr>
                 <th>#</th>
                 <th>تاریخ</th>
-                <th>تعداد اقلام</th>
+                <th>محصولات</th>
                 <th>مبلغ کل</th>
                 <th>تحویل</th>
                 <th>وضعیت</th>
@@ -27,7 +27,16 @@
             <tr>
                 <td><strong>{{ order.id }}</strong></td>
                 <td>{{ order.created_at | time_ago if order.created_at else '' }}</td>
-                <td>{{ order.items|length }} قلم</td>
+                <td>
+                    {% for item in order.items %}
+                    <div{% if not loop.last %} class="mb-1"{% endif %}>
+                        <span class="small">{{ item.product.name if item.product else 'محصول حذف‌شده' }}</span>
+                        {% if order.status == 'Paid' and item.bar %}
+                        <br><small class="text-muted">سریال: <code>{{ item.bar.serial_code }}</code></small>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </td>
                 <td class="fw-bold">{{ order.grand_total | toman }} <small class="text-muted">تومان</small></td>
                 <td>
                     {% if order.delivery_method %}
