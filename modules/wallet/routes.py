@@ -25,11 +25,12 @@ logger = logging.getLogger("talamala.wallet")
 router = APIRouter(prefix="/wallet", tags=["wallet"])
 
 
-def _get_active_gateway_name(db: Session) -> str:
-    """Read active gateway from SystemSetting."""
+def _get_enabled_gateways(db: Session) -> list:
+    """Read enabled gateways from SystemSetting."""
     from modules.admin.models import SystemSetting
-    setting = db.query(SystemSetting).filter(SystemSetting.key == "active_gateway").first()
-    return setting.value if setting else "zibal"
+    setting = db.query(SystemSetting).filter(SystemSetting.key == "enabled_gateways").first()
+    raw = setting.value if setting else "sepehr,top,parsian"
+    return [g.strip() for g in raw.split(",") if g.strip()]
 
 
 # ==========================================
@@ -52,6 +53,9 @@ async def wallet_dashboard(
         .all()
     )
 
+    # Get enabled gateways for topup selector
+    enabled_gateways = _get_enabled_gateways(db)
+
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/wallet.html", {
         "request": request,
@@ -61,6 +65,7 @@ async def wallet_dashboard(
         "pending_withdrawals": pending_wr,
         "cart_count": 0,
         "csrf_token": csrf,
+        "enabled_gateways": enabled_gateways,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
@@ -102,6 +107,7 @@ async def wallet_transactions(
 async def wallet_topup(
     request: Request,
     amount_toman: int = Form(...),
+    gateway: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
     me=Depends(require_customer),
@@ -109,12 +115,17 @@ async def wallet_topup(
     csrf_check(request, csrf_token)
     amount_irr = amount_toman * 10
 
+    # Validate customer-selected gateway
+    enabled = _get_enabled_gateways(db)
+    if not gateway or gateway not in enabled:
+        flash(request, "لطفاً یک درگاه پرداخت انتخاب کنید", "danger")
+        return RedirectResponse("/wallet", status_code=302)
+
     try:
         topup = wallet_service.create_topup(db, me.id, amount_irr)
         db.flush()
 
-        # Determine active gateway
-        gateway_name = _get_active_gateway_name(db)
+        gateway_name = gateway
         gw = get_gateway(gateway_name)
         if not gw:
             wallet_service.fail_topup(db, topup.id)

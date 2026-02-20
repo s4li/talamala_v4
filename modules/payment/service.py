@@ -26,7 +26,7 @@ import modules.payment.gateways.parsian   # noqa: F401
 
 logger = logging.getLogger("talamala.payment")
 
-DEFAULT_GATEWAY = "zibal"
+DEFAULT_GATEWAYS = "sepehr,top,parsian"
 
 
 class PaymentService:
@@ -35,10 +35,11 @@ class PaymentService:
     # 🔧 Gateway Selection
     # ==========================================
 
-    def get_active_gateway_name(self, db: Session) -> str:
-        """Read active gateway from SystemSetting, fallback to zibal."""
-        setting = db.query(SystemSetting).filter(SystemSetting.key == "active_gateway").first()
-        return setting.value if setting else DEFAULT_GATEWAY
+    def get_enabled_gateways(self, db: Session) -> list:
+        """Read enabled gateways from SystemSetting, returns list of names."""
+        setting = db.query(SystemSetting).filter(SystemSetting.key == "enabled_gateways").first()
+        raw = setting.value if setting else DEFAULT_GATEWAYS
+        return [g.strip() for g in raw.split(",") if g.strip()]
 
     # ==========================================
     # 💰 Pay from Wallet
@@ -109,15 +110,17 @@ class PaymentService:
     # ==========================================
 
     def create_gateway_payment(
-        self, db: Session, order_id: int, customer_id: int, gateway_name: str = None
+        self, db: Session, order_id: int, customer_id: int, gateway_name: str = ""
     ) -> Dict[str, Any]:
-        """Create payment via the specified (or active) gateway."""
+        """Create payment via the customer-selected gateway."""
         order = db.query(Order).filter(Order.id == order_id).first()
         if not order or order.customer_id != customer_id or order.status != OrderStatus.PENDING:
             return {"success": False, "message": "سفارش نامعتبر"}
 
-        if not gateway_name:
-            gateway_name = self.get_active_gateway_name(db)
+        # Validate gateway is enabled
+        enabled = self.get_enabled_gateways(db)
+        if not gateway_name or gateway_name not in enabled:
+            return {"success": False, "message": "لطفاً یک درگاه پرداخت معتبر انتخاب کنید"}
 
         gw = get_gateway(gateway_name)
         if not gw:
@@ -132,9 +135,10 @@ class PaymentService:
             description=f"سفارش #{order_id} طلاملا",
             order_ref=str(order_id),
         ))
-
+        print (result)
         if result.success:
             order.track_id = result.track_id
+            
             db.flush()
             return {
                 "success": True,

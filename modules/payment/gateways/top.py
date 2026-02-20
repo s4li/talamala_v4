@@ -48,7 +48,6 @@ class TopGateway(BaseGateway):
             resp = requests.post(url, headers=self._auth_headers(), json=payload, timeout=15)
             result = resp.json()
             logger.info(f"Top create [{req.order_ref}]: {result}")
-
             if result.get("status") == 0:
                 data = result.get("data", {})
                 token = data.get("token")

@@ -51,12 +51,13 @@ async def pay_gateway(
     request: Request,
     order_id: int,
     csrf_token: str = Form(""),
+    gateway: str = Form(""),
     db: Session = Depends(get_db),
     me=Depends(require_customer),
 ):
-    """Redirect to whichever gateway is active in SystemSettings."""
+    """Redirect to the customer-selected gateway."""
     csrf_check(request, csrf_token)
-    result = payment_service.create_gateway_payment(db, order_id, me.id)
+    result = payment_service.create_gateway_payment(db, order_id, me.id, gateway_name=gateway)
 
     if result.get("success") and result.get("redirect_url"):
         db.commit()

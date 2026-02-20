@@ -4,7 +4,7 @@ Admin Module - Settings & Logs Routes
 System settings management + Request audit log viewer.
 """
 
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Request, Depends, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -63,7 +63,7 @@ async def update_settings(
     shipping_cost: str = Form("500000"),
     insurance_percent: str = Form("1.5"),
     insurance_cap: str = Form("500000000"),
-    active_gateway: str = Form("zibal"),
+    enabled_gateways: List[str] = Form(["sepehr"]),
     db: Session = Depends(get_db),
     user=Depends(require_permission("settings")),
 ):
@@ -96,7 +96,7 @@ async def update_settings(
         "shipping_cost": shipping_cost,
         "insurance_percent": insurance_percent,
         "insurance_cap": insurance_cap,
-        "active_gateway": active_gateway,
+        "enabled_gateways": ",".join(enabled_gateways) if enabled_gateways else "sepehr",
     }
 
     for key, value in updates.items():

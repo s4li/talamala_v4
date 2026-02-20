@@ -379,6 +379,10 @@ async def order_detail(
     order_item_ids = [item.id for item in order.items]
     item_reviews = review_service.get_reviews_for_order_items(db, order_item_ids)
 
+    # Get enabled gateways for payment selector
+    from modules.payment.service import payment_service
+    enabled_gateways = payment_service.get_enabled_gateways(db)
+
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/order_detail.html", {
         "request": request,
@@ -391,6 +395,7 @@ async def order_detail(
         "error": error,
         "wallet_balance": wallet_balance,
         "item_reviews": item_reviews,
+        "enabled_gateways": enabled_gateways,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
