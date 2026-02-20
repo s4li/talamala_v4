@@ -271,6 +271,7 @@ class PosService:
         bar.reserved_until = None
         bar.reserved_customer_id = None
         bar.claim_code = generate_unique_claim_code(db)
+        bar.delivered_at = now_utc()  # POS = in-person, already delivered
 
         # Link customer
         from modules.customer.models import Customer

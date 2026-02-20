@@ -441,61 +441,86 @@ class OrderService:
         return "gold"
 
     def get_pending_delivery_stats(self, db: Session):
-        """Get separate gold/silver stats for paid pickup orders not yet delivered."""
+        """Get custodial gold/silver: SOLD bars not yet physically delivered."""
         from sqlalchemy.orm import joinedload
-        orders = (
-            db.query(Order)
-            .options(joinedload(Order.items), joinedload(Order.customer))
+        from modules.customer.models import Customer
+
+        # Bar-based query: SOLD bars with delivered_at IS NULL
+        bars = (
+            db.query(Bar)
+            .options(joinedload(Bar.product), joinedload(Bar.customer))
             .filter(
-                Order.status == OrderStatus.PAID,
-                Order.delivery_method == DeliveryMethod.PICKUP,
-                Order.delivery_status.notin_([DeliveryStatus.DELIVERED, DeliveryStatus.RETURNED]),
+                Bar.status == BarStatus.SOLD,
+                Bar.delivered_at == None,  # noqa: E711 — not physically delivered
             )
-            .order_by(desc(Order.id))
+            .order_by(desc(Bar.id))
             .all()
         )
+
+        # Get order context for each bar (if any)
+        bar_ids = [b.id for b in bars]
+        order_map = {}
+        if bar_ids:
+            rows = (
+                db.query(OrderItem.bar_id, Order.id, Order.delivery_status, Order.delivery_method, Order.created_at)
+                .join(Order, OrderItem.order_id == Order.id)
+                .filter(OrderItem.bar_id.in_(bar_ids), Order.status == OrderStatus.PAID)
+                .all()
+            )
+            order_map = {r.bar_id: r for r in rows}
 
         gold_weight = Decimal("0")
         silver_weight = Decimal("0")
         gold_bars = []
         silver_bars = []
-        gold_order_ids = set()
-        silver_order_ids = set()
 
-        for order in orders:
-            for oi in order.items:
-                weight = oi.applied_weight or Decimal("0")
-                metal = self._get_metal_type(oi.product)
-                bar_info = {
-                    "order_id": order.id,
-                    "customer_name": order.customer.full_name if order.customer else "—",
-                    "customer_mobile": order.customer.mobile if order.customer else "",
-                    "serial_code": oi.bar.serial_code if oi.bar else "—",
-                    "product_name": oi.product.name if oi.product else "—",
-                    "weight": float(weight),
-                    "delivery_status": order.delivery_status_label if order.delivery_status else "—",
-                    "order_date": order.created_at,
+        for bar in bars:
+            product = bar.product
+            if not product:
+                continue
+            weight = Decimal(str(product.weight)) if product.weight else Decimal("0")
+            metal = self._get_metal_type(product)
+
+            oi = order_map.get(bar.id)
+            # Delivery status label
+            if oi and oi.delivery_status:
+                ds_label_map = {
+                    DeliveryStatus.WAITING: "منتظر مراجعه" if oi.delivery_method == DeliveryMethod.PICKUP else "در حال آماده‌سازی",
+                    DeliveryStatus.PREPARING: "در حال بسته‌بندی",
+                    DeliveryStatus.SHIPPED: "ارسال شده",
                 }
-                if metal == "silver":
-                    silver_weight += weight
-                    silver_bars.append(bar_info)
-                    silver_order_ids.add(order.id)
-                else:
-                    gold_weight += weight
-                    gold_bars.append(bar_info)
-                    gold_order_ids.add(order.id)
+                delivery_label = ds_label_map.get(oi.delivery_status, str(oi.delivery_status))
+            else:
+                delivery_label = "منتظر مراجعه"
+
+            bar_info = {
+                "order_id": oi.id if oi else None,
+                "customer_name": bar.customer.full_name if bar.customer else "—",
+                "customer_mobile": bar.customer.mobile if bar.customer else "",
+                "serial_code": bar.serial_code,
+                "product_name": product.name,
+                "weight": float(weight),
+                "delivery_status": delivery_label,
+                "order_date": oi.created_at if oi else bar.created_at,
+            }
+            if metal == "silver":
+                silver_weight += weight
+                silver_bars.append(bar_info)
+            else:
+                gold_weight += weight
+                gold_bars.append(bar_info)
 
         return {
             "gold": {
                 "total_weight": float(gold_weight),
                 "total_bars": len(gold_bars),
-                "total_orders": len(gold_order_ids),
+                "total_orders": len({b["order_id"] for b in gold_bars if b["order_id"]}),
                 "bars": gold_bars,
             },
             "silver": {
                 "total_weight": float(silver_weight),
                 "total_bars": len(silver_bars),
-                "total_orders": len(silver_order_ids),
+                "total_orders": len({b["order_id"] for b in silver_bars if b["order_id"]}),
                 "bars": silver_bars,
             },
         }

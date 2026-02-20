@@ -133,6 +133,13 @@ async def update_delivery_status(
     if delivery_status == DeliveryStatus.DELIVERED:
         order.delivered_at = now_utc()
 
+        # Mark all bars in this order as physically delivered
+        from modules.order.models import OrderItem
+        from modules.inventory.models import Bar
+        bar_ids = [oi.bar_id for oi in db.query(OrderItem.bar_id).filter(OrderItem.order_id == order.id).all() if oi.bar_id]
+        if bar_ids:
+            db.query(Bar).filter(Bar.id.in_(bar_ids)).update({"delivered_at": now_utc()}, synchronize_session=False)
+
         # Settle cashback coupon if applicable
         if order.promo_choice == "CASHBACK" and order.promo_amount and not order.cashback_settled:
             try:
@@ -188,6 +195,13 @@ async def confirm_pickup_delivery(
     old_delivery = order.delivery_status
     order.delivery_status = DeliveryStatus.DELIVERED
     order.delivered_at = now_utc()
+
+    # Mark all bars in this order as physically delivered
+    from modules.order.models import OrderItem
+    from modules.inventory.models import Bar
+    bar_ids = [oi.bar_id for oi in db.query(OrderItem.bar_id).filter(OrderItem.order_id == order.id).all() if oi.bar_id]
+    if bar_ids:
+        db.query(Bar).filter(Bar.id.in_(bar_ids)).update({"delivered_at": now_utc()}, synchronize_session=False)
 
     order_service.log_status_change(
         db, order_id, "delivery_status",

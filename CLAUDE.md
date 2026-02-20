@@ -139,8 +139,9 @@ talamala_v4/
 - **Batch / BatchImage**: بچ تولید (ذوب)
 
 ### inventory/models.py
-- **Bar**: id, serial_code (unique), product_id, batch_id, dealer_id (FK→dealers), customer_id, claim_code (unique, nullable — for POS/gift), status (RAW/ASSIGNED/RESERVED/SOLD), reserved_customer_id, reserved_until
+- **Bar**: id, serial_code (unique), product_id, batch_id, dealer_id (FK→dealers), customer_id, claim_code (unique, nullable — for POS/gift), status (RAW/ASSIGNED/RESERVED/SOLD), reserved_customer_id, reserved_until, delivered_at (nullable — NULL = custodial/"امانی", set = physically delivered)
   - Relationship: `dealer_location` → Dealer (physical location of bar)
+  - Custodial gold ("طلای امانی") = bars with `status == SOLD` and `delivered_at IS NULL`
 - **BarImage**: id, bar_id, file_path
 - **OwnershipHistory**: id, bar_id, previous_owner_id, new_owner_id, transfer_date, description
 - **DealerTransfer**: id, bar_id, from_dealer_id, to_dealer_id, transferred_by, transferred_at, description (table: dealer_location_transfers)

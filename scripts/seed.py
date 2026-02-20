@@ -25,6 +25,7 @@ import io
 import random
 import string
 import shutil
+from datetime import datetime, timezone
 import openpyxl
 
 # Fix Windows console encoding for Persian text
@@ -1463,16 +1464,19 @@ def seed():
             test_customer_1 = db.query(Customer).filter(Customer.mobile == "09351234567").first()
 
             if first_product and first_dealer:
+                _now = datetime.now(timezone.utc)
                 claim_bar_1 = Bar(
                     serial_code="TSCLM001", status=BarStatus.SOLD,
                     product_id=first_product.id, batch_id=batch1.id if batch1 else None,
                     dealer_id=first_dealer.id, customer_id=None, claim_code="ABC123",
+                    delivered_at=_now,
                 )
                 db.add(claim_bar_1)
                 claim_bar_2 = Bar(
                     serial_code="TSCLM002", status=BarStatus.SOLD,
                     product_id=first_product.id, batch_id=batch1.id if batch1 else None,
                     dealer_id=first_dealer.id, customer_id=None, claim_code="XYZ789",
+                    delivered_at=_now,
                 )
                 db.add(claim_bar_2)
                 if test_customer_1:
@@ -1480,6 +1484,7 @@ def seed():
                         serial_code="TSTRF001", status=BarStatus.SOLD,
                         product_id=first_product.id, batch_id=batch1.id if batch1 else None,
                         dealer_id=first_dealer.id, customer_id=test_customer_1.id, claim_code=None,
+                        delivered_at=_now,
                     )
                     db.add(transfer_bar)
                 db.flush()

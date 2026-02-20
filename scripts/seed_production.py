@@ -30,6 +30,7 @@ import json
 import shutil
 import random
 import string
+from datetime import datetime, timezone
 import openpyxl
 
 # Fix Windows console encoding for Persian text
@@ -942,7 +943,8 @@ def seed():
                 for serial in serials:
                     if serial in existing_serials:
                         continue
-                    db.add(Bar(serial_code=serial, status="Sold", product_id=pid, batch_id=batch_id))
+                    db.add(Bar(serial_code=serial, status="Sold", product_id=pid, batch_id=batch_id,
+                              delivered_at=datetime.now(timezone.utc)))
                     existing_serials.add(serial)
                     inserted += 1
 
@@ -961,6 +963,7 @@ def seed():
                     product_id=v4_name_to_id[pname],
                     batch_id=batch_id,
                     customer_id=cid,
+                    delivered_at=datetime.now(timezone.utc),
                 ))
                 existing_serials.add(serial)
                 inserted += 1

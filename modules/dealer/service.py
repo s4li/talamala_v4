@@ -212,6 +212,7 @@ class DealerService:
         # Mark bar as sold + generate claim code for POS receipt
         bar.status = BarStatus.SOLD
         bar.claim_code = generate_unique_claim_code(db)
+        bar.delivered_at = now_utc()  # POS = in-person, already delivered
 
         # Link to customer if mobile provided
         customer = None

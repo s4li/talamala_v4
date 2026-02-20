@@ -55,6 +55,9 @@ class Bar(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
+    # Physical delivery timestamp (NULL = not yet delivered = "امانی")
+    delivered_at = Column(DateTime(timezone=True), nullable=True)
+
     # Relationships
     product = relationship("Product", foreign_keys=[product_id])
     customer = relationship("Customer", foreign_keys=[customer_id])
