@@ -139,7 +139,7 @@ async def dealer_gold_sell(
             db, dealer.id, gold_mg, owner_type=OwnerType.DEALER
         )
         db.commit()
-        rial = result["rial_amount"]
+        rial = result["amount_irr"]
         msg = urllib.parse.quote(f"فروش {gold_mg / 1000:.3f} گرم طلا — {rial // 10:,} تومان واریز شد")
         return RedirectResponse(f"/dealer/wallet?msg={msg}", status_code=302)
     except ValueError as e:
