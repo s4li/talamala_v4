@@ -37,6 +37,7 @@ def _bar_to_result(bar: Bar, db: Session) -> dict:
 
     return {
         "valid": True,
+        "bar_id": bar.id,
         "serial": bar.serial_code,
         "product_name": bar.product.name if bar.product else "—",
         "weight": str(bar.product.weight) if bar.product else "—",

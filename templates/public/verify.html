@@ -114,7 +114,7 @@
                 <a href="/claim-bar" class="btn btn-tm-primary btn-sm">
                     <i class="bi bi-qr-code me-1"></i>ثبت مالکیت شمش
                 </a>
-                <a href="/my-bars" class="btn btn-tm-outline btn-sm">
+                <a href="{% if result and result.valid %}/my-bars/{{ result.bar_id }}/transfer{% else %}/my-bars{% endif %}" class="btn btn-tm-outline btn-sm">
                     <i class="bi bi-arrow-left-right me-1"></i>انتقال مالکیت شمش
                 </a>
             </div>
