@@ -460,14 +460,21 @@ class OrderService:
         # Get order context for each bar (if any)
         bar_ids = [b.id for b in bars]
         order_map = {}
+        buyer_map = {}  # order customer_id → Customer name/mobile
         if bar_ids:
             rows = (
-                db.query(OrderItem.bar_id, Order.id, Order.delivery_status, Order.delivery_method, Order.created_at)
+                db.query(OrderItem.bar_id, Order.id, Order.delivery_status, Order.delivery_method, Order.created_at, Order.customer_id)
                 .join(Order, OrderItem.order_id == Order.id)
                 .filter(OrderItem.bar_id.in_(bar_ids), Order.status == OrderStatus.PAID)
                 .all()
             )
             order_map = {r.bar_id: r for r in rows}
+
+            # Fetch original buyer names
+            buyer_ids = {r.customer_id for r in rows if r.customer_id}
+            if buyer_ids:
+                buyers = db.query(Customer).filter(Customer.id.in_(buyer_ids)).all()
+                buyer_map = {c.id: c for c in buyers}
 
         gold_weight = Decimal("0")
         silver_weight = Decimal("0")
@@ -493,10 +500,18 @@ class OrderService:
             else:
                 delivery_label = "منتظر مراجعه"
 
+            # Original buyer (from order) vs current owner (from bar)
+            buyer = buyer_map.get(oi.customer_id) if oi and oi.customer_id else None
+            owner = bar.customer
+            transferred = (owner and buyer and owner.id != buyer.id)
+
             bar_info = {
                 "order_id": oi.id if oi else None,
-                "customer_name": bar.customer.full_name if bar.customer else "—",
-                "customer_mobile": bar.customer.mobile if bar.customer else "",
+                "buyer_name": buyer.full_name if buyer else "—",
+                "buyer_mobile": buyer.mobile if buyer else "",
+                "owner_name": owner.full_name if owner else "—",
+                "owner_mobile": owner.mobile if owner else "",
+                "ownership_transferred": transferred,
                 "serial_code": bar.serial_code,
                 "product_name": product.name,
                 "weight": float(weight),
