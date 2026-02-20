@@ -9,7 +9,7 @@ Models:
   - DealerRequestAttachment: Document/image uploaded with the request
 
 Enums:
-  - DealerRequestStatus: Pending / Approved / Rejected
+  - DealerRequestStatus: Pending / Approved / Rejected / RevisionNeeded
   - Gender: male / female
 """
 
@@ -30,6 +30,7 @@ class DealerRequestStatus(str, enum.Enum):
     PENDING = "Pending"
     APPROVED = "Approved"
     REJECTED = "Rejected"
+    REVISION_NEEDED = "RevisionNeeded"
 
 
 class Gender(str, enum.Enum):
@@ -85,6 +86,7 @@ class DealerRequest(Base):
             DealerRequestStatus.PENDING.value: "\u062f\u0631 \u0627\u0646\u062a\u0638\u0627\u0631 \u0628\u0631\u0631\u0633\u06cc",
             DealerRequestStatus.APPROVED.value: "\u062a\u0627\u06cc\u06cc\u062f \u0634\u062f\u0647",
             DealerRequestStatus.REJECTED.value: "\u0631\u062f \u0634\u062f\u0647",
+            DealerRequestStatus.REVISION_NEEDED.value: "\u0646\u06cc\u0627\u0632 \u0628\u0647 \u0627\u0635\u0644\u0627\u062d",
         }.get(self.status, self.status)
 
     @property
@@ -93,6 +95,7 @@ class DealerRequest(Base):
             DealerRequestStatus.PENDING.value: "warning",
             DealerRequestStatus.APPROVED.value: "success",
             DealerRequestStatus.REJECTED.value: "danger",
+            DealerRequestStatus.REVISION_NEEDED.value: "info",
         }.get(self.status, "secondary")
 
     @property

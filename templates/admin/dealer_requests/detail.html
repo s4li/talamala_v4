@@ -111,6 +111,22 @@
             </form>
         </div>
 
+        <!-- Request Revision Form -->
+        <div class="card-tm no-hover mb-3" style="border-right:3px solid var(--tm-info);">
+            <div class="fw-bold mb-3"><i class="bi bi-pencil-square text-info me-1"></i>درخواست اصلاح</div>
+            <form method="POST" action="/admin/dealer-requests/{{ dealer_request.id }}/revision">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="mb-3">
+                    <label class="form-label-tm small">توضیحات برای متقاضی <span class="text-danger">*</span></label>
+                    <textarea name="admin_note" class="form-control form-control-tm" rows="3"
+                              placeholder="مثلاً: مدارک ناقص است، لطفا تصویر جواز کسب را ضمیمه کنید" required></textarea>
+                </div>
+                <button class="btn btn-sm btn-tm-info w-100">
+                    <i class="bi bi-pencil me-1"></i>ارسال درخواست اصلاح
+                </button>
+            </form>
+        </div>
+
         <!-- Reject Form -->
         <div class="card-tm no-hover" style="border-right:3px solid var(--tm-danger);">
             <div class="fw-bold mb-3"><i class="bi bi-x-circle text-danger me-1"></i>رد درخواست</div>
@@ -133,6 +149,8 @@
             <div class="fw-bold mb-3">
                 {% if dealer_request.status == 'Approved' %}
                 <i class="bi bi-check-circle-fill text-success me-1"></i>تایید شده
+                {% elif dealer_request.status == 'RevisionNeeded' %}
+                <i class="bi bi-pencil-square text-info me-1"></i>در انتظار اصلاح توسط متقاضی
                 {% else %}
                 <i class="bi bi-x-circle-fill text-danger me-1"></i>رد شده
                 {% endif %}

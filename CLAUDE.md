@@ -62,6 +62,7 @@ talamala_v4/
 │   ├── customer/                # Profile, CustomerAddress, GeoProvince/City/District
 │   ├── verification/            # QR/serial code authenticity check
 │   ├── dealer/                  # Dealer, DealerSale, BuybackRequest, POS, admin mgmt, REST API
+│   ├── dealer_request/          # DealerRequest, attachments, admin review (approve/revision/reject)
 │   └── ticket/                  # Ticket, TicketMessage, TicketAttachment, categories, internal notes
 ├── templates/
 │   ├── base.html                # HTML skeleton (Bootstrap RTL, Vazirmatn)
@@ -190,6 +191,13 @@ talamala_v4/
 - **Asset**: id, asset_code (unique, e.g. "gold_18k", "silver"), asset_label, price_per_gram (BigInteger, rial), stale_after_minutes (default 15), auto_update (bool, default True), update_interval_minutes (default 5), source_url, updated_at, updated_by
   - Properties: `is_fresh` (bool), `minutes_since_update` (float)
   - Constants: `GOLD_18K = "gold_18k"`, `SILVER = "silver"`
+
+### dealer_request/models.py
+- **DealerRequestStatus** (enum): Pending / Approved / Rejected / RevisionNeeded
+- **DealerRequest**: id, customer_id (FK), first_name, last_name, birth_date, email, mobile, gender, province_id (FK→geo_provinces), city_id (FK→geo_cities), status, admin_note, created_at, updated_at
+  - Properties: `full_name`, `status_label`, `status_color`, `gender_label`, `province_name`, `city_name`
+  - Relationships: customer, province, city, attachments
+- **DealerRequestAttachment**: id, dealer_request_id (FK, CASCADE), file_path, original_filename, created_at
 
 ---
 
@@ -533,6 +541,11 @@ total    = raw_gold + wage + tax
 - `GET /api/delivery/locations?province=X&city=Y` — returns pickup dealers for province/city
 - `GET /api/coupon/check?code=X`
 
+### Dealer Request (Customer)
+- `GET /dealer-request` — Show form (new) or status page (existing)
+- `GET /dealer-request?edit=1` — Show pre-filled form for RevisionNeeded requests
+- `POST /dealer-request` — Submit new or resubmit revised request
+
 ### Dealer Panel (Web)
 - `GET /dealer/dashboard` — Dealer dashboard (stats, quick actions)
 - `GET/POST /dealer/pos` — POS sale form
@@ -569,6 +582,11 @@ total    = raw_gold + wage + tax
 - `POST /admin/customers/{id}` — ویرایش اطلاعات مشتری (نام، موبایل، کد ملی، نوع مشتری، وضعیت فعال/غیرفعال)
 - `/admin/wallets` — حساب‌ها, `/admin/wallets/withdrawals/list` — برداشت‌ها
 - `/admin/coupons`
+- `GET /admin/dealer-requests` — Dealer request list (filter: status, search)
+- `GET /admin/dealer-requests/{id}` — Dealer request detail
+- `POST /admin/dealer-requests/{id}/approve` — Approve request
+- `POST /admin/dealer-requests/{id}/revision` — Request revision (admin_note required)
+- `POST /admin/dealer-requests/{id}/reject` — Reject request
 - `/admin/dealers` — Dealer list + create/edit
 - `GET /admin/dealers/sales` — گزارش فروش نمایندگان (فیلتر: نماینده، تاریخ، جستجو، تخفیف + آمار تجمیعی)
 - `POST /admin/dealers/{id}/generate-api-key` — Generate POS API key

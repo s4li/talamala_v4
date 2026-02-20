@@ -1,7 +1,7 @@
 """
 Dealer Request Module - Admin Routes
 =======================================
-Admin manages dealer requests: list, detail, approve, reject.
+Admin manages dealer requests: list, detail, approve, reject, request revision.
 """
 
 from fastapi import APIRouter, Request, Depends, Form
@@ -97,6 +97,28 @@ async def admin_dealer_request_approve(
 ):
     csrf_check(request, csrf_token)
     result = dealer_request_service.approve_request(db, req_id, admin_note)
+    if result["success"]:
+        db.commit()
+    else:
+        db.rollback()
+    return RedirectResponse(f"/admin/dealer-requests/{req_id}", status_code=302)
+
+
+# ==========================================
+# Request Revision
+# ==========================================
+
+@router.post("/{req_id}/revision")
+async def admin_dealer_request_revision(
+    req_id: int,
+    request: Request,
+    admin_note: str = Form(""),
+    csrf_token: str = Form(""),
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("dealers")),
+):
+    csrf_check(request, csrf_token)
+    result = dealer_request_service.request_revision(db, req_id, admin_note)
     if result["success"]:
         db.commit()
     else:

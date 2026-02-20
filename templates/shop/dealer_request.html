@@ -13,9 +13,16 @@
     <div class="col-lg-8 tm-animate-fade-in-up">
         <div class="card-tm no-hover">
             <div class="border-bottom pb-3 mb-3">
-                <h5 class="fw-bold mb-1"><i class="bi bi-shop-window me-2"></i>فرم درخواست نمایندگی</h5>
+                <h5 class="fw-bold mb-1"><i class="bi bi-shop-window me-2"></i>{% if dealer_request %}ویرایش درخواست نمایندگی{% else %}فرم درخواست نمایندگی{% endif %}</h5>
                 <small class="text-muted">لطفا اطلاعات زیر را با دقت تکمیل نمایید.</small>
             </div>
+
+            {% if dealer_request and dealer_request.admin_note %}
+            <div class="alert-tm-info py-2 mb-3">
+                <i class="bi bi-chat-left-text me-1"></i>
+                <strong>یادداشت کارشناس:</strong> {{ dealer_request.admin_note }}
+            </div>
+            {% endif %}
 
             {% if error %}
             <div class="alert-tm-danger py-2 mb-3"><i class="bi bi-exclamation-triangle me-1"></i>{{ error }}</div>
@@ -32,12 +39,12 @@
                     <div class="col-md-6">
                         <label class="form-label-tm fw-bold">نام <span class="text-danger">*</span></label>
                         <input type="text" name="first_name" class="form-control form-control-tm"
-                               value="{{ user.first_name or '' }}" placeholder="نام" required>
+                               value="{{ dealer_request.first_name if dealer_request else (user.first_name or '') }}" placeholder="نام" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm fw-bold">نام خانوادگی <span class="text-danger">*</span></label>
                         <input type="text" name="last_name" class="form-control form-control-tm"
-                               value="{{ user.last_name or '' }}" placeholder="نام خانوادگی" required>
+                               value="{{ dealer_request.last_name if dealer_request else (user.last_name or '') }}" placeholder="نام خانوادگی" required>
                     </div>
                 </div>
 
@@ -46,21 +53,23 @@
                     <div class="col-md-6">
                         <label class="form-label-tm fw-bold">تاریخ تولد</label>
                         <input type="text" name="birth_date" class="form-control form-control-tm"
-                               placeholder="1370/01/15" value="{{ user.birth_date or '' }}">
+                               placeholder="1370/01/15" value="{{ dealer_request.birth_date if dealer_request else (user.birth_date or '') }}">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm fw-bold">جنسیت</label>
                         <div class="d-flex gap-3 mt-1">
                             <div class="form-check border rounded p-2 px-3 flex-fill" style="cursor:pointer;"
                                  onclick="this.querySelector('input').checked=true;">
-                                <input class="form-check-input" type="radio" name="gender" value="male" id="genderMale">
+                                <input class="form-check-input" type="radio" name="gender" value="male" id="genderMale"
+                                       {% if dealer_request and dealer_request.gender == 'male' %}checked{% endif %}>
                                 <label class="form-check-label" for="genderMale">
                                     <i class="bi bi-gender-male me-1"></i>مرد
                                 </label>
                             </div>
                             <div class="form-check border rounded p-2 px-3 flex-fill" style="cursor:pointer;"
                                  onclick="this.querySelector('input').checked=true;">
-                                <input class="form-check-input" type="radio" name="gender" value="female" id="genderFemale">
+                                <input class="form-check-input" type="radio" name="gender" value="female" id="genderFemale"
+                                       {% if dealer_request and dealer_request.gender == 'female' %}checked{% endif %}>
                                 <label class="form-check-label" for="genderFemale">
                                     <i class="bi bi-gender-female me-1"></i>زن
                                 </label>
@@ -74,12 +83,12 @@
                     <div class="col-md-6">
                         <label class="form-label-tm fw-bold">شماره تماس <span class="text-danger">*</span></label>
                         <input type="text" name="mobile" class="form-control form-control-tm"
-                               value="{{ user.mobile or '' }}" placeholder="09xxxxxxxxx" required>
+                               value="{{ dealer_request.mobile if dealer_request else (user.mobile or '') }}" placeholder="09xxxxxxxxx" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm fw-bold">پست الکترونیک</label>
                         <input type="email" name="email" class="form-control form-control-tm" dir="ltr"
-                               placeholder="example@email.com">
+                               value="{{ dealer_request.email if dealer_request else '' }}" placeholder="example@email.com">
                     </div>
                 </div>
 
@@ -90,21 +99,40 @@
                         <select name="province_id" class="form-select form-select-tm" id="provinceSelect" required>
                             <option value="">انتخاب کنید</option>
                             {% for prov in provinces %}
-                            <option value="{{ prov.id }}">{{ prov.name }}</option>
+                            <option value="{{ prov.id }}" {% if dealer_request and dealer_request.province_id == prov.id %}selected{% endif %}>{{ prov.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm fw-bold">شهر اخذ نمایندگی <span class="text-danger">*</span></label>
-                        <select name="city_id" class="form-select form-select-tm" id="citySelect" required disabled>
+                        <select name="city_id" class="form-select form-select-tm" id="citySelect" required {% if not dealer_request %}disabled{% endif %}>
+                            {% if dealer_request %}
+                            <option value="{{ dealer_request.city_id }}" selected>{{ dealer_request.city_name }}</option>
+                            {% else %}
                             <option value="">ابتدا استان را انتخاب کنید</option>
+                            {% endif %}
                         </select>
                     </div>
                 </div>
 
+                <!-- Existing Attachments (edit mode) -->
+                {% if dealer_request and dealer_request.attachments %}
+                <div class="mb-3">
+                    <label class="form-label-tm fw-bold">مدارک فعلی</label>
+                    <div class="d-flex flex-wrap gap-2 mt-1">
+                        {% for att in dealer_request.attachments %}
+                        <a href="/{{ att.file_path }}" target="_blank">
+                            <img src="/{{ att.file_path }}" alt="مدرک" class="rounded border"
+                                 style="width:80px;height:80px;object-fit:cover;">
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Row 5: File Upload -->
                 <div class="mb-3">
-                    <label class="form-label-tm fw-bold">بارگذاری تصویر مدارک و جواز</label>
+                    <label class="form-label-tm fw-bold">{% if dealer_request %}بارگذاری مدارک جدید{% else %}بارگذاری تصویر مدارک و جواز{% endif %}</label>
                     <input type="file" name="files" class="form-control form-control-tm" multiple
                            accept=".jpg,.jpeg,.png,.webp">
                     <small class="text-muted">
@@ -116,7 +144,7 @@
                 <!-- Submit -->
                 <div class="d-flex gap-2 mt-4">
                     <button class="btn btn-tm-primary">
-                        <i class="bi bi-send me-1"></i> ارسال درخواست
+                        <i class="bi bi-send me-1"></i> {% if dealer_request %}ارسال مجدد درخواست{% else %}ارسال درخواست{% endif %}
                     </button>
                     <a href="/" class="btn btn-tm-outline">انصراف</a>
                 </div>
@@ -128,9 +156,11 @@
 
 {% block shop_js %}
 <script>
-document.getElementById('provinceSelect').addEventListener('change', async function() {
-    const provinceId = this.value;
-    const citySelect = document.getElementById('citySelect');
+const provinceSelect = document.getElementById('provinceSelect');
+const citySelect = document.getElementById('citySelect');
+const editCityId = {{ (dealer_request.city_id if dealer_request else 0) | int }};
+
+async function loadCities(provinceId, selectedCityId) {
     if (!provinceId) {
         citySelect.disabled = true;
         citySelect.innerHTML = '<option value="">ابتدا استان را انتخاب کنید</option>';
@@ -140,11 +170,20 @@ document.getElementById('provinceSelect').addEventListener('change', async funct
         const resp = await fetch('/api/geo/cities?province_id=' + provinceId);
         const cities = await resp.json();
         citySelect.innerHTML = '<option value="">انتخاب کنید</option>' +
-            cities.map(c => '<option value="' + c.id + '">' + c.name + '</option>').join('');
+            cities.map(c => '<option value="' + c.id + '"' + (c.id === selectedCityId ? ' selected' : '') + '>' + c.name + '</option>').join('');
         citySelect.disabled = false;
     } catch (e) {
         console.error('Error loading cities:', e);
     }
+}
+
+provinceSelect.addEventListener('change', function() {
+    loadCities(this.value, 0);
 });
+
+// If in edit mode, load cities for pre-selected province
+if (editCityId && provinceSelect.value) {
+    loadCities(provinceSelect.value, editCityId);
+}
 </script>
 {% endblock %}

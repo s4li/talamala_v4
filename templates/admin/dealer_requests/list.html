@@ -31,6 +31,12 @@
         </div>
     </div>
     <div class="col-6 col-md-3">
+        <div class="card-tm no-hover text-center py-3" style="border-right:3px solid var(--tm-info);">
+            <div class="fs-4 fw-bold text-info">{{ stats.RevisionNeeded }}</div>
+            <small class="text-muted">نیاز به اصلاح</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
         <div class="card-tm no-hover text-center py-3" style="border-right:3px solid var(--tm-danger);">
             <div class="fs-4 fw-bold text-danger">{{ stats.Rejected }}</div>
             <small class="text-muted">رد شده</small>
@@ -49,6 +55,9 @@
         </a>
         <a href="/admin/dealer-requests?status=Approved" class="btn {% if current_status == 'Approved' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
             تایید شده
+        </a>
+        <a href="/admin/dealer-requests?status=RevisionNeeded" class="btn {% if current_status == 'RevisionNeeded' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
+            نیاز به اصلاح
         </a>
         <a href="/admin/dealer-requests?status=Rejected" class="btn {% if current_status == 'Rejected' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
             رد شده

@@ -30,12 +30,30 @@ async def dealer_request_form(
     request: Request,
     msg: str = None,
     error: str = None,
+    edit: str = None,
     db: Session = Depends(get_db),
     me=Depends(require_customer),
 ):
-    # Check if customer already has an active (PENDING/APPROVED) request
+    # Check if customer already has an active (PENDING/APPROVED/REVISION_NEEDED) request
     active = dealer_request_service.get_active_request(db, me.id)
     if active:
+        # If RevisionNeeded and edit mode requested, show the form pre-filled
+        if active.status == DealerRequestStatus.REVISION_NEEDED.value and edit:
+            provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
+            csrf = new_csrf_token()
+            response = templates.TemplateResponse("shop/dealer_request.html", {
+                "request": request,
+                "user": me,
+                "provinces": provinces,
+                "csrf_token": csrf,
+                "msg": msg,
+                "error": error,
+                "dealer_request": active,
+            })
+            response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+            return response
+
+        # Otherwise show status page
         csrf = new_csrf_token()
         response = templates.TemplateResponse("shop/dealer_request_status.html", {
             "request": request,
@@ -46,7 +64,7 @@ async def dealer_request_form(
         response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
         return response
 
-    # Show the form
+    # Show the form (new request)
     provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
 
     csrf = new_csrf_token()
@@ -102,19 +120,37 @@ async def dealer_request_submit(
     if len(valid_files) > 5:
         return await _render_form_with_error(request, db, me, "حداکثر ۵ فایل مجاز است.")
 
-    result = dealer_request_service.create_request(
-        db,
-        customer_id=me.id,
-        first_name=first_name,
-        last_name=last_name,
-        mobile=mobile,
-        province_id=province_id,
-        city_id=city_id,
-        birth_date=birth_date,
-        email=email,
-        gender=gender,
-        files=files or [],
-    )
+    # Check if customer has an existing RevisionNeeded request (edit/resubmit)
+    active = dealer_request_service.get_active_request(db, me.id)
+    if active and active.status == DealerRequestStatus.REVISION_NEEDED.value:
+        result = dealer_request_service.update_request(
+            db,
+            request_id=active.id,
+            customer_id=me.id,
+            first_name=first_name,
+            last_name=last_name,
+            mobile=mobile,
+            province_id=province_id,
+            city_id=city_id,
+            birth_date=birth_date,
+            email=email,
+            gender=gender,
+            files=files or [],
+        )
+    else:
+        result = dealer_request_service.create_request(
+            db,
+            customer_id=me.id,
+            first_name=first_name,
+            last_name=last_name,
+            mobile=mobile,
+            province_id=province_id,
+            city_id=city_id,
+            birth_date=birth_date,
+            email=email,
+            gender=gender,
+            files=files or [],
+        )
 
     if result["success"]:
         db.commit()
