@@ -141,6 +141,19 @@ class LedgerEntry(Base):
 
     @property
     def txn_type_label(self) -> str:
+        # Context-aware labels based on reference_type
+        ref = self.reference_type or ""
+        if ref == "pos_gold_profit":
+            return "واریز سود"
+        if ref == "gold_buy":
+            return "خرید طلا"
+        if ref == "gold_sell":
+            if self.txn_type == TransactionType.DEPOSIT:
+                return "واریز"
+            return "فروش طلا"
+        if ref == "topup":
+            return "شارژ کیف پول"
+        # Fallback to generic labels
         labels = {
             TransactionType.DEPOSIT: "واریز",
             TransactionType.WITHDRAW: "برداشت",
@@ -155,6 +168,15 @@ class LedgerEntry(Base):
 
     @property
     def txn_type_color(self) -> str:
+        ref = self.reference_type or ""
+        if ref == "pos_gold_profit":
+            return "success"
+        if ref == "gold_buy":
+            return "warning"
+        if ref == "gold_sell":
+            if self.txn_type == TransactionType.DEPOSIT:
+                return "success"
+            return "info"
         colors = {
             TransactionType.DEPOSIT: "success",
             TransactionType.WITHDRAW: "danger",
