@@ -501,7 +501,10 @@
 
     function toggleLike(btn) {
         var commentId = btn.getAttribute('data-comment-id');
-        fetch('/reviews/comment/' + commentId + '/like', { method: 'POST' })
+        fetch('/reviews/comment/' + commentId + '/like', {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': '{{ csrf_token }}' }
+        })
             .then(function(res) {
                 if (res.status === 401 || res.status === 403) {
                     window.location.href = '/auth/login?next=/product/{{ p.id }}';
