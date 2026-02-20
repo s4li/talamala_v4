@@ -38,13 +38,18 @@
 {% endblock %}
 
 {% block shop_content %}
-<!-- Breadcrumb -->
-<nav class="mb-3">
-    <ol class="breadcrumb small">
-        <li class="breadcrumb-item"><a href="/" class="text-decoration-none">فروشگاه</a></li>
-        <li class="breadcrumb-item active">{{ p.name }}</li>
-    </ol>
-</nav>
+<!-- Back + Breadcrumb -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav class="mb-0">
+        <ol class="breadcrumb small mb-0">
+            <li class="breadcrumb-item"><a href="/" class="text-decoration-none">فروشگاه</a></li>
+            <li class="breadcrumb-item active">{{ p.name }}</li>
+        </ol>
+    </nav>
+    <a href="javascript:history.back()" class="btn btn-sm btn-tm-outline rounded-pill" title="بازگشت">
+        <i class="bi bi-arrow-right"></i> بازگشت
+    </a>
+</div>
 
 <div class="row g-4">
     <!-- Gallery -->
