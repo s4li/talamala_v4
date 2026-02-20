@@ -13,12 +13,20 @@
 
         {% if msg %}<div class="alert-tm-success py-2">{{ msg }}</div>{% endif %}
 
-        <!-- Add Address Form (collapsed) -->
-        <div class="collapse mb-4" id="addAddressForm">
+        {% if next_url %}
+        <div class="alert-tm-info py-2 small mb-3">
+            <i class="bi bi-info-circle me-1"></i>
+            آدرس جدید ثبت کنید تا به صفحه تکمیل سفارش بازگردید.
+        </div>
+        {% endif %}
+
+        <!-- Add Address Form (collapsed, auto-open when next_url) -->
+        <div class="collapse mb-4 {{ 'show' if next_url else '' }}" id="addAddressForm">
             <div class="card-tm no-hover">
                     <h6 class="fw-bold mb-3">افزودن آدرس جدید</h6>
                     <form method="POST" action="/addresses">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        {% if next_url %}<input type="hidden" name="next_url" value="{{ next_url }}">{% endif %}
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label-tm small fw-bold">عنوان <span class="text-danger">*</span></label>

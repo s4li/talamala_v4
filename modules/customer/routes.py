@@ -129,6 +129,7 @@ async def profile_update(
 async def address_list(
     request: Request,
     msg: str = None,
+    next: str = None,
     db: Session = Depends(get_db),
     me=Depends(require_customer),
 ):
@@ -147,6 +148,7 @@ async def address_list(
         "cart_count": 0,
         "csrf_token": csrf,
         "msg": msg,
+        "next_url": next,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
@@ -165,6 +167,7 @@ async def address_add(
     receiver_phone: str = Form(""),
     is_default: str = Form(""),
     csrf_token: str = Form(""),
+    next_url: str = Form(""),
     db: Session = Depends(get_db),
     me=Depends(require_customer),
 ):
@@ -189,6 +192,11 @@ async def address_add(
     )
     db.add(addr)
     db.commit()
+
+    # Redirect back to the page that sent us here (e.g. /checkout)
+    redirect_to = next_url.strip() if next_url and next_url.strip().startswith("/") else None
+    if redirect_to:
+        return RedirectResponse(redirect_to, status_code=303)
 
     msg = urllib.parse.quote("آدرس جدید ذخیره شد.")
     return RedirectResponse(f"/addresses?msg={msg}", status_code=303)
