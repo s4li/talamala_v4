@@ -58,7 +58,7 @@ SMS_API_KEY = os.getenv("SMS_API_KEY", "")
 # 💳 Payment Gateways
 # ==========================================
 ZIBAL_MERCHANT = os.getenv("ZIBAL_MERCHANT", "zibal")
-SEPEHR_TERMINAL_ID = int(os.getenv("SEPEHR_TERMINAL_ID", "99079327"))
+SEPEHR_TERMINAL_ID = int(os.getenv("SEPEHR_TERMINAL_ID") or "99079327")
 TOP_USERNAME = os.getenv("TOP_USERNAME", "")
 TOP_PASSWORD = os.getenv("TOP_PASSWORD", "")
 PARSIAN_PIN = os.getenv("PARSIAN_PIN", "")
