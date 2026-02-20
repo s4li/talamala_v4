@@ -99,6 +99,15 @@ def ensure_schema_updates():
             except Exception:
                 pass  # already nullable
 
+    # --- products: description ---
+    if "products" in insp.get_table_names():
+        prod_cols = {c["name"] for c in insp.get_columns("products")}
+        with engine.begin() as conn:
+            if "description" not in prod_cols:
+                conn.execute(text("ALTER TABLE products ADD COLUMN description TEXT"))
+                print("  + products.description added")
+                updates += 1
+
     if updates == 0:
         print("  = schema up to date")
     print()
