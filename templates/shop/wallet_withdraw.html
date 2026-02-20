@@ -37,12 +37,17 @@
                     <!-- SHABA -->
                     <div class="mb-3">
                         <label class="form-label-tm fw-bold">شماره شبا <span class="text-danger">*</span></label>
-                        <input type="text" name="shaba_number" id="shabaInput" class="form-control form-control-tm" dir="ltr"
-                               placeholder="IR000000000000000000000000" maxlength="26" required
-                               pattern="IR[0-9]{24}" style="font-family:monospace;"
-                               aria-describedby="shabaHelp shabaError">
-                        <div class="form-text" id="shabaHelp">فرمت: IR + ۲۴ رقم</div>
-                        <div class="invalid-feedback" id="shabaError">شماره شبا باید با IR شروع شده و ۲۴ رقم بعد آن باشد</div>
+                        <div class="input-group" dir="ltr">
+                            <span class="input-group-text fw-bold" style="font-family:monospace; letter-spacing:1px;">IR</span>
+                            <input type="text" id="shabaInput" class="form-control form-control-tm" dir="ltr"
+                                   placeholder="000000000000000000000000" maxlength="24" required
+                                   pattern="[0-9]{24}" style="font-family:monospace; letter-spacing:1px;"
+                                   inputmode="numeric"
+                                   aria-describedby="shabaHelp shabaError">
+                        </div>
+                        <input type="hidden" name="shaba_number" id="shabaHidden">
+                        <div class="form-text" id="shabaHelp">۲۴ رقم بعد از IR را وارد کنید</div>
+                        <div class="invalid-feedback d-block d-none" id="shabaError">شماره شبا باید دقیقاً ۲۴ رقم باشد</div>
                     </div>
 
                     <!-- Account Holder -->
@@ -117,15 +122,19 @@ function updateWdWords() {
 }
 wdInp.addEventListener('input', updateWdWords);
 
-// SHABA real-time validation
+// SHABA: only allow digits, sync hidden field
 var shabaInp = document.getElementById('shabaInput');
+var shabaHidden = document.getElementById('shabaHidden');
+var shabaErr = document.getElementById('shabaError');
 if (shabaInp) {
     shabaInp.addEventListener('input', function() {
-        var val = this.value.trim();
-        if (val && !/^IR[0-9]{0,24}$/.test(val)) {
-            this.classList.add('is-invalid');
+        // Strip non-digits
+        this.value = this.value.replace(/[^0-9]/g, '');
+        shabaHidden.value = 'IR' + this.value;
+        if (this.value.length > 0 && this.value.length !== 24) {
+            shabaErr.classList.remove('d-none');
         } else {
-            this.classList.remove('is-invalid');
+            shabaErr.classList.add('d-none');
         }
     });
 }
@@ -134,13 +143,14 @@ if (shabaInp) {
 var wdForm = document.getElementById('withdrawForm');
 if (wdForm) {
     wdForm.addEventListener('submit', function(e) {
-        var shaba = shabaInp.value.trim();
-        if (!/^IR[0-9]{24}$/.test(shaba)) {
+        var digits = shabaInp.value.replace(/[^0-9]/g, '');
+        if (digits.length !== 24) {
             e.preventDefault();
-            shabaInp.classList.add('is-invalid');
+            shabaErr.classList.remove('d-none');
             shabaInp.focus();
             return;
         }
+        shabaHidden.value = 'IR' + digits;
         // Show loading
         var btn = this.querySelector('button[type="submit"]');
         btn.disabled = true;
