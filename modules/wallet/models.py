@@ -202,6 +202,7 @@ class WalletTopup(Base):
     amount_irr = Column(BigInteger, nullable=False)
     track_id = Column(String, unique=True, nullable=True)
     ref_number = Column(String, nullable=True)
+    gateway = Column(String, nullable=True)  # zibal/sepehr/top/parsian
     status = Column(String, default="PENDING", nullable=False)  # PENDING/PAID/FAILED
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

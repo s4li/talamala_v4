@@ -39,5 +39,8 @@ jdatetime==5.2.0
 # --- Web Scraping (for gold price) ---
 beautifulsoup4==4.12.3
 
+# --- SOAP Client (Parsian gateway) ---
+zeep==4.2.1
+
 # --- Environment ---
 python-dotenv==1.0.1

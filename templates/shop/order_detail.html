@@ -297,7 +297,7 @@
             {% endif %}
 
             <!-- Gateway Payment -->
-            <form method="POST" action="/payment/{{ order.id }}/zibal">
+            <form method="POST" action="/payment/{{ order.id }}/gateway">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button class="btn btn-tm-outline w-100 mb-2">
                     <i class="bi bi-credit-card me-1"></i> پرداخت آنلاین
@@ -356,6 +356,9 @@
                     {% if order.payment_method == 'wallet' %}کیف پول
                     {% elif 'zibal' in (order.payment_method or '') %}درگاه زیبال
                     {% elif 'sepehr' in (order.payment_method or '') %}درگاه سپهر
+                    {% elif 'top' in (order.payment_method or '') %}درگاه تاپ
+                    {% elif 'parsian' in (order.payment_method or '') %}درگاه پارسیان
+                    {% elif order.payment_method == 'coupon_free' %}تخفیف ۱۰۰٪
                     {% else %}{{ order.payment_method }}{% endif %}
                 </div>
                 {% if order.payment_ref %}<div><strong>شماره مرجع:</strong> <code>{{ order.payment_ref }}</code></div>{% endif %}

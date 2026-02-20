@@ -1,14 +1,11 @@
 """
 Payment Service
 =================
-Wallet payment + Zibal gateway (sandbox/production).
-
-Zibal Sandbox: merchant = "zibal" → all payments auto-succeed.
-Zibal Production: set ZIBAL_MERCHANT env to real merchant ID.
+Wallet payment + Multi-gateway support (Zibal, Sepehr, Top, Parsian).
+Active gateway is selected via SystemSetting("active_gateway").
 """
 
 import logging
-import httpx
 from typing import Dict, Any
 from sqlalchemy.orm import Session
 
@@ -16,17 +13,32 @@ from modules.order.models import Order, OrderStatus
 from modules.order.service import order_service
 from modules.wallet.service import wallet_service
 from modules.wallet.models import AssetCode
+from modules.admin.models import SystemSetting
 from common.helpers import now_utc
-from config.settings import ZIBAL_MERCHANT, BASE_URL
+from config.settings import BASE_URL
+
+# Import gateway modules to trigger register_gateway() calls
+from modules.payment.gateways import get_gateway, GatewayPaymentRequest  # noqa: F401
+import modules.payment.gateways.zibal     # noqa: F401
+import modules.payment.gateways.sepehr    # noqa: F401
+import modules.payment.gateways.top       # noqa: F401
+import modules.payment.gateways.parsian   # noqa: F401
 
 logger = logging.getLogger("talamala.payment")
 
-ZIBAL_REQUEST_URL = "https://gateway.zibal.ir/v1/request"
-ZIBAL_VERIFY_URL = "https://gateway.zibal.ir/v1/verify"
-ZIBAL_START_URL = "https://gateway.zibal.ir/start/{trackId}"
+DEFAULT_GATEWAY = "zibal"
 
 
 class PaymentService:
+
+    # ==========================================
+    # 🔧 Gateway Selection
+    # ==========================================
+
+    def get_active_gateway_name(self, db: Session) -> str:
+        """Read active gateway from SystemSetting, fallback to zibal."""
+        setting = db.query(SystemSetting).filter(SystemSetting.key == "active_gateway").first()
+        return setting.value if setting else DEFAULT_GATEWAY
 
     # ==========================================
     # 💰 Pay from Wallet
@@ -93,46 +105,49 @@ class PaymentService:
         }
 
     # ==========================================
-    # 🏦 Zibal Gateway
+    # 🏦 Gateway Payment (generic)
     # ==========================================
 
-    def create_zibal_payment(self, db: Session, order_id: int, customer_id: int) -> Dict[str, Any]:
-        """Create Zibal payment → redirect URL."""
+    def create_gateway_payment(
+        self, db: Session, order_id: int, customer_id: int, gateway_name: str = None
+    ) -> Dict[str, Any]:
+        """Create payment via the specified (or active) gateway."""
         order = db.query(Order).filter(Order.id == order_id).first()
         if not order or order.customer_id != customer_id or order.status != OrderStatus.PENDING:
             return {"success": False, "message": "سفارش نامعتبر"}
 
+        if not gateway_name:
+            gateway_name = self.get_active_gateway_name(db)
+
+        gw = get_gateway(gateway_name)
+        if not gw:
+            return {"success": False, "message": f"درگاه {gateway_name} در دسترس نیست"}
+
         amount = order.grand_total
-        callback_url = f"{BASE_URL}/payment/zibal/callback?order_id={order_id}"
+        callback_url = f"{BASE_URL}/payment/{gateway_name}/callback?order_id={order_id}"
 
-        try:
-            resp = httpx.post(ZIBAL_REQUEST_URL, json={
-                "merchant": ZIBAL_MERCHANT,
-                "amount": amount,
-                "callbackUrl": callback_url,
-                "description": f"سفارش #{order_id} طلاملا",
-                "orderId": str(order_id),
-            }, timeout=15)
-            data = resp.json()
-            logger.info(f"Zibal request order #{order_id}: {data}")
+        result = gw.create_payment(GatewayPaymentRequest(
+            amount_irr=amount,
+            callback_url=callback_url,
+            description=f"سفارش #{order_id} طلاملا",
+            order_ref=str(order_id),
+        ))
 
-            if data.get("result") == 100:
-                track_id = data["trackId"]
-                order.track_id = str(track_id)
-                db.flush()
-                return {"success": True, "redirect_url": ZIBAL_START_URL.format(trackId=track_id)}
-            else:
-                msg = data.get("message", f"کد خطا: {data.get('result')}")
-                return {"success": False, "message": f"خطا در درگاه: {msg}"}
+        if result.success:
+            order.track_id = result.track_id
+            db.flush()
+            return {
+                "success": True,
+                "redirect_url": result.redirect_url,
+                "gateway": gateway_name,
+            }
+        else:
+            return {"success": False, "message": result.error_message}
 
-        except httpx.TimeoutException:
-            return {"success": False, "message": "درگاه پاسخ نداد. دوباره تلاش کنید."}
-        except Exception as e:
-            logger.error(f"Zibal request failed: {e}")
-            return {"success": False, "message": f"خطا در اتصال به درگاه: {e}"}
-
-    def verify_zibal_callback(self, db: Session, track_id: str, order_id: int) -> Dict[str, Any]:
-        """Verify Zibal callback after user returns from gateway."""
+    def verify_gateway_callback(
+        self, db: Session, gateway_name: str, params: Dict[str, Any], order_id: int
+    ) -> Dict[str, Any]:
+        """Verify callback from any gateway."""
         order = db.query(Order).filter(Order.id == order_id).first()
         if not order:
             return {"success": False, "message": "سفارش یافت نشد"}
@@ -142,31 +157,27 @@ class PaymentService:
                 return {"success": True, "message": "این سفارش قبلاً پرداخت شده"}
             return {"success": False, "message": "سفارش لغو شده"}
 
-        try:
-            resp = httpx.post(ZIBAL_VERIFY_URL, json={
-                "merchant": ZIBAL_MERCHANT,
-                "trackId": int(track_id),
-            }, timeout=15)
-            data = resp.json()
-            logger.info(f"Zibal verify order #{order_id}: {data}")
+        gw = get_gateway(gateway_name)
+        if not gw:
+            return {"success": False, "message": f"درگاه {gateway_name} شناسایی نشد"}
 
-            if data.get("result") == 100:
-                ref_number = data.get("refNumber", track_id)
-                order.payment_method = "gateway_zibal"
-                order.payment_ref = str(ref_number)
-                order.paid_at = now_utc()
+        # For Sepehr, inject expected_amount for verification
+        if gateway_name == "sepehr":
+            params["expected_amount"] = order.grand_total
 
-                result = order_service.finalize_order(db, order_id)
-                if result:
-                    return {"success": True, "message": f"پرداخت موفق! مرجع: {ref_number}"}
-                return {"success": False, "message": "خطا در نهایی‌سازی سفارش"}
-            else:
-                msg = data.get("message", f"کد: {data.get('result')}")
-                return {"success": False, "message": f"تراکنش ناموفق — {msg}"}
+        result = gw.verify_payment(params)
 
-        except Exception as e:
-            logger.error(f"Zibal verify failed: {e}")
-            return {"success": False, "message": f"خطا در تأیید: {e}"}
+        if result.success:
+            order.payment_method = f"gateway_{gateway_name}"
+            order.payment_ref = result.ref_number
+            order.paid_at = now_utc()
+
+            finalized = order_service.finalize_order(db, order_id)
+            if finalized:
+                return {"success": True, "message": f"پرداخت موفق! مرجع: {result.ref_number}"}
+            return {"success": False, "message": "خطا در نهایی‌سازی سفارش"}
+        else:
+            return {"success": False, "message": result.error_message}
 
     # ==========================================
     # 🔄 Refund to Wallet
@@ -192,7 +203,6 @@ class PaymentService:
             order.status = OrderStatus.CANCELLED
             reason = "استرداد وجه توسط مدیر" + (f" — {admin_note}" if admin_note else "")
             order.cancellation_reason = reason
-            from common.helpers import now_utc
             order.cancelled_at = now_utc()
             order_service.log_status_change(
                 db, order.id, "status",

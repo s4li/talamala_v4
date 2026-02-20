@@ -1,7 +1,7 @@
 # کاتالوگ قابلیت‌های سیستم طلاملا v4
 
 > این سند تمام ماژول‌ها، قابلیت‌ها، نقش‌های کاربری و فرمول قیمت‌گذاری سیستم TalaMala v4 را شرح می‌دهد.
-> آخرین به‌روزرسانی: فازهای ۱ تا ۱۴ تکمیل‌شده + قابلیت بازگشت اجرت بازخرید + بهبود سیستم تیکتینگ + صفحات ثابت و فوتر (Static Pages & Footer) + ثبت مالکیت و انتقال شمش (Bar Claim & Gifting + Ownership Transfer) + ساده‌سازی فرمول قیمت‌گذاری + مدیریت کاربران (Customer Management) + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان (Admin POS Sales Report) + سیستم مدیریت دارایی و قیمت‌گذاری خودکار (Asset Price Management + Goldis Auto-fetch).
+> آخرین به‌روزرسانی: فازهای ۱ تا ۱۴ تکمیل‌شده + قابلیت بازگشت اجرت بازخرید + بهبود سیستم تیکتینگ + صفحات ثابت و فوتر (Static Pages & Footer) + ثبت مالکیت و انتقال شمش (Bar Claim & Gifting + Ownership Transfer) + ساده‌سازی فرمول قیمت‌گذاری + مدیریت کاربران (Customer Management) + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان (Admin POS Sales Report) + سیستم مدیریت دارایی و قیمت‌گذاری خودکار (Asset Price Management + Goldis Auto-fetch) + چند درگاه پرداخت (Multi-Gateway: Zibal/Sepehr/Top/Parsian).
 
 ---
 
@@ -30,6 +30,7 @@
 21. [ثبت مالکیت و انتقال شمش (Bar Claim & Ownership Transfer)](#21-ثبت-مالکیت-و-انتقال-شمش-bar-claim--ownership-transfer)
 22. [مدیریت کاربران (Customer Management)](#22-مدیریت-کاربران-customer-management)
 23. [مدیریت دارایی و قیمت‌گذاری خودکار (Asset Price Management)](#23-مدیریت-دارایی-و-قیمتگذاری-خودکار-asset-price-management)
+24. [چند درگاه پرداخت (Multi-Gateway Payment)](#24-چند-درگاه-پرداخت-multi-gateway-payment)
 
 ---
 
@@ -51,7 +52,7 @@
 | Migration | Alembic |
 | UI | Bootstrap 5 RTL + Vazirmatn Font |
 | آیکون‌ها | Bootstrap Icons |
-| درگاه پرداخت | زیبال (Zibal) |
+| درگاه پرداخت | زیبال (Zibal)، سپهر (Sepehr)، تاپ (Top)، پارسیان (Parsian) |
 | SMS | کاوه‌نگار (Kavenegar) |
 
 ### واحد پولی
@@ -326,11 +327,26 @@
 
 ## 8. ماژول پرداخت
 
-**مسیر فایل‌ها**: `modules/payment/`
+**مسیر فایل‌ها**: `modules/payment/` + `modules/payment/gateways/`
 
 ### روش‌های پرداخت
 1. **کیف پول**: از موجودی کیف پول کسر می‌شود
-2. **درگاه زیبال**: پرداخت آنلاین بانکی
+2. **درگاه بانکی**: پرداخت آنلاین از طریق درگاه فعال (Zibal / Sepehr / Top / Parsian)
+
+### معماری چند درگاه (Multi-Gateway)
+- **لایه انتزاعی**: `BaseGateway` کلاس پایه با متدهای `request_payment()` و `verify_payment()`
+- **الگوی Registry**: `GATEWAY_REGISTRY` در `gateways/__init__.py` — درگاه‌ها با نام ثبت می‌شوند
+- **انتخاب درگاه**: SystemSetting `active_gateway` تعیین می‌کند کدام درگاه فعال باشد
+- **توابع عمومی**: `create_gateway_payment()` و `verify_gateway_callback()` در service — مستقل از درگاه
+- هر درگاه callback مجزا (GET یا POST بسته به پروتکل درگاه) دارد
+
+### درگاه‌های پشتیبانی‌شده
+| درگاه | پروتکل | env vars | sandbox |
+|--------|---------|----------|---------|
+| **Zibal** | REST | `ZIBAL_MERCHANT` | `ZIBAL_MERCHANT=zibal` → auto-succeed |
+| **Sepehr** | REST | `SEPEHR_TERMINAL_ID` | `SEPEHR_TERMINAL_ID=99079327` |
+| **Top** | REST | `TOP_USERNAME`, `TOP_PASSWORD` | — |
+| **Parsian** | SOAP (zeep) | `PARSIAN_PIN` | — |
 
 ### جریان پرداخت کیف پول
 1. مشتری «پرداخت با کیف پول» را انتخاب می‌کند
@@ -338,21 +354,21 @@
 3. مبلغ از کیف پول کسر + سفارش تایید می‌شود (تراکنش اتمیک)
 4. شمش‌ها به مالکیت مشتری در می‌آید
 
-### جریان پرداخت زیبال
+### جریان پرداخت درگاه بانکی
 1. مشتری «پرداخت آنلاین» را انتخاب می‌کند
-2. سیستم درخواست پرداخت به زیبال ارسال می‌کند
+2. سیستم بر اساس `active_gateway` درگاه فعال را شناسایی و درخواست پرداخت ارسال می‌کند
 3. مشتری به درگاه بانک هدایت می‌شود
-4. پس از پرداخت، callback دریافت و سفارش تایید می‌شود
-
-### محیط تست (Sandbox)
-- وقتی `ZIBAL_MERCHANT=zibal` باشد، درگاه در حالت sandbox کار می‌کند و پرداخت‌ها خودکار موفق هستند.
+4. پس از پرداخت، callback مربوط به آن درگاه فراخوانی شده و سفارش تایید می‌شود
 
 ### آدرس‌ها
 | متد | مسیر | توضیح |
 |------|------|--------|
 | POST | `/payment/{id}/wallet` | پرداخت با کیف پول |
-| POST | `/payment/{id}/zibal` | پرداخت با درگاه |
-| GET | `/payment/zibal/callback` | بازگشت از درگاه |
+| POST | `/payment/{order_id}/gateway` | پرداخت با درگاه فعال (عمومی) |
+| GET | `/payment/zibal/callback` | بازگشت از درگاه زیبال |
+| POST | `/payment/sepehr/callback` | بازگشت از درگاه سپهر |
+| GET | `/payment/top/callback` | بازگشت از درگاه تاپ |
+| POST | `/payment/parsian/callback` | بازگشت از درگاه پارسیان |
 | POST | `/payment/{id}/refund` | استرداد (فقط ادمین) |
 
 ---
@@ -377,7 +393,7 @@
 | Credit | اعتبار | واریز اعتبار غیرقابل‌برداشت (بازگشت اجرت بازخرید — [بخش ۱۷](#17-بازگشت-اجرت-بازخرید-buyback-wage-refund)) |
 
 ### قابلیت‌ها
-- **شارژ**: مشتری از طریق درگاه بانکی کیف پول را شارژ می‌کند
+- **شارژ**: مشتری از طریق درگاه فعال (active_gateway) کیف پول را شارژ می‌کند
 - **برداشت**: مشتری درخواست برداشت به حساب بانکی می‌دهد (نیاز به تایید ادمین)
 - **اعتبار غیرقابل‌برداشت**: موجودی ویژه که فقط برای خرید قابل‌استفاده است (مثلاً بازگشت اجرت بازخرید — [بخش ۱۷](#17-بازگشت-اجرت-بازخرید-buyback-wage-refund))
 - **مشاهده تاریخچه**: لیست تمام تراکنش‌ها
@@ -387,7 +403,11 @@
 |------|------|--------|
 | GET | `/wallet` | داشبورد کیف پول |
 | GET | `/wallet/transactions` | تاریخچه تراکنش‌ها |
-| POST | `/wallet/topup` | شارژ کیف پول |
+| POST | `/wallet/topup` | شارژ کیف پول (via active gateway) |
+| GET | `/wallet/topup/zibal/callback` | بازگشت شارژ از زیبال |
+| POST | `/wallet/topup/sepehr/callback` | بازگشت شارژ از سپهر |
+| GET | `/wallet/topup/top/callback` | بازگشت شارژ از تاپ |
+| POST | `/wallet/topup/parsian/callback` | بازگشت شارژ از پارسیان |
 | GET/POST | `/wallet/withdraw` | درخواست برداشت |
 
 ### آدرس‌های ادمین
@@ -1306,4 +1326,51 @@
 
 ---
 
-> این سند بر اساس کد واقعی پروژه TalaMala v4 (فازهای ۱-۱۴ + بازگشت اجرت بازخرید + بهبود تیکتینگ + صفحات ثابت و فوتر + ثبت مالکیت و انتقال شمش + مدیریت کاربران + ویرایش مشتری توسط ادمین + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان + مدیریت دارایی و قیمت‌گذاری خودکار) تهیه شده و هیچ قابلیت فرضی شامل نشده است.
+## 24. چند درگاه پرداخت (Multi-Gateway Payment)
+
+**مسیر فایل‌ها**: `modules/payment/gateways/`
+
+### شرح قابلیت
+
+سیستم پرداخت از معماری **چند درگاه** با لایه انتزاعی (abstraction layer) استفاده می‌کند. ادمین می‌تواند از صفحه تنظیمات، درگاه فعال را انتخاب کند و بدون تغییر کد، بین درگاه‌ها جابه‌جا شود.
+
+### معماری
+
+- **BaseGateway**: کلاس پایه انتزاعی با متدهای `request_payment(amount, callback_url, order_id)` و `verify_payment(request_data)`
+- **GATEWAY_REGISTRY**: دیکشنری ثبت درگاه‌ها — کلید: نام درگاه (string)، مقدار: کلاس gateway
+- **SystemSetting `active_gateway`**: تعیین درگاه فعال — مقادیر مجاز: `zibal`, `sepehr`, `top`, `parsian`
+- **توابع عمومی**: `create_gateway_payment()` و `verify_gateway_callback()` در `payment/service.py`
+
+### فایل‌ها
+
+| فایل | توضیح |
+|-------|--------|
+| `modules/payment/gateways/__init__.py` | BaseGateway + GATEWAY_REGISTRY + get_active_gateway() |
+| `modules/payment/gateways/zibal.py` | پیاده‌سازی درگاه زیبال (REST) |
+| `modules/payment/gateways/sepehr.py` | پیاده‌سازی درگاه سپهر (REST) |
+| `modules/payment/gateways/top.py` | پیاده‌سازی درگاه تاپ (REST) |
+| `modules/payment/gateways/parsian.py` | پیاده‌سازی درگاه پارسیان (SOAP via zeep) |
+| `modules/payment/service.py` | توابع عمومی create/verify gateway payment |
+
+### تنظیم درگاه فعال
+
+ادمین از صفحه تنظیمات (`/admin/settings`) در بخش dropdown «درگاه پرداخت فعال» درگاه مورد نظر را انتخاب می‌کند. تغییر فوری اعمال می‌شود و پرداخت‌های بعدی (هم سفارشات و هم شارژ کیف پول) از درگاه جدید استفاده می‌کنند.
+
+### مدل تغییرات
+
+- **WalletTopup**: فیلد `gateway` (String) اضافه شده — نام درگاهی که topup با آن انجام شده
+- **SystemSetting**: کلید `active_gateway` با مقدار پیش‌فرض `zibal`
+
+### env vars
+
+| متغیر | توضیح |
+|--------|--------|
+| `ZIBAL_MERCHANT` | شناسه مرچنت زیبال (`zibal` = sandbox) |
+| `SEPEHR_TERMINAL_ID` | شناسه ترمینال سپهر |
+| `TOP_USERNAME` | نام کاربری درگاه تاپ |
+| `TOP_PASSWORD` | رمز عبور درگاه تاپ |
+| `PARSIAN_PIN` | پین درگاه پارسیان |
+
+---
+
+> این سند بر اساس کد واقعی پروژه TalaMala v4 (فازهای ۱-۱۴ + بازگشت اجرت بازخرید + بهبود تیکتینگ + صفحات ثابت و فوتر + ثبت مالکیت و انتقال شمش + مدیریت کاربران + ویرایش مشتری توسط ادمین + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان + مدیریت دارایی و قیمت‌گذاری خودکار + چند درگاه پرداخت) تهیه شده و هیچ قابلیت فرضی شامل نشده است.

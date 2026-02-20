@@ -1,32 +1,35 @@
 """
 Wallet Routes - Customer Facing
 =================================
-Balance view, topup (via Zibal gateway), withdrawal, transaction history.
+Balance view, topup (via active gateway), withdrawal, transaction history.
 """
 
 import logging
-import httpx
 
-from fastapi import APIRouter, Request, Depends, Form
+from fastapi import APIRouter, Request, Depends, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from config.database import get_db
-from config.settings import ZIBAL_MERCHANT, BASE_URL
+from config.settings import BASE_URL
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
 from common.flash import flash
 from modules.auth.deps import require_customer
 from modules.wallet.service import wallet_service
 from modules.wallet.models import WithdrawalStatus, WithdrawalRequest, WalletTopup
+from modules.payment.gateways import get_gateway, GatewayPaymentRequest
 
 logger = logging.getLogger("talamala.wallet")
 
-ZIBAL_REQUEST_URL = "https://gateway.zibal.ir/v1/request"
-ZIBAL_VERIFY_URL = "https://gateway.zibal.ir/v1/verify"
-ZIBAL_START_URL = "https://gateway.zibal.ir/start/{trackId}"
-
 router = APIRouter(prefix="/wallet", tags=["wallet"])
+
+
+def _get_active_gateway_name(db: Session) -> str:
+    """Read active gateway from SystemSetting."""
+    from modules.admin.models import SystemSetting
+    setting = db.query(SystemSetting).filter(SystemSetting.key == "active_gateway").first()
+    return setting.value if setting else "zibal"
 
 
 # ==========================================
@@ -92,7 +95,7 @@ async def wallet_transactions(
 
 
 # ==========================================
-# 💳 Topup (charge wallet)
+# 💳 Topup (charge wallet via active gateway)
 # ==========================================
 
 @router.post("/topup")
@@ -110,35 +113,34 @@ async def wallet_topup(
         topup = wallet_service.create_topup(db, me.id, amount_irr)
         db.flush()
 
-        # Create Zibal payment request
-        callback_url = f"{BASE_URL}/wallet/topup/callback?topup_id={topup.id}"
-        resp = httpx.post(ZIBAL_REQUEST_URL, json={
-            "merchant": ZIBAL_MERCHANT,
-            "amount": amount_irr,
-            "callbackUrl": callback_url,
-            "description": f"شارژ کیف پول - {amount_toman:,} تومان",
-        }, timeout=15)
-        data = resp.json()
-        logger.info(f"Zibal topup request #{topup.id}: {data}")
-
-        if data.get("result") == 100:
-            track_id = data["trackId"]
-            topup.track_id = str(track_id)
-            db.commit()
-            return RedirectResponse(
-                ZIBAL_START_URL.format(trackId=track_id), status_code=303
-            )
-        else:
-            msg = data.get("message", f"کد خطا: {data.get('result')}")
+        # Determine active gateway
+        gateway_name = _get_active_gateway_name(db)
+        gw = get_gateway(gateway_name)
+        if not gw:
             wallet_service.fail_topup(db, topup.id)
             db.commit()
-            flash(request, f"خطا در درگاه: {msg}", "danger")
+            flash(request, f"درگاه {gateway_name} در دسترس نیست", "danger")
             return RedirectResponse("/wallet", status_code=302)
 
-    except httpx.TimeoutException:
-        db.rollback()
-        flash(request, "درگاه پاسخ نداد. دوباره تلاش کنید.", "danger")
-        return RedirectResponse("/wallet", status_code=302)
+        callback_url = f"{BASE_URL}/wallet/topup/{gateway_name}/callback?topup_id={topup.id}"
+        result = gw.create_payment(GatewayPaymentRequest(
+            amount_irr=amount_irr,
+            callback_url=callback_url,
+            description=f"شارژ کیف پول - {amount_toman:,} تومان",
+            order_ref=str(topup.id),
+        ))
+
+        if result.success:
+            topup.track_id = result.track_id
+            topup.gateway = gateway_name
+            db.commit()
+            return RedirectResponse(result.redirect_url, status_code=303)
+        else:
+            wallet_service.fail_topup(db, topup.id)
+            db.commit()
+            flash(request, f"خطا در درگاه: {result.error_message}", "danger")
+            return RedirectResponse("/wallet", status_code=302)
+
     except ValueError as e:
         db.rollback()
         flash(request, str(e), "danger")
@@ -150,77 +152,170 @@ async def wallet_topup(
         return RedirectResponse("/wallet", status_code=302)
 
 
-@router.get("/topup/callback")
-async def wallet_topup_callback(
-    request: Request,
-    trackId: str = "",
-    success: str = "",
-    status: str = "",
-    topup_id: int = 0,
-    db: Session = Depends(get_db),
-):
-    """Zibal redirects user here after topup payment attempt."""
-    if not trackId or not topup_id:
-        flash(request, "پارامترهای نامعتبر", "danger")
-        return RedirectResponse("/wallet", status_code=302)
+# ==========================================
+# 💳 Topup Callbacks (per gateway)
+# ==========================================
 
-    # Validate trackId is numeric
-    try:
-        track_id_int = int(trackId)
-    except (ValueError, TypeError):
-        flash(request, "پارامترهای نامعتبر", "danger")
-        return RedirectResponse("/wallet", status_code=302)
-
-    topup = db.query(WalletTopup).filter(WalletTopup.id == topup_id).first()
-    if not topup:
-        flash(request, "تراکنش یافت نشد", "danger")
-        return RedirectResponse("/wallet", status_code=302)
-
-    # Verify trackId matches stored value (defense-in-depth)
-    if topup.track_id and topup.track_id != str(track_id_int):
-        flash(request, "پارامترهای نامعتبر", "danger")
-        return RedirectResponse("/wallet", status_code=302)
-
+def _verify_topup(request: Request, db: Session, topup: WalletTopup, params: dict, gateway_name: str):
+    """Common topup verification logic for all gateways."""
     # Already processed (double callback protection)
     if topup.status == "PAID":
         flash(request, "کیف پول قبلاً شارژ شده است", "info")
         return RedirectResponse("/wallet", status_code=302)
 
-    # User cancelled on gateway
+    gw = get_gateway(gateway_name)
+    if not gw:
+        flash(request, f"درگاه {gateway_name} شناسایی نشد", "danger")
+        return RedirectResponse("/wallet", status_code=302)
+
+    # For Sepehr, inject expected_amount
+    if gateway_name == "sepehr":
+        params["expected_amount"] = topup.amount_irr
+
+    result = gw.verify_payment(params)
+
+    if result.success:
+        wallet_service.confirm_topup(db, topup.id, ref_number=result.ref_number)
+        db.commit()
+        amount_toman = topup.amount_irr // 10
+        flash(request, f"کیف پول با موفقیت شارژ شد ({amount_toman:,} تومان)", "success")
+    else:
+        wallet_service.fail_topup(db, topup.id)
+        db.commit()
+        flash(request, f"تراکنش ناموفق — {result.error_message}", "danger")
+
+    return RedirectResponse("/wallet", status_code=302)
+
+
+def _get_topup_or_redirect(request: Request, db: Session, topup_id: int):
+    """Lookup topup by ID, return it or redirect on error."""
+    if not topup_id:
+        flash(request, "پارامترهای نامعتبر", "danger")
+        return None
+    topup = db.query(WalletTopup).filter(WalletTopup.id == topup_id).first()
+    if not topup:
+        flash(request, "تراکنش یافت نشد", "danger")
+        return None
+    return topup
+
+
+# Backward-compatible Zibal callback (old URL without gateway prefix)
+@router.get("/topup/callback")
+async def wallet_topup_callback_legacy(
+    request: Request,
+    trackId: str = "",
+    success: str = "",
+    topup_id: int = 0,
+    db: Session = Depends(get_db),
+):
+    """Legacy Zibal topup callback (backward compatibility)."""
+    topup = _get_topup_or_redirect(request, db, topup_id)
+    if not topup:
+        return RedirectResponse("/wallet", status_code=302)
+
     if success == "0":
         wallet_service.fail_topup(db, topup.id)
         db.commit()
         flash(request, "پرداخت توسط کاربر لغو شد.", "danger")
         return RedirectResponse("/wallet", status_code=302)
 
-    # Verify with Zibal
-    try:
-        resp = httpx.post(ZIBAL_VERIFY_URL, json={
-            "merchant": ZIBAL_MERCHANT,
-            "trackId": track_id_int,
-        }, timeout=15)
-        data = resp.json()
-        logger.info(f"Zibal topup verify #{topup.id}: {data}")
+    return _verify_topup(request, db, topup, {"trackId": trackId}, "zibal")
 
-        if data.get("result") == 100:
-            ref_number = str(data.get("refNumber", trackId))
-            wallet_service.confirm_topup(db, topup.id, ref_number=ref_number)
-            db.commit()
-            amount_toman = topup.amount_irr // 10
-            flash(request, f"کیف پول با موفقیت شارژ شد ({amount_toman:,} تومان)", "success")
-            return RedirectResponse("/wallet", status_code=302)
-        else:
-            wallet_service.fail_topup(db, topup.id)
-            db.commit()
-            msg = data.get("message", f"کد: {data.get('result')}")
-            flash(request, f"تراکنش ناموفق — {msg}", "danger")
-            return RedirectResponse("/wallet", status_code=302)
 
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Zibal topup verify failed: {e}")
-        flash(request, "خطا در تأیید تراکنش", "danger")
+@router.get("/topup/zibal/callback")
+async def wallet_topup_zibal_callback(
+    request: Request,
+    trackId: str = "",
+    success: str = "",
+    topup_id: int = 0,
+    db: Session = Depends(get_db),
+):
+    """Zibal topup callback."""
+    topup = _get_topup_or_redirect(request, db, topup_id)
+    if not topup:
         return RedirectResponse("/wallet", status_code=302)
+
+    if success == "0":
+        wallet_service.fail_topup(db, topup.id)
+        db.commit()
+        flash(request, "پرداخت توسط کاربر لغو شد.", "danger")
+        return RedirectResponse("/wallet", status_code=302)
+
+    return _verify_topup(request, db, topup, {"trackId": trackId}, "zibal")
+
+
+@router.post("/topup/sepehr/callback")
+async def wallet_topup_sepehr_callback(
+    request: Request,
+    respcode: int = Form(...),
+    respmsg: str = Form(None),
+    invoiceid: str = Form(...),
+    amount: int = Form(...),
+    digitalreceipt: str = Form(None),
+    topup_id: int = Query(0),
+    db: Session = Depends(get_db),
+):
+    """Sepehr topup callback (POST with form data, topup_id in URL query)."""
+    topup = _get_topup_or_redirect(request, db, topup_id)
+    if not topup:
+        return RedirectResponse("/wallet", status_code=302)
+
+    if respcode != 0:
+        wallet_service.fail_topup(db, topup.id)
+        db.commit()
+        flash(request, f"پرداخت ناموفق: {respmsg or 'خطای بانکی'}", "danger")
+        return RedirectResponse("/wallet", status_code=302)
+
+    if not digitalreceipt:
+        wallet_service.fail_topup(db, topup.id)
+        db.commit()
+        flash(request, "کد پیگیری دریافت نشد.", "danger")
+        return RedirectResponse("/wallet", status_code=302)
+
+    return _verify_topup(request, db, topup, {"digitalreceipt": digitalreceipt, "expected_amount": amount}, "sepehr")
+
+
+@router.get("/topup/top/callback")
+async def wallet_topup_top_callback(
+    request: Request,
+    topup_id: int = 0,
+    db: Session = Depends(get_db),
+):
+    """Top topup callback."""
+    topup = _get_topup_or_redirect(request, db, topup_id)
+    if not topup:
+        return RedirectResponse("/wallet", status_code=302)
+
+    params = dict(request.query_params)
+    return _verify_topup(request, db, topup, params, "top")
+
+
+@router.post("/topup/parsian/callback")
+async def wallet_topup_parsian_callback(
+    request: Request,
+    Token: str = Form(None),
+    status: int = Form(None),
+    RRN: int = Form(None),
+    topup_id: int = Query(0),
+    db: Session = Depends(get_db),
+):
+    """Parsian topup callback (POST with form data, topup_id in URL query)."""
+    topup = _get_topup_or_redirect(request, db, topup_id)
+    if not topup:
+        return RedirectResponse("/wallet", status_code=302)
+
+    # Bank reports failure
+    if status is not None and status != 0:
+        wallet_service.fail_topup(db, topup.id)
+        db.commit()
+        flash(request, "پرداخت توسط کاربر لغو شد یا ناموفق بود.", "danger")
+        return RedirectResponse("/wallet", status_code=302)
+
+    return _verify_topup(
+        request, db, topup,
+        {"Token": str(Token) if Token else "", "status": status, "RRN": str(RRN) if RRN else ""},
+        "parsian",
+    )
 
 
 # ==========================================
@@ -268,5 +363,3 @@ async def wallet_withdraw_submit(
         db.rollback()
         flash(request, str(e), "danger")
         return RedirectResponse("/wallet/withdraw", status_code=302)
-
-

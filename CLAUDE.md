@@ -26,7 +26,7 @@
 - **Stack**: FastAPI + Jinja2 Templates + PostgreSQL + SQLAlchemy + Alembic
 - **UI**: فارسی (RTL) با Bootstrap 5 RTL + Vazirmatn font + Bootstrap Icons
 - **Auth**: OTP-based (SMS) برای مشتری‌ها + JWT cookie برای ادمین
-- **Payment**: کیف پول + درگاه زیبال (sandbox فعال)
+- **Payment**: کیف پول + چند درگاه (Zibal, Sepehr, Top, Parsian) با لایه abstraction + انتخاب درگاه فعال از تنظیمات ادمین
 - **Pricing**: فرمول ساده قیمت شمش: طلای خام + اجرت + مالیات (روی اجرت)
 
 ---
@@ -55,7 +55,8 @@ talamala_v4/
 │   ├── shop/                    # Public storefront (product list + detail)
 │   ├── cart/                    # Cart, CartItem, checkout, delivery location API
 │   ├── order/                   # Order, OrderItem, delivery_service, admin order mgmt
-│   ├── payment/                 # Wallet pay, Zibal gateway, refund
+│   ├── payment/                 # Wallet pay, multi-gateway (Zibal/Sepehr/Top/Parsian), refund
+│   │   └── gateways/            # BaseGateway abstraction + per-gateway implementations
 │   ├── wallet/                  # Double-entry ledger, topup, withdraw, admin
 │   ├── coupon/                  # DISCOUNT/CASHBACK coupons, admin CRUD
 │   ├── customer/                # Profile, CustomerAddress, GeoProvince/City/District
@@ -84,7 +85,7 @@ talamala_v4/
 │   ├── admin/
 │   │   ├── base_admin.html      # Admin sidebar layout
 │   │   ├── dashboard.html
-│   │   ├── settings.html        # Asset prices (gold/silver) + tax, shipping config
+│   │   ├── settings.html        # Asset prices (gold/silver) + tax, shipping config + active gateway selection
 │   │   ├── catalog/             # products, categories, designs, packages, batches
 │   │   ├── inventory/           # bars, edit_bar
 │   │   ├── orders/list.html     # Order management + delivery status
@@ -245,6 +246,14 @@ return response
 - Background scheduler fetches gold price every N minutes (configurable per asset)
 - Staleness guard: blocks checkout/POS/wallet if price expired (configurable per asset)
 
+### Payment Gateway
+- لایه انتزاعی `modules/payment/gateways/` با `BaseGateway` و الگوی registry
+- درگاه‌های فعال: **Zibal** (sandbox: `ZIBAL_MERCHANT=zibal`)، **Sepehr** (SOAP)، **Top** (REST)، **Parsian** (SOAP via `zeep`)
+- تنظیم `active_gateway` در SystemSetting تعیین می‌کند کدام درگاه استفاده شود
+- `payment_service.create_gateway_payment()` و `verify_gateway_callback()` — عمومی برای همه درگاه‌ها
+- هر درگاه callback مجزا دارد (متد GET یا POST بسته به درگاه)
+- شارژ کیف پول هم از درگاه فعال استفاده می‌کند (نه فقط Zibal)
+
 ### Currency
 - **تمام مبالغ در دیتابیس به ریال ذخیره می‌شوند**
 - فیلتر Jinja2 `| toman` تبدیل ریال → تومان (÷10) با فرمت فارسی
@@ -263,7 +272,7 @@ return response
 **فیکس**: `p.category_id == cat_id` بجای `p.get("product")` در `modules/shop/routes.py`
 
 ### BUG-2: Wallet topup — ✅ FIXED
-**فیکس**: Topup حالا از درگاه Zibal استفاده میکنه + callback route اضافه شد (`/wallet/topup/callback`)
+**فیکس**: Topup حالا از درگاه فعال (active_gateway) استفاده میکنه + callback route اضافه شد (`/wallet/topup/{gateway}/callback`)
 
 ### BUG-3: int_parsing در checkout — ✅ NOT A BUG
 **بررسی**: کد فعلی `.isdigit()` قبل از تبدیل چک میکنه. مشکلی وجود نداره.
@@ -287,7 +296,7 @@ return response
 | 6 | Cart + Orders + Delivery | ✅ |
 | 7 | Wallet (double-entry ledger) | ✅ |
 | 8 | Coupon (DISCOUNT/CASHBACK) | ✅ |
-| 9 | Payment (wallet + Zibal sandbox) | ✅ |
+| 9 | Payment (wallet + multi-gateway: Zibal/Sepehr/Top/Parsian) | ✅ |
 | 9.5 | Categories, Geo, Addresses, Profile, Verify | ✅ |
 | 10 | Verification بهبود (QR, history, API) | ✅ |
 | 11 | Dealer / Reseller (POS, buyback, commission) | ✅ |
@@ -380,10 +389,13 @@ uvicorn main:app --reload
 | TSCLM002 | SOLD | XYZ789 | — | تست کد اشتباه |
 | TSTRF001 | SOLD | — | U3 (09351234567) | تست انتقال مالکیت |
 
-### Zibal Sandbox
-- `ZIBAL_MERCHANT=zibal` → sandbox (auto-succeed)
-- `ZIBAL_MERCHANT=your-real-id` → production
-- Callback: `{BASE_URL}/payment/zibal/callback?order_id={id}`
+### Payment Gateways
+- **Zibal**: `ZIBAL_MERCHANT=zibal` → sandbox (auto-succeed), `your-real-id` → production
+- **Sepehr**: `SEPEHR_TERMINAL_ID=99079327` → test terminal
+- **Top**: `TOP_USERNAME` + `TOP_PASSWORD`
+- **Parsian**: `PARSIAN_PIN` (SOAP via `zeep`)
+- درگاه فعال با SystemSetting `active_gateway` تعیین می‌شود (مقدار: `zibal`/`sepehr`/`top`/`parsian`)
+- Callbacks: `{BASE_URL}/payment/{gateway}/callback`
 
 ---
 
@@ -410,6 +422,14 @@ uvicorn main:app --reload
 # 4. Route's db.commit() → no-op
 # On failure: db.rollback() undoes everything
 ```
+
+### وقتی درگاه پرداخت جدید اضافه می‌کنی:
+1. کلاس جدید از `BaseGateway` در `modules/payment/gateways/` بساز
+2. متدهای `request_payment()` و `verify_payment()` را پیاده‌سازی کن
+3. در `modules/payment/gateways/__init__.py` → `GATEWAY_REGISTRY` اضافه کن
+4. Callback route جدید در `modules/payment/routes.py` اضافه کن
+5. Callback route جدید برای topup در `modules/wallet/routes.py` اضافه کن
+6. env var مربوطه را در `config/settings.py` و `.env.example` اضافه کن
 
 ### فرمت خروجی shop service:
 `shop_service.list_products_with_pricing()` → `(List[Product], gold_price_rial, tax_percent_str)`
@@ -479,14 +499,21 @@ total    = raw_gold + wage + tax
 
 ### Payment
 - `POST /payment/{id}/wallet` — Wallet pay
-- `POST /payment/{id}/zibal` — Gateway redirect
-- `GET /payment/zibal/callback` — Gateway return
+- `POST /payment/{order_id}/gateway` — Pay via active gateway (replaces per-gateway routes)
+- `GET /payment/zibal/callback` — Zibal callback
+- `POST /payment/sepehr/callback` — Sepehr callback
+- `GET /payment/top/callback` — Top callback
+- `POST /payment/parsian/callback` — Parsian callback
 - `POST /payment/{id}/refund` — Admin refund
 
 ### Wallet
 - `GET /wallet` — Dashboard
 - `GET /wallet/transactions` — History
-- `POST /wallet/topup` — Charge
+- `POST /wallet/topup` — Charge (via active gateway)
+- `GET /wallet/topup/zibal/callback` — Zibal topup callback
+- `POST /wallet/topup/sepehr/callback` — Sepehr topup callback
+- `GET /wallet/topup/top/callback` — Top topup callback
+- `POST /wallet/topup/parsian/callback` — Parsian topup callback
 - `GET/POST /wallet/withdraw` — Withdrawal
 
 ### AJAX APIs
@@ -561,6 +588,9 @@ OTP_SECRET=random-string
 SMS_API_KEY=kavenegar-key
 ZIBAL_MERCHANT=zibal
 SEPEHR_TERMINAL_ID=99079327
+TOP_USERNAME=your-top-username
+TOP_PASSWORD=your-top-password
+PARSIAN_PIN=your-parsian-pin
 DEBUG=true
 BASE_URL=http://127.0.0.1:8000
 MAINTENANCE_MODE=false

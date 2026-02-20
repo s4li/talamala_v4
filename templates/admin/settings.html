@@ -194,6 +194,22 @@
             </div>
         </div>
 
+        <!-- ===== درگاه پرداخت ===== -->
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-credit-card me-1"></i> درگاه پرداخت</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label-tm">درگاه فعال</label>
+                {% set current_gw = settings.get('active_gateway').value if settings.get('active_gateway') else 'zibal' %}
+                <select name="active_gateway" class="form-select form-select-tm">
+                    <option value="zibal" {{ 'selected' if current_gw == 'zibal' }}>زیبال (Zibal)</option>
+                    <option value="sepehr" {{ 'selected' if current_gw == 'sepehr' }}>سپهر (Sepehr)</option>
+                    <option value="top" {{ 'selected' if current_gw == 'top' }}>تاپ (Top)</option>
+                    <option value="parsian" {{ 'selected' if current_gw == 'parsian' }}>پارسیان (Parsian)</option>
+                </select>
+                <small class="text-muted">این درگاه برای پرداخت آنلاین سفارشات و شارژ کیف پول استفاده می‌شود.</small>
+            </div>
+        </div>
+
         <button type="submit" class="btn-tm-primary btn btn-lg">
             <i class="bi bi-check-lg me-1"></i> ذخیره تنظیمات
         </button>

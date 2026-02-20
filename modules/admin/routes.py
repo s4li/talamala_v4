@@ -63,6 +63,7 @@ async def update_settings(
     shipping_cost: str = Form("500000"),
     insurance_percent: str = Form("1.5"),
     insurance_cap: str = Form("500000000"),
+    active_gateway: str = Form("zibal"),
     db: Session = Depends(get_db),
     user=Depends(require_permission("settings")),
 ):
@@ -95,6 +96,7 @@ async def update_settings(
         "shipping_cost": shipping_cost,
         "insurance_percent": insurance_percent,
         "insurance_cap": insurance_cap,
+        "active_gateway": active_gateway,
     }
 
     for key, value in updates.items():
