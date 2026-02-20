@@ -411,6 +411,13 @@ uvicorn main:app --reload
 | TSCLM002 | SOLD | XYZ789 | — | تست کد اشتباه |
 | TSTRF001 | SOLD | — | U3 (09351234567) | تست انتقال مالکیت |
 
+### Test Bars (Custodial — طلای/نقره امانی)
+| سریال‌کد | نوع | خریدار | مالک فعلی | توضیح |
+|----------|------|--------|-----------|--------|
+| TSCST001 | طلا | 09351234567 | 09351234567 | امانی عادی (خریدار = مالک) |
+| TSCST002 | طلا | 09351234567 | 09359876543 | انتقال یافته (خریدار ≠ مالک) |
+| TSCST003 | نقره | 09351234567 | 09351234567 | نقره امانی عادی |
+
 ### Payment Gateways
 - **Zibal**: `ZIBAL_MERCHANT=zibal` → sandbox (auto-succeed), `your-real-id` → production
 - **Sepehr**: `SEPEHR_TERMINAL_ID=99079327` → test terminal

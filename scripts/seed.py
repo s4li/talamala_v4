@@ -49,7 +49,7 @@ from modules.inventory.models import (
     DealerTransfer, BarTransfer,
 )
 from modules.cart.models import Cart, CartItem
-from modules.order.models import Order, OrderItem, OrderStatusLog
+from modules.order.models import Order, OrderItem, OrderStatusLog, OrderStatus, DeliveryMethod, DeliveryStatus
 from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest, OwnerType
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory
 from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest
@@ -1490,6 +1490,161 @@ def seed():
                 db.flush()
                 print("  + 3 test bars (TSCLM001, TSCLM002, TSTRF001)")
 
+            # --- Custodial test bars with orders (for /admin/orders page) ---
+            test_customer_2 = db.query(Customer).filter(Customer.mobile == "09359876543").first()
+
+            # Find a gold product and a silver product
+            gold_product = (
+                db.query(Product)
+                .join(ProductCategoryLink, ProductCategoryLink.product_id == Product.id)
+                .join(ProductCategory, ProductCategory.id == ProductCategoryLink.category_id)
+                .filter(ProductCategory.slug.like("gold%"), Product.is_active == True)
+                .first()
+            )
+            silver_product = (
+                db.query(Product)
+                .join(ProductCategoryLink, ProductCategoryLink.product_id == Product.id)
+                .join(ProductCategory, ProductCategory.id == ProductCategoryLink.category_id)
+                .filter(ProductCategory.slug.like("silver%"), Product.is_active == True)
+                .first()
+            )
+
+            if gold_product and first_dealer and test_customer_1:
+                _now = datetime.now(timezone.utc)
+                gold_price = 52_000_000  # 5.2M toman/gram = 52M rial/gram
+                tax_pct = 10
+
+                # --- Custodial Gold Bar 1: regular (buyer = current owner) ---
+                cust_bar_g1 = Bar(
+                    serial_code="TSCST001", status=BarStatus.SOLD,
+                    product_id=gold_product.id, batch_id=batch1.id if batch1 else None,
+                    dealer_id=first_dealer.id, customer_id=test_customer_1.id,
+                    delivered_at=None,  # custodial!
+                )
+                db.add(cust_bar_g1)
+                db.flush()
+
+                weight_g1 = float(gold_product.weight or 1)
+                purity_g1 = float(gold_product.purity or 750)
+                wage_g1 = float(gold_product.wage or 7)
+                raw_gold_g1 = int(weight_g1 * (purity_g1 / 750) * gold_price)
+                wage_amt_g1 = int(raw_gold_g1 * wage_g1 / 100)
+                tax_amt_g1 = int(wage_amt_g1 * tax_pct / 100)
+                line_total_g1 = raw_gold_g1 + wage_amt_g1 + tax_amt_g1
+
+                order_g1 = Order(
+                    customer_id=test_customer_1.id,
+                    total_amount=line_total_g1,
+                    status=OrderStatus.PAID,
+                    delivery_method=DeliveryMethod.PICKUP,
+                    delivery_status=DeliveryStatus.WAITING,
+                    pickup_dealer_id=first_dealer.id,
+                    payment_method="wallet",
+                    paid_at=_now,
+                )
+                db.add(order_g1)
+                db.flush()
+
+                db.add(OrderItem(
+                    order_id=order_g1.id, product_id=gold_product.id, bar_id=cust_bar_g1.id,
+                    applied_gold_price=gold_price, applied_unit_price=line_total_g1,
+                    applied_weight=weight_g1, applied_purity=purity_g1,
+                    applied_wage_percent=wage_g1, applied_tax_percent=tax_pct,
+                    final_gold_amount=raw_gold_g1, final_wage_amount=wage_amt_g1,
+                    final_tax_amount=tax_amt_g1, line_total=line_total_g1,
+                ))
+
+                # --- Custodial Gold Bar 2: ownership transferred (buyer ≠ current owner) ---
+                cust_bar_g2 = Bar(
+                    serial_code="TSCST002", status=BarStatus.SOLD,
+                    product_id=gold_product.id, batch_id=batch1.id if batch1 else None,
+                    dealer_id=first_dealer.id,
+                    customer_id=test_customer_2.id if test_customer_2 else test_customer_1.id,
+                    delivered_at=None,  # custodial!
+                )
+                db.add(cust_bar_g2)
+                db.flush()
+
+                order_g2 = Order(
+                    customer_id=test_customer_1.id,  # original buyer = customer 1
+                    total_amount=line_total_g1,
+                    status=OrderStatus.PAID,
+                    delivery_method=DeliveryMethod.PICKUP,
+                    delivery_status=DeliveryStatus.WAITING,
+                    pickup_dealer_id=first_dealer.id,
+                    payment_method="wallet",
+                    paid_at=_now,
+                )
+                db.add(order_g2)
+                db.flush()
+
+                db.add(OrderItem(
+                    order_id=order_g2.id, product_id=gold_product.id, bar_id=cust_bar_g2.id,
+                    applied_gold_price=gold_price, applied_unit_price=line_total_g1,
+                    applied_weight=weight_g1, applied_purity=purity_g1,
+                    applied_wage_percent=wage_g1, applied_tax_percent=tax_pct,
+                    final_gold_amount=raw_gold_g1, final_wage_amount=wage_amt_g1,
+                    final_tax_amount=tax_amt_g1, line_total=line_total_g1,
+                ))
+
+                if test_customer_2:
+                    db.add(OwnershipHistory(
+                        bar_id=cust_bar_g2.id,
+                        previous_owner_id=test_customer_1.id,
+                        new_owner_id=test_customer_2.id,
+                        description="انتقال مالکیت — تست",
+                    ))
+
+                db.flush()
+                print(f"  + 2 custodial gold bars (TSCST001, TSCST002) with orders")
+
+            # --- Custodial Silver Bar ---
+            if silver_product and first_dealer and test_customer_1:
+                _now = datetime.now(timezone.utc)
+                silver_price = 1_500_000  # rial/gram
+                tax_pct = 10
+
+                cust_bar_s1 = Bar(
+                    serial_code="TSCST003", status=BarStatus.SOLD,
+                    product_id=silver_product.id, batch_id=batch1.id if batch1 else None,
+                    dealer_id=first_dealer.id, customer_id=test_customer_1.id,
+                    delivered_at=None,  # custodial!
+                )
+                db.add(cust_bar_s1)
+                db.flush()
+
+                weight_s1 = float(silver_product.weight or 1)
+                purity_s1 = float(silver_product.purity or 999)
+                wage_s1 = float(silver_product.wage or 5)
+                raw_silver_s1 = int(weight_s1 * silver_price)
+                wage_amt_s1 = int(raw_silver_s1 * wage_s1 / 100)
+                tax_amt_s1 = int(wage_amt_s1 * tax_pct / 100)
+                line_total_s1 = raw_silver_s1 + wage_amt_s1 + tax_amt_s1
+
+                order_s1 = Order(
+                    customer_id=test_customer_1.id,
+                    total_amount=line_total_s1,
+                    status=OrderStatus.PAID,
+                    delivery_method=DeliveryMethod.PICKUP,
+                    delivery_status=DeliveryStatus.WAITING,
+                    pickup_dealer_id=first_dealer.id,
+                    payment_method="wallet",
+                    paid_at=_now,
+                )
+                db.add(order_s1)
+                db.flush()
+
+                db.add(OrderItem(
+                    order_id=order_s1.id, product_id=silver_product.id, bar_id=cust_bar_s1.id,
+                    applied_gold_price=silver_price, applied_unit_price=line_total_s1,
+                    applied_weight=weight_s1, applied_purity=purity_s1,
+                    applied_wage_percent=wage_s1, applied_tax_percent=tax_pct,
+                    final_gold_amount=raw_silver_s1, final_wage_amount=wage_amt_s1,
+                    final_tax_amount=tax_amt_s1, line_total=line_total_s1,
+                ))
+                db.flush()
+                print(f"  + 1 custodial silver bar (TSCST003) with order")
+
         # Create dealer wallets (IRR + XAU_MG)
         print("\n  Dealer Wallets:")
         all_dealers = db.query(Dealer).all()
@@ -1628,6 +1783,7 @@ def seed():
         print(f"  Package Types:  {db.query(PackageType).count()}")
         print(f"  Batches:        {db.query(Batch).count()}")
         print(f"  Bars:           {db.query(Bar).count()}")
+        print(f"  Orders:         {db.query(Order).count()}")
         print(f"  Coupons:        {db.query(Coupon).count()}")
         print(f"  Wallet Accts:   {db.query(Account).count()}")
         print(f"  Dealer Tiers:   {db.query(DealerTier).count()}")
@@ -1649,6 +1805,11 @@ def seed():
         print(f"\n--- Dealer API Keys (for POS) ---")
         for dd in dealers_data:
             print(f"  {dd['mobile']}: {dd['api_key']}")
+
+        print(f"\n--- Custodial Test Bars ---")
+        print(f"  TSCST001 : Gold, custodial (buyer=owner=09351234567)")
+        print(f"  TSCST002 : Gold, custodial (buyer=09351234567, owner=09359876543 — transferred)")
+        print(f"  TSCST003 : Silver, custodial (buyer=owner=09351234567)")
 
         print(f"\n--- Settings ---")
         print(f"  Gold price: 5,200,000 toman/gram")
