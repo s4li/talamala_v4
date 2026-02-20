@@ -701,17 +701,18 @@ def seed():
 
                     print(f"  + {name} ({weight_grams}g, purity={ptype['purity']}, wage={end_customer_wage}%)")
 
-                # Copy ALL images from _private to static/uploads/products/
+                # Copy images from _private to static/uploads/products/ (max 2: front + back)
                 folder_name = weight_to_folder(weight_grams, ptype["folder"], folder_overrides)
                 img_src_dir = os.path.join(IMG_SRC_BASE, ptype["folder"], folder_name)
                 if os.path.isdir(img_src_dir):
-                    # Collect all image files (main folder + subfolders like ابعاد سایت)
                     src_files = []
                     for root, _dirs, files in os.walk(img_src_dir):
                         for f in sorted(files):
                             if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
                                 src_files.append(os.path.join(root, f))
                     src_files.sort()
+                    # Only keep first 2 images (front + back)
+                    src_files = src_files[:2]
 
                     for idx, src_path in enumerate(src_files):
                         ext = os.path.splitext(src_path)[1].lower()

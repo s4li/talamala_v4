@@ -643,6 +643,8 @@ def seed():
                             if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
                                 src_files.append(os.path.join(root, f))
                     src_files.sort()
+                    # Only keep first 2 images (front + back)
+                    src_files = src_files[:2]
                     for idx, src_path in enumerate(src_files):
                         ext = os.path.splitext(src_path)[1].lower()
                         clean_name = f"{ptype['slug']}_{folder_name}_{idx + 1}{ext}"
