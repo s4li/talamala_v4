@@ -74,7 +74,7 @@
 </div>
 
 <!-- Table -->
-<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2" style="overflow:hidden;">
     {% if items %}
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -83,8 +83,8 @@
                     <th>#</th>
                     <th>نام</th>
                     <th>موبایل</th>
-                    <th>استان / شهر</th>
-                    <th>تاریخ</th>
+                    <th class="d-none d-md-table-cell">استان / شهر</th>
+                    <th class="d-none d-md-table-cell">تاریخ</th>
                     <th>وضعیت</th>
                     <th></th>
                 </tr>
@@ -95,8 +95,8 @@
                     <td class="small text-muted">{{ item.id }}</td>
                     <td class="fw-bold">{{ item.full_name }}</td>
                     <td dir="ltr" class="small">{{ item.mobile }}</td>
-                    <td class="small">{{ item.province_name }} / {{ item.city_name }}</td>
-                    <td class="small">{{ item.created_at | jdate }}</td>
+                    <td class="small d-none d-md-table-cell">{{ item.province_name }} / {{ item.city_name }}</td>
+                    <td class="small d-none d-md-table-cell">{{ item.created_at | jdate }}</td>
                     <td>
                         <span class="badge-tm badge-tm-{{ item.status_color }}">{{ item.status_label }}</span>
                     </td>
