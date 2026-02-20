@@ -92,7 +92,7 @@
         <!-- Stock -->
         <div class="mb-3">
             {% if inventory > 0 %}
-            <span class="badge-tm badge-tm-success"><i class="bi bi-check-circle me-1"></i>{{ inventory }} عدد موجود</span>
+            <span class="badge-tm badge-tm-primary"><i class="bi bi-check-circle me-1"></i>{{ inventory }} عدد موجود</span>
             {% else %}
             <span class="badge-tm badge-tm-info"><i class="bi bi-x-circle me-1"></i>ناموجود</span>
             {% endif %}
@@ -107,7 +107,7 @@
                 <div class="border rounded-3 p-2 small" style="min-width:140px;">
                     <div class="fw-bold">{{ loc.name }}</div>
                     {% if loc.city %}<div class="text-muted">{{ loc.city }}</div>{% endif %}
-                    <span class="badge-tm badge-tm-success mt-1">{{ loc.count }} عدد</span>
+                    <span class="badge-tm badge-tm-primary mt-1">{{ loc.count }} عدد</span>
                 </div>
                 {% endfor %}
             </div>
