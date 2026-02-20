@@ -281,6 +281,7 @@ textarea.form-control-tm { height: auto; min-height: 120px; padding: 12px; }
   overflow: hidden;
 }
 .card-tm.product-card .product-card-img {
+  display: block;
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
