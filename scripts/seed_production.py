@@ -72,6 +72,38 @@ def ensure_tables():
     print("  + All tables OK\n")
 
 
+def ensure_schema_updates():
+    """Add missing columns to existing tables (create_all won't do this)."""
+    from sqlalchemy import text, inspect
+    print("[0.5] Checking schema updates...")
+
+    insp = inspect(engine)
+    updates = 0
+
+    # --- withdrawal_requests: owner_type, dealer_id ---
+    if "withdrawal_requests" in insp.get_table_names():
+        wr_cols = {c["name"] for c in insp.get_columns("withdrawal_requests")}
+        with engine.begin() as conn:
+            if "owner_type" not in wr_cols:
+                conn.execute(text("ALTER TABLE withdrawal_requests ADD COLUMN owner_type VARCHAR NOT NULL DEFAULT 'customer'"))
+                print("  + withdrawal_requests.owner_type added")
+                updates += 1
+            if "dealer_id" not in wr_cols:
+                conn.execute(text("ALTER TABLE withdrawal_requests ADD COLUMN dealer_id INTEGER REFERENCES dealers(id) ON DELETE CASCADE"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_withdrawal_requests_dealer_id ON withdrawal_requests(dealer_id)"))
+                print("  + withdrawal_requests.dealer_id added")
+                updates += 1
+            # Make customer_id nullable (may already be)
+            try:
+                conn.execute(text("ALTER TABLE withdrawal_requests ALTER COLUMN customer_id DROP NOT NULL"))
+            except Exception:
+                pass  # already nullable
+
+    if updates == 0:
+        print("  = schema up to date")
+    print()
+
+
 def seed():
     db = SessionLocal()
     try:
@@ -80,6 +112,7 @@ def seed():
         print("=" * 50)
 
         ensure_tables()
+        ensure_schema_updates()
 
         # ==========================================
         # 1. Admin User (super_admin only)
