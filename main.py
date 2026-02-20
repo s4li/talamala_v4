@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from config import settings
-from config.database import get_db, SessionLocal
+from config.database import get_db, SessionLocal, Base, engine
 from common.templating import templates
 from modules.auth.deps import require_permission
 
@@ -218,6 +218,9 @@ scheduler = BackgroundScheduler()
 
 @asynccontextmanager
 async def lifespan(app):
+    # Auto-create any missing tables (safe for existing tables)
+    Base.metadata.create_all(bind=engine)
+
     scheduler.add_job(_cleanup_expired_orders, 'interval', seconds=60, id='expired_orders')
     scheduler.add_job(_cleanup_old_request_logs, 'interval', hours=6, id='log_cleanup')
     scheduler.add_job(_auto_update_prices, 'interval', seconds=60, id='price_update')
