@@ -786,20 +786,27 @@ def seed():
                 Account.asset_code == "IRR",
             ).first()
 
+            # --- Customer withdrawals ---
             wr_data = [
                 {
+                    "owner_type": OwnerType.CUSTOMER,
+                    "customer_id": test_customer.id,
                     "amount_irr": 5_000_000,
                     "shaba_number": "IR820540102680020817909002",
                     "account_holder": "علی رضایی",
                     "status": WithdrawalStatus.PENDING,
                 },
                 {
+                    "owner_type": OwnerType.CUSTOMER,
+                    "customer_id": test_customer.id,
                     "amount_irr": 10_000_000,
                     "shaba_number": "IR062960000000100324200001",
                     "account_holder": "علی رضایی",
                     "status": WithdrawalStatus.PENDING,
                 },
                 {
+                    "owner_type": OwnerType.CUSTOMER,
+                    "customer_id": test_customer.id,
                     "amount_irr": 3_000_000,
                     "shaba_number": "IR820540102680020817909002",
                     "account_holder": "علی رضایی",
@@ -807,6 +814,8 @@ def seed():
                     "admin_note": "واریز شد - شماره پیگیری ۱۲۳۴۵۶",
                 },
                 {
+                    "owner_type": OwnerType.CUSTOMER,
+                    "customer_id": test_customer.id,
                     "amount_irr": 2_000_000,
                     "shaba_number": "IR062960000000100324200001",
                     "account_holder": "علی رضایی",
@@ -815,10 +824,25 @@ def seed():
                 },
             ]
 
-            total_pending_hold = 0
+            # --- Dealer withdrawal (test for dealer withdrawal feature) ---
+            test_dealer_wr = db.query(Dealer).filter(Dealer.mobile == "09161234567").first()
+            if test_dealer_wr:
+                wr_data.append({
+                    "owner_type": OwnerType.DEALER,
+                    "dealer_id": test_dealer_wr.id,
+                    "amount_irr": 8_000_000,
+                    "shaba_number": "IR550170000000100000000007",
+                    "account_holder": "احمد نوری",
+                    "status": WithdrawalStatus.PENDING,
+                })
+
+            total_pending_hold_customer = 0
+            total_pending_hold_dealer = {}  # {dealer_id: amount}
             for wd in wr_data:
                 wr = WithdrawalRequest(
-                    customer_id=test_customer.id,
+                    owner_type=wd["owner_type"],
+                    customer_id=wd.get("customer_id"),
+                    dealer_id=wd.get("dealer_id"),
                     amount_irr=wd["amount_irr"],
                     shaba_number=wd["shaba_number"],
                     account_holder=wd["account_holder"],
@@ -826,25 +850,51 @@ def seed():
                     admin_note=wd.get("admin_note"),
                 )
                 db.add(wr)
+                owner_label = "customer" if wd["owner_type"] == OwnerType.CUSTOMER else "dealer"
                 status_label = wd["status"].value if hasattr(wd["status"], "value") else wd["status"]
-                print(f"  + Withdrawal {wd['amount_irr'] // 10:,} toman [{status_label}]")
+                print(f"  + Withdrawal {wd['amount_irr'] // 10:,} toman [{owner_label}] [{status_label}]")
 
                 if wd["status"] == WithdrawalStatus.PENDING:
-                    total_pending_hold += wd["amount_irr"]
+                    if wd["owner_type"] == OwnerType.CUSTOMER:
+                        total_pending_hold_customer += wd["amount_irr"]
+                    elif wd.get("dealer_id"):
+                        total_pending_hold_dealer[wd["dealer_id"]] = (
+                            total_pending_hold_dealer.get(wd["dealer_id"], 0) + wd["amount_irr"]
+                        )
 
-            # Hold funds for pending withdrawals
-            if acct and total_pending_hold > 0:
-                acct.locked_balance += total_pending_hold
+            # Hold funds for pending customer withdrawals
+            if acct and total_pending_hold_customer > 0:
+                acct.locked_balance += total_pending_hold_customer
                 db.flush()
                 db.add(LedgerEntry(
                     account_id=acct.id, txn_type="Hold",
-                    delta_balance=0, delta_locked=total_pending_hold,
+                    delta_balance=0, delta_locked=total_pending_hold_customer,
                     balance_after=acct.balance, locked_after=acct.locked_balance,
                     idempotency_key="seed:withdrawal_hold:1",
                     reference_type="seed", reference_id="withdrawal_hold",
                     description=f"بلوکه تستی برای درخواست‌های برداشت",
                 ))
-                print(f"  + Held {total_pending_hold // 10:,} toman for pending withdrawals")
+                print(f"  + Held {total_pending_hold_customer // 10:,} toman for pending customer withdrawals")
+
+            # Hold funds for pending dealer withdrawals
+            for dlr_id, hold_amount in total_pending_hold_dealer.items():
+                dlr_acct = db.query(Account).filter(
+                    Account.owner_type == OwnerType.DEALER,
+                    Account.owner_id == dlr_id,
+                    Account.asset_code == "IRR",
+                ).first()
+                if dlr_acct:
+                    dlr_acct.locked_balance += hold_amount
+                    db.flush()
+                    db.add(LedgerEntry(
+                        account_id=dlr_acct.id, txn_type="Hold",
+                        delta_balance=0, delta_locked=hold_amount,
+                        balance_after=dlr_acct.balance, locked_after=dlr_acct.locked_balance,
+                        idempotency_key=f"seed:withdrawal_hold:dealer:{dlr_id}",
+                        reference_type="seed", reference_id="withdrawal_hold",
+                        description="بلوکه تستی برای درخواست برداشت نماینده",
+                    ))
+                    print(f"  + Held {hold_amount // 10:,} toman for dealer #{dlr_id} pending withdrawal")
 
             db.flush()
         else:

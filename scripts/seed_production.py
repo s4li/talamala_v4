@@ -118,6 +118,7 @@ def seed():
             "insurance_percent":    ("1.5", "درصد بیمه پست"),
             "insurance_cap":        ("500000000", "سقف بیمه پست (ریال)"),
             "gold_spread_percent":  ("2", "اسپرد تبدیل ریال به طلا (درصد)"),
+            "active_gateway":       ("zibal", "درگاه پرداخت فعال (zibal/sepehr/top/parsian)"),
         }
 
         for key, (value, desc) in settings_data.items():
