@@ -216,7 +216,9 @@ class WithdrawalRequest(Base):
     __tablename__ = "withdrawal_requests"
 
     id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
+    owner_type = Column(String, default=OwnerType.CUSTOMER, nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=True, index=True)
+    dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=True, index=True)
     amount_irr = Column(BigInteger, nullable=False)
     shaba_number = Column(String, nullable=False)
     account_holder = Column(String, nullable=True)
@@ -226,6 +228,41 @@ class WithdrawalRequest(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     customer = relationship("Customer")
+    dealer = relationship("Dealer")
+
+    @property
+    def owner_id(self) -> int:
+        if self.owner_type == OwnerType.DEALER:
+            return self.dealer_id
+        return self.customer_id
+
+    @property
+    def owner_name(self) -> str:
+        if self.owner_type == OwnerType.DEALER and self.dealer:
+            return self.dealer.full_name
+        if self.customer:
+            return self.customer.full_name or self.customer.mobile
+        return "---"
+
+    @property
+    def owner_mobile(self) -> str:
+        if self.owner_type == OwnerType.DEALER and self.dealer:
+            return self.dealer.mobile
+        if self.customer:
+            return self.customer.mobile
+        return ""
+
+    @property
+    def owner_type_label(self) -> str:
+        if self.owner_type == OwnerType.DEALER:
+            return "نماینده"
+        return "مشتری"
+
+    @property
+    def owner_type_color(self) -> str:
+        if self.owner_type == OwnerType.DEALER:
+            return "info"
+        return "secondary"
 
     @property
     def status_label(self) -> str:

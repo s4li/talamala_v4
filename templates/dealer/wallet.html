@@ -41,6 +41,19 @@
     </div>
 </div>
 
+<!-- Withdrawal Button + Pending Alert -->
+{% if pending_withdrawals %}
+<div class="alert alert-tm-warning mb-4">
+    <i class="bi bi-clock me-1"></i>
+    شما {{ pending_withdrawals|length }} درخواست برداشت در انتظار بررسی دارید.
+</div>
+{% endif %}
+<div class="mb-4">
+    <a href="/dealer/wallet/withdraw" class="btn btn-tm-outline">
+        <i class="bi bi-bank me-1"></i> درخواست برداشت به حساب بانکی
+    </a>
+</div>
+
 <!-- Gold Buy/Sell -->
 <div class="row g-3 mb-4">
     <div class="col-md-6">
@@ -101,7 +114,29 @@
             <tbody>
                 {% for e in entries %}
                 <tr>
-                    <td><span class="badge bg-{{ e.txn_type_color }}">{{ e.txn_type_label }}</span></td>
+                    <td>
+                    {% if e.reference_type == 'pos_gold_profit' %}
+                        <span class="badge bg-success">واریز سود</span>
+                    {% elif e.reference_type == 'gold_buy' %}
+                        <span class="badge bg-warning">خرید طلا</span>
+                    {% elif e.reference_type == 'gold_sell' and e.txn_type == 'Deposit' %}
+                        <span class="badge bg-success">واریز</span>
+                    {% elif e.reference_type == 'gold_sell' %}
+                        <span class="badge bg-danger">فروش طلا</span>
+                    {% elif e.reference_type == 'topup' %}
+                        <span class="badge bg-success">شارژ کیف پول</span>
+                    {% elif e.txn_type == 'Deposit' %}
+                        <span class="badge bg-success">واریز</span>
+                    {% elif e.txn_type == 'Withdraw' %}
+                        <span class="badge bg-danger">برداشت</span>
+                    {% elif e.txn_type == 'Payment' %}
+                        <span class="badge bg-warning">پرداخت سفارش</span>
+                    {% elif e.txn_type == 'Refund' %}
+                        <span class="badge bg-info">بازگشت وجه</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ e.txn_type }}</span>
+                    {% endif %}
+                    </td>
                     <td class="small">{{ e.description or '—' }}</td>
                     <td class="fw-bold {{ 'text-success' if e.delta_balance > 0 else 'text-danger' if e.delta_balance < 0 else '' }}">
                         {% if e.account and e.account.asset_code == 'XAU_MG' %}

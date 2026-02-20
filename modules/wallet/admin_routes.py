@@ -194,11 +194,13 @@ async def admin_wallet_adjust(
 async def admin_withdrawals_list(
     request: Request,
     page: int = 1,
+    owner_type: str = "",
     db: Session = Depends(get_db),
     user=Depends(require_permission("wallets")),
 ):
     per_page = 30
-    withdrawals, total = wallet_service.get_all_withdrawals(db, page=page, per_page=per_page)
+    ot = owner_type if owner_type in ("customer", "dealer") else None
+    withdrawals, total = wallet_service.get_all_withdrawals(db, page=page, per_page=per_page, owner_type=ot)
     total_pages = max(1, (total + per_page - 1) // per_page)
     pending_count = (
         db.query(WithdrawalRequest)
@@ -217,6 +219,7 @@ async def admin_withdrawals_list(
         "total": total,
         "csrf_token": csrf,
         "active_page": "withdrawals",
+        "owner_type_filter": ot or "",
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response

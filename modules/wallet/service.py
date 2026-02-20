@@ -562,10 +562,11 @@ class WalletService:
     def create_withdrawal(
         self,
         db: Session,
-        customer_id: int,
+        owner_id: int,
         amount_irr: int,
         shaba_number: str,
         account_holder: str = "",
+        owner_type: str = OwnerType.CUSTOMER,
     ) -> WithdrawalRequest:
         """Create withdrawal request (holds funds immediately)."""
         if amount_irr < 1_000_000:  # min 100,000 toman
@@ -577,12 +578,14 @@ class WalletService:
             raise ValueError("شماره شبا نامعتبر است (فرمت: IR + ۲۴ رقم)")
 
         # Check withdrawable balance (excludes non-withdrawable credit)
-        bal = self.get_balance(db, customer_id)
+        bal = self.get_balance(db, owner_id, owner_type=owner_type)
         if bal["withdrawable"] < amount_irr:
             raise ValueError("موجودی قابل برداشت کافی نیست")
 
         wr = WithdrawalRequest(
-            customer_id=customer_id,
+            owner_type=owner_type,
+            customer_id=owner_id if owner_type == OwnerType.CUSTOMER else None,
+            dealer_id=owner_id if owner_type == OwnerType.DEALER else None,
             amount_irr=amount_irr,
             shaba_number=shaba_clean,
             account_holder=account_holder,
@@ -593,9 +596,10 @@ class WalletService:
 
         # Hold funds immediately
         self.hold(
-            db, customer_id, amount_irr,
+            db, owner_id, amount_irr,
             reference_type="withdrawal", reference_id=str(wr.id),
             description=f"بلوکه برای درخواست برداشت #{wr.id}",
+            owner_type=owner_type,
         )
         return wr
 
@@ -612,9 +616,10 @@ class WalletService:
 
         # Commit the held funds (deduct balance + locked)
         self.commit(
-            db, wr.customer_id, wr.amount_irr,
+            db, wr.owner_id, wr.amount_irr,
             reference_type="withdrawal", reference_id=str(wr.id),
             description=f"تسویه برداشت #{wr.id} به شبا {wr.shaba_number}",
+            owner_type=wr.owner_type,
         )
         db.flush()
         return wr
@@ -632,9 +637,10 @@ class WalletService:
 
         # Release held funds
         self.release(
-            db, wr.customer_id, wr.amount_irr,
+            db, wr.owner_id, wr.amount_irr,
             reference_type="withdrawal", reference_id=str(wr.id),
             description=f"آزادسازی بلوکه - رد درخواست برداشت #{wr.id}",
+            owner_type=wr.owner_type,
         )
         db.flush()
         return wr
@@ -673,10 +679,13 @@ class WalletService:
         )
 
     def get_all_withdrawals(
-        self, db: Session, page: int = 1, per_page: int = 30
+        self, db: Session, page: int = 1, per_page: int = 30,
+        owner_type: str = None,
     ) -> Tuple[List[WithdrawalRequest], int]:
-        """Get all withdrawal requests with pagination."""
+        """Get all withdrawal requests with pagination. Optional owner_type filter."""
         q = db.query(WithdrawalRequest)
+        if owner_type:
+            q = q.filter(WithdrawalRequest.owner_type == owner_type)
         total = q.count()
         items = (
             q.order_by(WithdrawalRequest.created_at.desc())

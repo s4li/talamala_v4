@@ -1,0 +1,201 @@
+{% extends "dealer/base_dealer.html" %}
+{% block title %}درخواست برداشت - پنل نماینده{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-bank text-tm-primary"></i> درخواست برداشت
+    </h4>
+    <a href="/dealer/wallet" class="btn btn-sm btn-tm-outline">
+        <i class="bi bi-arrow-right me-1"></i> بازگشت
+    </a>
+</div>
+
+{% if request.query_params.get('error') %}
+<div class="alert alert-tm-danger alert-dismissible fade show">
+    <i class="bi bi-exclamation-triangle me-1"></i> {{ request.query_params.get('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <!-- Balance Info -->
+        <div class="alert-tm-info d-flex align-items-center gap-2 mb-4">
+            <i class="bi bi-info-circle"></i>
+            <span>
+                موجودی قابل برداشت:
+                <strong>{{ balance.withdrawable | toman }} تومان</strong>
+            </span>
+        </div>
+
+        <div class="card-tm no-hover">
+            <form method="post" action="/dealer/wallet/withdraw" id="withdrawForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <!-- Amount -->
+                <div class="mb-3">
+                    <label class="form-label-tm fw-bold">مبلغ برداشت (تومان) <span class="text-danger">*</span></label>
+                    <input type="number" name="amount_toman" id="withdraw-amount" class="form-control form-control-tm form-control-lg"
+                           min="100000" max="999999999999" step="1" required
+                           placeholder="مثال: ۱,۰۰۰,۰۰۰">
+                    <div id="withdraw-amount-words" class="mt-1 text-muted small" style="min-height:1.4em;"></div>
+                    <div class="form-text">حداقل ۱۰۰,۰۰۰ تومان — حداکثر تا سقف موجودی ({{ balance.withdrawable | toman }} تومان)</div>
+                </div>
+
+                <!-- SHABA -->
+                <div class="mb-3">
+                    <label class="form-label-tm fw-bold">شماره شبا <span class="text-danger">*</span></label>
+                    <div class="input-group" dir="ltr">
+                        <span class="input-group-text fw-bold" style="font-family:monospace; letter-spacing:1px;">IR</span>
+                        <input type="text" id="shabaInput" class="form-control form-control-tm" dir="ltr"
+                               placeholder="000000000000000000000000" maxlength="24" required
+                               pattern="[0-9]{24}" style="font-family:monospace; letter-spacing:1px;"
+                               inputmode="numeric">
+                    </div>
+                    <input type="hidden" name="shaba_number" id="shabaHidden">
+                    <div class="form-text">۲۴ رقم بعد از IR را وارد کنید</div>
+                    <div class="invalid-feedback d-block d-none" id="shabaError">شماره شبا باید دقیقاً ۲۴ رقم باشد</div>
+                </div>
+
+                <!-- Account Holder -->
+                <div class="mb-4">
+                    <label class="form-label-tm fw-bold">نام صاحب حساب</label>
+                    <input type="text" name="account_holder" class="form-control form-control-tm"
+                           value="{{ dealer.full_name }}" placeholder="نام و نام خانوادگی">
+                </div>
+
+                <!-- Info -->
+                <div class="alert-tm-warning small mb-4">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <strong>توجه:</strong>
+                    مبلغ درخواستی بلافاصله از موجودی قابل برداشت شما بلوکه شده و پس از تأیید مدیر
+                    طی ۲۴ تا ۴۸ ساعت کاری به حساب بانکی شما واریز خواهد شد.
+                    در صورت رد درخواست، مبلغ به کیف پول شما بازگردانده می‌شود.
+                </div>
+
+                <button type="submit" class="btn btn-tm-primary w-100 btn-lg"
+                        {% if balance.withdrawable < 1000000 %}disabled{% endif %}>
+                    <i class="bi bi-send me-1"></i> ثبت درخواست برداشت
+                </button>
+
+                {% if balance.withdrawable < 1000000 %}
+                <div class="text-center text-muted small mt-2">
+                    موجودی قابل برداشت کمتر از حداقل مجاز (۱۰۰,۰۰۰ تومان) است.
+                </div>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Previous Withdrawal Requests -->
+        {% if withdrawals %}
+        <div class="card-tm no-hover mt-4">
+            <div class="border-bottom pb-3 mb-3">
+                <i class="bi bi-clock-history me-1"></i>
+                <strong>درخواست‌های قبلی</strong>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-tm table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>مبلغ</th>
+                            <th>شبا</th>
+                            <th>وضعیت</th>
+                            <th>تاریخ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for wr in withdrawals %}
+                        <tr>
+                            <td>{{ wr.id }}</td>
+                            <td class="fw-bold">{{ wr.amount_irr | toman }} تومان</td>
+                            <td><code class="small">{{ wr.shaba_number }}</code></td>
+                            <td><span class="badge bg-{{ wr.status_color }}">{{ wr.status_label }}</span></td>
+                            <td class="small text-muted">{{ wr.created_at | jdate if wr.created_at else '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+function numberToWordsFa(num) {
+    if (!num || num <= 0) return '';
+    num = Math.floor(num);
+    const yekan = ['', 'یک', 'دو', 'سه', 'چهار', 'پنج', 'شش', 'هفت', 'هشت', 'نه'];
+    const dahgan = ['', '', 'بیست', 'سی', 'چهل', 'پنجاه', 'شصت', 'هفتاد', 'هشتاد', 'نود'];
+    const dahyek = ['ده', 'یازده', 'دوازده', 'سیزده', 'چهارده', 'پانزده', 'شانزده', 'هفده', 'هجده', 'نوزده'];
+    const sadgan = ['', 'یکصد', 'دویست', 'سیصد', 'چهارصد', 'پانصد', 'ششصد', 'هفتصد', 'هشتصد', 'نهصد'];
+    const scale = ['', 'هزار', 'میلیون', 'میلیارد', 'تریلیون'];
+    function threeDigits(n) {
+        if (n === 0) return '';
+        let parts = [];
+        let s = Math.floor(n / 100), d = Math.floor((n % 100) / 10), y = n % 10;
+        if (s > 0) parts.push(sadgan[s]);
+        if (d === 1) { parts.push(dahyek[y]); return parts.join(' و '); }
+        if (d > 1) parts.push(dahgan[d]);
+        if (y > 0) parts.push(yekan[y]);
+        return parts.join(' و ');
+    }
+    let chunks = [], i = 0;
+    while (num > 0) {
+        let rem = num % 1000;
+        if (rem > 0) { let w = threeDigits(rem); if (scale[i]) w += ' ' + scale[i]; chunks.unshift(w); }
+        num = Math.floor(num / 1000); i++;
+    }
+    return chunks.join(' و ');
+}
+const wdInp = document.getElementById('withdraw-amount');
+const wdEl = document.getElementById('withdraw-amount-words');
+function updateWdWords() {
+    const val = parseInt(wdInp.value);
+    if (val && val > 0) {
+        wdEl.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + numberToWordsFa(val) + ' تومان';
+    } else {
+        wdEl.textContent = '';
+    }
+}
+wdInp.addEventListener('input', updateWdWords);
+
+// SHABA: only allow digits, sync hidden field
+var shabaInp = document.getElementById('shabaInput');
+var shabaHidden = document.getElementById('shabaHidden');
+var shabaErr = document.getElementById('shabaError');
+if (shabaInp) {
+    shabaInp.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+        shabaHidden.value = 'IR' + this.value;
+        if (this.value.length > 0 && this.value.length !== 24) {
+            shabaErr.classList.remove('d-none');
+        } else {
+            shabaErr.classList.add('d-none');
+        }
+    });
+}
+
+// Form validation on submit
+var wdForm = document.getElementById('withdrawForm');
+if (wdForm) {
+    wdForm.addEventListener('submit', function(e) {
+        var digits = shabaInp.value.replace(/[^0-9]/g, '');
+        if (digits.length !== 24) {
+            e.preventDefault();
+            shabaErr.classList.remove('d-none');
+            shabaInp.focus();
+            return;
+        }
+        shabaHidden.value = 'IR' + digits;
+        var btn = this.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> در حال ارسال...';
+    });
+}
+</script>
+{% endblock %}

@@ -15,7 +15,7 @@ from common.templating import templates
 from common.security import csrf_check, new_csrf_token
 from modules.auth.deps import require_dealer
 from modules.wallet.service import wallet_service
-from modules.wallet.models import AssetCode, OwnerType
+from modules.wallet.models import AssetCode, OwnerType, WithdrawalRequest, WithdrawalStatus
 
 router = APIRouter(prefix="/dealer/wallet", tags=["dealer-wallet"])
 
@@ -41,6 +41,14 @@ async def dealer_wallet_dashboard(
     entries, total = wallet_service.get_transactions(
         db, dealer.id, owner_type=OwnerType.DEALER, per_page=10
     )
+    pending_wr = (
+        db.query(WithdrawalRequest)
+        .filter(
+            WithdrawalRequest.dealer_id == dealer.id,
+            WithdrawalRequest.status == WithdrawalStatus.PENDING,
+        )
+        .all()
+    )
 
     csrf = new_csrf_token()
     resp = templates.TemplateResponse("dealer/wallet.html", {
@@ -49,6 +57,7 @@ async def dealer_wallet_dashboard(
         "irr_balance": irr_balance,
         "gold_balance": gold_balance,
         "entries": entries,
+        "pending_withdrawals": pending_wr,
         "active_page": "wallet",
         "csrf_token": csrf,
         "msg": msg,
@@ -146,3 +155,68 @@ async def dealer_gold_sell(
         db.rollback()
         error = urllib.parse.quote(str(e))
         return RedirectResponse(f"/dealer/wallet?error={error}", status_code=302)
+
+
+# ==========================================
+# Withdrawal
+# ==========================================
+
+@router.get("/withdraw", response_class=HTMLResponse)
+async def dealer_wallet_withdraw_form(
+    request: Request,
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    """Dealer withdrawal request form."""
+    irr_balance = wallet_service.get_balance(
+        db, dealer.id, asset_code=AssetCode.IRR, owner_type=OwnerType.DEALER
+    )
+    withdrawals = (
+        db.query(WithdrawalRequest)
+        .filter(WithdrawalRequest.dealer_id == dealer.id)
+        .order_by(WithdrawalRequest.created_at.desc())
+        .limit(20)
+        .all()
+    )
+
+    csrf = new_csrf_token()
+    resp = templates.TemplateResponse("dealer/wallet_withdraw.html", {
+        "request": request,
+        "dealer": dealer,
+        "balance": irr_balance,
+        "withdrawals": withdrawals,
+        "active_page": "wallet",
+        "csrf_token": csrf,
+    })
+    resp.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return resp
+
+
+@router.post("/withdraw")
+async def dealer_wallet_withdraw_submit(
+    request: Request,
+    amount_toman: int = Form(...),
+    shaba_number: str = Form(...),
+    account_holder: str = Form(""),
+    csrf_token: str = Form(""),
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    """Dealer submits withdrawal request."""
+    csrf_check(request, csrf_token)
+    amount_irr = amount_toman * 10
+
+    try:
+        wr = wallet_service.create_withdrawal(
+            db, dealer.id, amount_irr, shaba_number, account_holder,
+            owner_type=OwnerType.DEALER,
+        )
+        db.commit()
+        msg = urllib.parse.quote(
+            f"درخواست برداشت #{wr.id} ثبت شد. پس از تایید مدیر واریز خواهد شد."
+        )
+        return RedirectResponse(f"/dealer/wallet?msg={msg}", status_code=302)
+    except ValueError as e:
+        db.rollback()
+        error = urllib.parse.quote(str(e))
+        return RedirectResponse(f"/dealer/wallet/withdraw?error={error}", status_code=302)
