@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="/static/css/talamala-animations.css">
     <style>
         body { background: linear-gradient(135deg, var(--tm-primary-100) 0%, var(--tm-primary) 100%); min-height: 100vh; }
-        .verify-card { border-radius: 16px; max-width: 650px; }
+        .verify-card { border-radius: 16px; max-width: 650px; overflow-wrap: break-word; word-break: break-word; }
         .brand-logo { color: var(--tm-primary); font-size: 1.5rem; font-weight: bold; }
         .qr-container { background: var(--tm-info-900); border-radius: 12px; padding: 1rem; display: inline-block; }
         .timeline { position: relative; padding-right: 1.5rem; }
@@ -35,8 +35,8 @@
             <form method="GET" action="/verify/check" class="mb-4">
                 <div class="input-group input-group-lg">
                     <input type="text" name="code" class="form-control form-control-tm text-center" dir="ltr"
-                           value="{{ code }}" placeholder="کد سریال (مثال: A1B2C3D4)"
-                           style="font-family: monospace; letter-spacing: 3px; font-size: 1.3rem;"
+                           value="{{ code }}" placeholder="کد سریال"
+                           style="font-family: monospace; letter-spacing: 2px; font-size: clamp(0.9rem, 3.5vw, 1.3rem);"
                            autofocus>
                     <button class="btn btn-tm-warning fw-bold px-4" type="submit">
                         <i class="bi bi-search me-1"></i>بررسی
@@ -110,7 +110,7 @@
             {% endif %}
 
             <!-- Action Buttons -->
-            <div class="d-flex justify-content-center gap-2 mt-4">
+            <div class="d-flex flex-column flex-sm-row justify-content-center gap-2 mt-4">
                 <a href="/claim-bar" class="btn btn-tm-primary btn-sm">
                     <i class="bi bi-qr-code me-1"></i>ثبت مالکیت شمش
                 </a>
