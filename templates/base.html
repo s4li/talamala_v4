@@ -6,22 +6,22 @@
     <title>{% block title %}طلاملا{% endblock %}</title>
 
     <!-- Bootstrap 5 RTL (local) -->
-    <link rel="stylesheet" href="/static/vendor/bootstrap/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="/static/vendor/bootstrap/css/bootstrap.rtl.min.css?v={{ STATIC_VER }}">
 
     <!-- Bootstrap Icons (local) -->
-    <link rel="stylesheet" href="/static/vendor/bootstrap-icons/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/vendor/bootstrap-icons/font/bootstrap-icons.min.css?v={{ STATIC_VER }}">
 
     <!-- TalaMala Design System -->
-    <link rel="stylesheet" href="/static/css/talamala-design-system.css">
+    <link rel="stylesheet" href="/static/css/talamala-design-system.css?v={{ STATIC_VER }}">
 
     <!-- Bootstrap Bridge (reskins Bootstrap to match DS palette) -->
-    <link rel="stylesheet" href="/static/css/bootstrap-bridge.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-bridge.css?v={{ STATIC_VER }}">
 
     <!-- TalaMala Animations -->
-    <link rel="stylesheet" href="/static/css/talamala-animations.css">
+    <link rel="stylesheet" href="/static/css/talamala-animations.css?v={{ STATIC_VER }}">
 
     <!-- TalaMala Mobile Responsive -->
-    <link rel="stylesheet" href="/static/css/mobile-responsive.css">
+    <link rel="stylesheet" href="/static/css/mobile-responsive.css?v={{ STATIC_VER }}">
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -29,7 +29,7 @@
     {% block body %}{% endblock %}
 
     <!-- Bootstrap JS (local) -->
-    <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js?v={{ STATIC_VER }}"></script>
 
     <!-- Scroll Reveal + Navbar Shadow -->
     <script>
