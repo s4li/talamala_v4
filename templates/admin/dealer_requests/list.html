@@ -11,64 +11,64 @@
 </div>
 
 <!-- Stats Row -->
-<div class="row g-3 mb-4 tm-animate-fade-in-up">
-    <div class="col-6 col-md-3">
-        <div class="card-tm no-hover text-center py-3">
-            <div class="fs-4 fw-bold">{{ stats.total }}</div>
-            <small class="text-muted">کل درخواست‌ها</small>
+<div class="row g-2 g-md-3 mb-4 tm-animate-fade-in-up">
+    <div class="col-4 col-md">
+        <div class="card-tm no-hover text-center py-2 py-md-3">
+            <div class="fs-5 fs-md-4 fw-bold">{{ stats.total }}</div>
+            <small class="text-muted" style="font-size:0.7rem;">کل</small>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card-tm no-hover text-center py-3" style="border-right:3px solid var(--tm-warning);">
-            <div class="fs-4 fw-bold text-warning">{{ stats.Pending }}</div>
-            <small class="text-muted">در انتظار</small>
+    <div class="col-4 col-md">
+        <div class="card-tm no-hover text-center py-2 py-md-3" style="border-right:3px solid var(--tm-warning);">
+            <div class="fs-5 fs-md-4 fw-bold text-warning">{{ stats.Pending }}</div>
+            <small class="text-muted" style="font-size:0.7rem;">در انتظار</small>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card-tm no-hover text-center py-3" style="border-right:3px solid var(--tm-success);">
-            <div class="fs-4 fw-bold text-success">{{ stats.Approved }}</div>
-            <small class="text-muted">تایید شده</small>
+    <div class="col-4 col-md">
+        <div class="card-tm no-hover text-center py-2 py-md-3" style="border-right:3px solid var(--tm-success);">
+            <div class="fs-5 fs-md-4 fw-bold text-success">{{ stats.Approved }}</div>
+            <small class="text-muted" style="font-size:0.7rem;">تایید</small>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card-tm no-hover text-center py-3" style="border-right:3px solid var(--tm-info);">
-            <div class="fs-4 fw-bold text-info">{{ stats.RevisionNeeded }}</div>
-            <small class="text-muted">نیاز به اصلاح</small>
+    <div class="col-6 col-md">
+        <div class="card-tm no-hover text-center py-2 py-md-3" style="border-right:3px solid var(--tm-info);">
+            <div class="fs-5 fs-md-4 fw-bold text-info">{{ stats.RevisionNeeded }}</div>
+            <small class="text-muted" style="font-size:0.7rem;">اصلاح</small>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card-tm no-hover text-center py-3" style="border-right:3px solid var(--tm-danger);">
-            <div class="fs-4 fw-bold text-danger">{{ stats.Rejected }}</div>
-            <small class="text-muted">رد شده</small>
+    <div class="col-6 col-md">
+        <div class="card-tm no-hover text-center py-2 py-md-3" style="border-right:3px solid var(--tm-danger);">
+            <div class="fs-5 fs-md-4 fw-bold text-danger">{{ stats.Rejected }}</div>
+            <small class="text-muted" style="font-size:0.7rem;">رد شده</small>
         </div>
     </div>
 </div>
 
 <!-- Filter Tabs -->
-<div class="d-flex align-items-center gap-2 mb-3 flex-wrap tm-animate-fade-in-up tm-delay-1">
-    <div class="btn-group btn-group-sm">
-        <a href="/admin/dealer-requests" class="btn {% if not current_status %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
+<div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2 mb-3 tm-animate-fade-in-up tm-delay-1">
+    <div class="d-flex flex-wrap gap-1">
+        <a href="/admin/dealer-requests" class="btn btn-sm {% if not current_status %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
             همه
         </a>
-        <a href="/admin/dealer-requests?status=Pending" class="btn {% if current_status == 'Pending' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
+        <a href="/admin/dealer-requests?status=Pending" class="btn btn-sm {% if current_status == 'Pending' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
             در انتظار
         </a>
-        <a href="/admin/dealer-requests?status=Approved" class="btn {% if current_status == 'Approved' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
+        <a href="/admin/dealer-requests?status=Approved" class="btn btn-sm {% if current_status == 'Approved' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
             تایید شده
         </a>
-        <a href="/admin/dealer-requests?status=RevisionNeeded" class="btn {% if current_status == 'RevisionNeeded' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
+        <a href="/admin/dealer-requests?status=RevisionNeeded" class="btn btn-sm {% if current_status == 'RevisionNeeded' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
             نیاز به اصلاح
         </a>
-        <a href="/admin/dealer-requests?status=Rejected" class="btn {% if current_status == 'Rejected' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
+        <a href="/admin/dealer-requests?status=Rejected" class="btn btn-sm {% if current_status == 'Rejected' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
             رد شده
         </a>
     </div>
 
     <!-- Search -->
-    <form method="GET" action="/admin/dealer-requests" class="d-flex gap-2 ms-auto">
+    <form method="GET" action="/admin/dealer-requests" class="d-flex gap-2 ms-md-auto">
         {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
         <input type="text" name="search" class="form-control form-control-sm form-control-tm"
-               value="{{ search }}" placeholder="جستجو نام یا موبایل..." style="width:200px;">
+               value="{{ search }}" placeholder="جستجو نام یا موبایل..." style="min-width:0;max-width:200px;flex:1;">
         <button class="btn btn-sm btn-tm-outline"><i class="bi bi-search"></i></button>
     </form>
 </div>
