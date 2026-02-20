@@ -203,7 +203,7 @@
                             <option value="">بسته‌بندی استاندارد (رایگان)</option>
                             {% for pkg in packages %}
                             <option value="{{ pkg.id }}" {% if item.package_type and item.package_type.id == pkg.id %}selected{% endif %}>
-                                {{ pkg.name }}{% if pkg.price > 0 %} (+{{ pkg.price | toman }} ت){% endif %}
+                                {{ pkg.name }}{% if pkg.price > 0 %} ({{ pkg.price | toman }} ت){% endif %}
                             </option>
                             {% endfor %}
                         </select>
