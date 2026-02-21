@@ -62,6 +62,9 @@
                                {{ 'checked' if gold and gold.auto_update else '' }}>
                         <label class="form-check-label" for="goldAutoUpdate">آپدیت خودکار از گلدیس</label>
                     </div>
+                    <small class="text-warning d-none" id="goldAutoWarn">
+                        <i class="bi bi-exclamation-triangle me-1"></i>با فعال بودن آپدیت خودکار، قیمت دستی بعد از چند دقیقه از گلدیس بازنویسی می‌شود
+                    </small>
                     <button type="button" class="btn btn-sm btn-tm-outline" id="fetchGoldBtn" onclick="fetchPrice('gold_18k')">
                         <i class="bi bi-arrow-clockwise me-1"></i>بروزرسانی دستی
                     </button>
@@ -305,11 +308,17 @@
 {% block page_js %}
 <script>
 // Rial → Toman live conversion
-document.querySelector('input[name="gold_price"]').addEventListener('input', function() {
+const goldPriceEl = document.querySelector('input[name="gold_price"]');
+const goldOrigVal = goldPriceEl.value;
+goldPriceEl.addEventListener('input', function() {
     const val = parseInt(this.value) || 0;
     document.getElementById('tomanDisplay').textContent = Math.floor(val / 10).toLocaleString('fa-IR') + ' تومان';
+    // Show warning if price changed + auto-update is on
+    const warn = document.getElementById('goldAutoWarn');
+    const autoOn = document.getElementById('goldAutoUpdate').checked;
+    warn.classList.toggle('d-none', !(autoOn && this.value !== goldOrigVal));
 });
-document.querySelector('input[name="gold_price"]').dispatchEvent(new Event('input'));
+goldPriceEl.dispatchEvent(new Event('input'));
 
 document.querySelector('input[name="silver_price"]').addEventListener('input', function() {
     const val = parseInt(this.value) || 0;

@@ -76,6 +76,16 @@ async def update_settings(
     csrf_check(request, csrf_token)
 
     from common.helpers import now_utc
+    import re
+
+    def parse_int(val: str) -> int:
+        """Parse numeric string: strip commas, spaces, Persian/Arabic digits → int."""
+        if not val:
+            return 0
+        persian_map = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+        val = val.translate(persian_map)
+        val = re.sub(r"[,\s\.\u200c]+", "", val)  # strip commas, spaces, dots, ZWNJ
+        return int(val) if val.isdigit() else 0
 
     # Update asset prices
     for asset_code, price_val, auto_update_val, stale_min, update_int in [
@@ -84,14 +94,14 @@ async def update_settings(
     ]:
         asset = db.query(Asset).filter(Asset.asset_code == asset_code).first()
         if asset:
-            new_price = int(price_val) if price_val.isdigit() else 0
+            new_price = parse_int(price_val)
             if new_price != asset.price_per_gram and new_price > 0:
                 asset.price_per_gram = new_price
                 asset.updated_at = now_utc()
                 asset.updated_by = f"admin:{user.full_name}"
             asset.auto_update = (auto_update_val == "on")
-            asset.stale_after_minutes = int(stale_min) if stale_min.isdigit() else 15
-            asset.update_interval_minutes = int(update_int) if update_int.isdigit() else 5
+            asset.stale_after_minutes = parse_int(stale_min) or 15
+            asset.update_interval_minutes = parse_int(update_int) or 5
 
     # Update other system settings (not prices)
     updates = {
