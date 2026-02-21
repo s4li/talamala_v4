@@ -85,7 +85,7 @@ _TICKET_CAT_LABELS = {
 templates.env.filters["ticket_category_label"] = lambda v: _TICKET_CAT_LABELS.get(str(v), str(v))
 
 # Static asset version for cache busting (bump when CSS/JS changes)
-STATIC_VERSION = "1.0"
+STATIC_VERSION = "1.1"
 templates.env.globals["STATIC_VER"] = STATIC_VERSION
 
 # Globals (usage in template: {{ get_setting_value('key') }})

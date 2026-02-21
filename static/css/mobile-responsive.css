@@ -510,6 +510,12 @@
 }
 
 /* ─── OFFCANVAS FIXES ─── */
+#mobileMenu.offcanvas {
+  z-index: 1060 !important;
+}
+.offcanvas-backdrop {
+  z-index: 1055 !important;
+}
 @media (max-width: 767px) {
   .offcanvas-start {
     border-left: none !important;
