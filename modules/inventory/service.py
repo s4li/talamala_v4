@@ -146,6 +146,17 @@ class InventoryService:
             ))
             bar.dealer_id = new_dealer
 
+            # Rasis POS: add bar to new dealer's POS if assigned
+            if new_dealer and data.get("status") == BarStatus.ASSIGNED:
+                try:
+                    from modules.rasis.service import rasis_service
+                    from modules.user.models import User
+                    dealer_obj = db.query(User).get(new_dealer)
+                    if dealer_obj and dealer_obj.rasis_sharepoint:
+                        rasis_service.add_bar_to_pos(db, bar, dealer_obj)
+                except Exception:
+                    pass  # Never block admin operations
+
         # Clear reservation if no longer reserved or if owner assigned
         if bar.status != BarStatus.RESERVED or new_cust is not None:
             bar.reserved_customer_id = None

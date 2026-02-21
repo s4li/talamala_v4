@@ -213,6 +213,23 @@ def _auto_update_prices():
         db.close()
 
 
+def _rasis_price_sync():
+    """Background job: sync bar prices to Rasis POS devices every 5 minutes."""
+    db = SessionLocal()
+    try:
+        from modules.rasis.service import rasis_service
+        from common.templating import get_setting_from_db
+        if get_setting_from_db(db, "rasis_pos_enabled", "false") != "true":
+            return
+        count = rasis_service.update_prices_on_pos(db)
+        if count:
+            scheduler_logger.info(f"Rasis POS: updated {count} bar prices")
+    except Exception as e:
+        scheduler_logger.error(f"Rasis price sync error: {e}")
+    finally:
+        db.close()
+
+
 scheduler = BackgroundScheduler()
 
 
@@ -224,8 +241,9 @@ async def lifespan(app):
     scheduler.add_job(_cleanup_expired_orders, 'interval', seconds=60, id='expired_orders')
     scheduler.add_job(_cleanup_old_request_logs, 'interval', hours=6, id='log_cleanup')
     scheduler.add_job(_auto_update_prices, 'interval', seconds=60, id='price_update')
+    scheduler.add_job(_rasis_price_sync, 'interval', minutes=5, id='rasis_price_sync')
     scheduler.start()
-    scheduler_logger.info("Background scheduler started (orders: 60s, logs: 6h, prices: 60s)")
+    scheduler_logger.info("Background scheduler started (orders: 60s, logs: 6h, prices: 60s, rasis: 5m)")
     yield
     scheduler.shutdown()
     scheduler_logger.info("Background scheduler stopped")

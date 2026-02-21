@@ -71,6 +71,14 @@ SHAHKAR_API_TOKEN = os.getenv("SHAHKAR_API_TOKEN", "")
 
 
 # ==========================================
+# 🖥️ Rasis POS Integration
+# ==========================================
+RASIS_API_URL = os.getenv("RASIS_API_URL", "https://mttestapi.rasisclub.ir")
+RASIS_USERNAME = os.getenv("RASIS_USERNAME", "")
+RASIS_PASSWORD = os.getenv("RASIS_PASSWORD", "")
+
+
+# ==========================================
 # 📁 File Upload
 # ==========================================
 UPLOAD_DIR = "static/uploads"

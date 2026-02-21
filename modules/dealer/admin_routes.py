@@ -213,6 +213,16 @@ async def dealer_create_submit(
     )
     db.commit()
 
+    # Rasis POS: auto-register dealer as branch
+    try:
+        from modules.rasis.service import rasis_service
+        from common.templating import get_setting_from_db
+        if get_setting_from_db(db, "rasis_pos_enabled", "false") == "true":
+            rasis_service.register_branch(db, dealer)
+            db.commit()
+    except Exception:
+        pass  # Never block dealer creation
+
     return RedirectResponse("/admin/dealers", status_code=302)
 
 
@@ -320,6 +330,26 @@ async def revoke_api_key(
 ):
     csrf_check(request, csrf_token)
     dealer_service.revoke_api_key(db, dealer_id)
+    db.commit()
+    return RedirectResponse(f"/admin/dealers/{dealer_id}/edit", status_code=302)
+
+
+@router.post("/{dealer_id}/rasis-sync")
+async def rasis_sync_dealer(
+    dealer_id: int,
+    request: Request,
+    csrf_token: str = Form(""),
+    user=Depends(require_permission("dealers")),
+    db: Session = Depends(get_db),
+):
+    """Manual full sync of dealer's inventory with Rasis POS."""
+    csrf_check(request, csrf_token)
+    from modules.rasis.service import rasis_service
+    dealer = dealer_service.get_dealer(db, dealer_id)
+    if not dealer:
+        return RedirectResponse("/admin/dealers", status_code=302)
+
+    result = rasis_service.sync_dealer_inventory(db, dealer)
     db.commit()
     return RedirectResponse(f"/admin/dealers/{dealer_id}/edit", status_code=302)
 

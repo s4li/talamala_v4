@@ -314,6 +314,17 @@ class OrderService:
                             description=f"سفارش #{order.id}",
                         ))
 
+                    # Rasis POS: remove bar from dealer's POS
+                    try:
+                        from modules.rasis.service import rasis_service
+                        if bar.dealer_id:
+                            from modules.user.models import User as UserModel
+                            dealer = db.query(UserModel).get(bar.dealer_id)
+                            if dealer and dealer.rasis_sharepoint:
+                                rasis_service.remove_bar_from_pos(db, bar, dealer)
+                    except Exception:
+                        pass  # Never block order finalization
+
         order.status = OrderStatus.PAID
         self.log_status_change(
             db, order.id, "status",

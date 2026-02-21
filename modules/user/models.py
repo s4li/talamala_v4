@@ -72,6 +72,7 @@ class User(Base):
     dealer_postal_code = Column(String(10), nullable=True)
     landline_phone = Column(String(15), nullable=True)
     api_key = Column(String(64), unique=True, nullable=True, index=True)
+    rasis_sharepoint = Column(Integer, nullable=True)  # Rasis POS branch sharepoint ID
 
     # === Admin-specific ===
     admin_role = Column(String, nullable=True)           # "admin" | "operator"

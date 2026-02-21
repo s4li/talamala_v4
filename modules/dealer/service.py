@@ -247,6 +247,14 @@ class DealerService:
                 return {"success": False, "message": "مبلغ فروش با قیمت محاسباتی مطابقت ندارد"}
 
         # Mark bar as sold + generate claim code for POS receipt
+        # Rasis POS: remove bar from dealer's POS before marking sold
+        try:
+            from modules.rasis.service import rasis_service
+            if dealer.rasis_sharepoint:
+                rasis_service.remove_bar_from_pos(db, bar, dealer)
+        except Exception:
+            pass  # Never block POS sales
+
         bar.status = BarStatus.SOLD
         bar.claim_code = generate_unique_claim_code(db)
         bar.delivered_at = now_utc()  # POS = in-person, already delivered

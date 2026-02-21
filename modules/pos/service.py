@@ -267,6 +267,14 @@ class PosService:
             db.flush()
             return {"success": False, "message": "مبلغ پرداخت با قیمت محاسباتی مطابقت ندارد"}
 
+        # Rasis POS: remove bar from dealer's POS before marking sold
+        try:
+            from modules.rasis.service import rasis_service
+            if dealer.rasis_sharepoint:
+                rasis_service.remove_bar_from_pos(db, bar, dealer)
+        except Exception:
+            pass  # Never block POS sales
+
         # Mark sold
         bar.status = BarStatus.SOLD
         bar.reserved_until = None
