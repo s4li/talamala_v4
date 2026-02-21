@@ -132,7 +132,6 @@ from modules.verification.routes import router as verification_router
 from modules.dealer.routes import router as dealer_router
 from modules.dealer.admin_routes import router as dealer_admin_router
 from modules.dealer.api_routes import router as dealer_api_router
-from modules.dealer.wallet_routes import router as dealer_wallet_router
 from modules.ticket.routes import router as ticket_router
 from modules.ticket.admin_routes import router as ticket_admin_router
 from modules.ownership.routes import router as ownership_router
@@ -487,7 +486,6 @@ app.include_router(verification_router)
 app.include_router(dealer_router)
 app.include_router(dealer_admin_router)
 app.include_router(dealer_api_router)
-app.include_router(dealer_wallet_router)
 app.include_router(ticket_router)
 app.include_router(ticket_admin_router)
 app.include_router(ownership_router)

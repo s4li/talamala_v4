@@ -149,7 +149,9 @@ def seed():
             "shipping_cost":        ("500000", "هزینه ارسال پستی (ریال)"),
             "insurance_percent":    ("1.5", "درصد بیمه پست"),
             "insurance_cap":        ("500000000", "سقف بیمه پست (ریال)"),
-            "gold_spread_percent":  ("2", "اسپرد تبدیل ریال به طلا (درصد)"),
+            "gold_spread_percent":  ("2", "اسپرد تبدیل ریال به طلا (درصد) — deprecated"),
+            "gold_fee_customer_percent": ("2", "کارمزد خرید/فروش طلا — مشتری عادی (%)"),
+            "gold_fee_dealer_percent":   ("0.5", "کارمزد خرید/فروش طلا — نماینده (%)"),
             "active_gateway":       ("zibal", "درگاه پرداخت فعال (zibal/sepehr/top/parsian)"),
         }
 

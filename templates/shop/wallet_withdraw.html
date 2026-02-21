@@ -78,6 +78,40 @@
                     {% endif %}
                 </form>
         </div>
+
+        <!-- Previous Withdrawal Requests -->
+        {% if withdrawals %}
+        <div class="card-tm no-hover mt-4 tm-animate-fade-in-up tm-delay-3">
+            <div class="border-bottom pb-3 mb-3">
+                <i class="bi bi-clock-history me-1"></i>
+                <strong>درخواست‌های قبلی</strong>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-tm table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>مبلغ</th>
+                            <th>شبا</th>
+                            <th>وضعیت</th>
+                            <th>تاریخ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for wr in withdrawals %}
+                        <tr>
+                            <td>{{ wr.id }}</td>
+                            <td class="fw-bold">{{ wr.amount_irr | toman }} تومان</td>
+                            <td><code class="small">{{ wr.shaba_number }}</code></td>
+                            <td><span class="badge-tm badge-tm-{{ wr.status_color }}">{{ wr.status_label }}</span></td>
+                            <td class="small text-muted">{{ wr.created_at | jdate if wr.created_at else '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

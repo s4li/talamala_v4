@@ -85,9 +85,10 @@ talamala_v4/
 │   │   ├── checkout.html        # Pickup/Postal delivery + coupon
 │   │   ├── orders.html
 │   │   ├── order_detail.html    # Payment buttons + status
-│   │   ├── wallet.html
+│   │   ├── wallet.html          # Unified wallet dashboard (all users)
 │   │   ├── wallet_withdraw.html
 │   │   ├── wallet_transactions.html
+│   │   ├── wallet_gold.html     # Gold buy/sell (all users, role-based fee)
 │   │   ├── profile.html
 │   │   ├── addresses.html       # Address book CRUD
 │   │   ├── tickets.html         # Customer ticket list
@@ -96,7 +97,7 @@ talamala_v4/
 │   ├── admin/
 │   │   ├── base_admin.html      # Admin sidebar layout
 │   │   ├── dashboard.html
-│   │   ├── settings.html        # Asset prices (gold/silver) + tax, shipping config + active gateway selection
+│   │   ├── settings.html        # Asset prices (gold/silver) + tax, shipping config + active gateway + gold trade fees
 │   │   ├── catalog/             # products, categories, designs, packages, batches
 │   │   ├── inventory/           # bars, edit_bar
 │   │   ├── orders/list.html     # Order management + delivery status
@@ -268,6 +269,7 @@ return response
 
 ### Auth Dependencies (modules/auth/deps.py)
 - `get_current_active_user(request, db)` — Returns User or None (single `auth_token` cookie)
+- `require_login` — Depends, raises 401 if not logged in (any role — used by unified wallet)
 - `require_customer` — Depends, raises 401 if not `is_customer`
 - `require_dealer` — Depends, raises 401 if not `is_dealer`
 - `require_staff` — Depends, raises 401 if not `is_admin`
@@ -609,15 +611,19 @@ total    = raw_gold + wage + tax
 - `POST /payment/parsian/callback` — Parsian callback
 - `POST /payment/{id}/refund` — Admin refund
 
-### Wallet
-- `GET /wallet` — Dashboard
-- `GET /wallet/transactions` — History
+### Wallet (unified — all user types via `require_login`)
+- `GET /wallet` — Dashboard (IRR + gold balance for all users)
+- `GET /wallet/transactions` — History (supports `?asset=irr|gold` filter)
 - `POST /wallet/topup` — Charge (via active gateway)
 - `GET /wallet/topup/zibal/callback` — Zibal topup callback
 - `POST /wallet/topup/sepehr/callback` — Sepehr topup callback
 - `GET /wallet/topup/top/callback` — Top topup callback
 - `POST /wallet/topup/parsian/callback` — Parsian topup callback
-- `GET/POST /wallet/withdraw` — Withdrawal
+- `GET/POST /wallet/withdraw` — Withdrawal (+ past withdrawal history)
+- `GET /wallet/gold` — Gold buy/sell page (fee displayed per user role)
+- `POST /wallet/gold/buy` — Convert IRR → XAU_MG (with role-based fee)
+- `POST /wallet/gold/sell` — Convert XAU_MG → IRR (with role-based fee)
+- **Gold trade fee**: customer `gold_fee_customer_percent` (default 2%), dealer `gold_fee_dealer_percent` (default 0.5%) — configurable in admin settings
 
 ### AJAX APIs
 - `GET /api/delivery/locations?province=X&city=Y` — returns pickup dealers for province/city

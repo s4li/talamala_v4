@@ -11,26 +11,31 @@
     }
     .gold-balance { font-size: 1.8rem; font-weight: bold; color: #fbbf24; }
     .rate-card { border-radius: 12px; }
+    .fee-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .fee-info {
+        background: var(--tm-info-900);
+        border: 1px solid var(--tm-border);
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        margin-top: 0.75rem;
+    }
+    .fee-info .fee-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 2px 0;
+    }
 </style>
 {% endblock %}
 
 {% block shop_content %}
 <div class="row g-4">
-    <div class="col-12">
-        {% if msg %}
-        <div class="alert alert-tm-success alert-dismissible fade show">
-            <i class="bi bi-check-circle me-1"></i> {{ msg }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        {% endif %}
-        {% if error %}
-        <div class="alert alert-tm-danger alert-dismissible fade show">
-            <i class="bi bi-exclamation-triangle me-1"></i> {{ error }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        {% endif %}
-    </div>
-
     <!-- Balances -->
     <div class="col-md-6">
         <div class="gold-card">
@@ -55,10 +60,15 @@
         </div>
     </div>
 
-    <!-- Rates -->
+    <!-- Rates + Fee Info -->
     <div class="col-12">
         <div class="card-tm no-hover rate-card">
-                <h6 class="fw-bold mb-3"><i class="bi bi-graph-up-arrow me-1 text-warning"></i> نرخ لحظه‌ای</h6>
+                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-graph-up-arrow me-1 text-warning"></i> نرخ لحظه‌ای</h6>
+                    <span class="fee-badge" style="background:var(--tm-primary-100);color:var(--tm-primary);">
+                        <i class="bi bi-percent me-1"></i>کارمزد شما: {{ fee_percent }}٪
+                    </span>
+                </div>
                 <div class="row text-center">
                     <div class="col-4">
                         <small class="text-muted">نرخ خرید (هر گرم)</small>
@@ -69,8 +79,8 @@
                         <div class="fw-bold text-danger fs-5">{{ rates.sell_per_gram | toman }} <small>تومان</small></div>
                     </div>
                     <div class="col-4">
-                        <small class="text-muted">اسپرد</small>
-                        <div class="fw-bold fs-5">{{ rates.spread }}%</div>
+                        <small class="text-muted">کارمزد</small>
+                        <div class="fw-bold fs-5">{{ fee_percent }}%</div>
                     </div>
                 </div>
         </div>
@@ -94,7 +104,18 @@
                         <input type="number" id="buy-grams" class="form-control form-control-tm" min="0.001" step="0.001">
                         <div id="buy-grams-info" class="form-text text-muted small mt-1"></div>
                     </div>
-                    <button type="submit" class="btn btn-tm-success w-100">
+                    <!-- Fee breakdown -->
+                    <div class="fee-info" id="buy-fee-info" style="display:none;">
+                        <div class="fee-row">
+                            <small class="text-muted">مبلغ کارمزد ({{ fee_percent }}٪)</small>
+                            <small class="fw-bold" id="buy-fee-amount">—</small>
+                        </div>
+                        <div class="fee-row">
+                            <small class="text-muted">مبلغ خالص طلا</small>
+                            <small class="fw-bold text-success" id="buy-net-amount">—</small>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-tm-success w-100 mt-3">
                         <i class="bi bi-coin me-1"></i> خرید طلا
                     </button>
                 </form>
@@ -119,7 +140,18 @@
                         <input type="number" id="sell-toman" class="form-control form-control-tm" min="10000" step="1000">
                         <div id="sell-toman-words" class="form-text text-muted small mt-1"></div>
                     </div>
-                    <button type="submit" class="btn btn-tm-danger w-100">
+                    <!-- Fee breakdown -->
+                    <div class="fee-info" id="sell-fee-info" style="display:none;">
+                        <div class="fee-row">
+                            <small class="text-muted">مبلغ کارمزد ({{ fee_percent }}٪)</small>
+                            <small class="fw-bold" id="sell-fee-amount">—</small>
+                        </div>
+                        <div class="fee-row">
+                            <small class="text-muted">مبلغ دریافتی شما</small>
+                            <small class="fw-bold text-success" id="sell-net-amount">—</small>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-tm-danger w-100 mt-3">
                         <i class="bi bi-cash-stack me-1"></i> فروش طلا
                     </button>
                 </form>
@@ -135,9 +167,10 @@
 
 {% block shop_js %}
 <script>
-// نرخ‌ها (ریال)
+// نرخ‌ها (ریال) و کارمزد
 const BUY_PER_GRAM  = {{ rates.buy_per_gram }};
 const SELL_PER_GRAM = {{ rates.sell_per_gram }};
+const FEE_PERCENT   = {{ fee_percent }};
 
 // تبدیل عدد به حروف فارسی
 function numberToWordsFa(num) {
@@ -171,12 +204,31 @@ function formatGrams(g) {
     return g.toFixed(3) + ' گرم';
 }
 
+function formatToman(n) {
+    return Number(n).toLocaleString('fa-IR') + ' تومان';
+}
+
 // === خرید طلا ===
 const buyToman = document.getElementById('buy-toman');
 const buyGrams = document.getElementById('buy-grams');
 const buyTomanWords = document.getElementById('buy-toman-words');
 const buyGramsInfo = document.getElementById('buy-grams-info');
+const buyFeeInfo = document.getElementById('buy-fee-info');
+const buyFeeAmount = document.getElementById('buy-fee-amount');
+const buyNetAmount = document.getElementById('buy-net-amount');
 let buyLock = false;
+
+function updateBuyFee(toman) {
+    if (toman > 0 && FEE_PERCENT > 0) {
+        const feeAmount = Math.round(toman * FEE_PERCENT / 100);
+        const netAmount = toman - feeAmount;
+        buyFeeAmount.textContent = formatToman(feeAmount);
+        buyNetAmount.textContent = formatToman(netAmount);
+        buyFeeInfo.style.display = 'block';
+    } else {
+        buyFeeInfo.style.display = 'none';
+    }
+}
 
 buyToman.addEventListener('input', function() {
     if (buyLock) return;
@@ -195,6 +247,7 @@ buyToman.addEventListener('input', function() {
         buyGrams.value = '';
         buyGramsInfo.textContent = '';
     }
+    updateBuyFee(toman);
     buyLock = false;
 });
 
@@ -207,10 +260,12 @@ buyGrams.addEventListener('input', function() {
         buyToman.value = toman;
         buyTomanWords.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + numberToWordsFa(toman) + ' تومان';
         buyGramsInfo.innerHTML = '<i class="bi bi-arrow-left-right me-1"></i>' + formatGrams(grams);
+        updateBuyFee(toman);
     } else {
         buyToman.value = '';
         buyTomanWords.textContent = '';
         buyGramsInfo.textContent = '';
+        buyFeeInfo.style.display = 'none';
     }
     buyLock = false;
 });
@@ -220,7 +275,22 @@ const sellGrams = document.getElementById('sell-grams');
 const sellToman = document.getElementById('sell-toman');
 const sellGramsInfo = document.getElementById('sell-grams-info');
 const sellTomanWords = document.getElementById('sell-toman-words');
+const sellFeeInfo = document.getElementById('sell-fee-info');
+const sellFeeAmount = document.getElementById('sell-fee-amount');
+const sellNetAmount = document.getElementById('sell-net-amount');
 let sellLock = false;
+
+function updateSellFee(toman) {
+    if (toman > 0 && FEE_PERCENT > 0) {
+        const feeAmount = Math.round(toman * FEE_PERCENT / 100);
+        const netAmount = toman - feeAmount;
+        sellFeeAmount.textContent = formatToman(feeAmount);
+        sellNetAmount.textContent = formatToman(netAmount);
+        sellFeeInfo.style.display = 'block';
+    } else {
+        sellFeeInfo.style.display = 'none';
+    }
+}
 
 sellGrams.addEventListener('input', function() {
     if (sellLock) return;
@@ -231,10 +301,12 @@ sellGrams.addEventListener('input', function() {
         sellToman.value = toman;
         sellTomanWords.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + numberToWordsFa(toman) + ' تومان';
         sellGramsInfo.innerHTML = '<i class="bi bi-arrow-left-right me-1"></i>' + formatGrams(grams);
+        updateSellFee(toman);
     } else {
         sellToman.value = '';
         sellTomanWords.textContent = '';
         sellGramsInfo.textContent = '';
+        sellFeeInfo.style.display = 'none';
     }
     sellLock = false;
 });
@@ -252,9 +324,11 @@ sellToman.addEventListener('input', function() {
         const grams = (toman * 10) / SELL_PER_GRAM;
         sellGrams.value = grams.toFixed(3);
         sellGramsInfo.innerHTML = '<i class="bi bi-arrow-left-right me-1"></i>' + formatGrams(grams);
+        updateSellFee(toman);
     } else {
         sellGrams.value = '';
         sellGramsInfo.textContent = '';
+        sellFeeInfo.style.display = 'none';
     }
     sellLock = false;
 });

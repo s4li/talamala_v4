@@ -1,7 +1,8 @@
 """
-Wallet Routes - Customer Facing
-=================================
-Balance view, topup (via active gateway), withdrawal, transaction history.
+Wallet Routes — Unified for All User Types
+=============================================
+Balance view, topup (via active gateway), withdrawal, transaction history,
+gold buy/sell with dynamic role-based commission.
 """
 
 import logging
@@ -15,9 +16,9 @@ from config.settings import BASE_URL
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
 from common.flash import flash
-from modules.auth.deps import require_customer
+from modules.auth.deps import require_login
 from modules.wallet.service import wallet_service
-from modules.wallet.models import WithdrawalStatus, WithdrawalRequest, WalletTopup
+from modules.wallet.models import AssetCode, WithdrawalStatus, WithdrawalRequest, WalletTopup
 from modules.payment.gateways import get_gateway, GatewayPaymentRequest
 
 logger = logging.getLogger("talamala.wallet")
@@ -41,9 +42,10 @@ def _get_enabled_gateways(db: Session) -> list:
 async def wallet_dashboard(
     request: Request,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     balance = wallet_service.get_balance(db, me.id)
+    gold_balance = wallet_service.get_balance(db, me.id, asset_code=AssetCode.XAU_MG)
     entries, total = wallet_service.get_transactions(db, me.id, per_page=10)
 
     # Pending withdrawals
@@ -53,14 +55,21 @@ async def wallet_dashboard(
         .all()
     )
 
-    # Get enabled gateways for topup selector
+    # Enabled gateways for topup selector
     enabled_gateways = _get_enabled_gateways(db)
+
+    # Gold rates with user-specific fee
+    fee_percent = wallet_service.get_fee_for_user(db, me)
+    gold_rates = wallet_service.get_gold_rates(db, fee_percent=fee_percent)
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/wallet.html", {
         "request": request,
         "user": me,
         "balance": balance,
+        "gold_balance": gold_balance,
+        "gold_rates": gold_rates,
+        "fee_percent": fee_percent,
         "entries": entries,
         "pending_withdrawals": pending_wr,
         "cart_count": 0,
@@ -79,11 +88,20 @@ async def wallet_dashboard(
 async def wallet_transactions(
     request: Request,
     page: int = 1,
+    asset: str = "",
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     per_page = 25
-    entries, total = wallet_service.get_transactions(db, me.id, page=page, per_page=per_page)
+    asset_code = None
+    if asset == "gold":
+        asset_code = AssetCode.XAU_MG
+    elif asset == "irr":
+        asset_code = AssetCode.IRR
+
+    entries, total = wallet_service.get_transactions(
+        db, me.id, page=page, per_page=per_page, asset_code=asset_code,
+    )
     balance = wallet_service.get_balance(db, me.id)
     total_pages = max(1, (total + per_page - 1) // per_page)
 
@@ -95,6 +113,7 @@ async def wallet_transactions(
         "page": page,
         "total_pages": total_pages,
         "total": total,
+        "asset_filter": asset,
         "cart_count": 0,
     })
 
@@ -110,7 +129,7 @@ async def wallet_topup(
     gateway: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     amount_irr = amount_toman * 10
@@ -337,14 +356,22 @@ async def wallet_topup_parsian_callback(
 async def wallet_withdraw_form(
     request: Request,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     balance = wallet_service.get_balance(db, me.id)
+    withdrawals = (
+        db.query(WithdrawalRequest)
+        .filter(WithdrawalRequest.user_id == me.id)
+        .order_by(WithdrawalRequest.created_at.desc())
+        .limit(20)
+        .all()
+    )
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/wallet_withdraw.html", {
         "request": request,
         "user": me,
         "balance": balance,
+        "withdrawals": withdrawals,
         "csrf_token": csrf,
         "cart_count": 0,
     })
@@ -360,7 +387,7 @@ async def wallet_withdraw_submit(
     account_holder: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     amount_irr = amount_toman * 10
@@ -374,3 +401,86 @@ async def wallet_withdraw_submit(
         db.rollback()
         flash(request, str(e), "danger")
         return RedirectResponse("/wallet/withdraw", status_code=302)
+
+
+# ==========================================
+# 🪙 Gold Buy / Sell (all users, dynamic fee)
+# ==========================================
+
+@router.get("/gold", response_class=HTMLResponse)
+async def wallet_gold_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    me=Depends(require_login),
+):
+    """Gold buy/sell page — all users with role-based commission."""
+    balance = wallet_service.get_balance(db, me.id)
+    gold_balance = wallet_service.get_balance(db, me.id, asset_code=AssetCode.XAU_MG)
+    fee_percent = wallet_service.get_fee_for_user(db, me)
+    rates = wallet_service.get_gold_rates(db, fee_percent=fee_percent)
+
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("shop/wallet_gold.html", {
+        "request": request,
+        "user": me,
+        "balance": balance,
+        "gold_balance": gold_balance,
+        "rates": rates,
+        "fee_percent": fee_percent,
+        "csrf_token": csrf,
+        "cart_count": 0,
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/gold/buy")
+async def wallet_gold_buy(
+    request: Request,
+    amount_toman: int = Form(...),
+    csrf_token: str = Form(""),
+    db: Session = Depends(get_db),
+    me=Depends(require_login),
+):
+    """Buy gold with rials — dynamic fee based on user role."""
+    csrf_check(request, csrf_token)
+    amount_irr = amount_toman * 10
+    fee_percent = wallet_service.get_fee_for_user(db, me)
+
+    try:
+        result = wallet_service.convert_rial_to_gold(db, me.id, amount_irr, fee_percent=fee_percent)
+        db.commit()
+        gold_mg = result["gold_mg"]
+        flash(request, f"خرید {gold_mg / 1000:.3f} گرم طلا با موفقیت انجام شد", "success")
+        return RedirectResponse("/wallet/gold", status_code=302)
+    except ValueError as e:
+        db.rollback()
+        flash(request, str(e), "danger")
+        return RedirectResponse("/wallet/gold", status_code=302)
+
+
+@router.post("/gold/sell")
+async def wallet_gold_sell(
+    request: Request,
+    gold_grams: str = Form(...),
+    csrf_token: str = Form(""),
+    db: Session = Depends(get_db),
+    me=Depends(require_login),
+):
+    """Sell gold for rials — dynamic fee based on user role."""
+    csrf_check(request, csrf_token)
+    fee_percent = wallet_service.get_fee_for_user(db, me)
+
+    try:
+        gold_mg = int(float(gold_grams) * 1000)
+        if gold_mg <= 0:
+            raise ValueError("مقدار طلا باید بیشتر از صفر باشد")
+        result = wallet_service.convert_gold_to_rial(db, me.id, gold_mg, fee_percent=fee_percent)
+        db.commit()
+        rial = result["amount_irr"]
+        flash(request, f"فروش {gold_mg / 1000:.3f} گرم طلا — {rial // 10:,} تومان واریز شد", "success")
+        return RedirectResponse("/wallet/gold", status_code=302)
+    except ValueError as e:
+        db.rollback()
+        flash(request, str(e), "danger")
+        return RedirectResponse("/wallet/gold", status_code=302)

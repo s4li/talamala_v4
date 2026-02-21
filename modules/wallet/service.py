@@ -363,20 +363,32 @@ class WalletService:
         return gp / 1000.0
 
     def _get_spread(self, db: Session) -> float:
-        """Spread percent from SystemSetting 'gold_spread_percent'. Default 2."""
+        """Spread percent from SystemSetting 'gold_spread_percent'. Default 2.
+        DEPRECATED: use get_fee_for_user() for role-based fees."""
         from modules.admin.models import SystemSetting
         s = db.query(SystemSetting).filter(SystemSetting.key == "gold_spread_percent").first()
         return float(s.value) if s else 2.0
 
+    def get_fee_for_user(self, db: Session, user) -> float:
+        """Dynamic gold trade fee based on user role.
+        Reads gold_fee_dealer_percent / gold_fee_customer_percent from SystemSetting."""
+        from modules.admin.models import SystemSetting
+        if user.is_dealer:
+            s = db.query(SystemSetting).filter(SystemSetting.key == "gold_fee_dealer_percent").first()
+            return float(s.value) if s else 0.5
+        else:
+            s = db.query(SystemSetting).filter(SystemSetting.key == "gold_fee_customer_percent").first()
+            return float(s.value) if s else 2.0
+
     def convert_rial_to_gold(
-        self, db: Session, user_id: int, amount_irr: int,
+        self, db: Session, user_id: int, amount_irr: int, fee_percent: float = None,
     ) -> Dict[str, Any]:
-        """Buy gold: deduct IRR, credit XAU_MG."""
+        """Buy gold: deduct IRR, credit XAU_MG. fee_percent overrides global spread."""
         if amount_irr <= 0:
             raise ValueError("مبلغ باید مثبت باشد")
         gold_price_mg = self._get_gold_price_per_mg(db)
-        spread = self._get_spread(db)
-        buy_price = gold_price_mg * (1 + spread / 100)
+        fee = fee_percent if fee_percent is not None else self._get_spread(db)
+        buy_price = gold_price_mg * (1 + fee / 100)
         gold_mg = int(amount_irr / buy_price)
         if gold_mg <= 0:
             raise ValueError("مبلغ وارد شده برای خرید طلا کافی نیست")
@@ -402,14 +414,14 @@ class WalletService:
         }
 
     def convert_gold_to_rial(
-        self, db: Session, user_id: int, gold_mg: int,
+        self, db: Session, user_id: int, gold_mg: int, fee_percent: float = None,
     ) -> Dict[str, Any]:
-        """Sell gold: deduct XAU_MG, credit IRR."""
+        """Sell gold: deduct XAU_MG, credit IRR. fee_percent overrides global spread."""
         if gold_mg <= 0:
             raise ValueError("مقدار طلا باید مثبت باشد")
         gold_price_mg = self._get_gold_price_per_mg(db)
-        spread = self._get_spread(db)
-        sell_price = gold_price_mg * (1 - spread / 100)
+        fee = fee_percent if fee_percent is not None else self._get_spread(db)
+        sell_price = gold_price_mg * (1 - fee / 100)
         amount_irr = int(gold_mg * sell_price)
         if amount_irr <= 0:
             raise ValueError("مقدار طلا برای فروش کافی نیست")
@@ -432,19 +444,19 @@ class WalletService:
             "rate_per_gram": sell_price * 1000,
         }
 
-    def get_gold_rates(self, db: Session) -> Dict[str, Any]:
-        """Get current buy/sell rates for gold (per gram)."""
+    def get_gold_rates(self, db: Session, fee_percent: float = None) -> Dict[str, Any]:
+        """Get current buy/sell rates for gold (per gram). fee_percent overrides global spread."""
         try:
             gold_price_mg = self._get_gold_price_per_mg(db)
         except ValueError:
-            return {"buy_per_gram": 0, "sell_per_gram": 0, "spread": 0}
-        spread = self._get_spread(db)
-        buy_per_gram = int(gold_price_mg * (1 + spread / 100) * 1000)
-        sell_per_gram = int(gold_price_mg * (1 - spread / 100) * 1000)
+            return {"buy_per_gram": 0, "sell_per_gram": 0, "fee_percent": 0}
+        fee = fee_percent if fee_percent is not None else self._get_spread(db)
+        buy_per_gram = int(gold_price_mg * (1 + fee / 100) * 1000)
+        sell_per_gram = int(gold_price_mg * (1 - fee / 100) * 1000)
         return {
             "buy_per_gram": buy_per_gram,
             "sell_per_gram": sell_per_gram,
-            "spread": spread,
+            "fee_percent": fee,
         }
 
     # ------------------------------------------

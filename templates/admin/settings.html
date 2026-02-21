@@ -139,6 +139,29 @@
             </div>
         </div>
 
+        <!-- ===== کارمزد معاملات طلا ===== -->
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-coin me-1"></i> کارمزد معاملات طلا</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label-tm">کارمزد مشتری عادی</label>
+                <div class="input-group">
+                    <input type="text" name="gold_fee_customer_percent" class="form-control form-control-tm"
+                           value="{{ settings.get('gold_fee_customer_percent', {}).value if settings.get('gold_fee_customer_percent') else '2' }}">
+                    <span class="input-group-text">%</span>
+                </div>
+                <small class="text-muted">درصد کارمزد خرید/فروش طلا برای مشتریان عادی</small>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label-tm">کارمزد نماینده</label>
+                <div class="input-group">
+                    <input type="text" name="gold_fee_dealer_percent" class="form-control form-control-tm"
+                           value="{{ settings.get('gold_fee_dealer_percent', {}).value if settings.get('gold_fee_dealer_percent') else '0.5' }}">
+                    <span class="input-group-text">%</span>
+                </div>
+                <small class="text-muted">درصد کارمزد خرید/فروش طلا برای نمایندگان</small>
+            </div>
+        </div>
+
         <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-headset me-1"></i> پشتیبانی</h6>
         <div class="row g-3 mb-4">
             <div class="col-md-4">

@@ -36,6 +36,13 @@ def get_current_active_user(request: Request, db: Session = Depends(get_db)):
     return user
 
 
+def require_login(user=Depends(get_current_active_user)):
+    """Require any authenticated active user (customer, dealer, or admin). Raises 401 if not logged in."""
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="login_required")
+    return user
+
+
 def require_staff(user=Depends(get_current_active_user)):
     """Only allow staff/admin users. Raises 403 otherwise."""
     if not user or not user.is_admin:

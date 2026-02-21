@@ -36,6 +36,15 @@
     </div>
 </div>
 
+<!-- Asset Filter -->
+<div class="mb-3">
+    <div class="btn-group" role="group">
+        <a href="/wallet/transactions" class="btn btn-sm {{ 'btn-dark' if not asset_filter else 'btn-outline-dark' }}">همه</a>
+        <a href="/wallet/transactions?asset=irr" class="btn btn-sm {{ 'btn-dark' if asset_filter == 'irr' else 'btn-outline-dark' }}">ریالی</a>
+        <a href="/wallet/transactions?asset=gold" class="btn btn-sm {{ 'btn-dark' if asset_filter == 'gold' else 'btn-outline-dark' }}">طلایی</a>
+    </div>
+</div>
+
 <div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
         {% if entries %}
         <div class="table-responsive">
@@ -84,7 +93,8 @@
 
         <!-- Pagination -->
         {% from "components/pagination.html" import pagination %}
-        {{ pagination(page, total_pages, '/wallet/transactions') }}
+        {% set qs %}{% if asset_filter %}&asset={{ asset_filter }}{% endif %}{% endset %}
+        {{ pagination(page, total_pages, '/wallet/transactions', qs) }}
 
         {% else %}
         <div class="text-center text-muted py-5">
