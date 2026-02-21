@@ -106,6 +106,10 @@
                     {{ user.full_name }}
                 </a>
                 <ul class="dropdown-menu dropdown-menu-tm dropdown-menu-end">
+                    {% if user.is_dealer %}
+                    <li><a class="dropdown-item dropdown-item-tm" href="/dealer/dashboard"><i class="bi bi-speedometer2 me-2"></i>پنل نمایندگی</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    {% endif %}
                     <li><a class="dropdown-item dropdown-item-tm" href="/orders"><i class="bi bi-bag me-2"></i>سفارشات من</a></li>
                     <li><a class="dropdown-item dropdown-item-tm" href="/my-bars"><i class="bi bi-gem me-2"></i>شمش‌های من</a></li>
                     <li><a class="dropdown-item dropdown-item-tm" href="/claim-bar"><i class="bi bi-plus-circle me-2"></i>ثبت شمش</a></li>
@@ -170,6 +174,12 @@
             </a>
             {% endif %}
             {% if user and not user.is_staff %}
+            {% if user.is_dealer %}
+            <hr class="my-1">
+            <a href="/dealer/dashboard" class="list-group-item list-group-item-action border-0 py-2 px-3" style="color:var(--tm-primary); font-weight:500;">
+                <i class="bi bi-speedometer2 me-2"></i>پنل نمایندگی
+            </a>
+            {% endif %}
             <hr class="my-1">
             <a href="/orders" class="list-group-item list-group-item-action border-0 py-2 px-3">
                 <i class="bi bi-bag me-2 text-muted"></i>سفارشات من

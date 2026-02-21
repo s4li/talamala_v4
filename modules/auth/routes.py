@@ -258,11 +258,11 @@ async def verify_otp(
         if next_url:
             redirect_url = _safe_next_url(next_url)
 
-        # If customer profile is incomplete, redirect to profile page
+        # If pure customer (not dealer/admin) profile is incomplete, redirect to profile page
         if not next_url:
             from modules.user.models import User
             user = db.query(User).filter(User.mobile == mobile.strip()).first()
-            if user and user.is_customer and not user.is_profile_complete:
+            if user and user.is_customer and not user.is_dealer and not user.is_admin and not user.is_profile_complete:
                 redirect_url = "/profile"
 
         response = RedirectResponse(redirect_url, status_code=302)
