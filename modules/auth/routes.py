@@ -23,7 +23,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 def _safe_next_url(url: str) -> str:
     """Only allow relative paths as redirect targets (prevent open redirect)."""
-    if not url or not url.startswith("/"):
+    if not url or not url.startswith("/") or url.startswith("//"):
         return "/"
     return url
 

@@ -1370,6 +1370,14 @@ class DealerService:
 
         tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
 
+        # Ensure metal prices are fresh before locking prices
+        from modules.pricing.service import require_fresh_price
+        from modules.pricing.models import GOLD_18K
+        try:
+            require_fresh_price(db, GOLD_18K)
+        except ValueError as e:
+            return {"success": False, "message": str(e)}
+
         # Get dealer's tier wage map
         dealer_wage_map: Dict[int, float] = {}
         if dealer.tier_id:
@@ -1569,7 +1577,8 @@ class DealerService:
         if order.status != B2BOrderStatus.PAID:
             return {"success": False, "message": f"فقط سفارش‌های پرداخت‌شده قابل تحویل هستند (وضعیت فعلی: {order.status_label})"}
 
-        # For each item, find bars at warehouse and transfer to dealer
+        # Phase 1: Verify ALL items have sufficient warehouse stock before transferring any
+        all_bars_to_transfer = []
         for item in order.items:
             available_bars = (
                 db.query(Bar)
@@ -1579,6 +1588,7 @@ class DealerService:
                     Bar.status == BarStatus.ASSIGNED,
                     User.is_warehouse == True,
                 )
+                .with_for_update(skip_locked=True)
                 .limit(item.quantity)
                 .all()
             )
@@ -1590,23 +1600,24 @@ class DealerService:
                                f"(نیاز: {item.quantity}، موجود: {len(available_bars)}). "
                                f"ابتدا موجودی انبار مرکزی را تکمیل کنید.",
                 }
+            all_bars_to_transfer.extend(available_bars)
 
-            for bar in available_bars:
-                old_dealer_id = bar.dealer_id
-                bar.dealer_id = order.dealer_id
+        # Phase 2: All stock verified — now transfer atomically
+        for bar in all_bars_to_transfer:
+            old_dealer_id = bar.dealer_id
+            bar.dealer_id = order.dealer_id
 
-                # Record transfer
-                transfer = DealerTransfer(
-                    bar_id=bar.id,
-                    from_dealer_id=old_dealer_id,
-                    to_dealer_id=order.dealer_id,
-                    transferred_by=admin_id,
-                    description=f"تحویل سفارش عمده #{order.id}",
-                    transfer_type=TransferType.B2B_FULFILLMENT,
-                    reference_type="b2b_order",
-                    reference_id=order.id,
-                )
-                db.add(transfer)
+            transfer = DealerTransfer(
+                bar_id=bar.id,
+                from_dealer_id=old_dealer_id,
+                to_dealer_id=order.dealer_id,
+                transferred_by=admin_id,
+                description=f"تحویل سفارش عمده #{order.id}",
+                transfer_type=TransferType.B2B_FULFILLMENT,
+                reference_type="b2b_order",
+                reference_id=order.id,
+            )
+            db.add(transfer)
 
         order.status = B2BOrderStatus.FULFILLED
         order.fulfilled_at = now_utc()

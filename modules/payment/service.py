@@ -46,7 +46,7 @@ class PaymentService:
     # ==========================================
 
     def pay_from_wallet(self, db: Session, order_id: int, customer_id: int) -> Dict[str, Any]:
-        order = db.query(Order).filter(Order.id == order_id).first()
+        order = db.query(Order).filter(Order.id == order_id).with_for_update().first()
         if not order:
             return {"success": False, "message": "سفارش یافت نشد"}
         if order.customer_id != customer_id:
@@ -135,7 +135,6 @@ class PaymentService:
             description=f"سفارش #{order_id} طلاملا",
             order_ref=str(order_id),
         ))
-        print (result)
         if result.success:
             order.track_id = result.track_id
             
@@ -152,7 +151,7 @@ class PaymentService:
         self, db: Session, gateway_name: str, params: Dict[str, Any], order_id: int
     ) -> Dict[str, Any]:
         """Verify callback from any gateway."""
-        order = db.query(Order).filter(Order.id == order_id).first()
+        order = db.query(Order).filter(Order.id == order_id).with_for_update().first()
         if not order:
             return {"success": False, "message": "سفارش یافت نشد"}
         if order.status != OrderStatus.PENDING:
@@ -188,7 +187,7 @@ class PaymentService:
     # ==========================================
 
     def refund_order(self, db: Session, order_id: int, admin_note: str = "") -> Dict[str, Any]:
-        order = db.query(Order).filter(Order.id == order_id).first()
+        order = db.query(Order).filter(Order.id == order_id).with_for_update().first()
         if not order:
             return {"success": False, "message": "سفارش یافت نشد"}
         if order.status != OrderStatus.PAID:

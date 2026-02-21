@@ -248,6 +248,7 @@ class PosService:
         if bar.reserved_until and bar.reserved_until < now_utc():
             bar.status = BarStatus.ASSIGNED
             bar.reserved_until = None
+            bar.reserved_customer_id = None
             db.flush()
             return {"success": False, "message": "زمان رزرو منقضی شده، لطفا دوباره تلاش کنید"}
 
