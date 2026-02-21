@@ -206,6 +206,8 @@ def seed():
             "gold_spread_percent":  ("2", "اسپرد تبدیل ریال به طلا (درصد) — deprecated"),
             "gold_fee_customer_percent": ("2", "کارمزد خرید/فروش طلا — مشتری عادی (%)"),
             "gold_fee_dealer_percent":   ("0.5", "کارمزد خرید/فروش طلا — نماینده (%)"),
+            "silver_fee_customer_percent": ("1.5", "کارمزد خرید/فروش نقره — مشتری عادی (%)"),
+            "silver_fee_dealer_percent":   ("0.3", "کارمزد خرید/فروش نقره — نماینده (%)"),
             "enabled_gateways":     ("sepehr,top,parsian", "درگاه‌های فعال پرداخت (comma-separated)"),
             "shahkar_enabled":      ("false", "فعال/غیرفعال بودن احراز هویت شاهکار"),
             "rasis_pos_enabled":    ("false", "فعال/غیرفعال بودن همگام‌سازی با دستگاه پوز راسیس"),

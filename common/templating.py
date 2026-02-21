@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from config.database import SessionLocal
-from common.helpers import format_toman, format_weight, format_jdate, format_time_ago, persian_number, format_gold_gram
+from common.helpers import format_toman, format_weight, format_jdate, format_time_ago, persian_number, format_gold_gram, format_metal_gram
 
 # Initialize templates
 TEMPLATE_DIR = "templates"
@@ -61,6 +61,7 @@ templates.env.filters["weight_format"] = format_weight
 templates.env.filters["jdate"] = format_jdate
 templates.env.filters["persian_number"] = persian_number
 templates.env.filters["gold_gram"] = format_gold_gram
+templates.env.filters["metal_gram"] = format_metal_gram
 templates.env.filters["time_ago"] = format_time_ago
 templates.env.filters["purity"] = lambda v: str(v).rstrip('0').rstrip('.') if v else "—"
 

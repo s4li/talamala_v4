@@ -82,6 +82,12 @@ def persian_number(value) -> str:
 
 def format_gold_gram(mg) -> str:
     """Convert milligrams (int) to formatted Persian gram string with 3 decimals."""
+    return format_metal_gram(mg)
+
+
+def format_metal_gram(mg) -> str:
+    """Convert milligrams (int) to formatted Persian gram string with 3 decimals.
+    Generic version — works for any precious metal (gold, silver, etc.)."""
     if mg is None:
         mg = 0
     try:

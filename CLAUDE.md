@@ -63,7 +63,9 @@ talamala_v4/
 │   ├── order/                   # Order, OrderItem, delivery_service, admin order mgmt
 │   ├── payment/                 # Wallet pay, multi-gateway (Zibal/Sepehr/Top/Parsian), refund
 │   │   └── gateways/            # BaseGateway abstraction + per-gateway implementations
-│   ├── wallet/                  # Double-entry ledger, topup, withdraw, admin
+│   ├── wallet/                  # Double-entry ledger, topup, withdraw, admin, PRECIOUS_METALS registry
+│   │   ├── models.py            # Account, LedgerEntry, WalletTopup, WithdrawalRequest + PRECIOUS_METALS metadata
+│   │   └── routes.py            # Wallet routes incl. generic /{asset_type} buy/sell for precious metals
 │   ├── coupon/                  # DISCOUNT/CASHBACK coupons, admin CRUD
 │   ├── customer/                # Profile, CustomerAddress, GeoProvince/City/District
 │   ├── verification/            # QR/serial code authenticity check
@@ -88,7 +90,7 @@ talamala_v4/
 │   │   ├── wallet.html          # Unified wallet dashboard (all users)
 │   │   ├── wallet_withdraw.html
 │   │   ├── wallet_transactions.html
-│   │   ├── wallet_gold.html     # Gold buy/sell (all users, role-based fee)
+│   │   ├── wallet_trade.html     # Generic precious metal buy/sell (gold, silver, etc.)
 │   │   ├── profile.html
 │   │   ├── addresses.html       # Address book CRUD
 │   │   ├── tickets.html         # Customer ticket list
@@ -97,7 +99,7 @@ talamala_v4/
 │   ├── admin/
 │   │   ├── base_admin.html      # Admin sidebar layout
 │   │   ├── dashboard.html
-│   │   ├── settings.html        # Asset prices (gold/silver) + tax, shipping config + active gateway + gold trade fees
+│   │   ├── settings.html        # Asset prices (gold/silver) + tax, shipping config + active gateway + precious metal trade fees (gold + silver)
 │   │   ├── catalog/             # products, categories, designs, packages, batches
 │   │   ├── inventory/           # bars, edit_bar
 │   │   ├── orders/list.html     # Order management + delivery status
@@ -174,10 +176,13 @@ talamala_v4/
 - **OrderStatusLog**: id, order_id (FK→orders, CASCADE), field ("status"/"delivery_status"), old_value, new_value, changed_by, description, created_at — audit trail for status changes
 
 ### wallet/models.py
-- **Account**: id, user_id (FK→users), asset_code (IRR/XAU_MG), balance, locked_balance, credit_balance (non-withdrawable store credit)
+- **AssetCode** (enum values): `IRR`, `XAU_MG` (gold milligrams), `XAG_MG` (silver milligrams)
+- **PRECIOUS_METALS** (dict): Metadata registry for generic metal trading. Keys: `"gold"`, `"silver"`. Each entry contains: `asset_code`, `asset_key` (pricing), `label`, `unit`, `fee_customer_key`, `fee_dealer_key`, `fee_customer_default`, `fee_dealer_default`. Used by routes to validate `{asset_type}` path param and drive buy/sell logic generically.
+- **Account**: id, user_id (FK→users), asset_code (IRR/XAU_MG/XAG_MG), balance, locked_balance, credit_balance (non-withdrawable store credit)
   - `available_balance` = balance - locked (for purchases)
   - `withdrawable_balance` = balance - locked - credit (for bank withdrawals)
 - **LedgerEntry**: id, account_id, txn_type (Deposit/Withdraw/Payment/Refund/Hold/Release/Commit/Credit), delta_balance, delta_locked, delta_credit, balance_after, locked_after, credit_after, idempotency_key, reference_type, reference_id, description
+  - Properties: `is_gold` (bool — XAU_MG account), `is_silver` (bool — XAG_MG account), `is_precious_metal` (bool — any metal account)
 - **WalletTopup**: id, user_id (FK→users), amount_irr, status, ref_number, gateway
 - **WithdrawalRequest**: id, user_id (FK→users), amount_irr, status (PENDING/PAID/REJECTED), shaba_number, account_holder
 
@@ -620,10 +625,12 @@ total    = raw_gold + wage + tax
 - `GET /wallet/topup/top/callback` — Top topup callback
 - `POST /wallet/topup/parsian/callback` — Parsian topup callback
 - `GET/POST /wallet/withdraw` — Withdrawal (+ past withdrawal history)
-- `GET /wallet/gold` — Gold buy/sell page (fee displayed per user role)
-- `POST /wallet/gold/buy` — Convert IRR → XAU_MG (with role-based fee)
-- `POST /wallet/gold/sell` — Convert XAU_MG → IRR (with role-based fee)
-- **Gold trade fee**: customer `gold_fee_customer_percent` (default 2%), dealer `gold_fee_dealer_percent` (default 0.5%) — configurable in admin settings
+- `GET /wallet/{asset_type}` — Precious metal buy/sell page (validates `asset_type` in `PRECIOUS_METALS`: gold, silver, etc.)
+- `POST /wallet/{asset_type}/buy` — Buy metal: convert IRR → metal account (with role-based fee)
+- `POST /wallet/{asset_type}/sell` — Sell metal: convert metal account → IRR (with role-based fee)
+- **Precious metal trade fees** (configurable in admin settings):
+  - Gold: `gold_fee_customer_percent` (default 2%), `gold_fee_dealer_percent` (default 0.5%)
+  - Silver: `silver_fee_customer_percent` (default 1.5%), `silver_fee_dealer_percent` (default 0.3%)
 
 ### AJAX APIs
 - `GET /api/delivery/locations?province=X&city=Y` — returns pickup dealers for province/city

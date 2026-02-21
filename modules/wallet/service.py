@@ -2,11 +2,14 @@
 Wallet Service - Double-Entry Ledger
 ======================================
 Thread-safe, idempotent balance operations.
-Supports multi-asset (IRR/XAU_MG) with unified User model.
+Supports multi-asset (IRR/XAU_MG/XAG_MG) with unified User model.
+Generic precious metal trading via PRECIOUS_METALS registry.
 
 Usage:
     wallet_service.deposit(db, user_id=1, amount=5_000_000, reference_type="topup", reference_id="123")
     wallet_service.deposit(db, 5, 100, asset_code=AssetCode.XAU_MG)
+    wallet_service.buy_metal(db, user_id=1, amount_irr=1_000_000, asset_type="gold", fee_percent=2.0)
+    wallet_service.buy_metal(db, user_id=1, amount_irr=500_000, asset_type="silver", fee_percent=1.5)
 """
 
 import uuid
@@ -17,7 +20,7 @@ from sqlalchemy import func as sa_func
 
 from modules.wallet.models import (
     Account, LedgerEntry, WalletTopup, WithdrawalRequest,
-    AssetCode, TransactionType, WithdrawalStatus,
+    AssetCode, TransactionType, WithdrawalStatus, PRECIOUS_METALS,
 )
 from modules.user.models import User
 from common.helpers import now_utc
@@ -349,114 +352,123 @@ class WalletService:
         )
 
     # ------------------------------------------
-    # Gold conversion
+    # Generic precious metal trading
     # ------------------------------------------
 
-    def _get_gold_price_per_mg(self, db: Session) -> float:
-        """Gold price per milligram (rial). From Asset table / 1000."""
+    def _get_metal_price_per_mg(self, db: Session, pricing_code: str) -> float:
+        """Metal price per milligram (rial). From Asset table / 1000."""
         from modules.pricing.service import get_price_value, require_fresh_price
-        from modules.pricing.models import GOLD_18K
-        require_fresh_price(db, GOLD_18K)
-        gp = get_price_value(db, GOLD_18K)
-        if gp <= 0:
-            raise ValueError("قیمت طلا در تنظیمات سیستم ثبت نشده")
-        return gp / 1000.0
+        require_fresh_price(db, pricing_code)
+        price = get_price_value(db, pricing_code)
+        if price <= 0:
+            raise ValueError("قیمت فلز گرانبها در تنظیمات سیستم ثبت نشده")
+        return price / 1000.0
 
-    def _get_spread(self, db: Session) -> float:
-        """Spread percent from SystemSetting 'gold_spread_percent'. Default 2.
-        DEPRECATED: use get_fee_for_user() for role-based fees."""
+    def get_fee_for_user(self, db: Session, user, asset_type: str = "gold") -> float:
+        """Dynamic trade fee based on user role and asset type.
+        Reads {prefix}_fee_dealer_percent / {prefix}_fee_customer_percent from SystemSetting."""
         from modules.admin.models import SystemSetting
-        s = db.query(SystemSetting).filter(SystemSetting.key == "gold_spread_percent").first()
-        return float(s.value) if s else 2.0
-
-    def get_fee_for_user(self, db: Session, user) -> float:
-        """Dynamic gold trade fee based on user role.
-        Reads gold_fee_dealer_percent / gold_fee_customer_percent from SystemSetting."""
-        from modules.admin.models import SystemSetting
+        metal = PRECIOUS_METALS.get(asset_type)
+        if not metal:
+            return 2.0
+        prefix = metal["fee_setting_prefix"]
+        defaults = {"gold": (2.0, 0.5), "silver": (1.5, 0.3)}
+        default_customer, default_dealer = defaults.get(asset_type, (2.0, 0.5))
         if user.is_dealer:
-            s = db.query(SystemSetting).filter(SystemSetting.key == "gold_fee_dealer_percent").first()
-            return float(s.value) if s else 0.5
+            s = db.query(SystemSetting).filter(SystemSetting.key == f"{prefix}_fee_dealer_percent").first()
+            return float(s.value) if s else default_dealer
         else:
-            s = db.query(SystemSetting).filter(SystemSetting.key == "gold_fee_customer_percent").first()
-            return float(s.value) if s else 2.0
+            s = db.query(SystemSetting).filter(SystemSetting.key == f"{prefix}_fee_customer_percent").first()
+            return float(s.value) if s else default_customer
 
-    def convert_rial_to_gold(
-        self, db: Session, user_id: int, amount_irr: int, fee_percent: float = None,
+    def buy_metal(
+        self, db: Session, user_id: int, amount_irr: int,
+        asset_type: str = "gold", fee_percent: float = 2.0,
     ) -> Dict[str, Any]:
-        """Buy gold: deduct IRR, credit XAU_MG. fee_percent overrides global spread."""
+        """Buy precious metal: deduct IRR, credit metal account."""
+        metal = PRECIOUS_METALS.get(asset_type)
+        if not metal:
+            raise ValueError(f"نوع فلز '{asset_type}' شناسایی نشد")
         if amount_irr <= 0:
             raise ValueError("مبلغ باید مثبت باشد")
-        gold_price_mg = self._get_gold_price_per_mg(db)
-        fee = fee_percent if fee_percent is not None else self._get_spread(db)
-        buy_price = gold_price_mg * (1 + fee / 100)
-        gold_mg = int(amount_irr / buy_price)
-        if gold_mg <= 0:
-            raise ValueError("مبلغ وارد شده برای خرید طلا کافی نیست")
-        actual_cost = int(gold_mg * buy_price)
 
+        price_mg = self._get_metal_price_per_mg(db, metal["pricing_code"])
+        buy_price = price_mg * (1 + fee_percent / 100)
+        metal_mg = int(amount_irr / buy_price)
+        if metal_mg <= 0:
+            raise ValueError(f"مبلغ وارد شده برای خرید {metal['label']} کافی نیست")
+        actual_cost = int(metal_mg * buy_price)
+
+        ref_type = f"{asset_type}_buy"
+        desc = f"خرید {metal['label']} ({metal_mg / 1000:.3f} گرم)"
         self.withdraw(
             db, user_id, actual_cost,
-            reference_type="gold_buy", reference_id="",
-            description=f"خرید طلا ({gold_mg / 1000:.3f} گرم)",
-            consume_credit=True,
+            reference_type=ref_type, reference_id="",
+            description=desc, consume_credit=True,
         )
         self.deposit(
-            db, user_id, gold_mg,
-            reference_type="gold_buy", reference_id="",
-            description=f"خرید طلا ({gold_mg / 1000:.3f} گرم)",
-            asset_code=AssetCode.XAU_MG,
+            db, user_id, metal_mg,
+            reference_type=ref_type, reference_id="",
+            description=desc, asset_code=metal["asset_code"],
         )
         return {
-            "gold_mg": gold_mg,
+            "metal_mg": metal_mg,
             "cost_irr": actual_cost,
             "rate_per_mg": buy_price,
             "rate_per_gram": buy_price * 1000,
         }
 
-    def convert_gold_to_rial(
-        self, db: Session, user_id: int, gold_mg: int, fee_percent: float = None,
+    def sell_metal(
+        self, db: Session, user_id: int, metal_mg: int,
+        asset_type: str = "gold", fee_percent: float = 2.0,
     ) -> Dict[str, Any]:
-        """Sell gold: deduct XAU_MG, credit IRR. fee_percent overrides global spread."""
-        if gold_mg <= 0:
-            raise ValueError("مقدار طلا باید مثبت باشد")
-        gold_price_mg = self._get_gold_price_per_mg(db)
-        fee = fee_percent if fee_percent is not None else self._get_spread(db)
-        sell_price = gold_price_mg * (1 - fee / 100)
-        amount_irr = int(gold_mg * sell_price)
-        if amount_irr <= 0:
-            raise ValueError("مقدار طلا برای فروش کافی نیست")
+        """Sell precious metal: deduct metal account, credit IRR."""
+        metal = PRECIOUS_METALS.get(asset_type)
+        if not metal:
+            raise ValueError(f"نوع فلز '{asset_type}' شناسایی نشد")
+        if metal_mg <= 0:
+            raise ValueError(f"مقدار {metal['label']} باید مثبت باشد")
 
+        price_mg = self._get_metal_price_per_mg(db, metal["pricing_code"])
+        sell_price = price_mg * (1 - fee_percent / 100)
+        amount_irr = int(metal_mg * sell_price)
+        if amount_irr <= 0:
+            raise ValueError(f"مقدار {metal['label']} برای فروش کافی نیست")
+
+        ref_type = f"{asset_type}_sell"
+        desc = f"فروش {metal['label']} ({metal_mg / 1000:.3f} گرم)"
         self.withdraw(
-            db, user_id, gold_mg,
-            reference_type="gold_sell", reference_id="",
-            description=f"فروش طلا ({gold_mg / 1000:.3f} گرم)",
-            asset_code=AssetCode.XAU_MG,
+            db, user_id, metal_mg,
+            reference_type=ref_type, reference_id="",
+            description=desc, asset_code=metal["asset_code"],
         )
         self.deposit(
             db, user_id, amount_irr,
-            reference_type="gold_sell", reference_id="",
-            description=f"فروش طلا ({gold_mg / 1000:.3f} گرم)",
+            reference_type=ref_type, reference_id="",
+            description=desc,
         )
         return {
-            "gold_mg": gold_mg,
+            "metal_mg": metal_mg,
             "amount_irr": amount_irr,
             "rate_per_mg": sell_price,
             "rate_per_gram": sell_price * 1000,
         }
 
-    def get_gold_rates(self, db: Session, fee_percent: float = None) -> Dict[str, Any]:
-        """Get current buy/sell rates for gold (per gram). fee_percent overrides global spread."""
+    def get_metal_rates(self, db: Session, asset_type: str = "gold", fee_percent: float = 2.0) -> Dict[str, Any]:
+        """Get current buy/sell rates for a precious metal (per gram)."""
+        metal = PRECIOUS_METALS.get(asset_type)
+        if not metal:
+            return {"buy_per_gram": 0, "sell_per_gram": 0, "fee_percent": 0}
         try:
-            gold_price_mg = self._get_gold_price_per_mg(db)
+            price_mg = self._get_metal_price_per_mg(db, metal["pricing_code"])
         except ValueError:
             return {"buy_per_gram": 0, "sell_per_gram": 0, "fee_percent": 0}
-        fee = fee_percent if fee_percent is not None else self._get_spread(db)
-        buy_per_gram = int(gold_price_mg * (1 + fee / 100) * 1000)
-        sell_per_gram = int(gold_price_mg * (1 - fee / 100) * 1000)
+        buy_per_gram = int(price_mg * (1 + fee_percent / 100) * 1000)
+        sell_per_gram = int(price_mg * (1 - fee_percent / 100) * 1000)
         return {
             "buy_per_gram": buy_per_gram,
             "sell_per_gram": sell_per_gram,
-            "fee_percent": fee,
+            "fee_percent": fee_percent,
         }
 
     # ------------------------------------------
@@ -729,6 +741,12 @@ class WalletService:
             .filter(Account.asset_code == AssetCode.XAU_MG)
             .scalar()
         )
+        silver_accounts = db.query(Account).filter(Account.asset_code == AssetCode.XAG_MG).count()
+        silver_balance_mg = (
+            db.query(sa_func.coalesce(sa_func.sum(Account.balance), 0))
+            .filter(Account.asset_code == AssetCode.XAG_MG)
+            .scalar()
+        )
         return {
             "total_accounts": total_accounts,
             "total_balance": total_balance,
@@ -736,6 +754,8 @@ class WalletService:
             "pending_withdrawals": pending_withdrawals,
             "gold_accounts": gold_accounts,
             "gold_balance_mg": gold_balance_mg,
+            "silver_accounts": silver_accounts,
+            "silver_balance_mg": silver_balance_mg,
         }
 
 

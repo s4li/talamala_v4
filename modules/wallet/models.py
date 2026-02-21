@@ -4,13 +4,13 @@ Wallet Module - Models
 Double-entry ledger system for user wallets.
 
 Models:
-  - Account: Per-user balance (IRR or XAU_MG)
+  - Account: Per-user balance (IRR, XAU_MG, XAG_MG)
   - LedgerEntry: Immutable audit trail (every balance change)
   - WalletTopup: Online charge requests (linked to payment gateways)
   - WithdrawalRequest: User cash-out requests (admin approval)
 
 Enums:
-  - AssetCode: IRR (ریال), XAU_MG (طلا میلی‌گرم)
+  - AssetCode: IRR (ریال), XAU_MG (طلا میلی‌گرم), XAG_MG (نقره میلی‌گرم)
   - TransactionType: Deposit/Withdraw/Payment/Refund/Hold/Release/Commit
   - WithdrawalStatus: Pending/Paid/Rejected
 """
@@ -32,6 +32,35 @@ from config.database import Base
 class AssetCode(str, enum.Enum):
     IRR = "IRR"         # ریال (نمایش تومانی)
     XAU_MG = "XAU_MG"  # طلا به میلی‌گرم
+    XAG_MG = "XAG_MG"  # نقره به میلی‌گرم
+
+
+# ==========================================
+# Precious Metals Registry (generic metadata)
+# ==========================================
+
+PRECIOUS_METALS = {
+    "gold": {
+        "asset_code": "XAU_MG",
+        "pricing_code": "gold_18k",
+        "label": "طلا",
+        "label_en": "gold",
+        "unit": "گرم",
+        "color": "warning",
+        "icon": "bi-gem",
+        "fee_setting_prefix": "gold",
+    },
+    "silver": {
+        "asset_code": "XAG_MG",
+        "pricing_code": "silver",
+        "label": "نقره",
+        "label_en": "silver",
+        "unit": "گرم",
+        "color": "secondary",
+        "icon": "bi-diamond",
+        "fee_setting_prefix": "silver",
+    },
+}
 
 
 class TransactionType(str, enum.Enum):
@@ -132,17 +161,30 @@ class LedgerEntry(Base):
         return self.asset == AssetCode.XAU_MG
 
     @property
+    def is_silver(self) -> bool:
+        return self.asset == AssetCode.XAG_MG
+
+    @property
+    def is_precious_metal(self) -> bool:
+        return self.asset in (AssetCode.XAU_MG, AssetCode.XAG_MG)
+
+    @property
     def txn_type_label(self) -> str:
         # Context-aware labels based on reference_type
         ref = self.reference_type or ""
         if ref == "pos_gold_profit":
             return "واریز سود"
-        if ref == "gold_buy":
-            return "خرید طلا"
-        if ref == "gold_sell":
+        # Generic metal buy/sell labels (gold_buy, silver_buy, etc.)
+        if ref.endswith("_buy"):
+            metal_key = ref.rsplit("_buy", 1)[0]
+            metal = PRECIOUS_METALS.get(metal_key)
+            return f"خرید {metal['label']}" if metal else "خرید"
+        if ref.endswith("_sell"):
             if self.txn_type == TransactionType.DEPOSIT:
                 return "واریز"
-            return "فروش طلا"
+            metal_key = ref.rsplit("_sell", 1)[0]
+            metal = PRECIOUS_METALS.get(metal_key)
+            return f"فروش {metal['label']}" if metal else "فروش"
         if ref == "topup":
             return "شارژ کیف پول"
         # Fallback to generic labels
@@ -163,9 +205,9 @@ class LedgerEntry(Base):
         ref = self.reference_type or ""
         if ref == "pos_gold_profit":
             return "success"
-        if ref == "gold_buy":
+        if ref.endswith("_buy"):
             return "warning"
-        if ref == "gold_sell":
+        if ref.endswith("_sell"):
             if self.txn_type == TransactionType.DEPOSIT:
                 return "success"
             return "info"

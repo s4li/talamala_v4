@@ -32,7 +32,7 @@ async def admin_wallet_list(
     user=Depends(require_permission("wallets")),
 ):
     per_page = 30
-    ac = asset if asset in ("IRR", "XAU_MG") else None
+    ac = asset if asset in ("IRR", "XAU_MG", "XAG_MG") else None
     accounts, total = wallet_service.get_all_accounts(db, page=page, per_page=per_page, asset_code=ac)
     total_pages = max(1, (total + per_page - 1) // per_page)
     stats = wallet_service.get_stats(db)
@@ -70,6 +70,7 @@ async def admin_wallet_detail(
 
     balance = wallet_service.get_balance(db, user_id)
     gold_balance = wallet_service.get_balance(db, user_id, asset_code=AssetCode.XAU_MG)
+    silver_balance = wallet_service.get_balance(db, user_id, asset_code=AssetCode.XAG_MG)
     per_page = 25
     entries, total = wallet_service.get_transactions(db, user_id, page=page, per_page=per_page)
     total_pages = max(1, (total + per_page - 1) // per_page)
@@ -83,6 +84,7 @@ async def admin_wallet_detail(
         "owner_id": owner.id,
         "balance": balance,
         "gold_balance": gold_balance,
+        "silver_balance": silver_balance,
         "entries": entries,
         "page": page,
         "total_pages": total_pages,
@@ -112,6 +114,7 @@ async def admin_wallet_dealer_detail(
 
     balance = wallet_service.get_balance(db, user_id)
     gold_balance = wallet_service.get_balance(db, user_id, asset_code=AssetCode.XAU_MG)
+    silver_balance = wallet_service.get_balance(db, user_id, asset_code=AssetCode.XAG_MG)
     per_page = 25
     entries, total = wallet_service.get_transactions(db, user_id, page=page, per_page=per_page)
     total_pages = max(1, (total + per_page - 1) // per_page)
@@ -125,6 +128,7 @@ async def admin_wallet_dealer_detail(
         "owner_id": owner.id,
         "balance": balance,
         "gold_balance": gold_balance,
+        "silver_balance": silver_balance,
         "entries": entries,
         "page": page,
         "total_pages": total_pages,
@@ -156,7 +160,12 @@ async def admin_wallet_adjust(
 ):
     csrf_check(request, csrf_token)
 
-    ac = AssetCode.XAU_MG if asset == "XAU_MG" else AssetCode.IRR
+    if asset == "XAU_MG":
+        ac = AssetCode.XAU_MG
+    elif asset == "XAG_MG":
+        ac = AssetCode.XAG_MG
+    else:
+        ac = AssetCode.IRR
     redirect_url = f"/admin/wallets/customer/{user_id}"
 
     try:

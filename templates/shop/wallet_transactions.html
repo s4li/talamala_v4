@@ -42,6 +42,7 @@
         <a href="/wallet/transactions" class="btn btn-sm {{ 'btn-dark' if not asset_filter else 'btn-outline-dark' }}">همه</a>
         <a href="/wallet/transactions?asset=irr" class="btn btn-sm {{ 'btn-dark' if asset_filter == 'irr' else 'btn-outline-dark' }}">ریالی</a>
         <a href="/wallet/transactions?asset=gold" class="btn btn-sm {{ 'btn-dark' if asset_filter == 'gold' else 'btn-outline-dark' }}">طلایی</a>
+        <a href="/wallet/transactions?asset=silver" class="btn btn-sm {{ 'btn-dark' if asset_filter == 'silver' else 'btn-outline-dark' }}">نقره‌ای</a>
     </div>
 </div>
 
@@ -67,23 +68,23 @@
                     <td><span class="badge-tm badge-tm-{{ e.txn_type_color }}">{{ e.txn_type_label }}</span></td>
                     <td class="small">{{ e.description or '—' }}</td>
                     <td class="fw-bold {{ 'positive' if e.delta_balance > 0 else 'negative' if e.delta_balance < 0 else '' }}">
-                        {% if e.is_gold %}
-                            {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | gold_gram }}
+                        {% if e.is_precious_metal %}
+                            {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | metal_gram }}
                         {% else %}
                             {% if e.delta_balance > 0 %}+{% endif %}{{ e.delta_balance | toman }} تومان
                         {% endif %}
                         {% if e.delta_locked != 0 %}
                         <br><small class="text-muted">
-                            {% if e.is_gold %}
-                                بلوکه: {% if e.delta_locked > 0 %}+{% endif %}{{ e.delta_locked | gold_gram }}
+                            {% if e.is_precious_metal %}
+                                بلوکه: {% if e.delta_locked > 0 %}+{% endif %}{{ e.delta_locked | metal_gram }}
                             {% else %}
                                 بلوکه: {% if e.delta_locked > 0 %}+{% endif %}{{ e.delta_locked | toman }}
                             {% endif %}
                         </small>
                         {% endif %}
                     </td>
-                    <td>{% if e.is_gold %}{{ e.balance_after | gold_gram }}{% else %}{{ e.balance_after | toman }}{% endif %}</td>
-                    <td>{% if e.is_gold %}{{ e.locked_after | gold_gram }}{% else %}{{ e.locked_after | toman }}{% endif %}</td>
+                    <td>{% if e.is_precious_metal %}{{ e.balance_after | metal_gram }}{% else %}{{ e.balance_after | toman }}{% endif %}</td>
+                    <td>{% if e.is_precious_metal %}{{ e.locked_after | metal_gram }}{% else %}{{ e.locked_after | toman }}{% endif %}</td>
                     <td class="small text-muted">{{ e.created_at | jdate if e.created_at else '—' }}</td>
                 </tr>
                 {% endfor %}

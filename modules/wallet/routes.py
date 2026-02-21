@@ -2,7 +2,7 @@
 Wallet Routes — Unified for All User Types
 =============================================
 Balance view, topup (via active gateway), withdrawal, transaction history,
-gold buy/sell with dynamic role-based commission.
+generic precious metal buy/sell with dynamic role-based commission.
 """
 
 import logging
@@ -18,7 +18,7 @@ from common.security import csrf_check, new_csrf_token
 from common.flash import flash
 from modules.auth.deps import require_login
 from modules.wallet.service import wallet_service
-from modules.wallet.models import AssetCode, WithdrawalStatus, WithdrawalRequest, WalletTopup
+from modules.wallet.models import AssetCode, WithdrawalStatus, WithdrawalRequest, WalletTopup, PRECIOUS_METALS
 from modules.payment.gateways import get_gateway, GatewayPaymentRequest
 
 logger = logging.getLogger("talamala.wallet")
@@ -45,7 +45,6 @@ async def wallet_dashboard(
     me=Depends(require_login),
 ):
     balance = wallet_service.get_balance(db, me.id)
-    gold_balance = wallet_service.get_balance(db, me.id, asset_code=AssetCode.XAU_MG)
     entries, total = wallet_service.get_transactions(db, me.id, per_page=10)
 
     # Pending withdrawals
@@ -58,18 +57,26 @@ async def wallet_dashboard(
     # Enabled gateways for topup selector
     enabled_gateways = _get_enabled_gateways(db)
 
-    # Gold rates with user-specific fee
-    fee_percent = wallet_service.get_fee_for_user(db, me)
-    gold_rates = wallet_service.get_gold_rates(db, fee_percent=fee_percent)
+    # Build metals list with balances, rates, fees
+    metals = []
+    for key, meta in PRECIOUS_METALS.items():
+        fee = wallet_service.get_fee_for_user(db, me, asset_type=key)
+        rates = wallet_service.get_metal_rates(db, asset_type=key, fee_percent=fee)
+        metal_balance = wallet_service.get_balance(db, me.id, asset_code=meta["asset_code"])
+        metals.append({
+            "key": key,
+            **meta,
+            "balance": metal_balance,
+            "rates": rates,
+            "fee_percent": fee,
+        })
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/wallet.html", {
         "request": request,
         "user": me,
         "balance": balance,
-        "gold_balance": gold_balance,
-        "gold_rates": gold_rates,
-        "fee_percent": fee_percent,
+        "metals": metals,
         "entries": entries,
         "pending_withdrawals": pending_wr,
         "cart_count": 0,
@@ -96,6 +103,8 @@ async def wallet_transactions(
     asset_code = None
     if asset == "gold":
         asset_code = AssetCode.XAU_MG
+    elif asset == "silver":
+        asset_code = AssetCode.XAG_MG
     elif asset == "irr":
         asset_code = AssetCode.IRR
 
@@ -404,83 +413,103 @@ async def wallet_withdraw_submit(
 
 
 # ==========================================
-# 🪙 Gold Buy / Sell (all users, dynamic fee)
+# 🪙 Precious Metal Buy / Sell (generic, all users, dynamic fee)
 # ==========================================
 
-@router.get("/gold", response_class=HTMLResponse)
-async def wallet_gold_page(
+@router.get("/{asset_type}", response_class=HTMLResponse)
+async def wallet_metal_page(
     request: Request,
+    asset_type: str,
     db: Session = Depends(get_db),
     me=Depends(require_login),
 ):
-    """Gold buy/sell page — all users with role-based commission."""
+    """Precious metal buy/sell page — all users with role-based commission."""
+    metal = PRECIOUS_METALS.get(asset_type)
+    if not metal:
+        flash(request, "نوع دارایی شناسایی نشد", "danger")
+        return RedirectResponse("/wallet", status_code=302)
+
     balance = wallet_service.get_balance(db, me.id)
-    gold_balance = wallet_service.get_balance(db, me.id, asset_code=AssetCode.XAU_MG)
-    fee_percent = wallet_service.get_fee_for_user(db, me)
-    rates = wallet_service.get_gold_rates(db, fee_percent=fee_percent)
+    metal_balance = wallet_service.get_balance(db, me.id, asset_code=metal["asset_code"])
+    fee_percent = wallet_service.get_fee_for_user(db, me, asset_type=asset_type)
+    rates = wallet_service.get_metal_rates(db, asset_type=asset_type, fee_percent=fee_percent)
 
     csrf = new_csrf_token()
-    response = templates.TemplateResponse("shop/wallet_gold.html", {
+    response = templates.TemplateResponse("shop/wallet_trade.html", {
         "request": request,
         "user": me,
         "balance": balance,
-        "gold_balance": gold_balance,
+        "metal_balance": metal_balance,
         "rates": rates,
         "fee_percent": fee_percent,
         "csrf_token": csrf,
         "cart_count": 0,
+        "metal": metal,
+        "asset_type": asset_type,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
 
 
-@router.post("/gold/buy")
-async def wallet_gold_buy(
+@router.post("/{asset_type}/buy")
+async def wallet_metal_buy(
     request: Request,
+    asset_type: str,
     amount_toman: int = Form(...),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
     me=Depends(require_login),
 ):
-    """Buy gold with rials — dynamic fee based on user role."""
+    """Buy precious metal with rials — dynamic fee based on user role."""
     csrf_check(request, csrf_token)
+    metal = PRECIOUS_METALS.get(asset_type)
+    if not metal:
+        flash(request, "نوع دارایی شناسایی نشد", "danger")
+        return RedirectResponse("/wallet", status_code=302)
+
     amount_irr = amount_toman * 10
-    fee_percent = wallet_service.get_fee_for_user(db, me)
+    fee_percent = wallet_service.get_fee_for_user(db, me, asset_type=asset_type)
 
     try:
-        result = wallet_service.convert_rial_to_gold(db, me.id, amount_irr, fee_percent=fee_percent)
+        result = wallet_service.buy_metal(db, me.id, amount_irr, asset_type=asset_type, fee_percent=fee_percent)
         db.commit()
-        gold_mg = result["gold_mg"]
-        flash(request, f"خرید {gold_mg / 1000:.3f} گرم طلا با موفقیت انجام شد", "success")
-        return RedirectResponse("/wallet/gold", status_code=302)
+        mg = result["metal_mg"]
+        flash(request, f"خرید {mg / 1000:.3f} گرم {metal['label']} با موفقیت انجام شد", "success")
+        return RedirectResponse(f"/wallet/{asset_type}", status_code=302)
     except ValueError as e:
         db.rollback()
         flash(request, str(e), "danger")
-        return RedirectResponse("/wallet/gold", status_code=302)
+        return RedirectResponse(f"/wallet/{asset_type}", status_code=302)
 
 
-@router.post("/gold/sell")
-async def wallet_gold_sell(
+@router.post("/{asset_type}/sell")
+async def wallet_metal_sell(
     request: Request,
-    gold_grams: str = Form(...),
+    asset_type: str,
+    metal_grams: str = Form(...),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
     me=Depends(require_login),
 ):
-    """Sell gold for rials — dynamic fee based on user role."""
+    """Sell precious metal for rials — dynamic fee based on user role."""
     csrf_check(request, csrf_token)
-    fee_percent = wallet_service.get_fee_for_user(db, me)
+    metal = PRECIOUS_METALS.get(asset_type)
+    if not metal:
+        flash(request, "نوع دارایی شناسایی نشد", "danger")
+        return RedirectResponse("/wallet", status_code=302)
+
+    fee_percent = wallet_service.get_fee_for_user(db, me, asset_type=asset_type)
 
     try:
-        gold_mg = int(float(gold_grams) * 1000)
-        if gold_mg <= 0:
-            raise ValueError("مقدار طلا باید بیشتر از صفر باشد")
-        result = wallet_service.convert_gold_to_rial(db, me.id, gold_mg, fee_percent=fee_percent)
+        mg = int(float(metal_grams) * 1000)
+        if mg <= 0:
+            raise ValueError(f"مقدار {metal['label']} باید بیشتر از صفر باشد")
+        result = wallet_service.sell_metal(db, me.id, mg, asset_type=asset_type, fee_percent=fee_percent)
         db.commit()
         rial = result["amount_irr"]
-        flash(request, f"فروش {gold_mg / 1000:.3f} گرم طلا — {rial // 10:,} تومان واریز شد", "success")
-        return RedirectResponse("/wallet/gold", status_code=302)
+        flash(request, f"فروش {mg / 1000:.3f} گرم {metal['label']} — {rial // 10:,} تومان واریز شد", "success")
+        return RedirectResponse(f"/wallet/{asset_type}", status_code=302)
     except ValueError as e:
         db.rollback()
         flash(request, str(e), "danger")
-        return RedirectResponse("/wallet/gold", status_code=302)
+        return RedirectResponse(f"/wallet/{asset_type}", status_code=302)

@@ -68,6 +68,8 @@ async def update_settings(
     rasis_pos_enabled: Optional[str] = Form(None),
     gold_fee_customer_percent: str = Form("2"),
     gold_fee_dealer_percent: str = Form("0.5"),
+    silver_fee_customer_percent: str = Form("1.5"),
+    silver_fee_dealer_percent: str = Form("0.3"),
     db: Session = Depends(get_db),
     user=Depends(require_permission("settings")),
 ):
@@ -105,6 +107,8 @@ async def update_settings(
         "rasis_pos_enabled": "true" if rasis_pos_enabled == "on" else "false",
         "gold_fee_customer_percent": gold_fee_customer_percent,
         "gold_fee_dealer_percent": gold_fee_dealer_percent,
+        "silver_fee_customer_percent": silver_fee_customer_percent,
+        "silver_fee_dealer_percent": silver_fee_dealer_percent,
     }
 
     for key, value in updates.items():
