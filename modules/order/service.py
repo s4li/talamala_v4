@@ -188,8 +188,10 @@ class OrderService:
                 bar_filter = bar_filter.filter(Bar.dealer_id == new_order.pickup_dealer_id)
             elif delivery_method == DeliveryMethod.POSTAL:
                 postal_hub = delivery_service.get_postal_hub(db)
-                if postal_hub:
-                    bar_filter = bar_filter.filter(Bar.dealer_id == postal_hub.id)
+                if not postal_hub:
+                    db.rollback()
+                    raise ValueError("انبار ارسال پستی تنظیم نشده است. لطفاً با پشتیبانی تماس بگیرید.")
+                bar_filter = bar_filter.filter(Bar.dealer_id == postal_hub.id)
 
             available_bars = (
                 bar_filter
