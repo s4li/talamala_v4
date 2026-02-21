@@ -98,7 +98,6 @@ async def update_product(
     design: str = Form(None),
     card_design_id: str = Form(""), package_type_id: str = Form(""),
     wage: str = Form(...),
-    buyback_wage_percent: str = Form("0"),
     is_active: bool = Form(False),
     new_files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
@@ -107,6 +106,7 @@ async def update_product(
     csrf_check(request, csrf_token)
     form = await request.form()
     description = form.get("description", "")
+    buyback_wage_percent = str(form.get("buyback_wage_percent", "0")).strip()
     category_ids = [int(v) for v in form.getlist("category_ids") if str(v).isdigit()]
     cd_id = int(card_design_id) if card_design_id.strip().isdigit() else None
     pt_id = int(package_type_id) if package_type_id.strip().isdigit() else None
