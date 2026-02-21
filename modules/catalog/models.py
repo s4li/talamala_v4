@@ -64,6 +64,7 @@ class Product(Base):
     purity = Column(Numeric(4, 1), default=750, nullable=False)  # عیار (750, 995, 999.9)
     wage = Column(Numeric(5, 2), default=0, nullable=False)     # اجرت ساخت (درصدی)
     is_wage_percent = Column(Boolean, default=True, nullable=False)  # همیشه True برای شمش
+    metal_type = Column(String(20), default="gold", nullable=False)  # "gold", "silver" — maps to PRECIOUS_METALS keys
     design = Column(String, nullable=True)
     card_design_id = Column(Integer, ForeignKey("card_designs.id", ondelete="SET NULL"), nullable=True, index=True)
     package_type_id = Column(Integer, ForeignKey("package_types.id", ondelete="SET NULL"), nullable=True, index=True)

@@ -211,8 +211,8 @@
                             {% endif %}
                         </td>
                         <td class="text-nowrap">
-                            {% if s.applied_gold_price %}
-                            {{ s.applied_gold_price | toman }}
+                            {% if s.applied_metal_price %}
+                            {{ s.applied_metal_price | toman }}
                             <small class="text-muted">تومان</small>
                             {% else %}
                             <span class="text-muted">—</span>
@@ -223,8 +223,8 @@
                             <small class="text-muted">تومان</small>
                         </td>
                         <td class="text-nowrap">
-                            {% if s.gold_profit_mg and s.gold_profit_mg > 0 %}
-                            <span style="color:#fbbf24;" class="fw-bold">{{ s.gold_profit_mg | gold_gram }}</span>
+                            {% if s.metal_profit_mg and s.metal_profit_mg > 0 %}
+                            <span style="color:{% if s.metal_type == 'silver' %}#adb5bd{% else %}#fbbf24{% endif %};" class="fw-bold">{{ s.metal_profit_mg | metal_gram }}</span>
                             {% else %}
                             <span class="text-muted">—</span>
                             {% endif %}

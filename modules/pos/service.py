@@ -18,8 +18,7 @@ from modules.inventory.models import Bar, BarStatus, OwnershipHistory
 from modules.user.models import User
 from modules.dealer.models import DealerSale
 from modules.pricing.calculator import calculate_bar_price
-from modules.pricing.service import get_price_value, require_fresh_price
-from modules.pricing.models import GOLD_18K
+from modules.pricing.service import get_price_value, require_fresh_price, get_product_pricing
 from modules.pricing.service import get_end_customer_wage
 from common.helpers import now_utc, generate_unique_claim_code
 
@@ -86,7 +85,10 @@ class PosService:
         if not dealer:
             return {"products": [], "gold_price_18k": 0, "tax_percent": "10"}
 
-        gold_price, tax_percent = self._get_price_settings(db)
+        from common.templating import get_setting_from_db
+        from modules.pricing.models import GOLD_18K
+        gold_price = get_price_value(db, GOLD_18K)  # default display price
+        tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
 
         # Count available bars per product at this dealer
         stock_query = (
@@ -116,12 +118,15 @@ class PosService:
 
         result = []
         for p in products:
+            # Per-product metal pricing
+            p_price, p_bp, _ = get_product_pricing(db, p)
             ec_wage = get_end_customer_wage(db, p)
             price_info = calculate_bar_price(
                 weight=p.weight, purity=p.purity,
                 wage_percent=ec_wage,
-                base_gold_price_18k=gold_price,
+                base_metal_price=p_price,
                 tax_percent=tax_percent,
+                base_purity=p_bp,
             )
 
             img = (
@@ -140,6 +145,7 @@ class PosService:
                 "weight": str(p.weight),
                 "purity": float(p.purity),
                 "wage_percent": float(ec_wage),
+                "metal_type": p.metal_type or "gold",
                 "price": {
                     "raw_gold": price_info.get("raw_gold", 0),
                     "wage": price_info.get("wage", 0),
@@ -163,11 +169,14 @@ class PosService:
 
     def reserve_bar(self, db: Session, dealer_id: int, product_id: int) -> Dict[str, Any]:
         """Reserve an available bar for POS payment (2-minute hold)."""
-        # Staleness guard
-        try:
-            require_fresh_price(db, GOLD_18K)
-        except ValueError as e:
-            return {"success": False, "message": str(e)}
+        # Get product first to check metal-specific staleness
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if product:
+            _, _, metal_info = get_product_pricing(db, product)
+            try:
+                require_fresh_price(db, metal_info["pricing_code"])
+            except ValueError as e:
+                return {"success": False, "message": str(e)}
 
         bar = (
             db.query(Bar)
@@ -183,13 +192,16 @@ class PosService:
             return {"success": False, "message": "موجودی برای این محصول تمام شده است"}
 
         product = bar.product
-        gold_price, tax_percent = self._get_price_settings(db)
+        p_price, p_bp, _ = get_product_pricing(db, product)
+        from common.templating import get_setting_from_db
+        tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
         ec_wage = get_end_customer_wage(db, product)
         price_info = calculate_bar_price(
             weight=product.weight, purity=product.purity,
             wage_percent=ec_wage,
-            base_gold_price_18k=gold_price,
+            base_metal_price=p_price,
             tax_percent=tax_percent,
+            base_purity=p_bp,
         )
 
         bar.status = BarStatus.RESERVED
@@ -225,12 +237,6 @@ class PosService:
         customer_national_id: str = "",
     ) -> Dict[str, Any]:
         """Confirm POS sale after successful card payment."""
-        # Staleness guard
-        try:
-            require_fresh_price(db, GOLD_18K)
-        except ValueError as e:
-            return {"success": False, "message": str(e)}
-
         bar = db.query(Bar).filter(Bar.id == bar_id).with_for_update().first()
         if not bar:
             return {"success": False, "message": "شمش یافت نشد"}
@@ -248,13 +254,26 @@ class PosService:
         dealer = db.query(User).filter(User.id == dealer_id, User.is_dealer == True).first()
         product = bar.product
 
-        gold_price, tax_percent = self._get_price_settings(db)
+        # Resolve metal type + pricing
+        metal_type = (product.metal_type if product else "gold") or "gold"
+        metal_price, base_purity, metal_info = get_product_pricing(db, product) if product else (0, 750, {})
+
+        # Staleness guard
+        if product and metal_info:
+            try:
+                require_fresh_price(db, metal_info["pricing_code"])
+            except ValueError as e:
+                return {"success": False, "message": str(e)}
+
+        from common.templating import get_setting_from_db
+        tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
         ec_wage = get_end_customer_wage(db, product) if product else 0
         price_info = calculate_bar_price(
             weight=product.weight, purity=product.purity,
             wage_percent=ec_wage,
-            base_gold_price_18k=gold_price,
+            base_metal_price=metal_price,
             tax_percent=tax_percent,
+            base_purity=base_purity,
         ) if product else {}
 
         expected_price = price_info.get("total", 0)
@@ -298,7 +317,7 @@ class PosService:
                         + (f" - رسید: {payment_ref}" if payment_ref else ""),
         ))
 
-        # Gold profit calculation
+        # Metal profit calculation
         dealer_wage_pct = 0.0
         margin_pct = 0.0
         if product and dealer.tier_id:
@@ -309,9 +328,9 @@ class PosService:
             dealer_wage_pct = float(row.wage_percent) if row else 0
             margin_pct = ec_wage - dealer_wage_pct
 
-        gold_profit_mg = 0
+        metal_profit_mg = 0
         if product and margin_pct > 0:
-            gold_profit_mg = int(float(product.weight) * margin_pct / 100 * 1000)
+            metal_profit_mg = int(float(product.weight) * margin_pct / 100 * 1000)
 
         # Sale record
         desc = "فروش POS دستگاه"
@@ -323,22 +342,26 @@ class PosService:
             customer_name=customer_name, customer_mobile=customer_mobile,
             customer_national_id=customer_national_id,
             sale_price=sale_price, commission_amount=0,
-            gold_profit_mg=gold_profit_mg, discount_wage_percent=0,
+            metal_profit_mg=metal_profit_mg, metal_type=metal_type,
+            applied_metal_price=metal_price,
+            discount_wage_percent=0,
             description=desc,
         )
         db.add(sale)
         db.flush()
 
-        # Gold settlement
-        if gold_profit_mg > 0:
+        # Metal settlement — deposit to correct wallet
+        if metal_profit_mg > 0 and metal_info:
             from modules.wallet.service import wallet_service
             from modules.wallet.models import AssetCode
+            asset_code = AssetCode(metal_info["asset_code"])
+            metal_label = metal_info.get("label", "فلز")
             wallet_service.deposit(
-                db, dealer_id, gold_profit_mg,
-                reference_type="pos_gold_profit",
+                db, dealer_id, metal_profit_mg,
+                reference_type=f"pos_{metal_type}_profit",
                 reference_id=str(sale.id),
-                description=f"سود طلایی فروش POS شمش {bar.serial_code} ({gold_profit_mg / 1000:.3f} گرم)",
-                asset_code=AssetCode.XAU_MG,
+                description=f"سود {metal_label}ی فروش POS شمش {bar.serial_code} ({metal_profit_mg / 1000:.3f} گرم)",
+                asset_code=asset_code,
             )
 
         return {
@@ -352,7 +375,8 @@ class PosService:
                 "purity": float(product.purity) if product else 0,
                 "sale_price": sale_price,
                 "price_breakdown": price_info,
-                "gold_profit_mg": gold_profit_mg,
+                "metal_profit_mg": metal_profit_mg,
+                "metal_type": metal_type,
                 "payment_ref": payment_ref,
                 "customer_name": customer_name,
                 "customer_mobile": customer_mobile,
@@ -418,16 +442,6 @@ class PosService:
                 "created_at": sale.created_at.isoformat() if sale.created_at else "",
             },
         }
-
-    # ------------------------------------------
-    # Helpers
-    # ------------------------------------------
-
-    def _get_price_settings(self, db: Session):
-        from common.templating import get_setting_from_db
-        gold_price = get_price_value(db, GOLD_18K)
-        tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
-        return gold_price, tax_percent
 
 
 pos_service = PosService()

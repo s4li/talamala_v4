@@ -115,7 +115,7 @@ async def dealer_sale(
         "sale_id": sale.id,
         "bar_serial": body.serial_code.upper(),
         "claim_code": result.get("claim_code"),
-        "gold_profit_mg": result.get("gold_profit_mg", 0),
+        "metal_profit_mg": result.get("metal_profit_mg", 0),
         "discount_wage_percent": float(sale.discount_wage_percent) if sale.discount_wage_percent else 0,
         "message": result["message"],
     }
@@ -149,7 +149,8 @@ async def dealer_sales(
                 "customer_name": s.customer_name,
                 "customer_mobile": s.customer_mobile,
                 "sale_price": s.sale_price,
-                "gold_profit_mg": s.gold_profit_mg,
+                "metal_profit_mg": s.metal_profit_mg,
+                "metal_type": s.metal_type,
                 "discount_wage_percent": float(s.discount_wage_percent) if s.discount_wage_percent else 0,
                 "created_at": s.created_at.isoformat() if s.created_at else None,
             }

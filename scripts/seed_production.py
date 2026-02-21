@@ -598,6 +598,9 @@ def seed():
                     product_map[name] = p
                     if end_customer_wage and p.wage != end_customer_wage:
                         p.wage = end_customer_wage
+                    expected_metal = ptype.get("metal", "gold")
+                    if p.metal_type != expected_metal:
+                        p.metal_type = expected_metal
                     if description:
                         p.description = description
 
@@ -614,6 +617,7 @@ def seed():
                         name=name,
                         weight=weight_grams,
                         purity=ptype["purity"],
+                        metal_type=ptype.get("metal", "gold"),
                         card_design_id=default_design.id if default_design else None,
                         package_type_id=default_package.id if default_package else None,
                         wage=end_customer_wage,

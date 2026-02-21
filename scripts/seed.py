@@ -668,6 +668,11 @@ def seed():
                         p.wage = end_customer_wage
                         print(f"  ~ wage updated: {name} → {end_customer_wage}%")
 
+                    # Update metal_type
+                    expected_metal = ptype.get("metal", "gold")
+                    if p.metal_type != expected_metal:
+                        p.metal_type = expected_metal
+
                     # Update description
                     if description:
                         p.description = description
@@ -686,6 +691,7 @@ def seed():
                         name=name,
                         weight=weight_grams,
                         purity=ptype["purity"],
+                        metal_type=ptype.get("metal", "gold"),
                         card_design_id=default_design.id if default_design else None,
                         package_type_id=default_package.id if default_package else None,
                         wage=end_customer_wage,
@@ -1526,7 +1532,7 @@ def seed():
 
                 db.add(OrderItem(
                     order_id=order_g1.id, product_id=gold_product.id, bar_id=cust_bar_g1.id,
-                    applied_gold_price=gold_price, applied_unit_price=line_total_g1,
+                    applied_metal_price=gold_price, applied_unit_price=line_total_g1,
                     applied_weight=weight_g1, applied_purity=purity_g1,
                     applied_wage_percent=wage_g1, applied_tax_percent=tax_pct,
                     final_gold_amount=raw_gold_g1, final_wage_amount=wage_amt_g1,
@@ -1559,7 +1565,7 @@ def seed():
 
                 db.add(OrderItem(
                     order_id=order_g2.id, product_id=gold_product.id, bar_id=cust_bar_g2.id,
-                    applied_gold_price=gold_price, applied_unit_price=line_total_g1,
+                    applied_metal_price=gold_price, applied_unit_price=line_total_g1,
                     applied_weight=weight_g1, applied_purity=purity_g1,
                     applied_wage_percent=wage_g1, applied_tax_percent=tax_pct,
                     final_gold_amount=raw_gold_g1, final_wage_amount=wage_amt_g1,
@@ -1615,7 +1621,7 @@ def seed():
 
                 db.add(OrderItem(
                     order_id=order_s1.id, product_id=silver_product.id, bar_id=cust_bar_s1.id,
-                    applied_gold_price=silver_price, applied_unit_price=line_total_s1,
+                    applied_metal_price=silver_price, applied_unit_price=line_total_s1,
                     applied_weight=weight_s1, applied_purity=purity_s1,
                     applied_wage_percent=wage_s1, applied_tax_percent=tax_pct,
                     final_gold_amount=raw_silver_s1, final_wage_amount=wage_amt_s1,

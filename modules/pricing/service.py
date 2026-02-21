@@ -67,6 +67,21 @@ def update_asset_price(db: Session, asset_code: str, new_price: int, updated_by:
 # Product Wage Helpers
 # ==========================================
 
+def get_product_pricing(db: Session, product):
+    """
+    Get pricing parameters for a product based on its metal_type.
+
+    Returns:
+        (metal_price_per_gram, base_purity, metal_info_dict)
+    """
+    from modules.wallet.models import PRECIOUS_METALS
+    metal_type = getattr(product, "metal_type", "gold") or "gold"
+    metal_info = PRECIOUS_METALS.get(metal_type, PRECIOUS_METALS["gold"])
+    price = get_price_value(db, metal_info["pricing_code"])
+    base_purity = metal_info["base_purity"]
+    return price, base_purity, metal_info
+
+
 def get_end_customer_wage(db: Session, product) -> float:
     """
     Get end-customer wage% for a product.

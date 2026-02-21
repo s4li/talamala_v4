@@ -150,7 +150,8 @@ talamala_v4/
 ### catalog/models.py
 - **ProductCategory**: id, name (unique), slug (unique), sort_order, is_active
 - **ProductCategoryLink**: id, product_id (FK → products), category_id (FK → product_categories) — M2M junction (UniqueConstraint)
-- **Product**: id, name, weight (Decimal), purity (int: 750=18K), wage (Numeric 5,2 — percent), is_wage_percent, design, card_design_id, package_type_id, is_active
+- **Product**: id, name, weight (Decimal), purity (int: 750=18K), wage (Numeric 5,2 — percent), is_wage_percent, design, card_design_id, package_type_id, metal_type (String(20), default="gold"), is_active
+  - `metal_type` maps to `PRECIOUS_METALS` keys ("gold", "silver") — determines which asset price + base purity to use for pricing
   - Properties: `categories` (list of ProductCategory), `category_ids` (list of int)
 - **ProductImage**: id, product_id, path, is_default
 - **CardDesign / CardDesignImage**: طرح کارت‌های هدیه
@@ -172,12 +173,12 @@ talamala_v4/
 
 ### order/models.py
 - **Order**: id, customer_id (FK→users), status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_dealer_id (FK→users), shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at
-- **OrderItem**: id, order_id, product_id, bar_id, applied_gold_price, applied_unit_price, applied_weight, applied_purity, applied_wage_percent, applied_tax_percent, final_gold_amount, final_wage_amount, final_tax_amount, package_type_id (FK→package_types, nullable), applied_package_price (BigInteger, default=0), line_total (= gold_total + package_price)
+- **OrderItem**: id, order_id, product_id, bar_id, applied_metal_price, applied_unit_price, applied_weight, applied_purity, applied_wage_percent, applied_tax_percent, final_gold_amount, final_wage_amount, final_tax_amount, package_type_id (FK→package_types, nullable), applied_package_price (BigInteger, default=0), line_total (= gold_total + package_price)
 - **OrderStatusLog**: id, order_id (FK→orders, CASCADE), field ("status"/"delivery_status"), old_value, new_value, changed_by, description, created_at — audit trail for status changes
 
 ### wallet/models.py
 - **AssetCode** (enum values): `IRR`, `XAU_MG` (gold milligrams), `XAG_MG` (silver milligrams)
-- **PRECIOUS_METALS** (dict): Metadata registry for generic metal trading. Keys: `"gold"`, `"silver"`. Each entry contains: `asset_code`, `asset_key` (pricing), `label`, `unit`, `fee_customer_key`, `fee_dealer_key`, `fee_customer_default`, `fee_dealer_default`. Used by routes to validate `{asset_type}` path param and drive buy/sell logic generically.
+- **PRECIOUS_METALS** (dict): Metadata registry for generic metal trading. Keys: `"gold"`, `"silver"`. Each entry contains: `asset_code`, `asset_key` (pricing), `label`, `unit`, `base_purity` (750 for gold, 999 for silver), `fee_customer_key`, `fee_dealer_key`, `fee_customer_default`, `fee_dealer_default`. Used by routes to validate `{asset_type}` path param, drive buy/sell logic generically, and provide base purity for pricing calculations.
 - **Account**: id, user_id (FK→users), asset_code (IRR/XAU_MG/XAG_MG), balance, locked_balance, credit_balance (non-withdrawable store credit)
   - `available_balance` = balance - locked (for purchases)
   - `withdrawable_balance` = balance - locked - credit (for bank withdrawals)
@@ -194,7 +195,9 @@ talamala_v4/
 
 ### dealer/models.py
 - **DealerTier**: id, name, slug (unique), sort_order, is_end_customer, is_active
-- **DealerSale**: id, dealer_id (FK→users), bar_id, customer_name/mobile/national_id, sale_price, commission_amount, gold_profit_mg, discount_wage_percent (Numeric 5,2 — تخفیف اجرت از سهم نماینده), description, created_at
+- **DealerSale**: id, dealer_id (FK→users), bar_id, customer_name/mobile/national_id, sale_price, commission_amount, metal_profit_mg, discount_wage_percent (Numeric 5,2 — تخفیف اجرت از سهم نماینده), metal_type (String(20), default="gold"), description, created_at
+  - `applied_metal_price` — metal price at time of sale (was `applied_gold_price`)
+  - `metal_type` — which metal was sold ("gold", "silver")
 - **BuybackRequest**: id, dealer_id (FK→users), bar_id, customer_name/mobile, buyback_price, status (Pending/Approved/Completed/Rejected), admin_note, description, wage_refund_amount (rial), wage_refund_customer_id (FK→users), created_at, updated_at
 - Note: Dealer-specific fields (tier, address, api_key, etc.) are on the unified **User** model
 
@@ -283,13 +286,14 @@ return response
 
 ### Pricing
 `modules/pricing/calculator.py` → `calculate_bar_price()`
-- Gold price from `Asset` table (asset_code="gold_18k"), NOT SystemSetting
+- Metal price from `Asset` table (asset_code="gold_18k" or "silver"), NOT SystemSetting
 - Tax from SystemSetting key `tax_percent`
 - `modules/pricing/models.py` → `Asset` model (per-asset price with staleness guard)
-- `modules/pricing/service.py` → `get_price_value()`, `require_fresh_price()`, `is_price_fresh()`
+- `modules/pricing/service.py` → `get_price_value()`, `require_fresh_price()`, `is_price_fresh()`, `get_product_pricing(db, product)` (returns metal price + base purity + tax based on product's `metal_type`)
 - `modules/pricing/feed_service.py` → `fetch_gold_price_goldis()` (auto-fetch from goldis.ir)
 - Background scheduler fetches gold price every N minutes (configurable per asset)
 - Staleness guard: blocks checkout/POS/wallet if price expired (configurable per asset)
+- `calculate_bar_price()` now takes `base_metal_price` + `base_purity` params (generic for any metal)
 
 ### Payment Gateway
 - لایه انتزاعی `modules/payment/gateways/` با `BaseGateway` و الگوی registry
@@ -560,18 +564,21 @@ uvicorn main:app --reload
 
 ---
 
-## 10. فرمول قیمت‌گذاری طلا (ساده‌شده)
+## 10. فرمول قیمت‌گذاری فلزات (عمومی)
 
 ```
-raw_gold = weight × (purity / 750) × gold_price_18k
-wage     = raw_gold × (wage% / 100)
-tax      = wage × (tax% / 100)          ← مالیات فقط روی اجرت
-total    = raw_gold + wage + tax
+raw_metal = weight × (purity / base_purity) × metal_price
+wage      = raw_metal × (wage% / 100)
+tax       = wage × (tax% / 100)          ← مالیات فقط روی اجرت
+total     = raw_metal + wage + tax
 ```
 
-- تابع: `calculate_bar_price()` در `modules/pricing/calculator.py`
+- `base_purity`: 750 for gold (18K reference), 999 for silver (pure reference) — defined in `PRECIOUS_METALS` dict
+- `metal_price`: per-gram price from `Asset` table (e.g. `gold_18k`, `silver`)
+- تابع: `calculate_bar_price()` در `modules/pricing/calculator.py` — now accepts `base_metal_price` + `base_purity` params
+- Helper: `get_product_pricing(db, product)` در `modules/pricing/service.py` — returns `(metal_price, base_purity, tax_percent)` based on product's `metal_type`
 - product.wage = اجرت مشتری نهایی (auto-sync به ProductTierWage)
-- سطوح نمایندگان: هر سطح اجرت کمتری دارد → اختلاف = سود نماینده (به طلا)
+- سطوح نمایندگان: هر سطح اجرت کمتری دارد → اختلاف = سود نماینده (به فلز)
 
 ---
 

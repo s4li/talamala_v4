@@ -13,7 +13,7 @@ from sqlalchemy import func, desc, asc
 from modules.catalog.models import Product, ProductCategoryLink
 from modules.inventory.models import Bar, BarStatus
 from modules.pricing.calculator import calculate_bar_price
-from modules.pricing.service import get_end_customer_wage, get_price_value, is_price_fresh
+from modules.pricing.service import get_end_customer_wage, get_price_value, is_price_fresh, get_product_pricing
 from modules.pricing.models import GOLD_18K
 from common.templating import get_setting_from_db
 
@@ -42,7 +42,7 @@ class ShopService:
     ) -> Tuple[List[dict], int, int, str]:
         """
         Get paginated active products with:
-        - Real-time calculated price
+        - Real-time calculated price (per-product metal pricing)
         - Available inventory count
         - Optional category filter (at DB level)
 
@@ -95,16 +95,18 @@ class ShopService:
         offset = (page - 1) * per_page
         results = query.offset(offset).limit(per_page).all()
 
-        # Calculate price for each product
+        # Calculate price for each product (per-product metal pricing)
         products = []
         for product, inv_count in results:
-            ec_wage = get_end_customer_wage(db,product)
+            p_price, p_bp, _ = get_product_pricing(db, product)
+            ec_wage = get_end_customer_wage(db, product)
             price_info = calculate_bar_price(
                 weight=product.weight,
                 purity=product.purity,
                 wage_percent=ec_wage,
-                base_gold_price_18k=gold_price_rial,
+                base_metal_price=p_price,
                 tax_percent=Decimal(tax_percent_str) if tax_percent_str else 0,
+                base_purity=p_bp,
             )
             # Attach dynamic attributes
             product.inventory = inv_count
@@ -129,7 +131,9 @@ class ShopService:
         if not product:
             return None
 
-        gold_price_rial = self.get_gold_price(db)
+        # Per-product metal pricing
+        p_price, p_bp, _ = get_product_pricing(db, product)
+        gold_price_rial = p_price  # keep name for template backward compat
         tax_percent_str = self.get_tax_percent(db)
 
         # Count available bars
@@ -163,13 +167,14 @@ class ShopService:
         ]
 
         # Full invoice — always use end-customer tier wage
-        ec_wage = get_end_customer_wage(db,product)
+        ec_wage = get_end_customer_wage(db, product)
         invoice = calculate_bar_price(
             weight=product.weight,
             purity=product.purity,
             wage_percent=ec_wage,
-            base_gold_price_18k=gold_price_rial,
+            base_metal_price=p_price,
             tax_percent=Decimal(tax_percent_str) if tax_percent_str else 0,
+            base_purity=p_bp,
         )
 
         return product, invoice, inventory, gold_price_rial, tax_percent_str, location_inventory

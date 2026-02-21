@@ -224,8 +224,9 @@
         var pur = parseInt(bd.purity);
         var gp = bd.gold_price;
         var tp = bd.tax_percent;
+        var bp = bd.base_purity || 750;
 
-        var pricePerGram = (gp / 750) * pur;
+        var pricePerGram = (gp / bp) * pur;
         var unitPrice = Math.floor(pricePerGram);
         var rawGold = Math.floor(w * unitPrice);
         // Full wage & tax (always on base wage, unaffected by discount)

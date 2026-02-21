@@ -488,8 +488,9 @@ class RasisService:
         if not bar.product:
             return None
 
-        gold_asset = db.query(Asset).filter(Asset.asset_code == "gold_18k").first()
-        if not gold_asset or not gold_asset.price_per_gram:
+        from modules.pricing.service import get_product_pricing
+        p_price, p_bp, _ = get_product_pricing(db, bar.product)
+        if not p_price:
             return None
 
         tax_str = get_setting_from_db(db, "tax_percent", "10")
@@ -499,8 +500,9 @@ class RasisService:
             weight=bar.product.weight,
             purity=bar.product.purity,
             wage_percent=float(bar.product.wage or 0),
-            base_gold_price_18k=gold_asset.price_per_gram,
+            base_metal_price=p_price,
             tax_percent=tax_pct,
+            base_purity=p_bp,
         )
 
         return result.get("total") if not result.get("error") else None

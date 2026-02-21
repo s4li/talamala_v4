@@ -14,7 +14,7 @@ from modules.cart.models import Cart, CartItem
 from modules.catalog.models import Product
 from modules.inventory.models import Bar, BarStatus
 from modules.pricing.calculator import calculate_bar_price
-from modules.pricing.service import get_end_customer_wage
+from modules.pricing.service import get_end_customer_wage, get_product_pricing
 from common.templating import get_setting_from_db
 
 
@@ -102,7 +102,6 @@ class CartService:
         if not cart or not cart.items:
             return [], 0
 
-        gold_price_rial = self._gold_price(db)
         tax_percent_str = self._tax_percent(db)
 
         # Batch inventory lookup
@@ -119,13 +118,16 @@ class CartService:
         total_price = 0
 
         for item in cart.items:
+            # Per-product metal pricing
+            p_price, p_bp, _ = get_product_pricing(db, item.product)
             ec_wage = get_end_customer_wage(db, item.product)
             price_info = calculate_bar_price(
                 weight=item.product.weight,
                 purity=item.product.purity,
                 wage_percent=ec_wage,
-                base_gold_price_18k=gold_price_rial,
+                base_metal_price=p_price,
                 tax_percent=Decimal(tax_percent_str) if tax_percent_str else 0,
+                base_purity=p_bp,
             )
             unit_total = int(price_info.get("total", 0))
 

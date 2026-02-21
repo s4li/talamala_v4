@@ -105,7 +105,7 @@ from modules.cart.models import Cart, CartItem  # noqa: F401
 from modules.order.models import Order, OrderItem, OrderStatusLog  # noqa: F401
 from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest  # noqa: F401
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory  # noqa: F401
-from modules.dealer.models import DealerTier, DealerSale, BuybackRequest  # noqa: F401
+from modules.dealer.models import DealerTier, DealerSale, BuybackRequest, SubDealerRelation  # noqa: F401
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment  # noqa: F401
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike  # noqa: F401
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment  # noqa: F401

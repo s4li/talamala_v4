@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func as sa_func, or_
 
 from modules.user.models import User
-from modules.dealer.models import DealerSale, BuybackRequest, BuybackStatus
+from modules.dealer.models import DealerSale, BuybackRequest, BuybackStatus, SubDealerRelation
 from modules.inventory.models import Bar, BarStatus, OwnershipHistory
 from modules.catalog.models import ProductTierWage
 from modules.pricing.service import get_end_customer_wage, get_dealer_margin, get_product_pricing, get_price_value
@@ -309,13 +309,59 @@ class DealerService:
             from modules.wallet.models import AssetCode
             asset_code = AssetCode(metal_info["asset_code"])
             metal_label = metal_info.get("label", "فلز")
-            wallet_service.deposit(
-                db, dealer_id, metal_profit_mg,
-                reference_type=f"pos_{metal_type}_profit",
-                reference_id=str(sale.id),
-                description=f"سود {metal_label}ی فروش شمش {bar.serial_code} ({metal_profit_mg / 1000:.3f} گرم)",
-                asset_code=asset_code,
+
+            # --- Sub-dealer commission split ---
+            parent_rel = (
+                db.query(SubDealerRelation)
+                .filter(
+                    SubDealerRelation.child_dealer_id == dealer_id,
+                    SubDealerRelation.is_active == True,
+                )
+                .first()
             )
+            parent_active = (
+                parent_rel
+                and parent_rel.parent_dealer
+                and parent_rel.parent_dealer.is_active
+                and float(parent_rel.commission_split_percent) > 0
+            ) if parent_rel else False
+
+            if parent_active:
+                split_pct = float(parent_rel.commission_split_percent)
+                parent_share_mg = int(metal_profit_mg * split_pct / 100)
+                child_share_mg = metal_profit_mg - parent_share_mg
+
+                # Record split on sale
+                sale.parent_dealer_id = parent_rel.parent_dealer_id
+                sale.parent_commission_mg = parent_share_mg
+
+                # Deposit child's share
+                if child_share_mg > 0:
+                    wallet_service.deposit(
+                        db, dealer_id, child_share_mg,
+                        reference_type=f"pos_{metal_type}_profit",
+                        reference_id=str(sale.id),
+                        description=f"سود {metal_label}ی فروش شمش {bar.serial_code} ({child_share_mg / 1000:.3f} گرم)",
+                        asset_code=asset_code,
+                    )
+                # Deposit parent's share
+                if parent_share_mg > 0:
+                    wallet_service.deposit(
+                        db, parent_rel.parent_dealer_id, parent_share_mg,
+                        reference_type=f"sub_dealer_{metal_type}_commission",
+                        reference_id=str(sale.id),
+                        description=f"کمیسیون زیرمجموعه — فروش {bar.serial_code} ({parent_share_mg / 1000:.3f} گرم)",
+                        asset_code=asset_code,
+                    )
+            else:
+                # No parent → full profit to dealer
+                wallet_service.deposit(
+                    db, dealer_id, metal_profit_mg,
+                    reference_type=f"pos_{metal_type}_profit",
+                    reference_id=str(sale.id),
+                    description=f"سود {metal_label}ی فروش شمش {bar.serial_code} ({metal_profit_mg / 1000:.3f} گرم)",
+                    asset_code=asset_code,
+                )
 
         return {
             "success": True,

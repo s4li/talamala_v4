@@ -55,7 +55,7 @@
                         {% endif %}
                     </td>
                     <td class="fw-bold">{{ sale.sale_price | toman }} <small class="text-muted">تومان</small></td>
-                    <td class="text-success">{{ sale.gold_profit_mg | gold_gram }}</td>
+                    <td class="text-success">{{ sale.metal_profit_mg | metal_gram }}</td>
                     <td>
                         {% if sale.discount_wage_percent and sale.discount_wage_percent > 0 %}
                         <span class="text-warning fw-bold">{{ sale.discount_wage_percent }}%</span>

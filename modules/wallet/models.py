@@ -49,6 +49,7 @@ PRECIOUS_METALS = {
         "color": "warning",
         "icon": "bi-gem",
         "fee_setting_prefix": "gold",
+        "base_purity": 750,
     },
     "silver": {
         "asset_code": "XAG_MG",
@@ -59,6 +60,7 @@ PRECIOUS_METALS = {
         "color": "secondary",
         "icon": "bi-diamond",
         "fee_setting_prefix": "silver",
+        "base_purity": 999,
     },
 }
 
@@ -172,8 +174,11 @@ class LedgerEntry(Base):
     def txn_type_label(self) -> str:
         # Context-aware labels based on reference_type
         ref = self.reference_type or ""
-        if ref == "pos_gold_profit":
-            return "واریز سود"
+        # POS profit: pos_gold_profit, pos_silver_profit, etc.
+        if ref.startswith("pos_") and ref.endswith("_profit"):
+            metal_key = ref[4:-7]  # strip "pos_" and "_profit"
+            metal = PRECIOUS_METALS.get(metal_key)
+            return f"سود {metal['label']}ی فروش" if metal else "واریز سود"
         # Generic metal buy/sell labels (gold_buy, silver_buy, etc.)
         if ref.endswith("_buy"):
             metal_key = ref.rsplit("_buy", 1)[0]
@@ -203,7 +208,7 @@ class LedgerEntry(Base):
     @property
     def txn_type_color(self) -> str:
         ref = self.reference_type or ""
-        if ref == "pos_gold_profit":
+        if ref.startswith("pos_") and ref.endswith("_profit"):
             return "success"
         if ref.endswith("_buy"):
             return "warning"

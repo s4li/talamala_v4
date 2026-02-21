@@ -151,7 +151,7 @@ class OrderItem(Base):
     bar_id = Column(Integer, ForeignKey("bars.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Price snapshot at time of purchase
-    applied_gold_price = Column(BigInteger, nullable=False)
+    applied_metal_price = Column(BigInteger, nullable=False)
     applied_unit_price = Column(BigInteger, nullable=False)
     applied_weight = Column(Numeric(10, 3), nullable=False)
     applied_purity = Column(Numeric(4, 1), nullable=False)

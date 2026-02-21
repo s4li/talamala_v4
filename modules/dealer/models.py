@@ -15,7 +15,7 @@ unified User model (modules/user/models.py) with is_dealer=True.
 import enum
 from sqlalchemy import (
     Column, Integer, String, DateTime, ForeignKey, Boolean,
-    BigInteger, Text, Numeric,
+    BigInteger, Text, Numeric, UniqueConstraint, CheckConstraint,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -65,14 +65,19 @@ class DealerSale(Base):
     customer_mobile = Column(String(15), nullable=True)
     customer_national_id = Column(String, nullable=True)
     sale_price = Column(BigInteger, nullable=False)           # ریال
-    applied_gold_price = Column(BigInteger, nullable=True)   # قیمت طلای ۱۸ عیار در لحظه فروش (ریال/گرم)
+    applied_metal_price = Column(BigInteger, nullable=True)  # قیمت فلز پایه در لحظه فروش (ریال/گرم)
     commission_amount = Column(BigInteger, default=0, nullable=False)  # ریال (legacy)
-    gold_profit_mg = Column(BigInteger, default=0, nullable=False)    # سود طلایی (میلی‌گرم)
+    metal_profit_mg = Column(BigInteger, default=0, nullable=False)   # سود فلزی (میلی‌گرم)
+    metal_type = Column(String(20), default="gold", nullable=False)   # "gold", "silver" — maps to PRECIOUS_METALS
     discount_wage_percent = Column(Numeric(5, 2), default=0, nullable=False)  # تخفیف اجرت از سهم نماینده (درصد)
     description = Column(Text, nullable=True)
+    # Sub-dealer commission split tracking
+    parent_dealer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    parent_commission_mg = Column(BigInteger, default=0, nullable=False)  # parent's share (milligrams)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     dealer = relationship("User", foreign_keys=[dealer_id])
+    parent_dealer = relationship("User", foreign_keys=[parent_dealer_id])
     bar = relationship("Bar", foreign_keys=[bar_id])
 
 
@@ -119,3 +124,39 @@ class BuybackRequest(Base):
             BuybackStatus.REJECTED: "danger",
         }
         return colors.get(self.status, "secondary")
+
+
+# ==========================================
+# Sub-Dealer Relation (شبکه زیرمجموعه)
+# ==========================================
+
+class SubDealerRelation(Base):
+    __tablename__ = "sub_dealer_relations"
+
+    id = Column(Integer, primary_key=True)
+    parent_dealer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    child_dealer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    commission_split_percent = Column(Numeric(5, 2), default=20.0, nullable=False)  # % of child's profit → parent
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    deactivated_at = Column(DateTime(timezone=True), nullable=True)
+    admin_note = Column(Text, nullable=True)
+
+    parent_dealer = relationship("User", foreign_keys=[parent_dealer_id])
+    child_dealer = relationship("User", foreign_keys=[child_dealer_id])
+
+    __table_args__ = (
+        UniqueConstraint("parent_dealer_id", "child_dealer_id", name="uq_sub_dealer_relation"),
+        CheckConstraint("commission_split_percent >= 0 AND commission_split_percent <= 100",
+                        name="ck_commission_split_range"),
+        CheckConstraint("parent_dealer_id != child_dealer_id",
+                        name="ck_no_self_reference"),
+    )
+
+    @property
+    def status_label(self) -> str:
+        return "فعال" if self.is_active else "غیرفعال"
+
+    @property
+    def status_color(self) -> str:
+        return "success" if self.is_active else "secondary"

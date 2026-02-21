@@ -19,20 +19,20 @@ from modules.cart.models import Cart, CartItem
 from modules.catalog.models import Product
 from modules.inventory.models import Bar, BarStatus, OwnershipHistory
 from modules.pricing.calculator import calculate_bar_price
-from modules.pricing.service import get_end_customer_wage
+from modules.pricing.service import get_end_customer_wage, get_product_pricing
 
 logger = logging.getLogger("talamala.order")
 
 
-def build_order_item(product, bar, invoice: dict, gold_price_rial: int, tax_percent_str: str,
+def build_order_item(product, bar, invoice: dict, metal_price_rial: int, tax_percent_str: str,
                      package_type_id: int = None, package_price: int = 0) -> OrderItem:
     """Create an OrderItem with full price snapshot (including package)."""
     audit = invoice.get("audit", {})
-    gold_total = int(invoice.get("total", 0))
+    metal_total = int(invoice.get("total", 0))
     return OrderItem(
         product_id=product.id,
         bar_id=bar.id,
-        applied_gold_price=int(gold_price_rial),
+        applied_metal_price=int(metal_price_rial),
         applied_unit_price=int(audit.get("unit_price_used", 0)),
         applied_weight=audit.get("weight_used") or product.weight,
         applied_purity=product.purity,
@@ -43,7 +43,7 @@ def build_order_item(product, bar, invoice: dict, gold_price_rial: int, tax_perc
         final_tax_amount=int(invoice.get("tax", 0)),
         package_type_id=package_type_id,
         applied_package_price=package_price,
-        line_total=gold_total + package_price,
+        line_total=metal_total + package_price,
     )
 
 
@@ -97,17 +97,18 @@ class OrderService:
         if not cart or not cart.items:
             raise ValueError("سبد خرید خالی است")
 
-        gold_price_rial = self._gold_price(db)
         tax_percent_str = self._tax_percent(db)
         reservation_minutes = int(get_setting_from_db(db, "reservation_minutes", "15"))
 
-        if not gold_price_rial:
-            raise ValueError("قیمت طلا تنظیم نشده است")
-
-        # Staleness guard: block checkout if gold price is expired
+        # Staleness guard: check ALL unique metals in cart
         from modules.pricing.service import require_fresh_price
-        from modules.pricing.models import GOLD_18K
-        require_fresh_price(db, GOLD_18K)
+        checked_metals = set()
+        for item in cart.items:
+            _, _, m_info = get_product_pricing(db, item.product)
+            pc = m_info["pricing_code"]
+            if pc not in checked_metals:
+                require_fresh_price(db, pc)
+                checked_metals.add(pc)
 
         delivery_data = delivery_data or {}
         delivery_method = delivery_data.get("delivery_method")
@@ -154,14 +155,16 @@ class OrderService:
         expire_at = now_utc() + timedelta(minutes=reservation_minutes)
 
         for item in cart.items:
-            # Calculate price for this product (always use end-customer tier wage)
+            # Per-product metal pricing
+            p_price, p_bp, _ = get_product_pricing(db, item.product)
             ec_wage = get_end_customer_wage(db, item.product)
             price_info = calculate_bar_price(
                 weight=item.product.weight,
                 purity=item.product.purity,
                 wage_percent=ec_wage,
-                base_gold_price_18k=gold_price_rial,
+                base_metal_price=p_price,
                 tax_percent=Decimal(tax_percent_str) if tax_percent_str else 0,
+                base_purity=p_bp,
             )
 
             # Package price snapshot
@@ -212,7 +215,7 @@ class OrderService:
                 bar.reserved_customer_id = customer_id
                 bar.reserved_until = expire_at
 
-                oi = build_order_item(item.product, bar, price_info, gold_price_rial, tax_percent_str,
+                oi = build_order_item(item.product, bar, price_info, p_price, tax_percent_str,
                                      package_type_id=pkg_type_id, package_price=pkg_price)
                 oi.order_id = new_order.id
                 order_items.append(oi)
@@ -444,12 +447,8 @@ class OrderService:
         return db.query(Order).filter(Order.id == order_id).first()
 
     def _get_metal_type(self, product) -> str:
-        """Determine metal type from product categories (slug prefix)."""
-        if product and hasattr(product, 'categories'):
-            for cat in product.categories:
-                if cat.slug and cat.slug.startswith("silver"):
-                    return "silver"
-        return "gold"
+        """Determine metal type from product.metal_type field."""
+        return getattr(product, "metal_type", "gold") or "gold"
 
     def get_pending_delivery_stats(self, db: Session):
         """Get custodial gold/silver: SOLD bars not yet physically delivered."""

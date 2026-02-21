@@ -377,37 +377,73 @@
                     {% if order.status == 'Paid' and item.bar %}
                     <small class="text-muted d-block mt-1">سریال: <code>{{ item.bar.serial_code }}</code></small>
                     {% endif %}
-                    <div class="mt-1">
-                        <button class="btn-breakdown no-print"
-                                type="button" data-bs-toggle="collapse" data-bs-target="#detail-m-{{ item.id }}"
-                                aria-expanded="false">
-                            <i class="bi bi-chevron-down"></i> ریز قیمت
-                        </button>
-                        <div class="collapse" id="detail-m-{{ item.id }}">
-                            <div class="breakdown-panel">
-                                <div class="breakdown-item">
-                                    <span>قیمت طلا (هر گرم)</span>
-                                    <span>{{ item.applied_gold_price | toman }} تومان</span>
-                                </div>
-                                <div class="breakdown-item">
-                                    <span>طلای خام</span>
-                                    <span>{{ item.final_gold_amount | toman }} تومان</span>
-                                </div>
-                                <div class="breakdown-item">
-                                    <span>اجرت ({{ item.applied_wage_percent }}%)</span>
-                                    <span>{{ item.final_wage_amount | toman }} تومان</span>
-                                </div>
-                                <div class="breakdown-item">
-                                    <span>مالیات ({{ item.applied_tax_percent }}%)</span>
-                                    <span>{{ item.final_tax_amount | toman }} تومان</span>
-                                </div>
-                                {% if item.applied_package_price > 0 %}
-                                <div class="breakdown-item">
-                                    <span>بسته‌بندی</span>
-                                    <span>{{ item.applied_package_price | toman }} تومان</span>
-                                </div>
-                                {% endif %}
-                            </div>
+                    {% if item.package_type %}
+                    <small class="text-muted d-block">
+                        <i class="bi bi-gift me-1"></i>بسته‌بندی: {{ item.package_type.name }}
+                        {% if item.applied_package_price > 0 %}
+                        ({{ item.applied_package_price | toman }} تومان)
+                        {% endif %}
+                    </small>
+                    {% endif %}
+                </div>
+                <div style="flex:1;" class="text-center">{{ item.applied_weight }}g</div>
+                <div style="flex:1;" class="text-center">{{ item.applied_purity|purity }}</div>
+                <div style="flex:2;" class="text-end">
+                    <div class="fw-bold">{{ item.line_total | toman }} <small class="text-muted">تومان</small></div>
+                </div>
+            </div>
+            <!-- Mobile layout -->
+            <div class="d-sm-none px-3 py-3 item-row">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <div class="fw-bold" style="font-size:0.9rem;">{{ item.product.name if item.product else 'محصول حذف‌شده' }}</div>
+                    <div class="fw-bold text-tm-primary text-nowrap me-0" style="font-size:0.9rem;">{{ item.line_total | toman }} <small class="text-muted">ت</small></div>
+                </div>
+                <div class="d-flex gap-2 small text-muted">
+                    <span>{{ item.applied_weight }}g</span>
+                    <span>عیار {{ item.applied_purity|purity }}</span>
+                </div>
+                {% if order.status == 'Paid' and item.bar %}
+                <small class="text-muted d-block">سریال: <code>{{ item.bar.serial_code }}</code></small>
+                {% endif %}
+                {% if item.package_type %}
+                <small class="text-muted d-block">
+                    <i class="bi bi-gift me-1"></i>{{ item.package_type.name }}
+                    {% if item.applied_package_price > 0 %}({{ item.applied_package_price | toman }} ت){% endif %}
+                </small>
+                {% endif %}
+            </div>
+
+            <!-- Detailed breakdown (collapsed) -->
+            <div class="px-3 pb-2">
+                <button class="btn-breakdown no-print"
+                        type="button" data-bs-toggle="collapse" data-bs-target="#detail-{{ item.id }}"
+                        aria-expanded="false" aria-controls="detail-{{ item.id }}">
+                    <i class="bi bi-chevron-down"></i>
+                    ریز قیمت
+                </button>
+                <div class="collapse" id="detail-{{ item.id }}">
+                    <div class="breakdown-panel">
+                        <div class="breakdown-item">
+                            <span>طلای خام</span>
+                            <span>{{ item.final_gold_amount | toman }} تومان</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>اجرت</span>
+                            <span>{{ item.final_wage_amount | toman }} تومان</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>مالیات ({{ item.applied_tax_percent }}%)</span>
+                            <span>{{ item.final_tax_amount | toman }} تومان</span>
+                        </div>
+                        {% if item.applied_package_price > 0 %}
+                        <div class="breakdown-item">
+                            <span>بسته‌بندی ({{ item.package_type.name if item.package_type else '' }})</span>
+                            <span>{{ item.applied_package_price | toman }} تومان</span>
+                        </div>
+                        {% endif %}
+                        <div class="breakdown-item">
+                            <span>قیمت فلز پایه</span>
+                            <span>{{ item.applied_metal_price | toman }} تومان/گرم</span>
                         </div>
                     </div>
                 </div>

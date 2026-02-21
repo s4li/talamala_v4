@@ -1,7 +1,8 @@
 """
 Pricing Module - Calculator
 =============================
-Gold bar price calculation: raw gold + wage + tax on wage.
+Metal bar price calculation: raw metal + wage + tax on wage.
+Supports gold, silver, and any future precious metal via base_purity param.
 """
 
 from decimal import Decimal, ROUND_FLOOR
@@ -11,24 +12,26 @@ def calculate_bar_price(
     weight,
     purity,
     wage_percent,
-    base_gold_price_18k,
+    base_metal_price,
     tax_percent=10,
+    base_purity=750,
 ) -> dict:
     """
-    Calculate gold bar price breakdown.
+    Calculate metal bar price breakdown.
 
     Formula:
-        raw_gold = weight × (purity / 750) × gold_price_18k
-        wage     = raw_gold × (wage% / 100)
-        tax      = wage × (tax% / 100)
-        total    = raw_gold + wage + tax
+        raw_metal = weight × (purity / base_purity) × base_metal_price
+        wage      = raw_metal × (wage% / 100)
+        tax       = wage × (tax% / 100)
+        total     = raw_metal + wage + tax
 
     Args:
         weight: Weight in grams (e.g., 1.000)
-        purity: Purity in parts per thousand (e.g., 750 = 18K)
-        wage_percent: Manufacturing wage as percentage of gold value
-        base_gold_price_18k: Current 18K gold price per gram (Rials)
+        purity: Purity in parts per thousand (e.g., 750 for 18K gold, 999 for pure silver)
+        wage_percent: Manufacturing wage as percentage of metal value
+        base_metal_price: Current base metal price per gram (Rials)
         tax_percent: VAT percentage (applied only on wage)
+        base_purity: Reference purity for the base price (750 for gold 18K, 999 for pure silver)
 
     Returns:
         dict with: raw_gold, wage, tax, total, audit
@@ -37,7 +40,7 @@ def calculate_bar_price(
 
     d_weight = D(weight).quantize(Decimal("0.001"), rounding=ROUND_FLOOR)
 
-    if D(purity) <= 0 or D(base_gold_price_18k) <= 0 or d_weight <= 0:
+    if D(purity) <= 0 or D(base_metal_price) <= 0 or d_weight <= 0:
         return {"error": "ورودی نامعتبر: وزن و قیمت باید مثبت باشند.", "total": 0}
 
     d_purity = D(purity)
@@ -47,7 +50,7 @@ def calculate_bar_price(
         return int(x.quantize(Decimal("1"), rounding=ROUND_FLOOR))
 
     # قیمت واحد بر اساس عیار
-    price_per_gram_raw = (D(base_gold_price_18k) / D(750)) * d_purity
+    price_per_gram_raw = (D(base_metal_price) / D(base_purity)) * d_purity
     val_unit_price_int = to_int_rial_floor(price_per_gram_raw)
 
     # ارزش طلای خام
