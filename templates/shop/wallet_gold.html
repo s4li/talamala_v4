@@ -97,12 +97,22 @@
                     <div class="mb-3">
                         <label class="form-label-tm">مبلغ (تومان)</label>
                         <input type="number" id="buy-toman" name="amount_toman" class="form-control form-control-tm" min="10000" step="1000" required>
-                        <div id="buy-toman-words" class="form-text text-muted small mt-1"></div>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <div id="buy-toman-words" class="form-text text-muted small"></div>
+                            <a href="#" class="form-text small text-decoration-none" id="buy-max-toman-link" style="color:var(--tm-primary);white-space:nowrap;">
+                                <i class="bi bi-wallet2 me-1"></i>حداکثر: <span id="buy-max-toman-display">{{ balance.available | toman }}</span>
+                            </a>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label-tm">معادل طلا (گرم)</label>
                         <input type="number" id="buy-grams" class="form-control form-control-tm" min="0.001" step="0.001">
-                        <div id="buy-grams-info" class="form-text text-muted small mt-1"></div>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <div id="buy-grams-info" class="form-text text-muted small"></div>
+                            <span class="form-text small text-muted" style="white-space:nowrap;">
+                                <i class="bi bi-gem me-1"></i>حداکثر: <span id="buy-max-grams-display"></span>
+                            </span>
+                        </div>
                     </div>
                     <!-- Fee breakdown -->
                     <div class="fee-info" id="buy-fee-info" style="display:none;">
@@ -133,12 +143,22 @@
                     <div class="mb-3">
                         <label class="form-label-tm">مقدار (گرم)</label>
                         <input type="number" id="sell-grams" name="gold_grams" class="form-control form-control-tm" min="0.001" step="0.001" required>
-                        <div id="sell-grams-info" class="form-text text-muted small mt-1"></div>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <div id="sell-grams-info" class="form-text text-muted small"></div>
+                            <a href="#" class="form-text small text-decoration-none" id="sell-max-grams-link" style="color:var(--tm-primary);white-space:nowrap;">
+                                <i class="bi bi-coin me-1"></i>حداکثر: <span id="sell-max-grams-display">{{ gold_balance.available | gold_gram }}</span>
+                            </a>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label-tm">معادل ریالی (تومان)</label>
                         <input type="number" id="sell-toman" class="form-control form-control-tm" min="10000" step="1000">
-                        <div id="sell-toman-words" class="form-text text-muted small mt-1"></div>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <div id="sell-toman-words" class="form-text text-muted small"></div>
+                            <span class="form-text small text-muted" style="white-space:nowrap;">
+                                <i class="bi bi-wallet2 me-1"></i>حداکثر: <span id="sell-max-toman-display"></span>
+                            </span>
+                        </div>
                     </div>
                     <!-- Fee breakdown -->
                     <div class="fee-info" id="sell-fee-info" style="display:none;">
@@ -171,6 +191,14 @@
 const BUY_PER_GRAM  = {{ rates.buy_per_gram }};
 const SELL_PER_GRAM = {{ rates.sell_per_gram }};
 const FEE_PERCENT   = {{ fee_percent }};
+
+// حداکثرها
+const MAX_BUY_IRR   = {{ balance.available }};           // ریال
+const MAX_BUY_TOMAN = Math.floor(MAX_BUY_IRR / 10);     // تومان
+const MAX_BUY_GRAMS = BUY_PER_GRAM > 0 ? (MAX_BUY_IRR / BUY_PER_GRAM) : 0;
+const MAX_SELL_MG   = {{ gold_balance.available }};      // میلی‌گرم
+const MAX_SELL_GRAMS = MAX_SELL_MG / 1000;
+const MAX_SELL_TOMAN = SELL_PER_GRAM > 0 ? Math.floor((MAX_SELL_MG * SELL_PER_GRAM) / (1000 * 10)) : 0;
 
 // تبدیل عدد به حروف فارسی
 function numberToWordsFa(num) {
@@ -207,6 +235,10 @@ function formatGrams(g) {
 function formatToman(n) {
     return Number(n).toLocaleString('fa-IR') + ' تومان';
 }
+
+// نمایش حداکثر گرم خرید و حداکثر تومان فروش
+document.getElementById('buy-max-grams-display').textContent = MAX_BUY_GRAMS.toFixed(3) + ' گرم';
+document.getElementById('sell-max-toman-display').textContent = formatToman(MAX_SELL_TOMAN);
 
 // === خرید طلا ===
 const buyToman = document.getElementById('buy-toman');
@@ -331,6 +363,22 @@ sellToman.addEventListener('input', function() {
         sellFeeInfo.style.display = 'none';
     }
     sellLock = false;
+});
+
+// === پر کردن حداکثر ===
+document.getElementById('buy-max-toman-link').addEventListener('click', function(e) {
+    e.preventDefault();
+    if (MAX_BUY_TOMAN > 0) {
+        buyToman.value = MAX_BUY_TOMAN;
+        buyToman.dispatchEvent(new Event('input'));
+    }
+});
+document.getElementById('sell-max-grams-link').addEventListener('click', function(e) {
+    e.preventDefault();
+    if (MAX_SELL_GRAMS > 0) {
+        sellGrams.value = MAX_SELL_GRAMS.toFixed(3);
+        sellGrams.dispatchEvent(new Event('input'));
+    }
 });
 </script>
 {% endblock %}
