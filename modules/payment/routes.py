@@ -158,7 +158,7 @@ async def sepehr_callback(
 @router.get("/top/callback")
 async def top_callback(
     request: Request,
-    token: str = Query(None, alias="token"),
+    token: str | list[str] = Query(None, alias="token"),
     status: int = Query(None, alias="status"),
     MerchantOrderId: int = Query(None, alias="MerchantOrderId"),
     order_id: int = Query(0),
@@ -174,6 +174,8 @@ async def top_callback(
     if not final_order_id or not token:
         return RedirectResponse("/orders?error=پارامترهای+نامعتبر", status_code=303)
 
+    if isinstance(token, list):
+        token = token[0]
     result = payment_service.verify_gateway_callback(
         db, "top",
         {"token": token, "MerchantOrderId": str(final_order_id)},
