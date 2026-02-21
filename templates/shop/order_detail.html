@@ -4,7 +4,7 @@
 {% block shop_css %}
 <style>
     /* ==============================
-       Invoice — horizontal layout
+       Invoice — compact horizontal
        ============================== */
     .invoice-wrap {
         background: #fff;
@@ -15,56 +15,66 @@
     .invoice-header {
         background: linear-gradient(135deg, #fdfbf7 0%, #f6f0e6 100%);
         border-bottom: 2px solid #e8dfd3;
-        padding: 20px 28px;
+        padding: 14px 20px;
     }
     .invoice-logo {
-        font-size: 1.6rem;
+        font-size: 1.2rem;
         font-weight: 900;
         color: var(--tm-primary, #8b1a2b);
     }
     .invoice-logo small {
-        font-size: 0.7rem;
+        font-size: 0.65rem;
         font-weight: 400;
         color: #999;
     }
 
-    /* Buyer / Seller boxes */
+    /* Buyer / Seller compact */
+    .party-row {
+        display: flex;
+        gap: 12px;
+        padding: 12px 20px;
+        border-bottom: 1px solid #f0ece5;
+    }
     .party-box {
+        flex: 1;
         border: 1.5px solid #e0d8cc;
         border-radius: 10px;
-        padding: 16px 18px;
-        height: 100%;
+        padding: 12px 14px;
         background: #fefdfb;
         position: relative;
     }
     .party-box .party-label {
         position: absolute;
-        top: -11px;
-        right: 14px;
+        top: -10px;
+        right: 12px;
         background: #fff;
-        padding: 0 10px;
-        font-size: 0.78rem;
+        padding: 0 8px;
+        font-size: 0.72rem;
         font-weight: 700;
         color: #8b7355;
         border: 1px solid #e0d8cc;
-        border-radius: 6px;
+        border-radius: 5px;
     }
     .party-box .party-name {
-        font-size: 1rem;
+        font-size: 0.88rem;
         font-weight: 700;
-        margin-top: 6px;
-        margin-bottom: 8px;
+        margin-top: 4px;
+        margin-bottom: 4px;
         color: #333;
     }
     .party-box .party-detail {
-        font-size: 0.82rem;
+        font-size: 0.76rem;
         color: #666;
-        line-height: 1.8;
+        line-height: 1.7;
     }
     .party-box .party-detail i {
-        width: 18px;
+        width: 16px;
         text-align: center;
         color: #a08c6e;
+        font-size: 0.72rem;
+    }
+    @media (max-width: 575px) {
+        .party-row { flex-direction: column; padding: 10px 14px; }
     }
 
     /* Items table */
@@ -76,16 +86,16 @@
         background: linear-gradient(135deg, #f8f4ef, #f1ebe2);
     }
     .invoice-table thead th {
-        padding: 10px 14px;
-        font-size: 0.82rem;
+        padding: 8px 12px;
+        font-size: 0.78rem;
         font-weight: 700;
         color: #8b7355;
         border-bottom: 2px solid #e8dfd3;
         white-space: nowrap;
     }
     .invoice-table tbody td {
-        padding: 12px 14px;
-        font-size: 0.88rem;
+        padding: 10px 12px;
+        font-size: 0.84rem;
         border-bottom: 1px solid #f0ece5;
         vertical-align: middle;
     }
@@ -94,28 +104,28 @@
     }
     .invoice-table .row-num {
         color: #bbb;
-        font-size: 0.8rem;
+        font-size: 0.76rem;
         font-weight: 600;
     }
 
     /* Totals section */
     .invoice-totals {
         border-top: 2px solid #e8dfd3;
-        padding: 18px 28px;
+        padding: 14px 20px;
         background: linear-gradient(135deg, #fdfbf7 0%, #f6f0e6 100%);
     }
     .totals-line {
         display: flex;
         justify-content: space-between;
-        padding: 4px 0;
-        font-size: 0.88rem;
+        padding: 3px 0;
+        font-size: 0.84rem;
         color: #666;
     }
     .totals-line.total-grand {
-        padding-top: 10px;
-        margin-top: 6px;
+        padding-top: 8px;
+        margin-top: 4px;
         border-top: 1.5px dashed #d4c9b8;
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         font-weight: 800;
         color: var(--tm-primary, #8b1a2b);
     }
@@ -128,9 +138,9 @@
         border: none;
         background: linear-gradient(135deg, #f8f4ef, #f1ebe2);
         color: #8b7355;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 600;
-        padding: 3px 10px;
+        padding: 2px 8px;
         border-radius: 20px;
         cursor: pointer;
         transition: all 0.25s ease;
@@ -139,20 +149,20 @@
         background: linear-gradient(135deg, #f1ebe2, #e8dfd3);
         color: #6b5a42;
     }
-    .btn-breakdown i { font-size: 0.68rem; transition: transform 0.3s ease; }
+    .btn-breakdown i { font-size: 0.65rem; transition: transform 0.3s ease; }
     .btn-breakdown[aria-expanded="true"] i { transform: rotate(180deg); }
     .breakdown-panel {
         background: linear-gradient(135deg, #fdfbf8, #f9f5ef);
         border-radius: 8px;
         border: 1px solid #f0e8db;
-        padding: 10px 12px;
-        margin-top: 6px;
+        padding: 8px 10px;
+        margin-top: 4px;
     }
     .breakdown-panel .breakdown-item {
         display: flex;
         justify-content: space-between;
         padding: 2px 0;
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         color: #6b5a42;
     }
     .breakdown-panel .breakdown-item + .breakdown-item {
@@ -162,15 +172,15 @@
     /* Mobile items */
     .item-mobile {
         border-bottom: 1px solid #f0ece5;
-        padding: 12px 16px;
+        padding: 10px 14px;
     }
     .item-mobile:last-child { border-bottom: none; }
 
     /* Footer */
     .invoice-footer {
         text-align: center;
-        padding: 12px;
-        font-size: 0.72rem;
+        padding: 8px;
+        font-size: 0.7rem;
         color: #bbb;
         border-top: 1px dashed #e8dfd3;
     }
@@ -185,15 +195,6 @@
         .collapse { display: block !important; height: auto !important; }
         body { font-size: 12px; }
     }
-
-    /* Responsive adjustments */
-    @media (max-width: 767px) {
-        .invoice-header { padding: 14px 16px; }
-        .invoice-totals { padding: 14px 16px; }
-        .party-box { padding: 14px; }
-        .invoice-table thead th,
-        .invoice-table tbody td { padding: 8px 10px; font-size: 0.82rem; }
-    }
 </style>
 {% endblock %}
 
@@ -206,34 +207,34 @@
     </ol>
 </nav>
 
-{% if msg %}<div class="alert-tm-success py-2 no-print">{{ msg }}</div>{% endif %}
-{% if error %}<div class="alert-tm-danger py-2 no-print"><i class="bi bi-exclamation-triangle me-1"></i>{{ error }}</div>{% endif %}
+{% if msg %}<div class="alert-tm-success py-2 no-print mb-3">{{ msg }}</div>{% endif %}
+{% if error %}<div class="alert-tm-danger py-2 no-print mb-3"><i class="bi bi-exclamation-triangle me-1"></i>{{ error }}</div>{% endif %}
 
-<!-- ============================== -->
-<!-- INVOICE                        -->
-<!-- ============================== -->
-<div class="invoice-wrap tm-animate-fade-in-up mb-4">
+<div class="row g-3">
+    <!-- ============================== -->
+    <!-- INVOICE (compact)              -->
+    <!-- ============================== -->
+    <div class="col-lg-8 order-2 order-lg-1">
+        <div class="invoice-wrap tm-animate-fade-in-up">
 
-    <!-- Header -->
-    <div class="invoice-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div>
-            <div class="invoice-logo">
-                <i class="bi bi-gem me-1"></i>طلاملا
-                <small class="d-block">TalaMala Gold — فاکتور فروش</small>
+            <!-- Header -->
+            <div class="invoice-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <div class="invoice-logo">
+                        <i class="bi bi-gem me-1"></i>طلاملا
+                        <small class="d-block">TalaMala Gold — فاکتور فروش</small>
+                    </div>
+                </div>
+                <div class="text-start">
+                    <div class="fw-bold" style="font-size:0.95rem;">فاکتور #{{ order.id }}</div>
+                    <div class="text-muted" style="font-size:0.75rem;">{{ order.created_at | jdate if order.created_at else '' }}</div>
+                    <span class="badge-tm badge-tm-{{ order.status_color }}">{{ order.status_label }}</span>
+                </div>
             </div>
-        </div>
-        <div class="text-start">
-            <div class="fw-bold" style="font-size:1.05rem;">فاکتور #{{ order.id }}</div>
-            <div class="text-muted small">{{ order.created_at | jdate if order.created_at else '' }}</div>
-            <span class="badge-tm badge-tm-{{ order.status_color }} mt-1">{{ order.status_label }}</span>
-        </div>
-    </div>
 
-    <!-- Buyer / Seller -->
-    <div class="p-3 px-md-4">
-        <div class="row g-3 mb-0">
-            <!-- Seller -->
-            <div class="col-md-6">
+            <!-- Buyer / Seller -->
+            <div class="party-row">
+                <!-- Seller -->
                 <div class="party-box">
                     <div class="party-label"><i class="bi bi-shop me-1"></i>فروشنده</div>
                     <div class="party-name">{{ get_setting_value('site_name', 'طلاملا') }}</div>
@@ -251,11 +252,9 @@
                         {% endif %}
                     </div>
                 </div>
-            </div>
 
-            <!-- Buyer -->
-            {% if order.customer %}
-            <div class="col-md-6">
+                <!-- Buyer -->
+                {% if order.customer %}
                 <div class="party-box">
                     <div class="party-label"><i class="bi bi-person me-1"></i>خریدار</div>
                     <div class="party-name">
@@ -278,60 +277,114 @@
                         {% endif %}
                     </div>
                 </div>
+                {% endif %}
             </div>
-            {% endif %}
-        </div>
-    </div>
 
-    <!-- Items — Desktop Table -->
-    <div class="d-none d-md-block px-md-4 pb-2">
-        <table class="invoice-table">
-            <thead>
-                <tr>
-                    <th style="width:40px;">#</th>
-                    <th>محصول</th>
-                    <th class="text-center">وزن</th>
-                    <th class="text-center">عیار</th>
-                    <th class="text-center">بسته‌بندی</th>
-                    <th class="text-end">مبلغ (تومان)</th>
-                    <th style="width:80px;"></th>
-                </tr>
-            </thead>
-            <tbody>
+            <!-- Items — Desktop Table -->
+            <div class="d-none d-md-block px-3 pb-1">
+                <table class="invoice-table">
+                    <thead>
+                        <tr>
+                            <th style="width:36px;">#</th>
+                            <th>محصول</th>
+                            <th class="text-center">وزن</th>
+                            <th class="text-center">عیار</th>
+                            <th class="text-center">بسته‌بندی</th>
+                            <th class="text-end">مبلغ (تومان)</th>
+                            <th style="width:70px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.items %}
+                        <tr>
+                            <td class="row-num">{{ loop.index }}</td>
+                            <td>
+                                <div class="fw-bold">{{ item.product.name if item.product else 'محصول حذف‌شده' }}</div>
+                                {% if order.status == 'Paid' and item.bar %}
+                                <small class="text-muted">سریال: <code>{{ item.bar.serial_code }}</code></small>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ item.applied_weight }}g</td>
+                            <td class="text-center">{{ item.applied_purity|purity }}</td>
+                            <td class="text-center small">
+                                {% if item.package_type %}
+                                {{ item.package_type.name }}
+                                {% if item.applied_package_price > 0 %}
+                                <br><span class="text-muted">({{ item.applied_package_price | toman }} ت)</span>
+                                {% endif %}
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="text-end fw-bold">{{ item.line_total | toman }}</td>
+                            <td class="text-center">
+                                <button class="btn-breakdown no-print"
+                                        type="button" data-bs-toggle="collapse" data-bs-target="#detail-{{ item.id }}"
+                                        aria-expanded="false">
+                                    <i class="bi bi-chevron-down"></i> ریز
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="collapse-row">
+                            <td colspan="7" class="p-0 border-0">
+                                <div class="collapse" id="detail-{{ item.id }}">
+                                    <div class="breakdown-panel mx-3 mb-2">
+                                        <div class="breakdown-item">
+                                            <span>قیمت طلا (هر گرم)</span>
+                                            <span>{{ item.applied_gold_price | toman }} تومان</span>
+                                        </div>
+                                        <div class="breakdown-item">
+                                            <span>طلای خام</span>
+                                            <span>{{ item.final_gold_amount | toman }} تومان</span>
+                                        </div>
+                                        <div class="breakdown-item">
+                                            <span>اجرت ({{ item.applied_wage_percent }}%)</span>
+                                            <span>{{ item.final_wage_amount | toman }} تومان</span>
+                                        </div>
+                                        <div class="breakdown-item">
+                                            <span>مالیات ({{ item.applied_tax_percent }}%)</span>
+                                            <span>{{ item.final_tax_amount | toman }} تومان</span>
+                                        </div>
+                                        {% if item.applied_package_price > 0 %}
+                                        <div class="breakdown-item">
+                                            <span>بسته‌بندی ({{ item.package_type.name if item.package_type else '' }})</span>
+                                            <span>{{ item.applied_package_price | toman }} تومان</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Items — Mobile Cards -->
+            <div class="d-md-none">
                 {% for item in order.items %}
-                <tr>
-                    <td class="row-num">{{ loop.index }}</td>
-                    <td>
-                        <div class="fw-bold">{{ item.product.name if item.product else 'محصول حذف‌شده' }}</div>
-                        {% if order.status == 'Paid' and item.bar %}
-                        <small class="text-muted">سریال: <code>{{ item.bar.serial_code }}</code></small>
-                        {% endif %}
-                    </td>
-                    <td class="text-center">{{ item.applied_weight }}g</td>
-                    <td class="text-center">{{ item.applied_purity|purity }}</td>
-                    <td class="text-center small">
-                        {% if item.package_type %}
-                        {{ item.package_type.name }}
-                        {% if item.applied_package_price > 0 %}
-                        <br><span class="text-muted">({{ item.applied_package_price | toman }} ت)</span>
-                        {% endif %}
-                        {% else %}
-                        —
-                        {% endif %}
-                    </td>
-                    <td class="text-end fw-bold">{{ item.line_total | toman }}</td>
-                    <td class="text-center">
+                <div class="item-mobile">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div>
+                            <span class="text-muted small">{{ loop.index }}.</span>
+                            <span class="fw-bold" style="font-size:0.88rem;">{{ item.product.name if item.product else 'محصول حذف‌شده' }}</span>
+                        </div>
+                        <div class="fw-bold text-tm-primary text-nowrap" style="font-size:0.88rem;">{{ item.line_total | toman }} <small class="text-muted">ت</small></div>
+                    </div>
+                    <div class="d-flex gap-2 small text-muted">
+                        <span>{{ item.applied_weight }}g</span>
+                        <span>عیار {{ item.applied_purity|purity }}</span>
+                        {% if item.package_type %}<span>{{ item.package_type.name }}</span>{% endif %}
+                    </div>
+                    {% if order.status == 'Paid' and item.bar %}
+                    <small class="text-muted d-block mt-1">سریال: <code>{{ item.bar.serial_code }}</code></small>
+                    {% endif %}
+                    <div class="mt-1">
                         <button class="btn-breakdown no-print"
-                                type="button" data-bs-toggle="collapse" data-bs-target="#detail-{{ item.id }}"
+                                type="button" data-bs-toggle="collapse" data-bs-target="#detail-m-{{ item.id }}"
                                 aria-expanded="false">
-                            <i class="bi bi-chevron-down"></i> ریز
+                            <i class="bi bi-chevron-down"></i> ریز قیمت
                         </button>
-                    </td>
-                </tr>
-                <tr class="collapse-row">
-                    <td colspan="7" class="p-0 border-0">
-                        <div class="collapse" id="detail-{{ item.id }}">
-                            <div class="breakdown-panel mx-3 mb-2">
+                        <div class="collapse" id="detail-m-{{ item.id }}">
+                            <div class="breakdown-panel">
                                 <div class="breakdown-item">
                                     <span>قیمت طلا (هر گرم)</span>
                                     <span>{{ item.applied_gold_price | toman }} تومان</span>
@@ -350,143 +403,202 @@
                                 </div>
                                 {% if item.applied_package_price > 0 %}
                                 <div class="breakdown-item">
-                                    <span>بسته‌بندی ({{ item.package_type.name if item.package_type else '' }})</span>
+                                    <span>بسته‌بندی</span>
                                     <span>{{ item.applied_package_price | toman }} تومان</span>
                                 </div>
                                 {% endif %}
                             </div>
                         </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Items — Mobile Cards -->
-    <div class="d-md-none">
-        {% for item in order.items %}
-        <div class="item-mobile">
-            <div class="d-flex justify-content-between align-items-start mb-1">
-                <div>
-                    <span class="text-muted small">{{ loop.index }}.</span>
-                    <span class="fw-bold" style="font-size:0.9rem;">{{ item.product.name if item.product else 'محصول حذف‌شده' }}</span>
+                    </div>
                 </div>
-                <div class="fw-bold text-tm-primary text-nowrap" style="font-size:0.9rem;">{{ item.line_total | toman }} <small class="text-muted">ت</small></div>
+                {% endfor %}
             </div>
-            <div class="d-flex gap-2 small text-muted">
-                <span>{{ item.applied_weight }}g</span>
-                <span>عیار {{ item.applied_purity|purity }}</span>
-                {% if item.package_type %}<span>{{ item.package_type.name }}</span>{% endif %}
-            </div>
-            {% if order.status == 'Paid' and item.bar %}
-            <small class="text-muted d-block mt-1">سریال: <code>{{ item.bar.serial_code }}</code></small>
-            {% endif %}
-            <div class="mt-1">
-                <button class="btn-breakdown no-print"
-                        type="button" data-bs-toggle="collapse" data-bs-target="#detail-m-{{ item.id }}"
-                        aria-expanded="false">
-                    <i class="bi bi-chevron-down"></i> ریز قیمت
-                </button>
-                <div class="collapse" id="detail-m-{{ item.id }}">
-                    <div class="breakdown-panel">
-                        <div class="breakdown-item">
-                            <span>قیمت طلا (هر گرم)</span>
-                            <span>{{ item.applied_gold_price | toman }} تومان</span>
+
+            <!-- Totals -->
+            <div class="invoice-totals">
+                <div class="row">
+                    <div class="col-sm-6 offset-sm-6">
+                        <div class="totals-line">
+                            <span>جمع کالاها ({{ order.items|length }} شمش)</span>
+                            <span>{{ order.total_amount | toman }} تومان</span>
                         </div>
-                        <div class="breakdown-item">
-                            <span>طلای خام</span>
-                            <span>{{ item.final_gold_amount | toman }} تومان</span>
-                        </div>
-                        <div class="breakdown-item">
-                            <span>اجرت ({{ item.applied_wage_percent }}%)</span>
-                            <span>{{ item.final_wage_amount | toman }} تومان</span>
-                        </div>
-                        <div class="breakdown-item">
-                            <span>مالیات ({{ item.applied_tax_percent }}%)</span>
-                            <span>{{ item.final_tax_amount | toman }} تومان</span>
-                        </div>
-                        {% if item.applied_package_price > 0 %}
-                        <div class="breakdown-item">
-                            <span>بسته‌بندی</span>
-                            <span>{{ item.applied_package_price | toman }} تومان</span>
+                        {% if order.promo_amount %}
+                        <div class="totals-line text-success">
+                            <span>
+                                {% if order.promo_choice == 'DISCOUNT' %}تخفیف{% else %}کشبک{% endif %}
+                                {% if order.coupon_code %}<small>({{ order.coupon_code }})</small>{% endif %}
+                            </span>
+                            <span>−{{ order.promo_amount | toman }} تومان</span>
                         </div>
                         {% endif %}
+                        {% if order.shipping_cost %}
+                        <div class="totals-line">
+                            <span>هزینه ارسال</span>
+                            <span>{{ order.shipping_cost | toman }} تومان</span>
+                        </div>
+                        {% endif %}
+                        {% if order.insurance_cost %}
+                        <div class="totals-line">
+                            <span>بیمه</span>
+                            <span>{{ order.insurance_cost | toman }} تومان</span>
+                        </div>
+                        {% endif %}
+                        <div class="totals-line total-grand">
+                            <span>جمع قابل پرداخت</span>
+                            <span>{{ order.grand_total | toman }} تومان</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        {% endfor %}
-    </div>
 
-    <!-- Totals -->
-    <div class="invoice-totals">
-        <div class="row">
-            <div class="col-md-6 offset-md-6 col-lg-5 offset-lg-7">
-                <div class="totals-line">
-                    <span>جمع کالاها ({{ order.items|length }} شمش)</span>
-                    <span>{{ order.total_amount | toman }} تومان</span>
-                </div>
-                {% if order.promo_amount %}
-                <div class="totals-line text-success">
-                    <span>
-                        {% if order.promo_choice == 'DISCOUNT' %}تخفیف{% else %}کشبک{% endif %}
-                        {% if order.coupon_code %}<small>({{ order.coupon_code }})</small>{% endif %}
-                    </span>
-                    <span>−{{ order.promo_amount | toman }} تومان</span>
-                </div>
-                {% endif %}
-                {% if order.shipping_cost %}
-                <div class="totals-line">
-                    <span>هزینه ارسال</span>
-                    <span>{{ order.shipping_cost | toman }} تومان</span>
-                </div>
-                {% endif %}
-                {% if order.insurance_cost %}
-                <div class="totals-line">
-                    <span>بیمه</span>
-                    <span>{{ order.insurance_cost | toman }} تومان</span>
-                </div>
-                {% endif %}
-                <div class="totals-line total-grand">
-                    <span>جمع قابل پرداخت</span>
-                    <span>{{ order.grand_total | toman }} تومان</span>
-                </div>
+            <!-- Footer -->
+            <div class="invoice-footer">
+                {% if order.track_id %}کد پیگیری: <code>{{ order.track_id }}</code> — {% endif %}
+                این فاکتور به صورت الکترونیکی صادر شده و معتبر است.
             </div>
         </div>
+
+        <!-- Delivery Info -->
+        {% if order.delivery_method %}
+        <div class="card-tm no-hover mt-3">
+            <div class="border-bottom pb-2 mb-2 fw-bold small">
+                <i class="bi bi-truck me-1"></i>اطلاعات تحویل
+            </div>
+            <table class="table table-tm table-borderless mb-0">
+                <tr>
+                    <td class="text-muted" style="width:120px;">روش تحویل</td>
+                    <td class="fw-bold">{{ order.delivery_method_label }}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">وضعیت</td>
+                    <td><span class="badge-tm badge-tm-{{ order.delivery_status_color }}">{{ order.delivery_status_label }}</span></td>
+                </tr>
+
+                {% if order.delivery_method == 'Pickup' %}
+                <tr>
+                    <td class="text-muted">نمایندگی</td>
+                    <td>
+                        {% if order.pickup_dealer %}
+                        <strong>{{ order.pickup_dealer.full_name }}</strong>
+                        {% if order.pickup_dealer.city %}<br><small>{{ order.pickup_dealer.city.name }}{% if order.pickup_dealer.province %} - {{ order.pickup_dealer.province.name }}{% endif %}</small>{% endif %}
+                        {% if order.pickup_dealer.address %}<br><small class="text-muted">{{ order.pickup_dealer.address }}</small>{% endif %}
+                        {% if order.pickup_dealer.landline_phone %}<br><small dir="ltr">{{ order.pickup_dealer.landline_phone }}</small>{% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if order.status == 'Paid' and not user.is_staff %}
+                <tr>
+                    <td class="text-muted">راهنما</td>
+                    <td class="small">
+                        <i class="bi bi-info-circle text-primary me-1"></i>
+                        با <strong>کارت ملی</strong> و <strong>کد تحویل</strong> (ارسال‌شده به موبایل) به نمایندگی مراجعه کنید.
+                    </td>
+                </tr>
+                {% endif %}
+
+                {% elif order.delivery_method == 'Postal' %}
+                <tr>
+                    <td class="text-muted">آدرس</td>
+                    <td>
+                        {{ order.shipping_address or '' }}
+                        <br><small>{{ order.shipping_city or '' }}{% if order.shipping_province %} - {{ order.shipping_province }}{% endif %}</small>
+                        {% if order.shipping_postal_code %}<br><small dir="ltr">{{ order.shipping_postal_code }}</small>{% endif %}
+                    </td>
+                </tr>
+                {% if order.shipping_cost %}
+                <tr>
+                    <td class="text-muted">هزینه ارسال</td>
+                    <td>{{ order.shipping_cost | toman }} تومان</td>
+                </tr>
+                {% endif %}
+                {% if order.insurance_cost %}
+                <tr>
+                    <td class="text-muted">بیمه</td>
+                    <td>{{ order.insurance_cost | toman }} تومان</td>
+                </tr>
+                {% endif %}
+                {% if order.postal_tracking_code %}
+                <tr>
+                    <td class="text-muted">کد رهگیری پست</td>
+                    <td><code class="fw-bold">{{ order.postal_tracking_code }}</code></td>
+                </tr>
+                {% endif %}
+                {% endif %}
+
+                {% if order.delivered_at %}
+                <tr>
+                    <td class="text-muted">تاریخ تحویل</td>
+                    <td>{{ order.delivered_at | jdate }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Status History Timeline -->
+        {% if order.status_logs %}
+        <div class="card-tm no-hover mt-3">
+            <div class="border-bottom pb-2 mb-2 fw-bold small">
+                <i class="bi bi-clock-history me-1"></i>تاریخچه وضعیت
+            </div>
+            <div class="position-relative" style="padding-right: 20px;">
+                <div class="position-absolute" style="right: 6px; top: 0; bottom: 0; width: 2px; background: #e9ecef;"></div>
+                {% for log in order.status_logs|reverse %}
+                <div class="d-flex align-items-start mb-3 position-relative">
+                    <div class="position-absolute" style="right: -17px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: {{ 'var(--tm-primary)' if loop.last else '#dee2e6' }}; border: 2px solid #fff; z-index: 1;"></div>
+                    <div class="flex-grow-1">
+                        <div class="small fw-bold">
+                            {% if log.field == 'status' %}
+                            <span class="badge bg-{{ 'success' if log.new_value == 'Paid' else ('danger' if log.new_value == 'Cancelled' else 'warning') }} me-1">{{ log.new_value | fa_label }}</span>
+                            {% else %}
+                            <span class="badge bg-info me-1">{{ log.new_value | fa_label }}</span>
+                            {% endif %}
+                        </div>
+                        {% if log.description %}
+                        <div class="text-muted" style="font-size: 0.78rem;">{{ log.description }}</div>
+                        {% endif %}
+                        <div class="text-muted" style="font-size: 0.72rem;">
+                            {{ log.created_at | jdate }}
+                            {% if log.changed_by and user.is_staff %}
+                            <span class="ms-1">— {{ log.changed_by }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 
-    <!-- Footer -->
-    <div class="invoice-footer">
-        {% if order.track_id %}کد پیگیری: <code>{{ order.track_id }}</code> — {% endif %}
-        این فاکتور به صورت الکترونیکی صادر شده و معتبر است.
-    </div>
-</div>
-
-
-<!-- ============================== -->
-<!-- ACTIONS & INFO (below invoice) -->
-<!-- ============================== -->
-<div class="row g-4">
-    <!-- Actions Panel -->
-    <div class="col-lg-4 order-lg-2 tm-animate-fade-in-up tm-delay-1">
-        <div class="card-tm no-hover no-print">
+    <!-- ============================== -->
+    <!-- ACTIONS PANEL (sticky sidebar) -->
+    <!-- ============================== -->
+    <div class="col-lg-4 order-1 order-lg-2">
+        <div class="sticky-top no-print" style="top: 80px; z-index: 1;">
+        <div class="card-tm no-hover">
             {% if order.status == 'Pending' %}
             <div class="alert-tm-warning py-2 small mb-3">
                 <i class="bi bi-clock me-1"></i>
-                این سفارش در انتظار پرداخت است. شمش‌ها به مدت محدود رزرو شده‌اند.
+                در انتظار پرداخت — شمش‌ها به مدت محدود رزرو شده‌اند.
+            </div>
+
+            <!-- Grand Total -->
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <span class="fw-bold">جمع قابل پرداخت</span>
+                <span class="fw-bold fs-5 text-tm-primary">{{ order.grand_total | toman }} <small class="text-muted fw-normal">تومان</small></span>
             </div>
 
             {% if order.grand_total == 0 %}
             <div class="alert-tm-success py-2 small mb-3">
                 <i class="bi bi-gift me-1"></i>
-                این سفارش با تخفیف ۱۰۰٪ رایگان شده است.
+                سفارش با تخفیف ۱۰۰٪ رایگان شده.
             </div>
             <form method="POST" action="/payment/{{ order.id }}/wallet"
                   onsubmit="return confirm('آیا از تأیید سفارش رایگان مطمئنید؟')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button class="btn btn-tm-primary w-100 mb-2">
-                    <i class="bi bi-check-circle me-1"></i> تأیید و ثبت نهایی سفارش
+                    <i class="bi bi-check-circle me-1"></i> تأیید و ثبت نهایی
                 </button>
             </form>
             {% else %}
@@ -631,8 +743,8 @@
 
         {% if user.is_staff %}
         {% if order.is_gift and order.status == 'Paid' %}
-        <div class="card-tm no-hover mt-3 border-start border-4 border-warning no-print">
-            <div class="border-bottom pb-3 mb-3 fw-bold small">
+        <div class="card-tm no-hover mt-3 border-start border-4 border-warning">
+            <div class="border-bottom pb-2 mb-2 fw-bold small">
                 <i class="bi bi-gift me-1 text-warning"></i>سفارش هدیه — کدهای ثبت مالکیت
             </div>
             <p class="small text-muted mb-2">کدهای زیر باید در بسته‌بندی قرار داده شوند:</p>
@@ -651,8 +763,8 @@
         {% endif %}
 
         {% if order.status == 'Paid' and order.delivery_method %}
-        <div class="card-tm no-hover mt-3 border-start border-4 border-warning no-print">
-            <div class="border-bottom pb-3 mb-3 fw-bold small">
+        <div class="card-tm no-hover mt-3 border-start border-4 border-warning">
+            <div class="border-bottom pb-2 mb-2 fw-bold small">
                 <i class="bi bi-gear me-1"></i>مدیریت تحویل
             </div>
             {% if order.delivery_method == 'Pickup' and order.delivery_status != 'Delivered' %}
@@ -711,120 +823,7 @@
         </div>
         {% endif %}
         {% endif %}
-    </div>
-
-    <!-- Delivery Info + History -->
-    <div class="col-lg-8 order-lg-1 tm-animate-fade-in-up tm-delay-2">
-        {% if order.delivery_method %}
-        <div class="card-tm no-hover mb-3">
-            <div class="border-bottom pb-3 mb-3 fw-bold small">
-                <i class="bi bi-truck me-1"></i>اطلاعات تحویل
-            </div>
-            <table class="table table-tm table-borderless mb-0">
-                <tr>
-                    <td class="text-muted" style="width:130px;">روش تحویل</td>
-                    <td class="fw-bold">{{ order.delivery_method_label }}</td>
-                </tr>
-                <tr>
-                    <td class="text-muted">وضعیت</td>
-                    <td><span class="badge-tm badge-tm-{{ order.delivery_status_color }}">{{ order.delivery_status_label }}</span></td>
-                </tr>
-
-                {% if order.delivery_method == 'Pickup' %}
-                <tr>
-                    <td class="text-muted">نمایندگی</td>
-                    <td>
-                        {% if order.pickup_dealer %}
-                        <strong>{{ order.pickup_dealer.full_name }}</strong>
-                        {% if order.pickup_dealer.city %}<br><small>{{ order.pickup_dealer.city.name }}{% if order.pickup_dealer.province %} - {{ order.pickup_dealer.province.name }}{% endif %}</small>{% endif %}
-                        {% if order.pickup_dealer.address %}<br><small class="text-muted">{{ order.pickup_dealer.address }}</small>{% endif %}
-                        {% if order.pickup_dealer.landline_phone %}<br><small dir="ltr">{{ order.pickup_dealer.landline_phone }}</small>{% endif %}
-                        {% endif %}
-                    </td>
-                </tr>
-                {% if order.status == 'Paid' and not user.is_staff %}
-                <tr>
-                    <td class="text-muted">راهنما</td>
-                    <td class="small">
-                        <i class="bi bi-info-circle text-primary me-1"></i>
-                        با <strong>کارت ملی</strong> و <strong>کد تحویل</strong> (ارسال‌شده به موبایل) به نمایندگی مراجعه کنید.
-                    </td>
-                </tr>
-                {% endif %}
-
-                {% elif order.delivery_method == 'Postal' %}
-                <tr>
-                    <td class="text-muted">آدرس</td>
-                    <td>
-                        {{ order.shipping_address or '' }}
-                        <br><small>{{ order.shipping_city or '' }}{% if order.shipping_province %} - {{ order.shipping_province }}{% endif %}</small>
-                        {% if order.shipping_postal_code %}<br><small dir="ltr">{{ order.shipping_postal_code }}</small>{% endif %}
-                    </td>
-                </tr>
-                {% if order.shipping_cost %}
-                <tr>
-                    <td class="text-muted">هزینه ارسال</td>
-                    <td>{{ order.shipping_cost | toman }} تومان</td>
-                </tr>
-                {% endif %}
-                {% if order.insurance_cost %}
-                <tr>
-                    <td class="text-muted">بیمه</td>
-                    <td>{{ order.insurance_cost | toman }} تومان</td>
-                </tr>
-                {% endif %}
-                {% if order.postal_tracking_code %}
-                <tr>
-                    <td class="text-muted">کد رهگیری پست</td>
-                    <td><code class="fw-bold">{{ order.postal_tracking_code }}</code></td>
-                </tr>
-                {% endif %}
-                {% endif %}
-
-                {% if order.delivered_at %}
-                <tr>
-                    <td class="text-muted">تاریخ تحویل</td>
-                    <td>{{ order.delivered_at | jdate }}</td>
-                </tr>
-                {% endif %}
-            </table>
         </div>
-        {% endif %}
-
-        <!-- Status History Timeline -->
-        {% if order.status_logs %}
-        <div class="card-tm no-hover">
-            <div class="border-bottom pb-3 mb-3 fw-bold small">
-                <i class="bi bi-clock-history me-1"></i>تاریخچه وضعیت
-            </div>
-            <div class="position-relative" style="padding-right: 20px;">
-                <div class="position-absolute" style="right: 6px; top: 0; bottom: 0; width: 2px; background: #e9ecef;"></div>
-                {% for log in order.status_logs|reverse %}
-                <div class="d-flex align-items-start mb-3 position-relative">
-                    <div class="position-absolute" style="right: -17px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: {{ 'var(--tm-primary)' if loop.last else '#dee2e6' }}; border: 2px solid #fff; z-index: 1;"></div>
-                    <div class="flex-grow-1">
-                        <div class="small fw-bold">
-                            {% if log.field == 'status' %}
-                            <span class="badge bg-{{ 'success' if log.new_value == 'Paid' else ('danger' if log.new_value == 'Cancelled' else 'warning') }} me-1">{{ log.new_value | fa_label }}</span>
-                            {% else %}
-                            <span class="badge bg-info me-1">{{ log.new_value | fa_label }}</span>
-                            {% endif %}
-                        </div>
-                        {% if log.description %}
-                        <div class="text-muted" style="font-size: 0.78rem;">{{ log.description }}</div>
-                        {% endif %}
-                        <div class="text-muted" style="font-size: 0.72rem;">
-                            {{ log.created_at | jdate }}
-                            {% if log.changed_by and user.is_staff %}
-                            <span class="ms-1">— {{ log.changed_by }}</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
     </div>
 </div>
 {% endblock %}
