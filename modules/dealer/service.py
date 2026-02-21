@@ -223,30 +223,28 @@ class DealerService:
         from modules.pricing.service import get_price_value
         current_gold_price = get_price_value(db, GOLD_18K)
 
-        # Server-side price verification
-        # Tax is ALWAYS on full base wage (ec_wage_pct), discount only reduces wage portion
-        if product and discount_wage_percent > 0:
+        # Server-side authoritative price calculation
+        # When discount is applied, recalculate on server to avoid JS float rounding
+        # and gold price change between page load and submission
+        if product:
             from modules.pricing.calculator import calculate_bar_price
             from common.templating import get_setting_from_db
             from decimal import Decimal, ROUND_FLOOR
             tax_pct = float(get_setting_from_db(db, "tax_percent", "10"))
-            # Full system price (tax calculated on full base wage)
             full_price = calculate_bar_price(
                 weight=product.weight, purity=product.purity,
                 wage_percent=ec_wage_pct,
                 base_gold_price_18k=current_gold_price, tax_percent=tax_pct,
             )
-            # Discount = rawGold * discount_pct / 100 (no tax on discount)
-            raw_gold = full_price.get("raw_gold", 0)
-            discount_rial = int(
-                (Decimal(str(raw_gold)) * Decimal(str(discount_wage_percent))
-                 / Decimal("100")).quantize(Decimal("1"), rounding=ROUND_FLOOR)
-            )
-            expected_total = full_price.get("total", 0) - discount_rial
-            # Tolerance: 1000 rial (100 toman) — accounts for JS float vs Python Decimal
-            # rounding differences + toman÷10 conversion precision loss
-            if abs(sale_price - expected_total) > 1000:
-                return {"success": False, "message": "مبلغ فروش با قیمت محاسباتی مطابقت ندارد"}
+            if discount_wage_percent > 0:
+                raw_gold = full_price.get("raw_gold", 0)
+                discount_rial = int(
+                    (Decimal(str(raw_gold)) * Decimal(str(discount_wage_percent))
+                     / Decimal("100")).quantize(Decimal("1"), rounding=ROUND_FLOOR)
+                )
+                sale_price = full_price.get("total", 0) - discount_rial
+            else:
+                sale_price = full_price.get("total", 0)
 
         # Mark bar as sold + generate claim code for POS receipt
         # Rasis POS: remove bar from dealer's POS before marking sold
