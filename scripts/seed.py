@@ -205,6 +205,8 @@ def seed():
             "insurance_cap":        ("500000000", "سقف بیمه پست (ریال)"),
             "gold_spread_percent":  ("2", "اسپرد تبدیل ریال به طلا (درصد)"),
             "enabled_gateways":     ("sepehr,top,parsian", "درگاه‌های فعال پرداخت (comma-separated)"),
+            "shahkar_enabled":      ("false", "فعال/غیرفعال بودن احراز هویت شاهکار"),
+            "shahkar_api_token":    ("", "توکن API شاهکار (Zohal)"),
         }
 
         for key, (value, desc) in settings_data.items():

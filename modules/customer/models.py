@@ -48,6 +48,10 @@ class Customer(Base):
     referred_by = Column(Integer, nullable=True)        # customer_id of referrer
     referral_rewarded = Column(Boolean, default=False, server_default="false")
 
+    # Shahkar identity verification
+    shahkar_verified = Column(Boolean, default=False, server_default="false", nullable=False)
+    shahkar_verified_at = Column(DateTime(timezone=True), nullable=True)
+
     # OTP fields (used by auth module)
     otp_code = Column(String, nullable=True)
     otp_expiry = Column(DateTime(timezone=True), nullable=True)

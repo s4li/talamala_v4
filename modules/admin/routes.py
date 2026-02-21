@@ -64,6 +64,8 @@ async def update_settings(
     insurance_percent: str = Form("1.5"),
     insurance_cap: str = Form("500000000"),
     enabled_gateways: List[str] = Form(["sepehr"]),
+    shahkar_enabled: Optional[str] = Form(None),
+    shahkar_api_token: str = Form(""),
     db: Session = Depends(get_db),
     user=Depends(require_permission("settings")),
 ):
@@ -97,6 +99,8 @@ async def update_settings(
         "insurance_percent": insurance_percent,
         "insurance_cap": insurance_cap,
         "enabled_gateways": ",".join(enabled_gateways) if enabled_gateways else "sepehr",
+        "shahkar_enabled": "true" if shahkar_enabled == "on" else "false",
+        "shahkar_api_token": shahkar_api_token,
     }
 
     for key, value in updates.items():

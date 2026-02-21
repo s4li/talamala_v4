@@ -221,6 +221,26 @@
             </div>
         </div>
 
+        <!-- ===== احراز هویت شاهکار ===== -->
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-shield-check me-1"></i> احراز هویت شاهکار</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="shahkar_enabled" id="shahkarEnabled"
+                           {{ 'checked' if settings.get('shahkar_enabled') and settings.get('shahkar_enabled').value == 'true' else '' }}>
+                    <label class="form-check-label fw-bold" for="shahkarEnabled">فعال‌سازی احراز هویت شاهکار</label>
+                </div>
+                <small class="text-muted d-block">در صورت فعال بودن، مشتریان قبل از ثبت سفارش باید احراز هویت کنند.</small>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label-tm">توکن API (Zohal)</label>
+                <input type="password" name="shahkar_api_token" class="form-control form-control-tm" dir="ltr"
+                       value="{{ settings.get('shahkar_api_token', {}).value if settings.get('shahkar_api_token') else '' }}"
+                       placeholder="Bearer token">
+                <small class="text-muted">توکن دریافتی از سرویس zohal.io</small>
+            </div>
+        </div>
+
         <button type="submit" class="btn-tm-primary btn btn-lg">
             <i class="bi bi-check-lg me-1"></i> ذخیره تنظیمات
         </button>

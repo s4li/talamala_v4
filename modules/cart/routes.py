@@ -155,10 +155,16 @@ async def checkout_page(
     me=Depends(require_customer),
 ):
     from modules.order.delivery_service import delivery_service
+    from common.templating import get_setting_from_db
 
     # Profile completion check
     if not me.is_profile_complete:
         error = urllib.parse.quote("لطفاً ابتدا پروفایل خود را تکمیل کنید تا بتوانید سفارش ثبت کنید.")
+        return RedirectResponse(f"/profile?error={error}&return_to=/cart", status_code=302)
+
+    # Shahkar verification check
+    if get_setting_from_db(db, "shahkar_enabled", "false") == "true" and not me.shahkar_verified:
+        error = urllib.parse.quote("لطفاً ابتدا احراز هویت شاهکار را از صفحه پروفایل انجام دهید.")
         return RedirectResponse(f"/profile?error={error}&return_to=/cart", status_code=302)
 
     items, total_price = cart_service.get_cart_items_with_pricing(db, me.id)
@@ -256,10 +262,16 @@ async def checkout(
     me=Depends(require_customer),
 ):
     csrf_check(request, csrf_token)
+    from common.templating import get_setting_from_db
 
     # Profile completion check
     if not me.is_profile_complete:
         error = urllib.parse.quote("لطفاً ابتدا پروفایل خود را تکمیل کنید.")
+        return RedirectResponse(f"/profile?error={error}", status_code=303)
+
+    # Shahkar verification check
+    if get_setting_from_db(db, "shahkar_enabled", "false") == "true" and not me.shahkar_verified:
+        error = urllib.parse.quote("لطفاً ابتدا احراز هویت شاهکار را از صفحه پروفایل انجام دهید.")
         return RedirectResponse(f"/profile?error={error}", status_code=303)
 
     # Validate

@@ -34,6 +34,9 @@ async def profile_page(
     db: Session = Depends(get_db),
     me=Depends(require_customer),
 ):
+    from common.templating import get_setting_from_db
+    shahkar_enabled = get_setting_from_db(db, "shahkar_enabled", "false") == "true"
+
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/profile.html", {
         "request": request,
@@ -43,6 +46,7 @@ async def profile_page(
         "msg": msg,
         "error": error,
         "next_url": return_to or "",
+        "shahkar_enabled": shahkar_enabled,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
@@ -119,6 +123,44 @@ async def profile_update(
     if return_to and return_to.startswith("/"):
         redirect_url += f"&return_to={urllib.parse.quote(return_to)}"
     return RedirectResponse(redirect_url, status_code=303)
+
+
+# ==========================================
+# 🔐 Shahkar Verification
+# ==========================================
+
+@router.post("/profile/verify-shahkar")
+async def verify_shahkar_route(
+    request: Request,
+    csrf_token: str = Form(""),
+    db: Session = Depends(get_db),
+    me=Depends(require_customer),
+):
+    """Call Shahkar API to verify customer's mobile + national_id."""
+    csrf_check(request, csrf_token)
+    from common.helpers import now_utc
+    from modules.customer.shahkar_service import verify_shahkar
+
+    # Must have a real national_id set
+    if not me.national_id or me.national_id.startswith("GUEST_"):
+        error = urllib.parse.quote("لطفاً ابتدا کد ملی خود را در پروفایل وارد کنید.")
+        return RedirectResponse(f"/profile?error={error}", status_code=303)
+
+    result = verify_shahkar(db, me.mobile, me.national_id)
+
+    if result.get("skip"):
+        error = urllib.parse.quote("سرویس احراز هویت شاهکار غیرفعال است.")
+        return RedirectResponse(f"/profile?error={error}", status_code=303)
+
+    if result.get("matched"):
+        me.shahkar_verified = True
+        me.shahkar_verified_at = now_utc()
+        db.commit()
+        msg = urllib.parse.quote("احراز هویت شاهکار با موفقیت انجام شد.")
+        return RedirectResponse(f"/profile?msg={msg}", status_code=303)
+    else:
+        error = urllib.parse.quote(result.get("error", "خطا در احراز هویت."))
+        return RedirectResponse(f"/profile?error={error}", status_code=303)
 
 
 # ==========================================
