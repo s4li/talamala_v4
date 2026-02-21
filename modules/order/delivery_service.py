@@ -85,7 +85,7 @@ class DeliveryService:
                 GeoCity.name == city,
             )
 
-        dealers = q.order_by(User.full_name).all()
+        dealers = q.order_by(User.first_name, User.last_name).all()
 
         results = []
         for dealer in dealers:
