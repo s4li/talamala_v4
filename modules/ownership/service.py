@@ -81,6 +81,20 @@ class OwnershipService:
         # Filter out buyback bars
         bars = [b for b in bars if b.id not in buyback_bar_ids]
 
+        # Fetch purchase-time gold amount for buyback calculation
+        buyback_map = {}
+        if bar_ids:
+            oi_rows = (
+                db.query(OrderItem.bar_id, OrderItem.final_gold_amount)
+                .join(Order, OrderItem.order_id == Order.id)
+                .filter(
+                    OrderItem.bar_id.in_(bar_ids),
+                    Order.status == OrderStatus.PAID,
+                )
+                .all()
+            )
+            buyback_map = {r.bar_id: r.final_gold_amount for r in oi_rows}
+
         for bar in bars:
             bar._has_buyback = False
             di = delivery_map.get(bar.id)
@@ -95,6 +109,14 @@ class OwnershipService:
                 # POS / claim / transfer — already in customer's hands
                 bar._delivery_label = "تحویل شده"
                 bar._delivery_color = "success"
+
+            # Calculate buyback amount from purchase-time gold value
+            bar._buyback_amount = 0
+            gold_at_purchase = buyback_map.get(bar.id)
+            if gold_at_purchase and bar.product:
+                bb_pct = float(bar.product.buyback_wage_percent or 0)
+                if bb_pct > 0:
+                    bar._buyback_amount = int(gold_at_purchase * bb_pct / 100)
 
         return bars
 

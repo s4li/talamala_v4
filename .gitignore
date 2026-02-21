@@ -33,3 +33,4 @@ screenshots/
 .DS_Store
 Thumbs.db
 nul
+server*.log
