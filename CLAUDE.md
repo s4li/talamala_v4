@@ -21,11 +21,16 @@
 
 ## 1. خلاصه پروژه
 
-**TalaMala v4** یک سیستم ERP فروش شمش طلا (Gold Bullion) است.
+**TalaMala v4** یک فروشگاه اینترنتی شمش طلای فیزیکی مبتنی بر شبکه نمایندگان (B2B2C) است.
+
+> **⚠️ بیزینس‌مدل**: ما فروشگاه شمش فیزیکی هستیم، **نه** صرافی یا پلتفرم معاملاتی طلای آبشده.
+> فیچرهای مختص ترید/صرافی (خرید خُرد دوره‌ای DCA، داشبورد PNL، نوسان‌گیری، طلای دیجیتال کسری) در scope پروژه **نیستند**.
+> کیف پول طلایی (XAU_MG) فقط برای مصارف داخلی: تسویه سود نمایندگان + پاداش وفاداری مشتریان.
 
 - **Stack**: FastAPI + Jinja2 Templates + PostgreSQL + SQLAlchemy + Alembic
 - **UI**: فارسی (RTL) با Bootstrap 5 RTL + Vazirmatn font + Bootstrap Icons
-- **Auth**: OTP-based (SMS) برای مشتری‌ها + JWT cookie برای ادمین
+- **Auth**: OTP-based (SMS) + single JWT cookie (`auth_token`) for all user types
+- **User Model**: Unified `users` table with role flags (`is_customer`, `is_dealer`, `is_admin`)
 - **Payment**: کیف پول + چند درگاه (Zibal, Sepehr, Top, Parsian) با لایه abstraction + انتخاب درگاه فعال از تنظیمات ادمین
 - **Pricing**: فرمول ساده قیمت شمش: طلای خام + اجرت + مالیات (روی اجرت)
 
@@ -48,7 +53,8 @@ talamala_v4/
 │   ├── notifications.py         # Ticket SMS notifications (console fallback)
 │   └── exceptions.py            # Custom exceptions
 ├── modules/
-│   ├── admin/                   # SystemUser, SystemSetting, admin settings page
+│   ├── user/                    # Unified User model (customers + dealers + admins in one table)
+│   ├── admin/                   # SystemSetting, RequestLog, admin settings page, staff service
 │   ├── auth/                    # Login (OTP), JWT, deps (require_customer etc.)
 │   ├── catalog/                 # Product, ProductCategory, CardDesign, PackageType, Batch
 │   ├── inventory/               # Bar, BarImage, OwnershipHistory, DealerTransfer
@@ -61,7 +67,7 @@ talamala_v4/
 │   ├── coupon/                  # DISCOUNT/CASHBACK coupons, admin CRUD
 │   ├── customer/                # Profile, CustomerAddress, GeoProvince/City/District
 │   ├── verification/            # QR/serial code authenticity check
-│   ├── dealer/                  # Dealer, DealerSale, BuybackRequest, POS, admin mgmt, REST API
+│   ├── dealer/                  # DealerTier, DealerSale, BuybackRequest, POS, admin mgmt, REST API
 │   │   └── auth_deps.py         # Shared API Key auth dependency (used by dealer + pos)
 │   ├── dealer_request/          # DealerRequest, attachments, admin review (approve/revision/reject)
 │   ├── pos/                     # Customer-facing POS API (reserve→confirm/cancel pattern)
@@ -117,20 +123,25 @@ talamala_v4/
 
 ## 3. مدل‌های دیتابیس (Database Models)
 
+### user/models.py (Unified User Model)
+- **User**: id, mobile (unique), first_name, last_name, national_id, birth_date, is_active, created_at
+  - **Role flags**: `is_customer` (bool), `is_dealer` (bool), `is_admin` (bool) — a user can have multiple roles
+  - **Identity**: mobile, first_name, last_name, national_id, birth_date
+  - **Customer fields**: customer_type (real/legal), company_name, economic_code, postal_code, address, phone, referral_code
+  - **Dealer fields**: tier_id (FK→dealer_tiers), province_id, city_id, district_id, dealer_address, landline_phone, is_warehouse, is_postal_hub, commission_percent, api_key (unique), otp_code, otp_expiry
+  - **Admin fields**: admin_role (admin/operator), operator_permissions (JSON)
+  - Properties: `full_name`, `display_name`, `is_staff` (→ is_admin), `is_profile_complete`, `primary_redirect`, `tier_name`, `type_label`, `type_icon`, `type_color`, `has_permission()`
+  - Relationship: `bars_at_location` → list of Bar objects at this dealer
+
 ### admin/models.py
-- **SystemUser**: id, username, mobile, hashed_password, role (super_admin/operator), is_staff=True
 - **SystemSetting**: id, key (unique), value, description
 - **RequestLog**: id, method, path, query_string, status_code, ip_address, user_agent, user_type, user_id, user_display, body_preview, response_time_ms, created_at — لاگ درخواست‌ها (middleware ثبت میکنه)
-
-### customer/models.py
-- **Customer**: id, mobile (unique), first_name, last_name, national_id, birth_date, is_active, customer_type (real/legal), company_name, economic_code, postal_code, address, phone, created_at
-  - Properties: `full_name`, `display_name` (company for legal, name for real), `is_profile_complete` (checks required fields)
 
 ### customer/address_models.py
 - **GeoProvince**: id, name (unique), sort_order → has many GeoCity
 - **GeoCity**: id, province_id (FK), name, sort_order → has many GeoDistrict
 - **GeoDistrict**: id, city_id (FK), name
-- **CustomerAddress**: id, customer_id (FK), title, province_id, city_id, district_id, address, postal_code, receiver_name, receiver_phone, is_default
+- **CustomerAddress**: id, user_id (FK→users), title, province_id, city_id, district_id, address, postal_code, receiver_name, receiver_phone, is_default
 
 ### catalog/models.py
 - **ProductCategory**: id, name (unique), slug (unique), sort_order, is_active
@@ -143,8 +154,8 @@ talamala_v4/
 - **Batch / BatchImage**: بچ تولید (ذوب)
 
 ### inventory/models.py
-- **Bar**: id, serial_code (unique), product_id, batch_id, dealer_id (FK→dealers), customer_id, claim_code (unique, nullable — for POS/gift), status (RAW/ASSIGNED/RESERVED/SOLD), reserved_customer_id, reserved_until, delivered_at (nullable — NULL = custodial/"امانی", set = physically delivered)
-  - Relationship: `dealer_location` → Dealer (physical location of bar)
+- **Bar**: id, serial_code (unique), product_id, batch_id, dealer_id (FK→users), customer_id (FK→users), claim_code (unique, nullable — for POS/gift), status (RAW/ASSIGNED/RESERVED/SOLD), reserved_customer_id, reserved_until, delivered_at (nullable — NULL = custodial/"امانی", set = physically delivered)
+  - Relationship: `dealer_location` → User (physical location), `customer` → User (owner)
   - Custodial gold ("طلای امانی") = bars with `status == SOLD` and `delivered_at IS NULL`
 - **BarImage**: id, bar_id, file_path
 - **OwnershipHistory**: id, bar_id, previous_owner_id, new_owner_id, transfer_date, description
@@ -152,40 +163,39 @@ talamala_v4/
 - **BarTransfer**: id, bar_id, from_customer_id, to_mobile, otp_hash, otp_expiry, status (Pending/Completed/Cancelled/Expired), created_at
 
 ### cart/models.py
-- **Cart**: id, customer_id (unique), created_at
+- **Cart**: id, customer_id (FK→users, unique), created_at
 - **CartItem**: id, cart_id, product_id, quantity, package_type_id (FK→package_types, nullable)
 
 ### order/models.py
-- **Order**: id, customer_id, status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_dealer_id (FK→dealers), shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at
+- **Order**: id, customer_id (FK→users), status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_dealer_id (FK→users), shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at
 - **OrderItem**: id, order_id, product_id, bar_id, applied_gold_price, applied_unit_price, applied_weight, applied_purity, applied_wage_percent, applied_tax_percent, final_gold_amount, final_wage_amount, final_tax_amount, package_type_id (FK→package_types, nullable), applied_package_price (BigInteger, default=0), line_total (= gold_total + package_price)
 - **OrderStatusLog**: id, order_id (FK→orders, CASCADE), field ("status"/"delivery_status"), old_value, new_value, changed_by, description, created_at — audit trail for status changes
 
 ### wallet/models.py
-- **Account**: id, customer_id, asset_code (IRR/XAU_MG), owner_type, owner_id, balance, locked_balance, credit_balance (non-withdrawable store credit)
+- **Account**: id, user_id (FK→users), asset_code (IRR/XAU_MG), balance, locked_balance, credit_balance (non-withdrawable store credit)
   - `available_balance` = balance - locked (for purchases)
   - `withdrawable_balance` = balance - locked - credit (for bank withdrawals)
 - **LedgerEntry**: id, account_id, txn_type (Deposit/Withdraw/Payment/Refund/Hold/Release/Commit/Credit), delta_balance, delta_locked, delta_credit, balance_after, locked_after, credit_after, idempotency_key, reference_type, reference_id, description
-- **WalletTopup**: id, customer_id, amount_irr, status, ref_number, gateway
-- **WithdrawalRequest**: id, customer_id, amount_irr, status (PENDING/APPROVED/REJECTED), shaba_number, account_holder
+- **WalletTopup**: id, user_id (FK→users), amount_irr, status, ref_number, gateway
+- **WithdrawalRequest**: id, user_id (FK→users), amount_irr, status (PENDING/PAID/REJECTED), shaba_number, account_holder
 
 ### coupon/models.py
 - **Coupon**: id, code (unique), title, description, coupon_type (DISCOUNT/CASHBACK), discount_mode (PERCENT/FIXED), discount_value, max_discount_amount, scope (GLOBAL/PRODUCT/CATEGORY), scope_product_id, min_order_amount, first_purchase_only, is_private, max_per_customer, max_total_uses, status (ACTIVE/INACTIVE/EXPIRED)
 - **CouponCategory**: id, coupon_id, category_id → M2M junction (coupon ↔ product_categories)
 - **CouponMobile**: id, coupon_id, mobile → whitelist
-- **CouponUsage**: id, coupon_id, customer_id, order_id, discount_applied
+- **CouponUsage**: id, coupon_id, user_id (FK→users), order_id, discount_applied
 
 ### dealer/models.py
-- **Dealer**: id, mobile (unique), full_name, national_id, tier_id (FK→dealer_tiers), province_id (FK→geo_provinces), city_id (FK→geo_cities), district_id (FK→geo_districts), address, postal_code, landline_phone, is_warehouse (bool), is_postal_hub (bool), commission_percent, is_active, api_key (unique, for POS), otp_code, otp_expiry, created_at
-  - Properties: `type_label`, `type_icon`, `type_color`, `display_name`
-  - Relationship: `bars_at_location` → list of Bar objects at this dealer
-- **DealerSale**: id, dealer_id, bar_id, customer_name/mobile/national_id, sale_price, commission_amount, gold_profit_mg, discount_wage_percent (Numeric 5,2 — تخفیف اجرت از سهم نماینده), description, created_at
-- **BuybackRequest**: id, dealer_id, bar_id, customer_name/mobile, buyback_price, status (Pending/Approved/Completed/Rejected), admin_note, description, wage_refund_amount (rial), wage_refund_customer_id, created_at, updated_at
+- **DealerTier**: id, name, slug (unique), sort_order, is_end_customer, is_active
+- **DealerSale**: id, dealer_id (FK→users), bar_id, customer_name/mobile/national_id, sale_price, commission_amount, gold_profit_mg, discount_wage_percent (Numeric 5,2 — تخفیف اجرت از سهم نماینده), description, created_at
+- **BuybackRequest**: id, dealer_id (FK→users), bar_id, customer_name/mobile, buyback_price, status (Pending/Approved/Completed/Rejected), admin_note, description, wage_refund_amount (rial), wage_refund_customer_id (FK→users), created_at, updated_at
+- Note: Dealer-specific fields (tier, address, api_key, etc.) are on the unified **User** model
 
 ### ticket/models.py
 - **TicketCategory** (enum): Financial / Technical / Sales / Complaints / Other (دپارتمان)
-- **Ticket**: id, subject, body, category (TicketCategory), status (Open/InProgress/Answered/Closed), priority (Low/Medium/High), sender_type (CUSTOMER/DEALER/STAFF), customer_id (FK), dealer_id (FK), assigned_to (FK→SystemUser), created_at, updated_at, closed_at
+- **Ticket**: id, subject, body, category (TicketCategory), status (Open/InProgress/Answered/Closed), priority (Low/Medium/High), sender_type (CUSTOMER/DEALER/STAFF), user_id (FK→users), assigned_to (FK→users), created_at, updated_at, closed_at
   - Properties: sender_name, sender_mobile, status_label/color, priority_label/color, category_label/color, sender_type_label/color, message_count, public_message_count
-  - Relationships: customer, dealer, assigned_staff, messages
+  - Relationships: user, assigned_staff, messages
 - **TicketMessage**: id, ticket_id (FK), sender_type (CUSTOMER/DEALER/STAFF), sender_name (denormalized), body, is_internal (staff-only note), is_initial (first message for attachments), created_at
   - Properties: sender_type_label, sender_badge_color, is_staff_message
   - Relationships: attachments
@@ -193,16 +203,16 @@ talamala_v4/
   - Relationship: message
 
 ### review/models.py
-- **Review**: id, product_id (FK→products), customer_id (FK→customers), order_item_id (FK→order_items, unique), rating (1-5), body (Text), admin_reply, admin_reply_at, created_at
-  - Relationships: product, customer, order_item, images
+- **Review**: id, product_id (FK→products), user_id (FK→users), order_item_id (FK→order_items, unique), rating (1-5), body (Text), admin_reply, admin_reply_at, created_at
+  - Relationships: product, user, order_item, images
   - CheckConstraint: rating 1-5
 - **ReviewImage**: id, review_id (FK→reviews, CASCADE), file_path
-- **ProductComment**: id, product_id (FK→products), customer_id (FK→customers), parent_id (FK→self, CASCADE — threaded), body (Text), sender_type (CUSTOMER/ADMIN), sender_name, created_at
+- **ProductComment**: id, product_id (FK→products), user_id (FK→users), parent_id (FK→self, CASCADE — threaded), body (Text), sender_type (CUSTOMER/ADMIN), sender_name, created_at
   - Properties: `is_admin`, `has_admin_reply`, `sender_badge_color`, `sender_type_label`
-  - Relationships: product, customer, parent, replies, images
+  - Relationships: product, user, parent, replies, images
 - **CommentImage**: id, comment_id (FK→product_comments, CASCADE), file_path
-- **CommentLike**: id, comment_id (FK→product_comments, CASCADE), customer_id (FK→customers, CASCADE), created_at
-  - UniqueConstraint: (comment_id, customer_id)
+- **CommentLike**: id, comment_id (FK→product_comments, CASCADE), user_id (FK→users, CASCADE), created_at
+  - UniqueConstraint: (comment_id, user_id)
 
 ### pricing/models.py
 - **Asset**: id, asset_code (unique, e.g. "gold_18k", "silver"), asset_label, price_per_gram (BigInteger, rial), stale_after_minutes (default 15), auto_update (bool, default True), update_interval_minutes (default 5), source_url, updated_at, updated_by
@@ -211,9 +221,9 @@ talamala_v4/
 
 ### dealer_request/models.py
 - **DealerRequestStatus** (enum): Pending / Approved / Rejected / RevisionNeeded
-- **DealerRequest**: id, customer_id (FK), first_name, last_name, birth_date, email, mobile, gender, province_id (FK→geo_provinces), city_id (FK→geo_cities), status, admin_note, created_at, updated_at
+- **DealerRequest**: id, user_id (FK→users), first_name, last_name, birth_date, email, mobile, gender, province_id (FK→geo_provinces), city_id (FK→geo_cities), status, admin_note, created_at, updated_at
   - Properties: `full_name`, `status_label`, `status_color`, `gender_label`, `province_name`, `city_name`
-  - Relationships: customer, province, city, attachments
+  - Relationships: user, province, city, attachments
 - **DealerRequestAttachment**: id, dealer_request_id (FK, CASCADE), file_path, original_filename, created_at
 
 ---
@@ -256,10 +266,12 @@ return response
 ```
 
 ### Auth Dependencies (modules/auth/deps.py)
-- `get_current_active_user(request, db)` — Returns Customer or SystemUser or None
-- `require_customer` — Depends, raises 401 if not customer
-- `require_super_admin` — Depends, raises 401 if not super_admin
-- `require_operator_or_admin` — Either role
+- `get_current_active_user(request, db)` — Returns User or None (single `auth_token` cookie)
+- `require_customer` — Depends, raises 401 if not `is_customer`
+- `require_dealer` — Depends, raises 401 if not `is_dealer`
+- `require_staff` — Depends, raises 401 if not `is_admin`
+- `require_super_admin` — Depends, raises 401 if not `admin_role=="admin"`
+- `require_operator_or_admin` — Either admin role
 
 ### Pricing
 `modules/pricing/calculator.py` → `calculate_bar_price()`

@@ -53,12 +53,12 @@
                     <small class="text-muted">تاریخ ثبت</small>
                     <div>{{ dealer_request.created_at | jdate }}</div>
                 </div>
-                {% if dealer_request.customer %}
+                {% if dealer_request.user %}
                 <div class="col-md-6">
                     <small class="text-muted">حساب کاربری</small>
                     <div>
-                        <a href="/admin/customers/{{ dealer_request.customer_id }}" class="text-decoration-none">
-                            <i class="bi bi-person-circle me-1"></i>{{ dealer_request.customer.full_name or dealer_request.customer.mobile }}
+                        <a href="/admin/customers/{{ dealer_request.user_id }}" class="text-decoration-none">
+                            <i class="bi bi-person-circle me-1"></i>{{ dealer_request.user.full_name or dealer_request.user.mobile }}
                         </a>
                     </div>
                 </div>

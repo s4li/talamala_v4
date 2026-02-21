@@ -81,25 +81,6 @@ def ensure_schema_updates():
     insp = inspect(engine)
     updates = 0
 
-    # --- withdrawal_requests: owner_type, dealer_id ---
-    if "withdrawal_requests" in insp.get_table_names():
-        wr_cols = {c["name"] for c in insp.get_columns("withdrawal_requests")}
-        with engine.begin() as conn:
-            if "owner_type" not in wr_cols:
-                conn.execute(text("ALTER TABLE withdrawal_requests ADD COLUMN owner_type VARCHAR NOT NULL DEFAULT 'customer'"))
-                print("  + withdrawal_requests.owner_type added")
-                updates += 1
-            if "dealer_id" not in wr_cols:
-                conn.execute(text("ALTER TABLE withdrawal_requests ADD COLUMN dealer_id INTEGER REFERENCES dealers(id) ON DELETE CASCADE"))
-                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_withdrawal_requests_dealer_id ON withdrawal_requests(dealer_id)"))
-                print("  + withdrawal_requests.dealer_id added")
-                updates += 1
-            # Make customer_id nullable (may already be)
-            try:
-                conn.execute(text("ALTER TABLE withdrawal_requests ALTER COLUMN customer_id DROP NOT NULL"))
-            except Exception:
-                pass  # already nullable
-
     # --- products: description ---
     if "products" in insp.get_table_names():
         prod_cols = {c["name"] for c in insp.get_columns("products")}
@@ -1078,6 +1059,10 @@ def reset_and_seed():
         conn.execute(text("DROP TABLE IF EXISTS location_transfers CASCADE"))
         conn.execute(text("DROP TABLE IF EXISTS package_images CASCADE"))
         conn.execute(text("DROP TABLE IF EXISTS design_images CASCADE"))
+        # Drop legacy tables from pre-unified-user era
+        conn.execute(text("DROP TABLE IF EXISTS customers CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS dealers CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS system_users CASCADE"))
         conn.commit()
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)

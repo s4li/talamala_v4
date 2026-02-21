@@ -40,7 +40,7 @@ class DealerRequestService:
 
         # Check for existing PENDING or REVISION_NEEDED request
         existing = db.query(DealerRequest).filter(
-            DealerRequest.customer_id == customer_id,
+            DealerRequest.user_id == customer_id,
             DealerRequest.status.in_([
                 DealerRequestStatus.PENDING.value,
                 DealerRequestStatus.REVISION_NEEDED.value,
@@ -50,7 +50,7 @@ class DealerRequestService:
             return {"success": False, "message": "\u0634\u0645\u0627 \u06cc\u06a9 \u062f\u0631\u062e\u0648\u0627\u0633\u062a \u062f\u0631 \u062d\u0627\u0644 \u0628\u0631\u0631\u0633\u06cc \u062f\u0627\u0631\u06cc\u062f."}
 
         req = DealerRequest(
-            customer_id=customer_id,
+            user_id=customer_id,
             first_name=first_name.strip(),
             last_name=last_name.strip(),
             birth_date=birth_date.strip() or None,
@@ -75,7 +75,7 @@ class DealerRequestService:
     def get_active_request(self, db: Session, customer_id: int) -> Optional[DealerRequest]:
         """Return the customer's PENDING, REVISION_NEEDED, or most recent APPROVED request."""
         return db.query(DealerRequest).filter(
-            DealerRequest.customer_id == customer_id,
+            DealerRequest.user_id == customer_id,
             DealerRequest.status.in_([
                 DealerRequestStatus.PENDING.value,
                 DealerRequestStatus.APPROVED.value,
@@ -86,7 +86,7 @@ class DealerRequestService:
     def get_request_by_customer(self, db: Session, customer_id: int) -> Optional[DealerRequest]:
         """Return the most recent request for a customer (any status)."""
         return db.query(DealerRequest).filter(
-            DealerRequest.customer_id == customer_id,
+            DealerRequest.user_id == customer_id,
         ).order_by(DealerRequest.created_at.desc()).first()
 
     # ------------------------------------------
@@ -131,7 +131,7 @@ class DealerRequestService:
             joinedload(DealerRequest.attachments),
             joinedload(DealerRequest.province),
             joinedload(DealerRequest.city),
-            joinedload(DealerRequest.customer),
+            joinedload(DealerRequest.user),
         ).filter(DealerRequest.id == request_id).first()
 
     def get_stats(self, db: Session) -> Dict[str, int]:
@@ -209,7 +209,7 @@ class DealerRequestService:
         """Update a RevisionNeeded request and resubmit as Pending."""
         req = db.query(DealerRequest).filter(
             DealerRequest.id == request_id,
-            DealerRequest.customer_id == customer_id,
+            DealerRequest.user_id == customer_id,
             DealerRequest.status == DealerRequestStatus.REVISION_NEEDED.value,
         ).first()
         if not req:

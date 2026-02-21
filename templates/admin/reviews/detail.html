@@ -28,8 +28,8 @@
                 <span class="badge-tm badge-tm-{{ item.sender_badge_color }} me-1">{{ item.sender_type_label }}</span>
                 <strong>{{ item.sender_name }}</strong>
             {% else %}
-                {% if item.customer %}
-                <strong>{{ item.customer.full_name or item.customer.mobile }}</strong>
+                {% if item.user %}
+                <strong>{{ item.user.full_name or item.user.mobile }}</strong>
                 {% else %}
                 <strong>مشتری حذف شده</strong>
                 {% endif %}

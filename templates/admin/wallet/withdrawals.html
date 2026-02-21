@@ -29,16 +29,6 @@
 </div>
 {% endif %}
 
-<!-- Owner Type Filter Tabs -->
-<div class="btn-group mb-3" role="group">
-    <a href="/admin/wallets/withdrawals/list"
-       class="btn btn-sm {{ 'btn-dark' if not owner_type_filter else 'btn-outline-dark' }}">همه</a>
-    <a href="/admin/wallets/withdrawals/list?owner_type=customer"
-       class="btn btn-sm {{ 'btn-dark' if owner_type_filter == 'customer' else 'btn-outline-dark' }}">مشتریان</a>
-    <a href="/admin/wallets/withdrawals/list?owner_type=dealer"
-       class="btn btn-sm {{ 'btn-dark' if owner_type_filter == 'dealer' else 'btn-outline-dark' }}">نمایندگان</a>
-</div>
-
 <div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
     <div class="p-0">
         {% if withdrawals %}
@@ -62,8 +52,6 @@
                     <tr class="{{ 'table-warning' if wr.status == 'Pending' else '' }}">
                         <td>{{ wr.id }}</td>
                         <td>
-                            <span class="badge bg-{{ wr.owner_type_color }} mb-1">{{ wr.owner_type_label }}</span>
-                            <br>
                             <strong>{{ wr.owner_name }}</strong>
                             <br><small class="text-muted">{{ wr.owner_mobile }}</small>
                         </td>
@@ -124,11 +112,7 @@
         </div>
 
         {% from "components/pagination.html" import pagination %}
-        {% if owner_type_filter %}
-        {{ pagination(page, total_pages, '/admin/wallets/withdrawals/list?owner_type=' + owner_type_filter) }}
-        {% else %}
         {{ pagination(page, total_pages, '/admin/wallets/withdrawals/list') }}
-        {% endif %}
 
         {% else %}
         <div class="text-center text-muted py-5">

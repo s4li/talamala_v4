@@ -63,16 +63,16 @@
                 <tr>
                     <td class="text-muted">{{ acct.id }}</td>
                     <td>
-                        <strong>{{ acct.customer.full_name if acct.customer else '—' }}</strong>
+                        <strong>{{ acct.user.full_name if acct.user else '—' }}</strong>
                     </td>
                     <td>
-                        <code>{{ acct.customer.mobile if acct.customer else '—' }}</code>
+                        <code>{{ acct.user.mobile if acct.user else '—' }}</code>
                     </td>
                     <td class="fw-bold text-success">{{ acct.balance | toman }}</td>
                     <td class="text-warning">{{ acct.locked_balance | toman }}</td>
                     <td>{{ acct.available_balance | toman }}</td>
                     <td>
-                        <a href="/admin/wallets/{{ acct.customer_id }}"
+                        <a href="/admin/wallets/customer/{{ acct.user_id }}"
                            class="btn btn-sm btn-tm-outline">
                             <i class="bi bi-eye"></i>
                         </a>

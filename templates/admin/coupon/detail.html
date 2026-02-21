@@ -215,8 +215,8 @@
                         {% for u in usages %}
                         <tr>
                             <td>
-                                {{ u.customer.full_name if u.customer else '—' }}
-                                <br><small class="text-muted">{{ u.customer.mobile if u.customer else '' }}</small>
+                                {{ u.user.full_name if u.user else '—' }}
+                                <br><small class="text-muted">{{ u.user.mobile if u.user else '' }}</small>
                             </td>
                             <td>
                                 {% if u.order_id %}
