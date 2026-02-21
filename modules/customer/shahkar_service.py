@@ -9,6 +9,7 @@ import httpx
 from sqlalchemy.orm import Session
 
 from common.templating import get_setting_from_db
+from config.settings import SHAHKAR_API_TOKEN
 
 ZOHAL_API_URL = "https://service.zohal.io/api/v0/services/inquiry/shahkar"
 
@@ -26,7 +27,7 @@ def verify_shahkar(db: Session, mobile: str, national_code: str) -> dict:
     if enabled != "true":
         return {"skip": True}
 
-    token = get_setting_from_db(db, "shahkar_api_token", "")
+    token = SHAHKAR_API_TOKEN
     if not token:
         return {"matched": False, "error": "توکن API شاهکار تنظیم نشده است."}
 

@@ -231,13 +231,7 @@
                     <label class="form-check-label fw-bold" for="shahkarEnabled">فعال‌سازی احراز هویت شاهکار</label>
                 </div>
                 <small class="text-muted d-block">در صورت فعال بودن، مشتریان قبل از ثبت سفارش باید احراز هویت کنند.</small>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label-tm">توکن API (Zohal)</label>
-                <input type="password" name="shahkar_api_token" class="form-control form-control-tm" dir="ltr"
-                       value="{{ settings.get('shahkar_api_token', {}).value if settings.get('shahkar_api_token') else '' }}"
-                       placeholder="Bearer token">
-                <small class="text-muted">توکن دریافتی از سرویس zohal.io</small>
+                <small class="text-muted d-block mt-1">توکن API از طریق متغیر محیطی <code>SHAHKAR_API_TOKEN</code> تنظیم می‌شود.</small>
             </div>
         </div>
 

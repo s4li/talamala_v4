@@ -65,6 +65,12 @@ PARSIAN_PIN = os.getenv("PARSIAN_PIN", "")
 
 
 # ==========================================
+# 🔐 Shahkar Identity Verification (Zohal)
+# ==========================================
+SHAHKAR_API_TOKEN = os.getenv("SHAHKAR_API_TOKEN", "")
+
+
+# ==========================================
 # 📁 File Upload
 # ==========================================
 UPLOAD_DIR = "static/uploads"
