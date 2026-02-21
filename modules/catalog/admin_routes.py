@@ -110,6 +110,11 @@ async def update_product(
     category_ids = [int(v) for v in form.getlist("category_ids") if str(v).isdigit()]
     cd_id = int(card_design_id) if card_design_id.strip().isdigit() else None
     pt_id = int(package_type_id) if package_type_id.strip().isdigit() else None
+
+    # DEBUG — will remove after fix confirmed
+    print(f"[DEBUG update_product] p_id={p_id}, wage={wage!r}, buyback_wage_percent={buyback_wage_percent!r}")
+    print(f"[DEBUG update_product] all form keys: {list(form.keys())}")
+
     product_service.update(db, p_id, {
         "name": name, "weight": weight, "purity": purity, "design": design,
         "description": description,
@@ -119,6 +124,12 @@ async def update_product(
         "is_active": is_active,
     }, new_files)
     db.commit()
+
+    # DEBUG — verify after commit
+    from sqlalchemy import text
+    row = db.execute(text(f"SELECT buyback_wage_percent FROM products WHERE id = {p_id}")).fetchone()
+    print(f"[DEBUG update_product] AFTER COMMIT: buyback_wage_percent in DB = {row[0]!r}" if row else "[DEBUG] product not found after commit")
+
     return RedirectResponse("/admin/products", status_code=303)
 
 
