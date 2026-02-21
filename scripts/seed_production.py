@@ -57,7 +57,7 @@ from modules.cart.models import Cart, CartItem
 from modules.order.models import Order, OrderItem, OrderStatusLog
 from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory
-from modules.dealer.models import DealerTier, DealerSale, BuybackRequest
+from modules.dealer.models import DealerTier, DealerSale, BuybackRequest, SubDealerRelation, B2BOrder, B2BOrderItem
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment, TicketStatus, TicketPriority, TicketCategory, SenderType
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment

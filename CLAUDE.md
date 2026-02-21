@@ -69,7 +69,7 @@ talamala_v4/
 │   ├── coupon/                  # DISCOUNT/CASHBACK coupons, admin CRUD
 │   ├── customer/                # Profile, CustomerAddress, GeoProvince/City/District
 │   ├── verification/            # QR/serial code authenticity check
-│   ├── dealer/                  # DealerTier, DealerSale, BuybackRequest, POS, admin mgmt, REST API
+│   ├── dealer/                  # DealerTier, DealerSale, BuybackRequest, SubDealerRelation, B2BOrder, B2BOrderItem, POS, admin mgmt, REST API
 │   │   └── auth_deps.py         # Shared API Key auth dependency (used by dealer + pos)
 │   ├── dealer_request/          # DealerRequest, attachments, admin review (approve/revision/reject)
 │   ├── pos/                     # Customer-facing POS API (reserve→confirm/cancel pattern)
@@ -195,10 +195,19 @@ talamala_v4/
 
 ### dealer/models.py
 - **DealerTier**: id, name, slug (unique), sort_order, is_end_customer, is_active
-- **DealerSale**: id, dealer_id (FK→users), bar_id, customer_name/mobile/national_id, sale_price, commission_amount, metal_profit_mg, discount_wage_percent (Numeric 5,2 — تخفیف اجرت از سهم نماینده), metal_type (String(20), default="gold"), description, created_at
+- **DealerSale**: id, dealer_id (FK→users), bar_id, customer_name/mobile/national_id, sale_price, commission_amount, metal_profit_mg, discount_wage_percent (Numeric 5,2 — تخفیف اجرت از سهم نماینده), metal_type (String(20), default="gold"), parent_dealer_id (FK→users, nullable — parent dealer for sub-dealer sales), parent_commission_mg (Numeric 12,4, nullable — parent's share in mg), description, created_at
   - `applied_metal_price` — metal price at time of sale (was `applied_gold_price`)
   - `metal_type` — which metal was sold ("gold", "silver")
 - **BuybackRequest**: id, dealer_id (FK→users), bar_id, customer_name/mobile, buyback_price, status (Pending/Approved/Completed/Rejected), admin_note, description, wage_refund_amount (rial), wage_refund_customer_id (FK→users), created_at, updated_at
+- **SubDealerRelation**: id, parent_dealer_id (FK→users, CASCADE), child_dealer_id (FK→users, CASCADE), commission_split_percent (Numeric 5,2, default=20), is_active, created_at, deactivated_at, admin_note
+  - UniqueConstraint(parent_dealer_id, child_dealer_id), CheckConstraint(0-100), CheckConstraint(no self-ref)
+  - Properties: `status_label`, `status_color`
+- **B2BOrderStatus** (enum): Submitted / Approved / Paid / Fulfilled / Rejected / Cancelled
+- **B2BOrder**: id, dealer_id (FK→users), status, total_amount (BigInteger), applied_tax_percent, payment_method, payment_ref, paid_at, admin_note, approved_by (FK→users), approved_at, fulfilled_at, created_at, updated_at
+  - Properties: `status_label`, `status_color`, `total_items`
+  - Relationships: dealer, approver, items
+- **B2BOrderItem**: id, order_id (FK→b2b_orders, CASCADE), product_id (FK→products, RESTRICT), quantity, applied_wage_percent, applied_metal_price, unit_price, line_total
+  - CheckConstraint(quantity > 0)
 - Note: Dealer-specific fields (tier, address, api_key, etc.) are on the unified **User** model
 
 ### ticket/models.py
@@ -368,6 +377,7 @@ STATIC_VERSION = "1.1"  # ← عدد را افزایش بده
 | 14.5 | Bar Claim & Gifting + Ownership Transfer | ✅ |
 | 15 | Customer-Facing POS API (reserve→confirm/cancel) | ✅ |
 | 16 | Reviews & Comments (star rating, Q&A, likes) | ✅ |
+| 21 | Dealer B2B Dashboard (inventory, analytics, sub-dealer, B2B orders) | ✅ |
 
 ---
 
@@ -654,6 +664,14 @@ total     = raw_metal + wage + tax
 - `GET/POST /dealer/buyback` — Buyback request form
 - `GET /dealer/sales` — Sales history
 - `GET /dealer/buybacks` — Buyback history
+- `GET /dealer/inventory` — Physical inventory at dealer location
+- `GET /dealer/sub-dealers` — Sub-dealer network (read-only)
+- `GET /dealer/b2b-orders` — B2B bulk order list
+- `GET /dealer/b2b-orders/new` — New B2B order catalog
+- `POST /dealer/b2b-orders/new` — Submit B2B order
+- `GET /dealer/b2b-orders/{id}` — B2B order detail
+- `POST /dealer/b2b-orders/{id}/pay` — Pay via wallet
+- `POST /dealer/b2b-orders/{id}/cancel` — Cancel order
 
 ### Dealer POS REST API (JSON, API Key auth via X-API-Key header)
 - `GET /api/dealer/info` — Dealer identity / health check
@@ -694,6 +712,14 @@ total     = raw_metal + wage + tax
 - `POST /admin/dealers/{id}/generate-api-key` — Generate POS API key
 - `POST /admin/dealers/{id}/revoke-api-key` — Revoke POS API key
 - `POST /admin/dealers/{id}/rasis-sync` — Manual full sync of dealer inventory + pricing to Rasis POS device
+- `GET /admin/dealers/{id}/sub-dealers` — Sub-dealer management
+- `POST /admin/dealers/{id}/sub-dealers/add` — Create sub-dealer relation
+- `POST /admin/dealers/sub-dealers/{rel_id}/deactivate` — Deactivate relation
+- `GET /admin/dealers/b2b-orders` — All B2B orders (filter: dealer, status)
+- `GET /admin/dealers/b2b-orders/{id}` — B2B order detail
+- `POST /admin/dealers/b2b-orders/{id}/approve` — Approve B2B order
+- `POST /admin/dealers/b2b-orders/{id}/reject` — Reject B2B order
+- `POST /admin/dealers/b2b-orders/{id}/fulfill` — Fulfill (assign bars from warehouse)
 - `/admin/dealers/buybacks` — Buyback approval/rejection
 - `GET /admin/tickets` — Ticket list (tabs: all/customer/dealer + status/category filter + search)
 - `GET /admin/tickets/{id}` — Ticket detail + reply + internal notes + assign

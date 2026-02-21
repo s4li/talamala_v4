@@ -52,7 +52,7 @@ from modules.cart.models import Cart, CartItem
 from modules.order.models import Order, OrderItem, OrderStatusLog, OrderStatus, DeliveryMethod, DeliveryStatus
 from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory
-from modules.dealer.models import DealerTier, DealerSale, BuybackRequest
+from modules.dealer.models import DealerTier, DealerSale, BuybackRequest, SubDealerRelation, B2BOrder, B2BOrderItem
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment, TicketStatus, TicketPriority, TicketCategory, SenderType
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment
@@ -1396,6 +1396,44 @@ def seed():
         db.flush()
 
         # ==========================================
+        # 10.6. Sub-dealer Relations
+        # ==========================================
+        print("\n[10.6] Sub-dealer Relations")
+
+        existing_rels = db.query(SubDealerRelation).count()
+        if existing_rels > 0:
+            print(f"  = {existing_rels} relations already exist, skipping")
+        else:
+            # Esfahan (distributor) as parent of Shiraz (wholesaler) + Mashhad (store)
+            esfahan_dealer = db.query(User).filter(User.mobile == "09161234567").first()
+            shiraz_dealer = db.query(User).filter(User.mobile == "09171234567").first()
+            mashhad_dealer = db.query(User).filter(User.mobile == "09181234567").first()
+            # Mirdamad Tehran (distributor) as parent of Shahrak (store) + Karimkhan (store)
+            mirdamad_dealer = db.query(User).filter(User.mobile == "09121234567").first()
+            shahrak_dealer = db.query(User).filter(User.mobile == "09124567890").first()
+            karimkhan_dealer = db.query(User).filter(User.mobile == "09125678901").first()
+
+            sub_dealer_data = [
+                (esfahan_dealer, shiraz_dealer, 15.0, "شیراز زیرمجموعه اصفهان"),
+                (esfahan_dealer, mashhad_dealer, 20.0, "مشهد زیرمجموعه اصفهان"),
+                (mirdamad_dealer, shahrak_dealer, 10.0, "شهرک غرب زیرمجموعه میرداماد"),
+                (mirdamad_dealer, karimkhan_dealer, 10.0, "کریمخان زیرمجموعه میرداماد"),
+            ]
+
+            for parent, child, split_pct, note in sub_dealer_data:
+                if parent and child:
+                    rel = SubDealerRelation(
+                        parent_dealer_id=parent.id,
+                        child_dealer_id=child.id,
+                        commission_split_percent=split_pct,
+                        admin_note=note,
+                    )
+                    db.add(rel)
+                    print(f"  + {parent.full_name} → {child.full_name} ({split_pct}%)")
+
+            db.flush()
+
+        # ==========================================
         # 10.5. Bars (inventory) — now that dealers exist
         # ==========================================
         print("\n[10.5] Bars (Inventory)")
@@ -1894,6 +1932,10 @@ def seed():
         print(f"\n--- Dealer API Keys (for POS) ---")
         for dd in dealers_data:
             print(f"  {dd['mobile']}: {dd['api_key']}")
+
+        print(f"\n--- Sub-dealer Relations ---")
+        print(f"  اصفهان → شیراز (15%)  |  اصفهان → مشهد (20%)")
+        print(f"  میرداماد → شهرک غرب (10%)  |  میرداماد → کریمخان (10%)")
 
         print(f"\n--- Custodial Test Bars ---")
         print(f"  TSCST001 : Gold, custodial (buyer=owner=09351234567)")
