@@ -1,7 +1,7 @@
 # کاتالوگ قابلیت‌های سیستم طلاملا v4
 
 > این سند تمام ماژول‌ها، قابلیت‌ها، نقش‌های کاربری و فرمول قیمت‌گذاری سیستم TalaMala v4 را شرح می‌دهد.
-> آخرین به‌روزرسانی: فازهای ۱ تا ۱۴ و ۲۱ تکمیل‌شده + قابلیت بازگشت اجرت بازخرید + بهبود سیستم تیکتینگ + صفحات ثابت و فوتر (Static Pages & Footer) + ثبت مالکیت و انتقال شمش (Bar Claim & Gifting + Ownership Transfer) + ساده‌سازی فرمول قیمت‌گذاری + مدیریت کاربران (Customer Management) + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان (Admin POS Sales Report) + سیستم مدیریت دارایی و قیمت‌گذاری خودکار (Asset Price Management + Goldis Auto-fetch) + چند درگاه پرداخت (Multi-Gateway: Zibal/Sepehr/Top/Parsian) + درخواست نمایندگی با بازبینی (Dealer Request with Revision) + پیگیری تحویل فیزیکی شمش و طلای امانی (Bar-level Delivery Tracking & Custodial Gold) + ماژول نظرات و پرسش‌وپاسخ (Review & Comments) + API دستگاه POS مشتری‌محور (Customer-Facing POS API) + یکپارچه‌سازی دستگاه POS راسیس (Rasis POS Integration) + زیرنمایندگان و سفارش عمده B2B (Sub-Dealers & B2B Orders — Phase 21).
+> آخرین به‌روزرسانی: فازهای ۱ تا ۱۴، ۲۱ و ۲۲ تکمیل‌شده + قابلیت بازگشت اجرت بازخرید + بهبود سیستم تیکتینگ + صفحات ثابت و فوتر (Static Pages & Footer) + ثبت مالکیت و انتقال شمش (Bar Claim & Gifting + Ownership Transfer) + ساده‌سازی فرمول قیمت‌گذاری + مدیریت کاربران (Customer Management) + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان (Admin POS Sales Report) + سیستم مدیریت دارایی و قیمت‌گذاری خودکار (Asset Price Management + Goldis Auto-fetch) + چند درگاه پرداخت (Multi-Gateway: Zibal/Sepehr/Top/Parsian) + درخواست نمایندگی با بازبینی (Dealer Request with Revision) + پیگیری تحویل فیزیکی شمش و طلای امانی (Bar-level Delivery Tracking & Custodial Gold) + ماژول نظرات و پرسش‌وپاسخ (Review & Comments) + API دستگاه POS مشتری‌محور (Customer-Facing POS API) + یکپارچه‌سازی دستگاه POS راسیس (Rasis POS Integration) + زیرنمایندگان و سفارش عمده B2B (Sub-Dealers & B2B Orders — Phase 21) + انبارگردانی پیشرفته و رهگیری فیزیکی (Advanced Inventory & Physical Tracking — Phase 22).
 
 ---
 
@@ -36,6 +36,7 @@
 27. [API دستگاه POS مشتری‌محور (Customer-Facing POS API)](#27-api-دستگاه-pos-مشتریمحور-customer-facing-pos-api)
 28. [یکپارچه‌سازی دستگاه POS راسیس (Rasis POS Integration)](#28-یکپارچهسازی-دستگاه-pos-راسیس-rasis-pos-integration)
 29. [پنل پیشرفته نماینده — زیرنمایندگان و سفارش عمده (Dealer Portal Enhancement — Phase 21)](#29-پنل-پیشرفته-نماینده--زیرنمایندگان-و-سفارش-عمده-dealer-portal-enhancement--phase-21)
+30. [انبارگردانی پیشرفته و رهگیری فیزیکی (Advanced Inventory & Physical Tracking — Phase 22)](#30-انبارگردانی-پیشرفته-و-رهگیری-فیزیکی-advanced-inventory--physical-tracking--phase-22)
 
 ---
 
@@ -1137,6 +1138,11 @@ metal_price, base_purity = get_product_pricing(product, db)
 | پرداخت/لغو سفارش عمده | — | ✅ | — | — |
 | مدیریت زیرنمایندگان (افزودن/غیرفعال) | — | — | ✅ | ✅ |
 | مدیریت سفارشات عمده B2B (تایید/رد/تحویل) | — | — | ✅ | ✅ |
+| اسکن شمش (Scanner) | — | ✅ | ✅ | ✅ |
+| انبارگردانی (شروع/اسکن/نهایی/لغو) | — | ✅ | ✅ | ✅ |
+| درخواست تحویل امانی (`/my-bars/{id}/delivery`) | ✅ | — | — | — |
+| تایید تحویل امانی (`/dealer/deliveries/{id}/confirm`) | — | ✅ | — | — |
+| مشاهده لیست تحویل‌های امانی (`/dealer/deliveries`) | — | ✅ | — | — |
 
 ---
 
@@ -1839,4 +1845,108 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 
 ---
 
-> این سند بر اساس کد واقعی پروژه TalaMala v4 (فازهای ۱-۱۴ و ۲۱ + بازگشت اجرت بازخرید + بهبود تیکتینگ + صفحات ثابت و فوتر + ثبت مالکیت و انتقال شمش + مدیریت کاربران + ویرایش مشتری توسط ادمین + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان + مدیریت دارایی و قیمت‌گذاری خودکار + چند درگاه پرداخت + درخواست نمایندگی با بازبینی + نظرات و پرسش‌وپاسخ + API دستگاه POS مشتری‌محور + یکپارچه‌سازی دستگاه POS راسیس + زیرنمایندگان و سفارش عمده B2B) تهیه شده و هیچ قابلیت فرضی شامل نشده است.
+## 30. انبارگردانی پیشرفته و رهگیری فیزیکی (Advanced Inventory & Physical Tracking — Phase 22)
+
+**مسیر فایل‌ها**: `modules/inventory/` + `modules/dealer/routes.py` + `modules/ownership/routes.py` + `static/js/scanner.js` + `templates/components/scanner_modal.html`
+
+### شرح قابلیت
+
+فاز ۲۲ شامل چهار قابلیت اصلی برای ارتقای مدیریت موجودی و رهگیری فیزیکی شمش است:
+
+#### ۱. اسکنر شمش (TmScanner — Bar Scanner)
+- کامپوننت اسکنر مشترک (`scanner_modal.html` + `scanner.js`) برای اسکن QR/بارکد شمش
+- پشتیبانی از دوربین (html5-qrcode) و اسکنر USB (شبیه‌سازی کیبورد)
+- ورودی دستی سریال‌کد به‌عنوان fallback
+- استخراج خودکار سریال از URL الگوهایی مانند `?code=XXXX` یا `?serial=XXXX`
+- جلوگیری از اسکن تکراری (cooldown 2 ثانیه)
+- قابل استفاده در پنل ادمین (`/api/admin/bars/lookup`) و پنل نماینده (`/dealer/scan/lookup`)
+
+#### ۲. انبارگردانی (Reconciliation — موجودی‌شماری)
+- شروع جلسه انبارگردانی برای یک نماینده/انبار خاص
+- اسکن شمش‌ها طی جلسه → ثبت وضعیت هر شمش:
+  - **Matched**: شمش در سیستم وجود دارد و در همین لوکیشن ثبت شده
+  - **Missing**: شمش در سیستم این لوکیشن ثبت شده ولی اسکن نشده
+  - **Unexpected**: شمش اسکن شده ولی در سیستم این لوکیشن ثبت نیست
+- نهایی‌سازی جلسه: محاسبه آمار تجمیعی (تعداد مورد انتظار، اسکن‌شده، تطابق، مفقود، اضافی)
+- لغو جلسه
+- دسترسی: ادمین (برای همه نمایندگان) + نماینده (فقط برای انبار خودش)
+
+#### ۳. تحویل امانی (Custodial Delivery)
+- مشتری می‌تواند برای شمش‌های امانی (SOLD + `delivered_at IS NULL`) درخواست تحویل فیزیکی ثبت کند
+- انتخاب نماینده/لوکیشن تحویل توسط مشتری
+- تایید تحویل با OTP: مشتری OTP دریافت می‌کند → نماینده OTP + سریال‌کد را وارد می‌کند
+- پس از تایید: `delivered_at` مقداردهی + وضعیت درخواست → Completed
+- لغو درخواست توسط مشتری (قبل از تحویل)
+- **چرخه عمر**: Pending → (OTP ارسال) → Completed یا Cancelled/Expired
+
+#### ۴. رهگیری نوع انتقال (Transfer Audit Trail)
+- مدل `TransferType` (enum) برای ثبت دلیل هر جابجایی فیزیکی شمش:
+  - `Manual`: انتقال دستی ادمین
+  - `B2BFulfillment`: تحویل سفارش عمده
+  - `AdminTransfer`: انتقال ادمین
+  - `Reconciliation`: تعدیل ناشی از انبارگردانی
+  - `CustodialDelivery`: تحویل امانی به مشتری
+  - `Return`: بازگشت به انبار
+- فیلدهای `transfer_type`، `reference_type` و `reference_id` به مدل `DealerTransfer` اضافه شده
+- نمایش بج نوع انتقال در صفحه جزئیات شمش ادمین
+
+### مدل‌ها
+
+| مدل | جدول | توضیح |
+|------|-------|--------|
+| TransferType | — (enum) | دلیل جابجایی فیزیکی شمش (Manual, B2BFulfillment, AdminTransfer, Reconciliation, CustodialDelivery, Return) |
+| ReconciliationSession | `reconciliation_sessions` | جلسه انبارگردانی (نماینده + وضعیت + آمار تجمیعی) |
+| ReconciliationItem | `reconciliation_items` | آیتم‌های اسکن‌شده در جلسه (سریال + وضعیت تطابق + snapshot) |
+| ReconciliationStatus | — (enum) | InProgress / Completed / Cancelled |
+| ReconciliationItemStatus | — (enum) | Matched / Missing / Unexpected |
+| CustodialDeliveryRequest | `custodial_delivery_requests` | درخواست تحویل امانی مشتری (OTP + وضعیت + ردیابی) |
+| CustodialDeliveryStatus | — (enum) | Pending / Completed / Cancelled / Expired |
+
+### آدرس‌ها (ادمین)
+
+| متد | مسیر | توضیح |
+|------|------|--------|
+| GET | `/api/admin/bars/lookup?serial=X` | جستجوی شمش با سریال (AJAX — اسکنر ادمین) |
+| GET | `/admin/reconciliation` | لیست جلسات انبارگردانی |
+| POST | `/admin/reconciliation/start` | شروع جلسه انبارگردانی جدید (انتخاب نماینده) |
+| GET | `/admin/reconciliation/{session_id}` | جزئیات جلسه انبارگردانی + اسکنر |
+| POST | `/admin/reconciliation/{session_id}/scan` | اسکن شمش در جلسه انبارگردانی |
+| POST | `/admin/reconciliation/{session_id}/finalize` | نهایی‌سازی جلسه (محاسبه مفقودها) |
+| POST | `/admin/reconciliation/{session_id}/cancel` | لغو جلسه انبارگردانی |
+
+### آدرس‌ها (نماینده)
+
+| متد | مسیر | توضیح |
+|------|------|--------|
+| GET | `/dealer/scan/lookup?serial=X` | جستجوی شمش با سریال (AJAX — اسکنر نماینده) |
+| GET | `/dealer/reconciliation` | لیست جلسات انبارگردانی نماینده |
+| POST | `/dealer/reconciliation/start` | شروع جلسه انبارگردانی (فقط انبار خود نماینده) |
+| GET | `/dealer/reconciliation/{session_id}` | جزئیات جلسه انبارگردانی |
+| POST | `/dealer/reconciliation/{session_id}/scan` | اسکن شمش در جلسه |
+| POST | `/dealer/reconciliation/{session_id}/finalize` | نهایی‌سازی جلسه |
+| POST | `/dealer/reconciliation/{session_id}/cancel` | لغو جلسه |
+| GET | `/dealer/deliveries` | لیست درخواست‌های تحویل امانی برای این نماینده |
+| GET | `/dealer/deliveries/{req_id}` | جزئیات درخواست تحویل امانی |
+| POST | `/dealer/deliveries/{req_id}/confirm` | تایید تحویل با OTP + سریال‌کد |
+
+### آدرس‌ها (مشتری)
+
+| متد | مسیر | توضیح |
+|------|------|--------|
+| GET | `/my-bars/{bar_id}/delivery` | صفحه درخواست تحویل امانی (انتخاب نماینده) |
+| POST | `/my-bars/{bar_id}/delivery` | ثبت درخواست تحویل امانی |
+| POST | `/my-bars/{bar_id}/delivery/{req_id}/send-otp` | ارسال OTP تایید تحویل به مشتری |
+| POST | `/my-bars/{bar_id}/delivery/{req_id}/cancel` | لغو درخواست تحویل |
+
+### دسترسی
+
+| نقش | دسترسی |
+|------|--------|
+| Super Admin | اسکنر شمش + انبارگردانی (همه نمایندگان) + مشاهده بج نوع انتقال |
+| Operator | اسکنر شمش + انبارگردانی (با مجوز `inventory`) + مشاهده بج نوع انتقال |
+| نماینده | اسکنر شمش (انبار خود) + انبارگردانی (انبار خود) + تایید تحویل امانی |
+| مشتری | درخواست تحویل امانی + لغو درخواست + ارسال OTP |
+
+---
+
+> این سند بر اساس کد واقعی پروژه TalaMala v4 (فازهای ۱-۱۴، ۲۱ و ۲۲ + بازگشت اجرت بازخرید + بهبود تیکتینگ + صفحات ثابت و فوتر + ثبت مالکیت و انتقال شمش + مدیریت کاربران + ویرایش مشتری توسط ادمین + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان + مدیریت دارایی و قیمت‌گذاری خودکار + چند درگاه پرداخت + درخواست نمایندگی با بازبینی + نظرات و پرسش‌وپاسخ + API دستگاه POS مشتری‌محور + یکپارچه‌سازی دستگاه POS راسیس + زیرنمایندگان و سفارش عمده B2B + انبارگردانی پیشرفته و رهگیری فیزیکی) تهیه شده و هیچ قابلیت فرضی شامل نشده است.
