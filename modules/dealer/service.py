@@ -849,6 +849,130 @@ class DealerService:
 
 
     # ------------------------------------------
+    # Sub-dealer Management
+    # ------------------------------------------
+
+    def get_parent_dealer(self, db: Session, dealer_id: int) -> Optional[User]:
+        """Get the parent dealer for a given dealer (if any active relation)."""
+        rel = (
+            db.query(SubDealerRelation)
+            .filter(SubDealerRelation.child_dealer_id == dealer_id, SubDealerRelation.is_active == True)
+            .first()
+        )
+        return rel.parent_dealer if rel else None
+
+    def get_parent_relation(self, db: Session, dealer_id: int) -> Optional[SubDealerRelation]:
+        """Get the active parent relation for a dealer."""
+        return (
+            db.query(SubDealerRelation)
+            .filter(SubDealerRelation.child_dealer_id == dealer_id, SubDealerRelation.is_active == True)
+            .first()
+        )
+
+    def get_sub_dealers(self, db: Session, dealer_id: int) -> List[SubDealerRelation]:
+        """Get all active sub-dealer relations for a parent dealer."""
+        return (
+            db.query(SubDealerRelation)
+            .filter(SubDealerRelation.parent_dealer_id == dealer_id, SubDealerRelation.is_active == True)
+            .order_by(SubDealerRelation.created_at.desc())
+            .all()
+        )
+
+    def get_all_sub_dealer_relations(self, db: Session, dealer_id: int = None) -> List[SubDealerRelation]:
+        """Admin: list all relations, optionally filtered by parent dealer."""
+        q = db.query(SubDealerRelation).order_by(SubDealerRelation.created_at.desc())
+        if dealer_id:
+            q = q.filter(SubDealerRelation.parent_dealer_id == dealer_id)
+        return q.all()
+
+    def create_sub_dealer_relation(
+        self, db: Session, parent_id: int, child_id: int,
+        commission_split_percent: float = 20.0, admin_note: str = "",
+    ) -> Dict[str, Any]:
+        """Create parent-child dealer relationship."""
+        if parent_id == child_id:
+            return {"success": False, "message": "نماینده نمی‌تواند زیرمجموعه خودش باشد"}
+
+        parent = self.get_dealer(db, parent_id)
+        if not parent or not parent.is_active:
+            return {"success": False, "message": "نماینده بالاسری نامعتبر یا غیرفعال"}
+
+        child = self.get_dealer(db, child_id)
+        if not child or not child.is_active:
+            return {"success": False, "message": "نماینده زیرمجموعه نامعتبر یا غیرفعال"}
+
+        # Check child doesn't already have an active parent
+        existing = (
+            db.query(SubDealerRelation)
+            .filter(SubDealerRelation.child_dealer_id == child_id, SubDealerRelation.is_active == True)
+            .first()
+        )
+        if existing:
+            return {"success": False, "message": f"این نماینده قبلاً زیرمجموعه «{existing.parent_dealer.full_name}» است"}
+
+        # Prevent circular: parent cannot be child's sub-dealer
+        reverse = (
+            db.query(SubDealerRelation)
+            .filter(
+                SubDealerRelation.child_dealer_id == parent_id,
+                SubDealerRelation.parent_dealer_id == child_id,
+                SubDealerRelation.is_active == True,
+            )
+            .first()
+        )
+        if reverse:
+            return {"success": False, "message": "ارجاع دوری: نماینده بالاسری خودش زیرمجموعه این نماینده است"}
+
+        if not (0 <= commission_split_percent <= 100):
+            return {"success": False, "message": "درصد تقسیم سود باید بین ۰ تا ۱۰۰ باشد"}
+
+        rel = SubDealerRelation(
+            parent_dealer_id=parent_id,
+            child_dealer_id=child_id,
+            commission_split_percent=commission_split_percent,
+            admin_note=admin_note or None,
+        )
+        db.add(rel)
+        db.flush()
+        return {"success": True, "message": "ارتباط زیرمجموعه ایجاد شد", "relation": rel}
+
+    def deactivate_sub_dealer_relation(self, db: Session, relation_id: int) -> Dict[str, Any]:
+        """Soft-deactivate a sub-dealer relationship."""
+        rel = db.query(SubDealerRelation).filter(SubDealerRelation.id == relation_id).first()
+        if not rel:
+            return {"success": False, "message": "ارتباط یافت نشد"}
+        if not rel.is_active:
+            return {"success": False, "message": "این ارتباط قبلاً غیرفعال شده"}
+
+        rel.is_active = False
+        rel.deactivated_at = now_utc()
+        db.flush()
+        return {"success": True, "message": "ارتباط زیرمجموعه غیرفعال شد"}
+
+    def get_sub_dealer_commission_stats(self, db: Session, parent_id: int) -> Dict[str, Any]:
+        """Aggregate commission earned from all sub-dealers."""
+        total_gold_mg = (
+            db.query(sa_func.coalesce(sa_func.sum(DealerSale.parent_commission_mg), 0))
+            .filter(DealerSale.parent_dealer_id == parent_id, DealerSale.metal_type == "gold")
+            .scalar()
+        )
+        total_silver_mg = (
+            db.query(sa_func.coalesce(sa_func.sum(DealerSale.parent_commission_mg), 0))
+            .filter(DealerSale.parent_dealer_id == parent_id, DealerSale.metal_type == "silver")
+            .scalar()
+        )
+        sale_count = (
+            db.query(DealerSale)
+            .filter(DealerSale.parent_dealer_id == parent_id)
+            .count()
+        )
+        return {
+            "total_gold_commission_mg": int(total_gold_mg),
+            "total_silver_commission_mg": int(total_silver_mg),
+            "total_sales_from_subs": sale_count,
+        }
+
+    # ------------------------------------------
     # Dealer Analytics
     # ------------------------------------------
 

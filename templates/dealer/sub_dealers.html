@@ -1,0 +1,105 @@
+{% extends "dealer/base_dealer.html" %}
+
+{% block title %}زیرمجموعه‌ها - طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-diagram-3 text-tm-primary"></i>
+        زیرمجموعه‌ها
+    </h4>
+</div>
+
+<!-- My Parent -->
+{% if parent_rel %}
+<div class="card-tm no-hover mb-4 tm-animate-fade-in-up tm-delay-1">
+    <div class="border-bottom pb-3 mb-3">
+        <i class="bi bi-arrow-up-circle me-1 text-info"></i>
+        <strong>بالاسری من</strong>
+    </div>
+    <table class="table table-tm table-borderless mb-0">
+        <tr>
+            <td class="text-muted">نام</td>
+            <td class="fw-bold">{{ parent_rel.parent_dealer.full_name }}</td>
+            <td class="text-muted">درصد سهم بالاسری</td>
+            <td class="fw-bold"><span class="badge bg-primary">{{ parent_rel.commission_split_percent }}%</span></td>
+        </tr>
+    </table>
+    <small class="text-muted">
+        از سود فلزی هر فروش شما، {{ parent_rel.commission_split_percent }}% به بالاسری واریز می‌شود.
+    </small>
+</div>
+{% endif %}
+
+<!-- Commission Stats (from my sub-dealers) -->
+{% if commission_stats.total_sales_from_subs > 0 %}
+<div class="row g-3 mb-4">
+    <div class="col-md-4 tm-animate-fade-in-up tm-delay-2">
+        <div class="stat-card-tm">
+            <i class="bi bi-gem" style="color:#fbbf24;"></i>
+            <div class="stat-value" style="color:#fbbf24;">{{ (commission_stats.total_gold_commission_mg / 1000) | round(3) }} گرم</div>
+            <div class="stat-label">کمیسیون طلا دریافتی</div>
+        </div>
+    </div>
+    <div class="col-md-4 tm-animate-fade-in-up tm-delay-3">
+        <div class="stat-card-tm">
+            <i class="bi bi-gem" style="color:#adb5bd;"></i>
+            <div class="stat-value" style="color:#adb5bd;">{{ (commission_stats.total_silver_commission_mg / 1000) | round(3) }} گرم</div>
+            <div class="stat-label">کمیسیون نقره دریافتی</div>
+        </div>
+    </div>
+    <div class="col-md-4 tm-animate-fade-in-up tm-delay-4">
+        <div class="stat-card-tm">
+            <i class="bi bi-bag-check"></i>
+            <div class="stat-value">{{ commission_stats.total_sales_from_subs | persian_number }}</div>
+            <div class="stat-label">فروش زیرمجموعه‌ها</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- My Sub-dealers -->
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-5">
+    <div class="border-bottom pb-3 mb-3">
+        <i class="bi bi-people me-1"></i>
+        <strong>زیرمجموعه‌های من</strong>
+    </div>
+    {% if sub_rels %}
+    <div class="table-responsive">
+        <table class="table table-tm mb-0">
+            <thead>
+                <tr>
+                    <th>نام نماینده</th>
+                    <th>سطح</th>
+                    <th>درصد سود شما</th>
+                    <th>وضعیت</th>
+                    <th>تاریخ شروع</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rel in sub_rels %}
+                <tr>
+                    <td class="fw-bold">{{ rel.child_dealer.full_name }}</td>
+                    <td>{{ rel.child_dealer.tier_name }}</td>
+                    <td><span class="badge bg-primary">{{ rel.commission_split_percent }}%</span></td>
+                    <td><span class="badge bg-{{ rel.status_color }}">{{ rel.status_label }}</span></td>
+                    <td>{{ rel.created_at | jdate }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-4">
+        <i class="bi bi-inbox" style="font-size:2rem;"></i>
+        <div class="mt-2">
+            {% if not parent_rel %}
+            شبکه زیرمجموعه‌ای برای شما تنظیم نشده است.
+            {% else %}
+            شما زیرمجموعه‌ای ندارید.
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}زیرمجموعه‌های {{ dealer.full_name }} - ادمین طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-diagram-3 text-tm-primary"></i>
+        زیرمجموعه‌های {{ dealer.full_name }}
+    </h4>
+    <a href="/admin/dealers" class="btn btn-sm btn-tm-outline">
+        <i class="bi bi-arrow-right me-1"></i> بازگشت
+    </a>
+</div>
+
+{% if msg %}
+<div class="alert {% if error %}alert-danger{% else %}alert-success{% endif %} alert-dismissible fade show">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Parent Dealer Info -->
+{% if parent_rel %}
+<div class="card-tm no-hover mb-4">
+    <div class="border-bottom pb-3 mb-3">
+        <i class="bi bi-arrow-up-circle me-1 text-info"></i>
+        <strong>بالاسری این نماینده</strong>
+    </div>
+    <table class="table table-tm table-borderless mb-0">
+        <tr>
+            <td class="text-muted">نام بالاسری</td>
+            <td class="fw-bold">{{ parent_rel.parent_dealer.full_name }}</td>
+            <td class="text-muted">درصد تقسیم سود</td>
+            <td class="fw-bold">{{ parent_rel.commission_split_percent }}%</td>
+        </tr>
+    </table>
+</div>
+{% endif %}
+
+<!-- Commission Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card-tm">
+            <i class="bi bi-gem" style="color:#fbbf24;"></i>
+            <div class="stat-value" style="color:#fbbf24;">{{ (commission_stats.total_gold_commission_mg / 1000) | round(3) }} گرم</div>
+            <div class="stat-label">کمیسیون طلا از زیرمجموعه‌ها</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card-tm">
+            <i class="bi bi-gem" style="color:#adb5bd;"></i>
+            <div class="stat-value" style="color:#adb5bd;">{{ (commission_stats.total_silver_commission_mg / 1000) | round(3) }} گرم</div>
+            <div class="stat-label">کمیسیون نقره از زیرمجموعه‌ها</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card-tm">
+            <i class="bi bi-bag-check"></i>
+            <div class="stat-value">{{ commission_stats.total_sales_from_subs | persian_number }}</div>
+            <div class="stat-label">فروش زیرمجموعه‌ها</div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Sub-dealers -->
+<div class="card-tm no-hover mb-4">
+    <div class="border-bottom pb-3 mb-3">
+        <i class="bi bi-people me-1"></i>
+        <strong>زیرمجموعه‌های فعلی</strong>
+    </div>
+    {% if sub_rels %}
+    <div class="table-responsive">
+        <table class="table table-tm mb-0">
+            <thead>
+                <tr>
+                    <th>نماینده زیرمجموعه</th>
+                    <th>موبایل</th>
+                    <th>سطح</th>
+                    <th>درصد سود بالاسری</th>
+                    <th>وضعیت</th>
+                    <th>تاریخ ایجاد</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rel in sub_rels %}
+                <tr>
+                    <td class="fw-bold">{{ rel.child_dealer.full_name }}</td>
+                    <td dir="ltr">{{ rel.child_dealer.mobile }}</td>
+                    <td>{{ rel.child_dealer.tier_name }}</td>
+                    <td><span class="badge bg-primary">{{ rel.commission_split_percent }}%</span></td>
+                    <td><span class="badge bg-{{ rel.status_color }}">{{ rel.status_label }}</span></td>
+                    <td>{{ rel.created_at | jdate }}</td>
+                    <td>
+                        {% if rel.is_active %}
+                        <form method="post" action="/admin/dealers/sub-dealers/{{ rel.id }}/deactivate" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('غیرفعال شود؟')">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="text-muted">غیرفعال</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-4">
+        <i class="bi bi-inbox" style="font-size:2rem;"></i>
+        <div class="mt-2">هنوز زیرمجموعه‌ای ثبت نشده</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add New Sub-dealer -->
+<div class="card-tm no-hover">
+    <div class="border-bottom pb-3 mb-3">
+        <i class="bi bi-plus-circle me-1"></i>
+        <strong>افزودن زیرمجموعه جدید</strong>
+    </div>
+    <form method="post" action="/admin/dealers/{{ dealer.id }}/sub-dealers/add" class="row g-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="col-md-4">
+            <label class="form-label">نماینده زیرمجموعه</label>
+            <select name="child_dealer_id" class="form-select form-select-tm" required>
+                <option value="">انتخاب نماینده...</option>
+                {% for d in all_dealers %}
+                <option value="{{ d.id }}">{{ d.full_name }} ({{ d.mobile }}) — {{ d.tier_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">درصد سود بالاسری</label>
+            <div class="input-group">
+                <input type="number" name="commission_split_percent" class="form-control form-control-tm"
+                       value="20" min="0" max="100" step="0.5" required>
+                <span class="input-group-text">%</span>
+            </div>
+            <small class="text-muted">از سود فلزی هر فروش زیرمجموعه</small>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">یادداشت ادمین</label>
+            <input type="text" name="admin_note" class="form-control form-control-tm" placeholder="اختیاری">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-tm-primary w-100">
+                <i class="bi bi-plus-circle me-1"></i> افزودن
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

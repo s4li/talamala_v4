@@ -318,6 +318,31 @@ async def buyback_list(
 
 
 # ==========================================
+# Sub-dealers (Read-only view)
+# ==========================================
+
+@router.get("/sub-dealers", response_class=HTMLResponse)
+async def dealer_sub_dealers(
+    request: Request,
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    parent_rel = dealer_service.get_parent_relation(db, dealer.id)
+    sub_rels = dealer_service.get_sub_dealers(db, dealer.id)
+    commission_stats = dealer_service.get_sub_dealer_commission_stats(db, dealer.id)
+
+    response = templates.TemplateResponse("dealer/sub_dealers.html", {
+        "request": request,
+        "dealer": dealer,
+        "parent_rel": parent_rel,
+        "sub_rels": sub_rels,
+        "commission_stats": commission_stats,
+        "active_page": "sub_dealers",
+    })
+    return response
+
+
+# ==========================================
 # Physical Inventory
 # ==========================================
 

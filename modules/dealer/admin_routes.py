@@ -647,3 +647,113 @@ async def tier_wages_save(
         f"/admin/dealers/tier-wages/{product_id}?msg=اجرت+پلکانی+ذخیره+شد",
         status_code=302,
     )
+
+
+# ==========================================
+# Sub-dealer Relations (Admin)
+# ==========================================
+
+@router.get("/{dealer_id}/sub-dealers", response_class=HTMLResponse)
+async def admin_sub_dealers(
+    request: Request,
+    dealer_id: int,
+    msg: str = "",
+    error: str = "",
+    admin=Depends(require_permission("dealers")),
+    db: Session = Depends(get_db),
+):
+    from modules.user.models import User
+    dealer = db.query(User).filter(User.id == dealer_id, User.is_dealer == True).first()
+    if not dealer:
+        return RedirectResponse("/admin/dealers?msg=نماینده+یافت+نشد&error=1", status_code=302)
+
+    # This dealer's sub-dealers (where they are parent)
+    sub_rels = dealer_service.get_sub_dealers(db, dealer_id)
+    # This dealer's parent (where they are child)
+    parent_rel = dealer_service.get_parent_relation(db, dealer_id)
+    # Commission earned from sub-dealers
+    commission_stats = dealer_service.get_sub_dealer_commission_stats(db, dealer_id)
+    # All dealers for the add form dropdown
+    all_dealers = db.query(User).filter(User.is_dealer == True, User.is_active == True, User.id != dealer_id).order_by(User.first_name).all()
+
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("admin/dealers/sub_dealers.html", {
+        "request": request,
+        "admin": admin,
+        "dealer": dealer,
+        "sub_rels": sub_rels,
+        "parent_rel": parent_rel,
+        "commission_stats": commission_stats,
+        "all_dealers": all_dealers,
+        "csrf_token": csrf,
+        "msg": msg,
+        "error": error,
+        "active_page": "dealers",
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/{dealer_id}/sub-dealers/add")
+async def admin_add_sub_dealer(
+    request: Request,
+    dealer_id: int,
+    child_dealer_id: int = Form(...),
+    commission_split_percent: str = Form("20"),
+    admin_note: str = Form(""),
+    csrf_token: str = Form(""),
+    admin=Depends(require_permission("dealers")),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+
+    try:
+        split_pct = float(commission_split_percent)
+    except (ValueError, TypeError):
+        split_pct = 20.0
+
+    result = dealer_service.create_sub_dealer_relation(
+        db, parent_id=dealer_id, child_id=child_dealer_id,
+        commission_split_percent=split_pct, admin_note=admin_note,
+    )
+
+    if result["success"]:
+        db.commit()
+        return RedirectResponse(
+            f"/admin/dealers/{dealer_id}/sub-dealers?msg={result['message']}",
+            status_code=302,
+        )
+    else:
+        db.rollback()
+        return RedirectResponse(
+            f"/admin/dealers/{dealer_id}/sub-dealers?msg={result['message']}&error=1",
+            status_code=302,
+        )
+
+
+@router.post("/sub-dealers/{relation_id}/deactivate")
+async def admin_deactivate_sub_dealer(
+    request: Request,
+    relation_id: int,
+    csrf_token: str = Form(""),
+    admin=Depends(require_permission("dealers")),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+
+    from modules.dealer.models import SubDealerRelation
+    rel = db.query(SubDealerRelation).filter(SubDealerRelation.id == relation_id).first()
+    if not rel:
+        return RedirectResponse("/admin/dealers?msg=ارتباط+یافت+نشد&error=1", status_code=302)
+
+    parent_id = rel.parent_dealer_id
+    result = dealer_service.deactivate_sub_dealer_relation(db, relation_id)
+    if result["success"]:
+        db.commit()
+    else:
+        db.rollback()
+
+    return RedirectResponse(
+        f"/admin/dealers/{parent_id}/sub-dealers?msg={result['message']}{'&error=1' if not result['success'] else ''}",
+        status_code=302,
+    )
