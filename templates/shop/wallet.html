@@ -145,24 +145,28 @@
     <!-- Precious Metal Balance Cards -->
     {% for m in metals %}
     <div class="col-12">
+        {% if m.key == 'gold' %}
+        <div class="wallet-card" style="background: linear-gradient(135deg, #78580a 0%, #a67c00 50%, #c9952c 100%);">
+        {% else %}
         <div class="wallet-card" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+        {% endif %}
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <div class="d-flex align-items-center">
-                    <i class="bi {{ m.icon }} me-2" style="font-size:1.5rem;color:{% if m.key == 'gold' %}#fbbf24{% else %}#c0c0c0{% endif %};"></i>
+                    <i class="bi {{ m.icon }} me-2" style="font-size:1.5rem;color:{% if m.key == 'gold' %}#fff5cc{% else %}#c0c0c0{% endif %};"></i>
                     <span style="font-size:1.1rem;">موجودی {{ m.label }}</span>
                 </div>
-                <a href="/wallet/{{ m.key }}" class="btn btn-sm btn-outline-light">
+                <a href="/wallet/{{ m.key }}" class="btn btn-sm {% if m.key == 'gold' %}btn-outline-light{% else %}btn-outline-light{% endif %}">
                     <i class="bi bi-arrow-left-right me-1"></i> خرید و فروش {{ m.label }}
                 </a>
             </div>
             <div class="row g-2">
                 <div class="col-6 col-md">
                     <div class="wallet-label">موجودی {{ m.label }}</div>
-                    <div class="wallet-balance" style="color:{% if m.key == 'gold' %}#fbbf24{% else %}#c0c0c0{% endif %};">{{ m.balance.balance | metal_gram }}</div>
+                    <div class="wallet-balance" style="color:{% if m.key == 'gold' %}#fff5cc{% else %}#c0c0c0{% endif %};">{{ m.balance.balance | metal_gram }}</div>
                 </div>
                 <div class="col-6 col-md">
                     <div class="wallet-label">بلوکه شده</div>
-                    <div style="font-size:1.3rem;font-weight:bold;color:#fdba74;">{{ m.balance.locked | metal_gram }}</div>
+                    <div style="font-size:1.3rem;font-weight:bold;color:{% if m.key == 'gold' %}#ffe08a{% else %}#fdba74{% endif %};">{{ m.balance.locked | metal_gram }}</div>
                 </div>
                 {% if m.rates and m.rates.buy_per_gram > 0 %}
                 <div class="col-6 col-md">
@@ -177,7 +181,7 @@
             </div>
             {% if m.fee_percent %}
             <div class="mt-2">
-                <span class="badge" style="background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);">
+                <span class="badge" style="background:rgba(255,255,255,0.2);color:{% if m.key == 'gold' %}#fff5cc{% else %}rgba(255,255,255,0.8){% endif %};">
                     <i class="bi bi-percent me-1"></i>کارمزد شما: {{ m.fee_percent }}٪
                 </span>
             </div>
