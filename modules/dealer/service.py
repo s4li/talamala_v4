@@ -241,7 +241,9 @@ class DealerService:
                  / Decimal("100")).quantize(Decimal("1"), rounding=ROUND_FLOOR)
             )
             expected_total = full_price.get("total", 0) - discount_rial
-            if abs(sale_price - expected_total) > 10:
+            # Tolerance: 1000 rial (100 toman) — accounts for JS float vs Python Decimal
+            # rounding differences + toman÷10 conversion precision loss
+            if abs(sale_price - expected_total) > 1000:
                 return {"success": False, "message": "مبلغ فروش با قیمت محاسباتی مطابقت ندارد"}
 
         # Mark bar as sold + generate claim code for POS receipt
