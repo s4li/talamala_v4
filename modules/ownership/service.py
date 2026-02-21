@@ -60,7 +60,7 @@ class OwnershipService:
             DeliveryStatus.RETURNED: ("مرجوعی", "danger"),
         }
 
-        # Check for buyback records
+        # Exclude bars with active buyback (non-rejected)
         from modules.dealer.models import BuybackRequest, BuybackStatus
         buyback_bar_ids = set()
         if bar_ids:
@@ -74,25 +74,23 @@ class OwnershipService:
             )
             buyback_bar_ids = {r.bar_id for r in bb_rows}
 
-        for bar in bars:
-            bar._has_buyback = bar.id in buyback_bar_ids
+        # Filter out buyback bars
+        bars = [b for b in bars if b.id not in buyback_bar_ids]
 
-            if bar._has_buyback:
-                bar._delivery_label = "درخواست بازخرید"
-                bar._delivery_color = "dark"
+        for bar in bars:
+            bar._has_buyback = False
+            di = delivery_map.get(bar.id)
+            if di and di.delivery_status:
+                lbl, clr = label_map.get(di.delivery_status, ("نامشخص", "secondary"))
+                # Pickup-specific label for WAITING
+                if di.delivery_status == DeliveryStatus.WAITING and di.delivery_method == DeliveryMethod.PICKUP:
+                    lbl = "منتظر مراجعه"
+                bar._delivery_label = lbl
+                bar._delivery_color = clr
             else:
-                di = delivery_map.get(bar.id)
-                if di and di.delivery_status:
-                    lbl, clr = label_map.get(di.delivery_status, ("نامشخص", "secondary"))
-                    # Pickup-specific label for WAITING
-                    if di.delivery_status == DeliveryStatus.WAITING and di.delivery_method == DeliveryMethod.PICKUP:
-                        lbl = "منتظر مراجعه"
-                    bar._delivery_label = lbl
-                    bar._delivery_color = clr
-                else:
-                    # POS / claim / transfer — already in customer's hands
-                    bar._delivery_label = "تحویل شده"
-                    bar._delivery_color = "success"
+                # POS / claim / transfer — already in customer's hands
+                bar._delivery_label = "تحویل شده"
+                bar._delivery_color = "success"
 
         return bars
 
