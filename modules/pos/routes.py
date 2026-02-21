@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from config.database import get_db
-from modules.dealer.models import Dealer
+from modules.user.models import User
 from modules.dealer.auth_deps import get_dealer_by_api_key
 from modules.pos.service import pos_service
 
@@ -56,7 +56,7 @@ class CancelRequest(BaseModel):
 
 @router.get("/categories")
 async def pos_categories(
-    dealer: Dealer = Depends(get_dealer_by_api_key),
+    dealer: User = Depends(get_dealer_by_api_key),
     db: Session = Depends(get_db),
 ):
     """Product categories with available stock at dealer."""
@@ -71,7 +71,7 @@ async def pos_categories(
 @router.get("/products")
 async def pos_products(
     category_id: Optional[int] = Query(None),
-    dealer: Dealer = Depends(get_dealer_by_api_key),
+    dealer: User = Depends(get_dealer_by_api_key),
     db: Session = Depends(get_db),
 ):
     """Products with live pricing + stock count."""
@@ -90,7 +90,7 @@ async def pos_products(
 @router.post("/reserve")
 async def pos_reserve(
     body: ReserveRequest,
-    dealer: Dealer = Depends(get_dealer_by_api_key),
+    dealer: User = Depends(get_dealer_by_api_key),
     db: Session = Depends(get_db),
 ):
     """Reserve a bar before card payment (2-minute hold)."""
@@ -108,7 +108,7 @@ async def pos_reserve(
 @router.post("/confirm")
 async def pos_confirm(
     body: ConfirmRequest,
-    dealer: Dealer = Depends(get_dealer_by_api_key),
+    dealer: User = Depends(get_dealer_by_api_key),
     db: Session = Depends(get_db),
 ):
     """Confirm sale after successful card payment."""
@@ -135,7 +135,7 @@ async def pos_confirm(
 @router.post("/cancel")
 async def pos_cancel(
     body: CancelRequest,
-    dealer: Dealer = Depends(get_dealer_by_api_key),
+    dealer: User = Depends(get_dealer_by_api_key),
     db: Session = Depends(get_db),
 ):
     """Cancel reservation (payment failed or cancelled)."""
@@ -153,7 +153,7 @@ async def pos_cancel(
 @router.get("/receipt/{sale_id}")
 async def pos_receipt(
     sale_id: int,
-    dealer: Dealer = Depends(get_dealer_by_api_key),
+    dealer: User = Depends(get_dealer_by_api_key),
     db: Session = Depends(get_db),
 ):
     """Receipt data for printing."""

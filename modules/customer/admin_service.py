@@ -9,9 +9,9 @@ from typing import Optional, Tuple, List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import func as sa_func, or_
 
-from modules.customer.models import Customer
+from modules.user.models import User
 from modules.order.models import Order
-from modules.wallet.models import Account, WithdrawalRequest, OwnerType, AssetCode
+from modules.wallet.models import Account, WithdrawalRequest, AssetCode
 from modules.inventory.models import Bar, BarStatus
 from common.helpers import now_utc, validate_iranian_national_id, validate_iranian_mobile
 from datetime import timedelta
@@ -26,26 +26,26 @@ class CustomerAdminService:
         per_page: int = 30,
         search: str = None,
         status: str = None,
-    ) -> Tuple[List[Customer], int]:
-        q = db.query(Customer)
+    ) -> Tuple[List[User], int]:
+        q = db.query(User).filter(User.is_customer == True)
         if search:
             term = f"%{search}%"
             q = q.filter(
                 or_(
-                    Customer.mobile.ilike(term),
-                    Customer.national_id.ilike(term),
-                    Customer.first_name.ilike(term),
-                    Customer.last_name.ilike(term),
+                    User.mobile.ilike(term),
+                    User.national_id.ilike(term),
+                    User.first_name.ilike(term),
+                    User.last_name.ilike(term),
                 )
             )
         if status == "active":
-            q = q.filter(Customer.is_active == True)
+            q = q.filter(User.is_active == True)
         elif status == "inactive":
-            q = q.filter(Customer.is_active == False)
+            q = q.filter(User.is_active == False)
 
         total = q.count()
         customers = (
-            q.order_by(Customer.created_at.desc())
+            q.order_by(User.created_at.desc())
             .offset((page - 1) * per_page)
             .limit(per_page)
             .all()
@@ -56,16 +56,16 @@ class CustomerAdminService:
         now = now_utc()
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-        total = db.query(sa_func.count(Customer.id)).scalar() or 0
+        total = db.query(sa_func.count(User.id)).filter(User.is_customer == True).scalar() or 0
         active = (
-            db.query(sa_func.count(Customer.id))
-            .filter(Customer.is_active == True)
+            db.query(sa_func.count(User.id))
+            .filter(User.is_customer == True, User.is_active == True)
             .scalar()
             or 0
         )
         today_registered = (
-            db.query(sa_func.count(Customer.id))
-            .filter(Customer.created_at >= today_start)
+            db.query(sa_func.count(User.id))
+            .filter(User.is_customer == True, User.created_at >= today_start)
             .scalar()
             or 0
         )
@@ -84,8 +84,8 @@ class CustomerAdminService:
             "with_orders": with_orders,
         }
 
-    def get_customer_detail(self, db: Session, customer_id: int) -> Optional[Customer]:
-        return db.query(Customer).filter(Customer.id == customer_id).first()
+    def get_customer_detail(self, db: Session, customer_id: int) -> Optional[User]:
+        return db.query(User).filter(User.id == customer_id).first()
 
     def get_customer_summary(self, db: Session, customer_id: int) -> Dict[str, Any]:
         # Orders
@@ -105,8 +105,7 @@ class CustomerAdminService:
         irr_acct = (
             db.query(Account)
             .filter(
-                Account.owner_type == OwnerType.CUSTOMER,
-                Account.owner_id == customer_id,
+                Account.user_id == customer_id,
                 Account.asset_code == AssetCode.IRR,
             )
             .first()
@@ -117,8 +116,7 @@ class CustomerAdminService:
         gold_acct = (
             db.query(Account)
             .filter(
-                Account.owner_type == OwnerType.CUSTOMER,
-                Account.owner_id == customer_id,
+                Account.user_id == customer_id,
                 Account.asset_code == AssetCode.XAU_MG,
             )
             .first()
@@ -136,7 +134,7 @@ class CustomerAdminService:
         # Withdrawal requests
         withdrawal_count = (
             db.query(sa_func.count(WithdrawalRequest.id))
-            .filter(WithdrawalRequest.customer_id == customer_id)
+            .filter(WithdrawalRequest.user_id == customer_id)
             .scalar()
             or 0
         )
@@ -175,7 +173,7 @@ class CustomerAdminService:
         per_page: int = 20,
     ) -> Tuple[List[WithdrawalRequest], int]:
         q = db.query(WithdrawalRequest).filter(
-            WithdrawalRequest.customer_id == customer_id
+            WithdrawalRequest.user_id == customer_id
         )
         total = q.count()
         items = (
@@ -203,7 +201,7 @@ class CustomerAdminService:
             return {"success": False, "error": "شماره موبایل نامعتبر است (فرمت: ۰۹XXXXXXXXX)"}
 
         # Check duplicate mobile
-        dup = db.query(Customer).filter(Customer.mobile == mobile).first()
+        dup = db.query(User).filter(User.mobile == mobile).first()
         if dup:
             return {"success": False, "error": "این شماره موبایل قبلا ثبت شده است"}
 
@@ -212,15 +210,16 @@ class CustomerAdminService:
         if national_id:
             if not validate_iranian_national_id(national_id):
                 return {"success": False, "error": "کد ملی نامعتبر است (باید ۱۰ رقم معتبر باشد)"}
-            dup = db.query(Customer).filter(Customer.national_id == national_id).first()
+            dup = db.query(User).filter(User.national_id == national_id).first()
             if dup:
                 return {"success": False, "error": "این کد ملی قبلا ثبت شده است"}
 
-        customer = Customer(
+        customer = User(
             mobile=mobile,
             first_name=first_name.strip() or None,
             last_name=last_name.strip() or None,
             national_id=national_id or mobile,
+            is_customer=True,
             is_active=True,
         )
         db.add(customer)
@@ -252,8 +251,8 @@ class CustomerAdminService:
         if mobile and mobile != customer.mobile:
             if not validate_iranian_mobile(mobile):
                 return {"success": False, "error": "شماره موبایل نامعتبر است (فرمت: ۰۹XXXXXXXXX)"}
-            dup = db.query(Customer).filter(
-                Customer.mobile == mobile, Customer.id != customer_id
+            dup = db.query(User).filter(
+                User.mobile == mobile, User.id != customer_id
             ).first()
             if dup:
                 return {"success": False, "error": "این شماره موبایل قبلا ثبت شده است"}
@@ -262,8 +261,8 @@ class CustomerAdminService:
         if national_id and national_id != (customer.national_id or ""):
             if not validate_iranian_national_id(national_id):
                 return {"success": False, "error": "کد ملی نامعتبر است (باید ۱۰ رقم معتبر باشد)"}
-            dup = db.query(Customer).filter(
-                Customer.national_id == national_id, Customer.id != customer_id
+            dup = db.query(User).filter(
+                User.national_id == national_id, User.id != customer_id
             ).first()
             if dup:
                 return {"success": False, "error": "این کد ملی قبلا ثبت شده است"}

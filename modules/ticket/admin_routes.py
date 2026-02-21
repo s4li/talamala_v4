@@ -15,7 +15,7 @@ from common.security import new_csrf_token, csrf_check
 from modules.auth.deps import require_permission
 from modules.ticket.service import ticket_service
 from modules.ticket.models import TicketStatus, TicketCategory, SenderType
-from modules.admin.models import SystemUser
+from modules.user.models import User
 
 router = APIRouter(prefix="/admin/tickets", tags=["admin-ticket"])
 
@@ -81,7 +81,7 @@ async def admin_ticket_detail(
     if not ticket:
         raise HTTPException(status_code=404, detail="تیکت یافت نشد")
 
-    staff_list = db.query(SystemUser).order_by(SystemUser.full_name).all()
+    staff_list = db.query(User).filter(User.is_admin == True).order_by(User.first_name, User.last_name).all()
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("admin/tickets/detail.html", {

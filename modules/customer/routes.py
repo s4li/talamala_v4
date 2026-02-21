@@ -15,7 +15,7 @@ from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
 from modules.auth.deps import require_customer
-from modules.customer.models import Customer
+from modules.user.models import User
 from modules.customer.address_models import CustomerAddress, GeoProvince, GeoCity, GeoDistrict
 
 router = APIRouter(tags=["profile"])
@@ -84,9 +84,9 @@ async def profile_update(
             return RedirectResponse(f"/profile?error={msg}", status_code=303)
         # Check uniqueness
         if national_id.strip() != me.national_id:
-            existing = db.query(Customer).filter(
-                Customer.national_id == national_id.strip(),
-                Customer.id != me.id,
+            existing = db.query(User).filter(
+                User.national_id == national_id.strip(),
+                User.id != me.id,
             ).first()
             if existing:
                 msg = urllib.parse.quote("این کد ملی قبلاً ثبت شده است.")
@@ -264,15 +264,14 @@ async def api_geo_dealers(
     db: Session = Depends(get_db),
 ):
     """Return active dealers filtered by province/city/district (all optional)."""
-    from modules.dealer.models import Dealer
-    q = db.query(Dealer).filter(Dealer.is_active == True)
+    q = db.query(User).filter(User.is_dealer == True, User.is_active == True)
     if province_id:
-        q = q.filter(Dealer.province_id == province_id)
+        q = q.filter(User.province_id == province_id)
     if city_id:
-        q = q.filter(Dealer.city_id == city_id)
+        q = q.filter(User.city_id == city_id)
     if district_id:
-        q = q.filter(Dealer.district_id == district_id)
-    dealers = q.order_by(Dealer.full_name).all()
+        q = q.filter(User.district_id == district_id)
+    dealers = q.order_by(User.first_name, User.last_name).all()
     return [{"id": d.id, "full_name": d.full_name, "type_label": d.type_label} for d in dealers]
 
 
@@ -286,7 +285,7 @@ async def invite_page(
     db: Session = Depends(get_db),
     me=Depends(require_customer),
 ):
-    from modules.customer.models import generate_referral_code
+    from modules.user.models import generate_referral_code
     from config.settings import BASE_URL
 
     # Generate referral code if not set
@@ -294,7 +293,7 @@ async def invite_page(
         code = None
         for _ in range(10):
             candidate = generate_referral_code()
-            existing = db.query(Customer).filter(Customer.referral_code == candidate).first()
+            existing = db.query(User).filter(User.referral_code == candidate).first()
             if not existing:
                 code = candidate
                 break

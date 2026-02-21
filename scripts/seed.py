@@ -37,8 +37,8 @@ if sys.stderr.encoding != "utf-8":
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.database import SessionLocal, Base, engine
-from modules.admin.models import SystemUser, SystemSetting
-from modules.customer.models import Customer
+from modules.user.models import User
+from modules.admin.models import SystemSetting
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress
 from modules.catalog.models import (
     ProductCategory, ProductCategoryLink, Product, ProductImage, CardDesign, CardDesignImage,
@@ -50,9 +50,9 @@ from modules.inventory.models import (
 )
 from modules.cart.models import Cart, CartItem
 from modules.order.models import Order, OrderItem, OrderStatusLog, OrderStatus, DeliveryMethod, DeliveryStatus
-from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest, OwnerType
+from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory
-from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest
+from modules.dealer.models import DealerTier, DealerSale, BuybackRequest
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment, TicketStatus, TicketPriority, TicketCategory, SenderType
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment
@@ -78,25 +78,6 @@ def ensure_schema_updates():
 
     insp = inspect(engine)
     updates = 0
-
-    # --- withdrawal_requests: owner_type, dealer_id ---
-    if "withdrawal_requests" in insp.get_table_names():
-        wr_cols = {c["name"] for c in insp.get_columns("withdrawal_requests")}
-        with engine.begin() as conn:
-            if "owner_type" not in wr_cols:
-                conn.execute(text("ALTER TABLE withdrawal_requests ADD COLUMN owner_type VARCHAR NOT NULL DEFAULT 'customer'"))
-                print("  + withdrawal_requests.owner_type added")
-                updates += 1
-            if "dealer_id" not in wr_cols:
-                conn.execute(text("ALTER TABLE withdrawal_requests ADD COLUMN dealer_id INTEGER REFERENCES dealers(id) ON DELETE CASCADE"))
-                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_withdrawal_requests_dealer_id ON withdrawal_requests(dealer_id)"))
-                print("  + withdrawal_requests.dealer_id added")
-                updates += 1
-            # Make customer_id nullable (may already be)
-            try:
-                conn.execute(text("ALTER TABLE withdrawal_requests ALTER COLUMN customer_id DROP NOT NULL"))
-            except Exception:
-                pass  # already nullable
 
     # --- products: description ---
     if "products" in insp.get_table_names():
@@ -129,24 +110,35 @@ def seed():
         print("\n[1/9] Admin Users")
 
         admins_data = [
-            {"mobile": "09123456789", "full_name": "مدیر سیستم", "role": "admin"},
-            {"mobile": "09121111111", "full_name": "اپراتور تهران", "role": "operator"},
-            {"mobile": "09121023589", "full_name": "ادمین ۱", "role": "admin"},
-            {"mobile": "09120725564", "full_name": "ادمین ۲", "role": "admin"},
+            {"mobile": "09123456789", "first_name": "مدیر", "last_name": "سیستم", "admin_role": "admin"},
+            {"mobile": "09121111111", "first_name": "اپراتور", "last_name": "تهران", "admin_role": "operator"},
+            {"mobile": "09121023589", "first_name": "ادمین", "last_name": "۱", "admin_role": "admin"},
+            {"mobile": "09120725564", "first_name": "ادمین", "last_name": "۲", "admin_role": "admin"},
         ]
         for data in admins_data:
-            existing = db.query(SystemUser).filter(SystemUser.mobile == data["mobile"]).first()
+            existing = db.query(User).filter(User.mobile == data["mobile"]).first()
             if not existing:
-                user_obj = SystemUser(**data)
+                user_obj = User(
+                    mobile=data["mobile"],
+                    first_name=data["first_name"],
+                    last_name=data["last_name"],
+                    admin_role=data["admin_role"],
+                    is_admin=True,
+                    is_customer=True,  # admins can also shop
+                )
                 db.add(user_obj)
-                print(f"  + {data['role']}: {data['mobile']} ({data['full_name']})")
+                print(f"  + {data['admin_role']}: {data['mobile']} ({data['first_name']} {data['last_name']})")
             else:
+                # Ensure admin flags are set
+                if not existing.is_admin:
+                    existing.is_admin = True
+                    existing.admin_role = data["admin_role"]
                 user_obj = existing
                 print(f"  = exists: {data['mobile']}")
 
         # Set operator permissions (after flush to ensure objects exist)
         db.flush()
-        op_user = db.query(SystemUser).filter(SystemUser.mobile == "09121111111").first()
+        op_user = db.query(User).filter(User.mobile == "09121111111").first()
         if op_user:
             op_user.permissions = ["dashboard", "orders", "inventory", "tickets", "customers"]
             print(f"  ~ operator permissions set: {op_user.permissions}")
@@ -184,11 +176,13 @@ def seed():
             },
         ]
         for data in customers_data:
-            existing = db.query(Customer).filter(Customer.mobile == data["mobile"]).first()
+            existing = db.query(User).filter(User.mobile == data["mobile"]).first()
             if not existing:
-                db.add(Customer(**data))
+                db.add(User(**data, is_customer=True))
                 print(f"  + {data['first_name']} {data['last_name']}: {data['mobile']}")
             else:
+                if not existing.is_customer:
+                    existing.is_customer = True
                 print(f"  = exists: {data['mobile']}")
 
         db.flush()
@@ -991,18 +985,15 @@ def seed():
         # ==========================================
         print("\n[9/9] Test Wallet Credit")
 
-        test_customer = db.query(Customer).filter(Customer.mobile == "09351234567").first()
+        test_customer = db.query(User).filter(User.mobile == "09351234567").first()
         if test_customer:
             existing_acct = db.query(Account).filter(
-                Account.owner_type == OwnerType.CUSTOMER,
-                Account.owner_id == test_customer.id,
+                Account.user_id == test_customer.id,
                 Account.asset_code == "IRR",
             ).first()
             if not existing_acct:
                 acct = Account(
-                    owner_type=OwnerType.CUSTOMER,
-                    owner_id=test_customer.id,
-                    customer_id=test_customer.id,
+                    user_id=test_customer.id,
                     asset_code="IRR",
                     balance=100_000_000, locked_balance=0,
                 )
@@ -1022,15 +1013,12 @@ def seed():
 
             # Gold wallet for test customer
             existing_gold = db.query(Account).filter(
-                Account.owner_type == OwnerType.CUSTOMER,
-                Account.owner_id == test_customer.id,
+                Account.user_id == test_customer.id,
                 Account.asset_code == "XAU_MG",
             ).first()
             if not existing_gold:
                 db.add(Account(
-                    owner_type=OwnerType.CUSTOMER,
-                    owner_id=test_customer.id,
-                    customer_id=test_customer.id,
+                    user_id=test_customer.id,
                     asset_code="XAU_MG",
                     balance=0, locked_balance=0,
                 ))
@@ -1048,32 +1036,28 @@ def seed():
             from modules.wallet.models import WithdrawalStatus
 
             acct = db.query(Account).filter(
-                Account.owner_type == OwnerType.CUSTOMER,
-                Account.owner_id == test_customer.id,
+                Account.user_id == test_customer.id,
                 Account.asset_code == "IRR",
             ).first()
 
             # --- Customer withdrawals ---
             wr_data = [
                 {
-                    "owner_type": OwnerType.CUSTOMER,
-                    "customer_id": test_customer.id,
+                    "user_id": test_customer.id,
                     "amount_irr": 5_000_000,
                     "shaba_number": "IR820540102680020817909002",
                     "account_holder": "علی رضایی",
                     "status": WithdrawalStatus.PENDING,
                 },
                 {
-                    "owner_type": OwnerType.CUSTOMER,
-                    "customer_id": test_customer.id,
+                    "user_id": test_customer.id,
                     "amount_irr": 10_000_000,
                     "shaba_number": "IR062960000000100324200001",
                     "account_holder": "علی رضایی",
                     "status": WithdrawalStatus.PENDING,
                 },
                 {
-                    "owner_type": OwnerType.CUSTOMER,
-                    "customer_id": test_customer.id,
+                    "user_id": test_customer.id,
                     "amount_irr": 3_000_000,
                     "shaba_number": "IR820540102680020817909002",
                     "account_holder": "علی رضایی",
@@ -1081,8 +1065,7 @@ def seed():
                     "admin_note": "واریز شد - شماره پیگیری ۱۲۳۴۵۶",
                 },
                 {
-                    "owner_type": OwnerType.CUSTOMER,
-                    "customer_id": test_customer.id,
+                    "user_id": test_customer.id,
                     "amount_irr": 2_000_000,
                     "shaba_number": "IR062960000000100324200001",
                     "account_holder": "علی رضایی",
@@ -1092,24 +1075,21 @@ def seed():
             ]
 
             # --- Dealer withdrawal (test for dealer withdrawal feature) ---
-            test_dealer_wr = db.query(Dealer).filter(Dealer.mobile == "09161234567").first()
+            test_dealer_wr = db.query(User).filter(User.mobile == "09161234567", User.is_dealer == True).first()
             if test_dealer_wr:
                 wr_data.append({
-                    "owner_type": OwnerType.DEALER,
-                    "dealer_id": test_dealer_wr.id,
+                    "user_id": test_dealer_wr.id,
                     "amount_irr": 8_000_000,
                     "shaba_number": "IR550170000000100000000007",
                     "account_holder": "احمد نوری",
                     "status": WithdrawalStatus.PENDING,
+                    "_is_dealer": True,
                 })
 
-            total_pending_hold_customer = 0
-            total_pending_hold_dealer = {}  # {dealer_id: amount}
+            total_pending_hold = {}  # {user_id: amount}
             for wd in wr_data:
                 wr = WithdrawalRequest(
-                    owner_type=wd["owner_type"],
-                    customer_id=wd.get("customer_id"),
-                    dealer_id=wd.get("dealer_id"),
+                    user_id=wd["user_id"],
                     amount_irr=wd["amount_irr"],
                     shaba_number=wd["shaba_number"],
                     account_holder=wd["account_holder"],
@@ -1117,51 +1097,33 @@ def seed():
                     admin_note=wd.get("admin_note"),
                 )
                 db.add(wr)
-                owner_label = "customer" if wd["owner_type"] == OwnerType.CUSTOMER else "dealer"
+                label = "dealer" if wd.get("_is_dealer") else "customer"
                 status_label = wd["status"].value if hasattr(wd["status"], "value") else wd["status"]
-                print(f"  + Withdrawal {wd['amount_irr'] // 10:,} toman [{owner_label}] [{status_label}]")
+                print(f"  + Withdrawal {wd['amount_irr'] // 10:,} toman [{label}] [{status_label}]")
 
                 if wd["status"] == WithdrawalStatus.PENDING:
-                    if wd["owner_type"] == OwnerType.CUSTOMER:
-                        total_pending_hold_customer += wd["amount_irr"]
-                    elif wd.get("dealer_id"):
-                        total_pending_hold_dealer[wd["dealer_id"]] = (
-                            total_pending_hold_dealer.get(wd["dealer_id"], 0) + wd["amount_irr"]
-                        )
+                    total_pending_hold[wd["user_id"]] = (
+                        total_pending_hold.get(wd["user_id"], 0) + wd["amount_irr"]
+                    )
 
-            # Hold funds for pending customer withdrawals
-            if acct and total_pending_hold_customer > 0:
-                acct.locked_balance += total_pending_hold_customer
-                db.flush()
-                db.add(LedgerEntry(
-                    account_id=acct.id, txn_type="Hold",
-                    delta_balance=0, delta_locked=total_pending_hold_customer,
-                    balance_after=acct.balance, locked_after=acct.locked_balance,
-                    idempotency_key="seed:withdrawal_hold:1",
-                    reference_type="seed", reference_id="withdrawal_hold",
-                    description=f"بلوکه تستی برای درخواست‌های برداشت",
-                ))
-                print(f"  + Held {total_pending_hold_customer // 10:,} toman for pending customer withdrawals")
-
-            # Hold funds for pending dealer withdrawals
-            for dlr_id, hold_amount in total_pending_hold_dealer.items():
-                dlr_acct = db.query(Account).filter(
-                    Account.owner_type == OwnerType.DEALER,
-                    Account.owner_id == dlr_id,
+            # Hold funds for pending withdrawals
+            for uid, hold_amount in total_pending_hold.items():
+                user_acct = db.query(Account).filter(
+                    Account.user_id == uid,
                     Account.asset_code == "IRR",
                 ).first()
-                if dlr_acct:
-                    dlr_acct.locked_balance += hold_amount
+                if user_acct:
+                    user_acct.locked_balance += hold_amount
                     db.flush()
                     db.add(LedgerEntry(
-                        account_id=dlr_acct.id, txn_type="Hold",
+                        account_id=user_acct.id, txn_type="Hold",
                         delta_balance=0, delta_locked=hold_amount,
-                        balance_after=dlr_acct.balance, locked_after=dlr_acct.locked_balance,
-                        idempotency_key=f"seed:withdrawal_hold:dealer:{dlr_id}",
+                        balance_after=user_acct.balance, locked_after=user_acct.locked_balance,
+                        idempotency_key=f"seed:withdrawal_hold:user:{uid}",
                         reference_type="seed", reference_id="withdrawal_hold",
-                        description="بلوکه تستی برای درخواست برداشت نماینده",
+                        description="بلوکه تستی برای درخواست‌های برداشت",
                     ))
-                    print(f"  + Held {hold_amount // 10:,} toman for dealer #{dlr_id} pending withdrawal")
+                    print(f"  + Held {hold_amount // 10:,} toman for user #{uid} pending withdrawals")
 
             db.flush()
         else:
@@ -1376,20 +1338,28 @@ def seed():
         ]
 
         for dd in dealers_data:
-            existing = db.query(Dealer).filter(Dealer.mobile == dd["mobile"]).first()
+            # Split full_name into first/last
+            name_parts = dd["full_name"].split(" ", 1)
+            first_name = name_parts[0]
+            last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+            existing = db.query(User).filter(User.mobile == dd["mobile"]).first()
             if not existing:
-                dealer = Dealer(
+                dealer = User(
                     mobile=dd["mobile"],
-                    full_name=dd["full_name"],
+                    first_name=first_name,
+                    last_name=last_name,
                     national_id=dd["national_id"],
                     api_key=dd.get("api_key"),
                     tier_id=dd.get("tier_id"),
                     province_id=dd.get("province_id"),
                     city_id=dd.get("city_id"),
-                    address=dd.get("address"),
+                    dealer_address=dd.get("address"),
                     landline_phone=dd.get("landline_phone"),
                     is_warehouse=dd.get("is_warehouse", False),
                     is_postal_hub=dd.get("is_postal_hub", False),
+                    is_dealer=True,
+                    is_customer=True,  # dealers can also shop
                 )
                 db.add(dealer)
                 db.flush()
@@ -1399,6 +1369,9 @@ def seed():
                 tag_str = f" [{', '.join(tags)}]" if tags else ""
                 print(f"  + {dd['full_name']}: {dd['mobile']}{tag_str}")
             else:
+                # Ensure dealer flags are set
+                if not existing.is_dealer:
+                    existing.is_dealer = True
                 if not existing.tier_id and dd.get("tier_id"):
                     existing.tier_id = dd["tier_id"]
                     print(f"  ~ updated tier: {dd['mobile']}")
@@ -1422,7 +1395,7 @@ def seed():
             batch1 = _bar_batch1
 
             # Use all active dealers as locations for bars
-            all_dealer_locs = db.query(Dealer).filter(Dealer.is_active == True).all()
+            all_dealer_locs = db.query(User).filter(User.is_dealer == True, User.is_active == True).all()
 
             total_bars = 0
             used_serials = set()
@@ -1460,8 +1433,8 @@ def seed():
 
             # --- Test bars for claim & transfer testing ---
             first_product = db.query(Product).first()
-            first_dealer = db.query(Dealer).filter(Dealer.is_active == True).first()
-            test_customer_1 = db.query(Customer).filter(Customer.mobile == "09351234567").first()
+            first_dealer = db.query(User).filter(User.is_dealer == True, User.is_active == True).first()
+            test_customer_1 = db.query(User).filter(User.mobile == "09351234567").first()
 
             if first_product and first_dealer:
                 _now = datetime.now(timezone.utc)
@@ -1491,7 +1464,7 @@ def seed():
                 print("  + 3 test bars (TSCLM001, TSCLM002, TSTRF001)")
 
             # --- Custodial test bars with orders (for /admin/orders page) ---
-            test_customer_2 = db.query(Customer).filter(Customer.mobile == "09359876543").first()
+            test_customer_2 = db.query(User).filter(User.mobile == "09359876543").first()
 
             # Find a gold product and a silver product
             gold_product = (
@@ -1647,18 +1620,16 @@ def seed():
 
         # Create dealer wallets (IRR + XAU_MG)
         print("\n  Dealer Wallets:")
-        all_dealers = db.query(Dealer).all()
+        all_dealers = db.query(User).filter(User.is_dealer == True).all()
         for d in all_dealers:
             for asset in ["IRR", "XAU_MG"]:
                 existing = db.query(Account).filter(
-                    Account.owner_type == OwnerType.DEALER,
-                    Account.owner_id == d.id,
+                    Account.user_id == d.id,
                     Account.asset_code == asset,
                 ).first()
                 if not existing:
                     db.add(Account(
-                        owner_type=OwnerType.DEALER,
-                        owner_id=d.id,
+                        user_id=d.id,
                         asset_code=asset,
                         balance=0, locked_balance=0,
                     ))
@@ -1672,16 +1643,16 @@ def seed():
 
         existing_tickets = db.query(Ticket).count()
         if existing_tickets == 0:
-            test_customer_1 = db.query(Customer).filter(Customer.mobile == "09351234567").first()
-            test_dealer_1 = db.query(Dealer).filter(Dealer.mobile == "09161234567").first()
-            admin_user = db.query(SystemUser).filter(SystemUser.mobile == "09123456789").first()
+            test_customer_1 = db.query(User).filter(User.mobile == "09351234567").first()
+            test_dealer_1 = db.query(User).filter(User.mobile == "09161234567", User.is_dealer == True).first()
+            admin_user = db.query(User).filter(User.mobile == "09123456789", User.is_admin == True).first()
 
             if test_customer_1:
                 t1 = Ticket(
                     subject="مشکل در پرداخت آنلاین",
                     body="سلام، من سعی کردم از درگاه بانکی پرداخت کنم ولی بعد از رفتن به صفحه بانک، خطای اتصال دریافت می‌کنم. لطفا بررسی کنید.",
                     sender_type=SenderType.CUSTOMER,
-                    customer_id=test_customer_1.id,
+                    user_id=test_customer_1.id,
                     priority=TicketPriority.HIGH,
                     category=TicketCategory.FINANCIAL,
                     status=TicketStatus.ANSWERED,
@@ -1708,7 +1679,7 @@ def seed():
                     subject="سوال درباره گارانتی شمش",
                     body="آیا شمش‌های خریداری شده گارانتی اصالت دارند؟ چطور می‌توانم اصالت شمش را بررسی کنم؟",
                     sender_type=SenderType.CUSTOMER,
-                    customer_id=test_customer_1.id,
+                    user_id=test_customer_1.id,
                     priority=TicketPriority.LOW,
                     category=TicketCategory.SALES,
                     status=TicketStatus.OPEN,
@@ -1729,7 +1700,7 @@ def seed():
                     subject="درخواست افزایش موجودی شعبه",
                     body="موجودی شمش‌های ۱ گرمی در شعبه اصفهان تمام شده. لطفا موجودی جدید ارسال کنید.",
                     sender_type=SenderType.DEALER,
-                    dealer_id=test_dealer_1.id,
+                    user_id=test_dealer_1.id,
                     priority=TicketPriority.MEDIUM,
                     category=TicketCategory.SALES,
                     status=TicketStatus.IN_PROGRESS,
@@ -1769,8 +1740,8 @@ def seed():
 
         existing_reviews = db.query(Review).count()
         if existing_reviews == 0:
-            test_customer_1 = db.query(Customer).filter(Customer.mobile == "09351234567").first()
-            test_customer_2 = db.query(Customer).filter(Customer.mobile == "09359876543").first()
+            test_customer_1 = db.query(User).filter(User.mobile == "09351234567").first()
+            test_customer_2 = db.query(User).filter(User.mobile == "09359876543").first()
             first_product = db.query(Product).filter(Product.is_active == True).first()
             second_product = db.query(Product).filter(
                 Product.is_active == True,
@@ -1787,7 +1758,7 @@ def seed():
 
                 r1 = Review(
                     product_id=first_product.id,
-                    customer_id=test_customer_1.id,
+                    user_id=test_customer_1.id,
                     order_item_id=test_order_item.id if test_order_item else None,
                     rating=5,
                     body="کیفیت شمش عالی بود و بسته‌بندی هم بسیار مناسب. حتما دوباره خرید می‌کنم.",
@@ -1801,7 +1772,7 @@ def seed():
                 if second_product:
                     r2 = Review(
                         product_id=second_product.id,
-                        customer_id=test_customer_1.id,
+                        user_id=test_customer_1.id,
                         rating=4,
                         body="محصول خوبی بود. فقط زمان ارسال کمی طولانی شد.",
                     )
@@ -1812,7 +1783,7 @@ def seed():
             if test_customer_2 and first_product:
                 r3 = Review(
                     product_id=first_product.id,
-                    customer_id=test_customer_2.id,
+                    user_id=test_customer_2.id,
                     rating=3,
                     body="شمش اصل بود ولی قیمت نسبت به بازار کمی بالاتر بود.",
                 )
@@ -1824,7 +1795,7 @@ def seed():
             if test_customer_1 and first_product:
                 c1 = ProductComment(
                     product_id=first_product.id,
-                    customer_id=test_customer_1.id,
+                    user_id=test_customer_1.id,
                     sender_name=test_customer_1.full_name or "مشتری",
                     sender_type="CUSTOMER",
                     body="آیا این شمش قابلیت ضرب سفارشی دارد؟",
@@ -1835,7 +1806,7 @@ def seed():
                 # Admin reply to comment
                 c1_reply = ProductComment(
                     product_id=first_product.id,
-                    customer_id=None,
+                    user_id=None,
                     sender_name="پشتیبانی",
                     sender_type="ADMIN",
                     parent_id=c1.id,
@@ -1848,7 +1819,7 @@ def seed():
             if test_customer_2 and first_product:
                 c2 = ProductComment(
                     product_id=first_product.id,
-                    customer_id=test_customer_2.id,
+                    user_id=test_customer_2.id,
                     sender_name=test_customer_2.full_name or "مشتری",
                     sender_type="CUSTOMER",
                     body="زمان تحویل حضوری چقدر طول می‌کشد؟",
@@ -1859,7 +1830,7 @@ def seed():
 
                 # Like on comment
                 if test_customer_1:
-                    db.add(CommentLike(comment_id=c2.id, customer_id=test_customer_1.id))
+                    db.add(CommentLike(comment_id=c2.id, user_id=test_customer_1.id))
 
             db.flush()
         else:
@@ -1875,8 +1846,10 @@ def seed():
         print("=" * 50)
 
         print("\n--- Summary ---")
-        print(f"  Admin users:    {db.query(SystemUser).count()}")
-        print(f"  Customers:      {db.query(Customer).count()}")
+        print(f"  Total Users:    {db.query(User).count()}")
+        print(f"    Admins:       {db.query(User).filter(User.is_admin == True).count()}")
+        print(f"    Customers:    {db.query(User).filter(User.is_customer == True).count()}")
+        print(f"    Dealers:      {db.query(User).filter(User.is_dealer == True).count()}")
         print(f"  Settings:       {db.query(SystemSetting).count()}")
         print(f"  Products:       {db.query(Product).count()}")
         print(f"  Categories:     {db.query(ProductCategory).count()}")
@@ -1891,7 +1864,6 @@ def seed():
         print(f"  Wallet Accts:   {db.query(Account).count()}")
         print(f"  Dealer Tiers:   {db.query(DealerTier).count()}")
         print(f"  Tier Wages:     {db.query(ProductTierWage).count()}")
-        print(f"  Dealers:        {db.query(Dealer).count()}")
         print(f"  Tickets:        {db.query(Ticket).count()}")
         print(f"  Reviews:        {db.query(Review).count()}")
         print(f"  Comments:       {db.query(ProductComment).count()}")
@@ -1946,6 +1918,10 @@ def reset_and_seed():
         conn.execute(text("DROP TABLE IF EXISTS location_transfers CASCADE"))
         conn.execute(text("DROP TABLE IF EXISTS package_images CASCADE"))
         conn.execute(text("DROP TABLE IF EXISTS design_images CASCADE"))
+        # Drop old separate user tables (merged into 'users')
+        conn.execute(text("DROP TABLE IF EXISTS customers CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS dealers CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS system_users CASCADE"))
         conn.commit()
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)

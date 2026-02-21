@@ -18,7 +18,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from config.database import get_db
-from modules.dealer.models import Dealer
+from modules.user.models import User
 from modules.dealer.service import dealer_service
 from modules.dealer.auth_deps import get_dealer_by_api_key
 
@@ -47,7 +47,7 @@ class SaleRequest(BaseModel):
 
 @router.get("/info")
 async def dealer_info(
-    dealer: Dealer = Depends(get_dealer_by_api_key),
+    dealer: User = Depends(get_dealer_by_api_key),
 ):
     """Health check / dealer identity."""
     return {
@@ -65,7 +65,7 @@ async def dealer_info(
 
 @router.get("/products")
 async def dealer_products(
-    dealer: Dealer = Depends(get_dealer_by_api_key),
+    dealer: User = Depends(get_dealer_by_api_key),
     db: Session = Depends(get_db),
 ):
     """Product catalog with live pricing + available bar serials."""
@@ -84,7 +84,7 @@ async def dealer_products(
 @router.post("/sale")
 async def dealer_sale(
     body: SaleRequest,
-    dealer: Dealer = Depends(get_dealer_by_api_key),
+    dealer: User = Depends(get_dealer_by_api_key),
     db: Session = Depends(get_db),
 ):
     """Register a POS sale after successful card payment."""
@@ -129,7 +129,7 @@ async def dealer_sale(
 async def dealer_sales(
     page: int = 1,
     per_page: int = 20,
-    dealer: Dealer = Depends(get_dealer_by_api_key),
+    dealer: User = Depends(get_dealer_by_api_key),
     db: Session = Depends(get_db),
 ):
     """Paginated sales history."""

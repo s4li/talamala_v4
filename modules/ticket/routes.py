@@ -151,9 +151,7 @@ async def ticket_detail(
         raise HTTPException(status_code=404, detail="تیکت یافت نشد")
 
     # Ownership check
-    if sender_type == SenderType.CUSTOMER and ticket.customer_id != sender_id:
-        raise HTTPException(status_code=403, detail="دسترسی غیرمجاز")
-    if sender_type == SenderType.DEALER and ticket.dealer_id != sender_id:
+    if ticket.user_id != sender_id:
         raise HTTPException(status_code=403, detail="دسترسی غیرمجاز")
 
     csrf = new_csrf_token()
@@ -188,9 +186,7 @@ async def ticket_add_message(
     ticket = ticket_service.get_ticket(db, ticket_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="تیکت یافت نشد")
-    if sender_type == SenderType.CUSTOMER and ticket.customer_id != sender_id:
-        raise HTTPException(status_code=403, detail="دسترسی غیرمجاز")
-    if sender_type == SenderType.DEALER and ticket.dealer_id != sender_id:
+    if ticket.user_id != sender_id:
         raise HTTPException(status_code=403, detail="دسترسی غیرمجاز")
 
     sender_name = getattr(user, "full_name", "کاربر") or "کاربر"
@@ -227,9 +223,7 @@ async def ticket_close(
     ticket = ticket_service.get_ticket(db, ticket_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="تیکت یافت نشد")
-    if sender_type == SenderType.CUSTOMER and ticket.customer_id != sender_id:
-        raise HTTPException(status_code=403, detail="دسترسی غیرمجاز")
-    if sender_type == SenderType.DEALER and ticket.dealer_id != sender_id:
+    if ticket.user_id != sender_id:
         raise HTTPException(status_code=403, detail="دسترسی غیرمجاز")
 
     result = ticket_service.close_ticket(db, ticket_id)

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from common.helpers import now_utc, generate_unique_claim_code
 from common.security import generate_otp, hash_otp
 from modules.inventory.models import Bar, BarStatus, OwnershipHistory, BarTransfer, TransferStatus
-from modules.customer.models import Customer
+from modules.user.models import User
 
 
 class OwnershipService:
@@ -148,7 +148,7 @@ class OwnershipService:
             raise ValueError("فقط شمش‌های فروخته‌شده قابل انتقال هستند")
 
         # Get owner's mobile for OTP
-        owner = db.query(Customer).filter(Customer.id == from_customer_id).first()
+        owner = db.query(User).filter(User.id == from_customer_id).first()
         if not owner:
             raise ValueError("مالک یافت نشد")
 
@@ -211,7 +211,7 @@ class OwnershipService:
             raise ValueError("کد تأیید منقضی شده است. لطفاً دوباره تلاش کنید")
 
         # Verify OTP
-        owner = db.query(Customer).filter(Customer.id == from_customer_id).first()
+        owner = db.query(User).filter(User.id == from_customer_id).first()
         expected_hash = hash_otp(owner.mobile, otp_code.strip())
         if expected_hash != transfer.otp_hash:
             raise ValueError("کد تأیید اشتباه است")
@@ -221,7 +221,7 @@ class OwnershipService:
             raise ValueError("شمش قابل انتقال نیست")
 
         # Find recipient
-        recipient = db.query(Customer).filter(Customer.mobile == transfer.to_mobile).first()
+        recipient = db.query(User).filter(User.mobile == transfer.to_mobile).first()
 
         if recipient:
             # Recipient has account → direct transfer

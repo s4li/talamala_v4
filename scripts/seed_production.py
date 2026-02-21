@@ -42,8 +42,8 @@ if sys.stderr.encoding != "utf-8":
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.database import SessionLocal, Base, engine
-from modules.admin.models import SystemUser, SystemSetting
-from modules.customer.models import Customer
+from modules.user.models import User
+from modules.admin.models import SystemSetting
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress
 from modules.catalog.models import (
     ProductCategory, ProductCategoryLink, Product, ProductImage, CardDesign, CardDesignImage,
@@ -55,9 +55,9 @@ from modules.inventory.models import (
 )
 from modules.cart.models import Cart, CartItem
 from modules.order.models import Order, OrderItem, OrderStatusLog
-from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest, OwnerType
+from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory
-from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest
+from modules.dealer.models import DealerTier, DealerSale, BuybackRequest
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment, TicketStatus, TicketPriority, TicketCategory, SenderType
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment
@@ -135,9 +135,16 @@ def seed():
             {"mobile": "09123016442", "full_name": "مدیر سیستم", "role": "admin"},
         ]
         for admin_data in admins_data:
-            existing = db.query(SystemUser).filter(SystemUser.mobile == admin_data["mobile"]).first()
+            existing = db.query(User).filter(User.mobile == admin_data["mobile"]).first()
             if not existing:
-                db.add(SystemUser(**admin_data))
+                parts = admin_data["full_name"].split()
+                db.add(User(
+                    mobile=admin_data["mobile"],
+                    first_name=parts[0] if parts else "",
+                    last_name=" ".join(parts[1:]) if len(parts) > 1 else "",
+                    is_admin=True,
+                    admin_role=admin_data["role"],
+                ))
                 print(f"  + admin: {admin_data['mobile']}")
             else:
                 print(f"  = exists: {admin_data['mobile']}")
@@ -914,15 +921,16 @@ def seed():
             # Create customers for sold bars
             customer_mobile_to_id = {}
             for mobile, cdata in bars_data.get("customers", {}).items():
-                existing_c = db.query(Customer).filter(Customer.mobile == mobile).first()
+                existing_c = db.query(User).filter(User.mobile == mobile).first()
                 if existing_c:
                     customer_mobile_to_id[mobile] = existing_c.id
                 else:
-                    c = Customer(
+                    c = User(
                         first_name=cdata["first_name"],
                         last_name=cdata["last_name"],
                         national_id=cdata["national_id"],
                         mobile=mobile,
+                        is_customer=True,
                         is_active=True,
                     )
                     db.add(c)
@@ -1035,8 +1043,8 @@ def seed():
         print("=" * 50)
 
         print("\n--- Summary ---")
-        print(f"  Admin users:    {db.query(SystemUser).count()}")
-        print(f"  Customers:      {db.query(Customer).count()}")
+        print(f"  Admin users:    {db.query(User).filter(User.is_admin == True).count()}")
+        print(f"  Customers:      {db.query(User).filter(User.is_customer == True).count()}")
         print(f"  Settings:       {db.query(SystemSetting).count()}")
         print(f"  Products:       {db.query(Product).count()}")
         print(f"  Categories:     {db.query(ProductCategory).count()}")
@@ -1048,11 +1056,11 @@ def seed():
         print(f"  Bars:           {db.query(Bar).count()}")
         print(f"  Dealer Tiers:   {db.query(DealerTier).count()}")
         print(f"  Tier Wages:     {db.query(ProductTierWage).count()}")
-        print(f"  Dealers:        {db.query(Dealer).count()}")
+        print(f"  Dealers:        {db.query(User).filter(User.is_dealer == True).count()}")
 
         print(f"\n--- Admins ---")
-        for au in db.query(SystemUser).all():
-            print(f"  {au.role}: {au.mobile}")
+        for au in db.query(User).filter(User.is_admin == True).all():
+            print(f"  {au.admin_role}: {au.mobile}")
 
     except Exception as e:
         db.rollback()

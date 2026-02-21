@@ -17,10 +17,10 @@ class Cart(Base):
     __tablename__ = "carts"
 
     id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), unique=True, nullable=False)
+    customer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    customer = relationship("Customer", foreign_keys=[customer_id])
+    customer = relationship("User", foreign_keys=[customer_id])
     items = relationship("CartItem", back_populates="cart", cascade="all, delete-orphan")
 
 

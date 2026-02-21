@@ -1,13 +1,15 @@
 """
 Dealer Module - Models
 ========================
-Dealer representatives, POS sales, buyback requests, and dealer tiers.
+Dealer tiers, POS sales, and buyback requests.
 
 Models:
   - DealerTier: Dealer level (پخش, بنکدار, فروشگاه, مشتری نهایی)
-  - Dealer: Representative who sells bars at a branch location (dealer IS the warehouse)
   - DealerSale: POS sale record (walk-in customer purchase via dealer)
   - BuybackRequest: Customer wants to sell back a bar (dealer initiates)
+
+Note: The Dealer class has been removed. Dealer data is now part of the
+unified User model (modules/user/models.py) with is_dealer=True.
 """
 
 import enum
@@ -45,117 +47,8 @@ class DealerTier(Base):
     is_end_customer = Column(Boolean, default=False)          # فلگ ویژه: بالاترین اجرت
     is_active = Column(Boolean, default=True)
 
-    dealers = relationship("Dealer", back_populates="tier")
-
     def __repr__(self):
         return f"<DealerTier {self.name} (ec={self.is_end_customer})>"
-
-
-# ==========================================
-# Dealer (نماینده = انبار/مکان فیزیکی)
-# ==========================================
-
-class Dealer(Base):
-    __tablename__ = "dealers"
-
-    id = Column(Integer, primary_key=True)
-    mobile = Column(String(11), unique=True, nullable=False, index=True)
-    full_name = Column(String, nullable=False)
-    national_id = Column(String, nullable=True)
-    tier_id = Column(Integer, ForeignKey("dealer_tiers.id", ondelete="SET NULL"), nullable=True, index=True)
-    commission_percent = Column(Numeric(5, 2), default=2.0, nullable=False)  # legacy
-    is_active = Column(Boolean, default=True, nullable=False)
-
-    # Warehouse / Postal flags
-    is_warehouse = Column(Boolean, default=False, nullable=False)     # انبار مرکزی (بدون فروش POS)
-    is_postal_hub = Column(Boolean, default=False, nullable=False)    # انبار ارسال پستی
-
-    # Address fields
-    province_id = Column(Integer, ForeignKey("geo_provinces.id", ondelete="SET NULL"), nullable=True, index=True)
-    city_id = Column(Integer, ForeignKey("geo_cities.id", ondelete="SET NULL"), nullable=True, index=True)
-    district_id = Column(Integer, ForeignKey("geo_districts.id", ondelete="SET NULL"), nullable=True, index=True)
-    address = Column(Text, nullable=True)
-    postal_code = Column(String(10), nullable=True)
-    landline_phone = Column(String(15), nullable=True)
-
-    # API Key for POS device authentication
-    api_key = Column(String(64), unique=True, nullable=True, index=True)
-
-    # OTP fields (for login)
-    otp_code = Column(String, nullable=True)
-    otp_expiry = Column(DateTime(timezone=True), nullable=True)
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    # Relationships
-    tier = relationship("DealerTier", back_populates="dealers")
-    province = relationship("GeoProvince", foreign_keys=[province_id])
-    city = relationship("GeoCity", foreign_keys=[city_id])
-    district = relationship("GeoDistrict", foreign_keys=[district_id])
-    sales = relationship("DealerSale", back_populates="dealer", cascade="all, delete-orphan")
-    buybacks = relationship("BuybackRequest", back_populates="dealer", cascade="all, delete-orphan")
-
-    @property
-    def tier_name(self) -> str:
-        return self.tier.name if self.tier else "—"
-
-    @property
-    def province_name(self) -> str:
-        return self.province.name if self.province else "—"
-
-    @property
-    def city_name(self) -> str:
-        return self.city.name if self.city else "—"
-
-    @property
-    def district_name(self) -> str:
-        return self.district.name if self.district else "—"
-
-    @property
-    def full_address(self) -> str:
-        parts = []
-        if self.province:
-            parts.append(self.province.name)
-        if self.city:
-            parts.append(self.city.name)
-        if self.district:
-            parts.append(self.district.name)
-        if self.address:
-            parts.append(self.address)
-        return "، ".join(parts) if parts else "—"
-
-    @property
-    def display_name(self) -> str:
-        """Full display: نمایندگی اصفهان - اصفهان"""
-        parts = [self.full_name]
-        if self.city:
-            city_name = self.city.name
-            parts.append(f"- {city_name}")
-            if self.province and self.province.name != city_name:
-                parts.append(f"({self.province.name})")
-        return " ".join(parts)
-
-    @property
-    def type_label(self) -> str:
-        if self.is_warehouse:
-            return "انبار مرکزی"
-        return self.tier_name
-
-    @property
-    def type_icon(self) -> str:
-        if self.is_warehouse:
-            return "bi-box-seam"
-        return "bi-shop"
-
-    @property
-    def type_color(self) -> str:
-        if self.is_warehouse:
-            return "primary"
-        return "success"
-
-    def __repr__(self):
-        return f"<Dealer {self.full_name} ({self.mobile})>"
 
 
 # ==========================================
@@ -166,7 +59,7 @@ class DealerSale(Base):
     __tablename__ = "dealer_sales"
 
     id = Column(Integer, primary_key=True)
-    dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False, index=True)
+    dealer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     bar_id = Column(Integer, ForeignKey("bars.id", ondelete="SET NULL"), nullable=True, index=True)
     customer_name = Column(String, nullable=True)
     customer_mobile = Column(String(15), nullable=True)
@@ -178,7 +71,7 @@ class DealerSale(Base):
     description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    dealer = relationship("Dealer", back_populates="sales")
+    dealer = relationship("User", foreign_keys=[dealer_id])
     bar = relationship("Bar", foreign_keys=[bar_id])
 
 
@@ -190,7 +83,7 @@ class BuybackRequest(Base):
     __tablename__ = "buyback_requests"
 
     id = Column(Integer, primary_key=True)
-    dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False, index=True)
+    dealer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     bar_id = Column(Integer, ForeignKey("bars.id", ondelete="SET NULL"), nullable=True, index=True)
     customer_name = Column(String, nullable=True)
     customer_mobile = Column(String(15), nullable=True)
@@ -203,7 +96,7 @@ class BuybackRequest(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    dealer = relationship("Dealer", back_populates="buybacks")
+    dealer = relationship("User", foreign_keys=[dealer_id])
     bar = relationship("Bar", foreign_keys=[bar_id])
 
     @property

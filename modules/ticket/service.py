@@ -15,8 +15,7 @@ from modules.ticket.models import (
     Ticket, TicketMessage, TicketAttachment,
     TicketStatus, TicketPriority, TicketCategory, SenderType,
 )
-from modules.customer.models import Customer
-from modules.dealer.models import Dealer
+from modules.user.models import User
 from common.helpers import now_utc
 from common.upload import save_upload_file
 from common.notifications import notify_ticket_update
@@ -39,14 +38,15 @@ class TicketService:
     # ------------------------------------------
 
     def _get_sender_name(self, db: Session, sender_type: str, sender_id: int) -> str:
-        """Look up sender name from customer/dealer."""
-        if sender_type == SenderType.CUSTOMER:
-            c = db.query(Customer).filter(Customer.id == sender_id).first()
-            return (c.full_name or "مشتری") if c else "مشتری"
-        elif sender_type == SenderType.DEALER:
-            d = db.query(Dealer).filter(Dealer.id == sender_id).first()
-            return d.full_name if d else "نماینده"
-        return "ناشناس"
+        """Look up sender name from user."""
+        u = db.query(User).filter(User.id == sender_id).first()
+        if not u:
+            if sender_type == SenderType.CUSTOMER:
+                return "مشتری"
+            elif sender_type == SenderType.DEALER:
+                return "نماینده"
+            return "ناشناس"
+        return u.full_name or ("مشتری" if sender_type == SenderType.CUSTOMER else "نماینده")
 
     def _save_attachments(self, db: Session, message_id: int, files: List[UploadFile]):
         """Save uploaded files as TicketAttachment records."""
@@ -64,11 +64,9 @@ class TicketService:
         """Send SMS notification to the other party (non-blocking)."""
         try:
             if sender_type == SenderType.STAFF:
-                # Notify customer or dealer
-                if ticket.sender_type == SenderType.CUSTOMER and ticket.customer:
-                    notify_ticket_update(ticket.customer.mobile, ticket.id, "new_reply")
-                elif ticket.sender_type == SenderType.DEALER and ticket.dealer:
-                    notify_ticket_update(ticket.dealer.mobile, ticket.id, "new_reply")
+                # Notify ticket owner (customer or dealer)
+                if ticket.user:
+                    notify_ticket_update(ticket.user.mobile, ticket.id, "new_reply")
             elif sender_type in (SenderType.CUSTOMER, SenderType.DEALER):
                 # Notify assigned staff (if any)
                 if ticket.assigned_staff and getattr(ticket.assigned_staff, "mobile", None):
@@ -100,13 +98,10 @@ class TicketService:
             priority=priority,
             category=category,
             status=TicketStatus.OPEN,
+            user_id=sender_id,
         )
 
-        if sender_type == SenderType.CUSTOMER:
-            ticket.customer_id = sender_id
-        elif sender_type == SenderType.DEALER:
-            ticket.dealer_id = sender_id
-        else:
+        if sender_type not in (SenderType.CUSTOMER, SenderType.DEALER):
             return {"success": False, "message": "نوع فرستنده نامعتبر"}
 
         db.add(ticket)
@@ -143,7 +138,7 @@ class TicketService:
         self, db: Session, customer_id: int,
         page: int = 1, per_page: int = 20,
     ) -> Tuple[List[Ticket], int]:
-        q = db.query(Ticket).filter(Ticket.customer_id == customer_id)
+        q = db.query(Ticket).filter(Ticket.user_id == customer_id, Ticket.sender_type == SenderType.CUSTOMER)
         total = q.count()
         tickets = (
             q.order_by(Ticket.updated_at.desc())
@@ -161,7 +156,7 @@ class TicketService:
         self, db: Session, dealer_id: int,
         page: int = 1, per_page: int = 20,
     ) -> Tuple[List[Ticket], int]:
-        q = db.query(Ticket).filter(Ticket.dealer_id == dealer_id)
+        q = db.query(Ticket).filter(Ticket.user_id == dealer_id, Ticket.sender_type == SenderType.DEALER)
         total = q.count()
         tickets = (
             q.order_by(Ticket.updated_at.desc())
@@ -184,8 +179,7 @@ class TicketService:
         search: str = None,
     ) -> Tuple[List[Ticket], int]:
         q = db.query(Ticket).options(
-            joinedload(Ticket.customer),
-            joinedload(Ticket.dealer),
+            joinedload(Ticket.user),
             joinedload(Ticket.assigned_staff),
         )
         if status_filter:
@@ -198,16 +192,14 @@ class TicketService:
         if search and search.strip():
             term = f"%{search.strip()}%"
             search_id = _safe_int(search)
-            q = q.outerjoin(Customer, Ticket.customer_id == Customer.id)
-            q = q.outerjoin(Dealer, Ticket.dealer_id == Dealer.id)
+            q = q.outerjoin(User, Ticket.user_id == User.id)
             q = q.filter(
                 or_(
                     Ticket.id == search_id,
                     Ticket.subject.ilike(term),
-                    Customer.full_name.ilike(term),
-                    Customer.mobile.ilike(term),
-                    Dealer.full_name.ilike(term),
-                    Dealer.mobile.ilike(term),
+                    User.first_name.ilike(term),
+                    User.last_name.ilike(term),
+                    User.mobile.ilike(term),
                 )
             )
 
@@ -229,8 +221,7 @@ class TicketService:
             db.query(Ticket)
             .options(
                 joinedload(Ticket.messages).joinedload(TicketMessage.attachments),
-                joinedload(Ticket.customer),
-                joinedload(Ticket.dealer),
+                joinedload(Ticket.user),
                 joinedload(Ticket.assigned_staff),
             )
             .filter(Ticket.id == ticket_id)
@@ -251,8 +242,7 @@ class TicketService:
         is_internal: bool = False,
     ) -> Dict[str, Any]:
         ticket = db.query(Ticket).options(
-            joinedload(Ticket.customer),
-            joinedload(Ticket.dealer),
+            joinedload(Ticket.user),
             joinedload(Ticket.assigned_staff),
         ).filter(Ticket.id == ticket_id).first()
         if not ticket:
@@ -303,8 +293,7 @@ class TicketService:
         new_status: str,
     ) -> Dict[str, Any]:
         ticket = db.query(Ticket).options(
-            joinedload(Ticket.customer),
-            joinedload(Ticket.dealer),
+            joinedload(Ticket.user),
         ).filter(Ticket.id == ticket_id).first()
         if not ticket:
             return {"success": False, "message": "تیکت یافت نشد"}
@@ -317,12 +306,10 @@ class TicketService:
 
         db.flush()
 
-        # Notify customer/dealer of status change
+        # Notify ticket owner of status change
         try:
-            if ticket.sender_type == SenderType.CUSTOMER and ticket.customer:
-                notify_ticket_update(ticket.customer.mobile, ticket.id, "status_changed")
-            elif ticket.sender_type == SenderType.DEALER and ticket.dealer:
-                notify_ticket_update(ticket.dealer.mobile, ticket.id, "status_changed")
+            if ticket.user:
+                notify_ticket_update(ticket.user.mobile, ticket.id, "status_changed")
         except Exception as e:
             logger.error(f"Notification error on status change for ticket #{ticket_id}: {e}")
 
@@ -400,12 +387,10 @@ class TicketService:
         )
         db.add(note)
 
-        # Notify customer/dealer
+        # Notify ticket owner
         try:
-            if ticket.sender_type == SenderType.CUSTOMER and ticket.customer:
-                notify_ticket_update(ticket.customer.mobile, ticket.id, "status_changed")
-            elif ticket.sender_type == SenderType.DEALER and ticket.dealer:
-                notify_ticket_update(ticket.dealer.mobile, ticket.id, "status_changed")
+            if ticket.user:
+                notify_ticket_update(ticket.user.mobile, ticket.id, "status_changed")
         except Exception as e:
             logger.error(f"Notification error on category change for ticket #{ticket_id}: {e}")
 

@@ -2,6 +2,8 @@
 TalaMala v4 - Security Utilities
 ==================================
 JWT tokens, CSRF protection, OTP hashing, and rate limiting.
+
+NOTE: Unified auth — single JWT token for all user types (customer/dealer/admin).
 """
 
 import hmac
@@ -16,7 +18,7 @@ from fastapi import Request, HTTPException
 from jose import jwt
 
 from config.settings import (
-    SECRET_KEY, CUSTOMER_SECRET_KEY, DEALER_SECRET_KEY, OTP_SECRET, ALGORITHM,
+    SECRET_KEY, OTP_SECRET, ALGORITHM,
     ACCESS_TOKEN_EXPIRE_MINUTES, CSRF_ENABLED,
     OTP_MAX_ATTEMPTS, OTP_RATE_LIMIT_WINDOW,
 )
@@ -92,52 +94,31 @@ def check_otp_verify_rate_limit(mobile: str) -> bool:
 
 
 # ==========================================
-# JWT Tokens
+# JWT Tokens (Unified — single secret for all user types)
 # ==========================================
 
-def create_staff_token(data: dict) -> str:
-    """Create JWT token for Staff/Admin users."""
+def create_token(data: dict) -> str:
+    """Create JWT token for any user type."""
     to_encode = data.copy()
     to_encode["exp"] = now_utc() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def create_customer_token(data: dict) -> str:
-    """Create JWT token for Customer users."""
-    to_encode = data.copy()
-    to_encode["exp"] = now_utc() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    return jwt.encode(to_encode, CUSTOMER_SECRET_KEY, algorithm=ALGORITHM)
-
-
-def decode_staff_token(token: str) -> Optional[dict]:
-    """Decode a staff JWT token. Returns payload or None."""
+def decode_token(token: str) -> Optional[dict]:
+    """Decode a JWT token. Returns payload or None."""
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except Exception:
         return None
 
 
-def decode_customer_token(token: str) -> Optional[dict]:
-    """Decode a customer JWT token. Returns payload or None."""
-    try:
-        return jwt.decode(token, CUSTOMER_SECRET_KEY, algorithms=[ALGORITHM])
-    except Exception:
-        return None
-
-
-def create_dealer_token(data: dict) -> str:
-    """Create JWT token for Dealer users."""
-    to_encode = data.copy()
-    to_encode["exp"] = now_utc() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    return jwt.encode(to_encode, DEALER_SECRET_KEY, algorithm=ALGORITHM)
-
-
-def decode_dealer_token(token: str) -> Optional[dict]:
-    """Decode a dealer JWT token. Returns payload or None."""
-    try:
-        return jwt.decode(token, DEALER_SECRET_KEY, algorithms=[ALGORITHM])
-    except Exception:
-        return None
+# Backward compat aliases
+create_staff_token = create_token
+create_customer_token = create_token
+create_dealer_token = create_token
+decode_staff_token = decode_token
+decode_customer_token = decode_token
+decode_dealer_token = decode_token
 
 
 # ==========================================

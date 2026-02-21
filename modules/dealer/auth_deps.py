@@ -9,14 +9,14 @@ from fastapi import Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from config.database import get_db
-from modules.dealer.models import Dealer
+from modules.user.models import User
 from modules.dealer.service import dealer_service
 
 
 def get_dealer_by_api_key(
     x_api_key: str = Header(..., alias="X-API-Key"),
     db: Session = Depends(get_db),
-) -> Dealer:
+) -> User:
     """Authenticate dealer via X-API-Key header."""
     dealer = dealer_service.get_dealer_by_api_key(db, x_api_key)
     if not dealer:

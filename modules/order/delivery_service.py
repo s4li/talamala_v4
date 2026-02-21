@@ -13,7 +13,7 @@ from sqlalchemy import func
 
 from common.templating import get_setting_from_db
 from modules.inventory.models import Bar, BarStatus
-from modules.dealer.models import Dealer
+from modules.user.models import User
 from modules.customer.address_models import GeoProvince, GeoCity
 
 
@@ -41,20 +41,22 @@ class DeliveryService:
     def get_provinces_with_branches(self, db: Session) -> List[str]:
         """Get distinct province names that have active dealers (for pickup)."""
         rows = db.query(GeoProvince.name).join(
-            Dealer, Dealer.province_id == GeoProvince.id,
+            User, User.province_id == GeoProvince.id,
         ).filter(
-            Dealer.is_active == True,
+            User.is_dealer == True,
+            User.is_active == True,
         ).distinct().order_by(GeoProvince.name).all()
         return [r[0] for r in rows]
 
     def get_cities_in_province(self, db: Session, province: str) -> List[str]:
         """Get distinct city names in a province that have active dealers."""
         rows = db.query(GeoCity.name).join(
-            Dealer, Dealer.city_id == GeoCity.id,
+            User, User.city_id == GeoCity.id,
         ).join(
-            GeoProvince, Dealer.province_id == GeoProvince.id,
+            GeoProvince, User.province_id == GeoProvince.id,
         ).filter(
-            Dealer.is_active == True,
+            User.is_dealer == True,
+            User.is_active == True,
             GeoProvince.name == province,
         ).distinct().order_by(GeoCity.name).all()
         return [r[0] for r in rows]
@@ -70,19 +72,20 @@ class DeliveryService:
         Get dealers where pickup is available.
         If product_ids given, also shows available inventory per dealer.
         """
-        q = db.query(Dealer).filter(
-            Dealer.is_active == True,
+        q = db.query(User).filter(
+            User.is_dealer == True,
+            User.is_active == True,
         )
         if province:
-            q = q.join(GeoProvince, Dealer.province_id == GeoProvince.id).filter(
+            q = q.join(GeoProvince, User.province_id == GeoProvince.id).filter(
                 GeoProvince.name == province,
             )
         if city:
-            q = q.join(GeoCity, Dealer.city_id == GeoCity.id).filter(
+            q = q.join(GeoCity, User.city_id == GeoCity.id).filter(
                 GeoCity.name == city,
             )
 
-        dealers = q.order_by(Dealer.full_name).all()
+        dealers = q.order_by(User.full_name).all()
 
         results = []
         for dealer in dealers:
@@ -115,11 +118,12 @@ class DeliveryService:
     # Postal Hub (dealer with is_postal_hub=True)
     # ==========================================
 
-    def get_postal_hub(self, db: Session) -> Optional[Dealer]:
+    def get_postal_hub(self, db: Session) -> Optional[User]:
         """Get the designated postal shipping dealer/warehouse."""
-        return db.query(Dealer).filter(
-            Dealer.is_postal_hub == True,
-            Dealer.is_active == True,
+        return db.query(User).filter(
+            User.is_dealer == True,
+            User.is_postal_hub == True,
+            User.is_active == True,
         ).first()
 
     def get_postal_hub_stock(self, db: Session, product_ids: List[int] = None) -> int:

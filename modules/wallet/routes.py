@@ -49,7 +49,7 @@ async def wallet_dashboard(
     # Pending withdrawals
     pending_wr = (
         db.query(WithdrawalRequest)
-        .filter(WithdrawalRequest.customer_id == me.id, WithdrawalRequest.status == WithdrawalStatus.PENDING)
+        .filter(WithdrawalRequest.user_id == me.id, WithdrawalRequest.status == WithdrawalStatus.PENDING)
         .all()
     )
 

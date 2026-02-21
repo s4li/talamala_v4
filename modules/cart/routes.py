@@ -178,7 +178,7 @@ async def checkout_page(
     # Customer saved addresses (for postal delivery)
     from modules.customer.address_models import CustomerAddress
     customer_addresses = db.query(CustomerAddress).filter(
-        CustomerAddress.customer_id == me.id
+        CustomerAddress.user_id == me.id
     ).order_by(CustomerAddress.is_default.desc(), CustomerAddress.id.desc()).all()
 
     csrf = new_csrf_token()
@@ -269,8 +269,8 @@ async def checkout(
             error = urllib.parse.quote("لطفاً نمایندگی تحویل را انتخاب کنید.")
             return RedirectResponse(f"/checkout?error={error}", status_code=303)
         # Server-side: verify dealer exists and is active
-        from modules.dealer.models import Dealer
-        dlr = db.query(Dealer).filter(Dealer.id == pickup_loc_id).first()
+        from modules.user.models import User
+        dlr = db.query(User).filter(User.id == pickup_loc_id, User.is_dealer == True).first()
         if not dlr or not dlr.is_active:
             error = urllib.parse.quote("نمایندگی انتخابی نامعتبر است.")
             return RedirectResponse(f"/checkout?error={error}", status_code=303)

@@ -2,11 +2,11 @@
 Wallet Service - Double-Entry Ledger
 ======================================
 Thread-safe, idempotent balance operations.
-Supports polymorphic owners (customer/dealer) and multi-asset (IRR/XAU_MG).
+Supports multi-asset (IRR/XAU_MG) with unified User model.
 
 Usage:
-    wallet_service.deposit(db, owner_id=1, amount=5_000_000, reference_type="topup", reference_id="123")
-    wallet_service.deposit(db, 5, 100, asset_code=AssetCode.XAU_MG, owner_type=OwnerType.DEALER)
+    wallet_service.deposit(db, user_id=1, amount=5_000_000, reference_type="topup", reference_id="123")
+    wallet_service.deposit(db, 5, 100, asset_code=AssetCode.XAU_MG)
 """
 
 import uuid
@@ -17,9 +17,9 @@ from sqlalchemy import func as sa_func
 
 from modules.wallet.models import (
     Account, LedgerEntry, WalletTopup, WithdrawalRequest,
-    OwnerType, AssetCode, TransactionType, WithdrawalStatus,
+    AssetCode, TransactionType, WithdrawalStatus,
 )
-from modules.customer.models import Customer
+from modules.user.models import User
 from common.helpers import now_utc
 
 
@@ -31,16 +31,14 @@ class WalletService:
     # ------------------------------------------
 
     def get_or_create_account(
-        self, db: Session, owner_id: int,
+        self, db: Session, user_id: int,
         asset_code: str = AssetCode.IRR,
-        owner_type: str = OwnerType.CUSTOMER,
     ) -> Account:
         """Get existing account or create with zero balance."""
         acct = (
             db.query(Account)
             .filter(
-                Account.owner_type == owner_type,
-                Account.owner_id == owner_id,
+                Account.user_id == user_id,
                 Account.asset_code == asset_code,
             )
             .with_for_update()
@@ -48,9 +46,7 @@ class WalletService:
         )
         if not acct:
             acct = Account(
-                owner_type=owner_type,
-                owner_id=owner_id,
-                customer_id=owner_id if owner_type == OwnerType.CUSTOMER else None,
+                user_id=user_id,
                 asset_code=asset_code,
                 balance=0,
                 locked_balance=0,
@@ -60,28 +56,25 @@ class WalletService:
         return acct
 
     def get_account(
-        self, db: Session, owner_id: int,
+        self, db: Session, user_id: int,
         asset_code: str = AssetCode.IRR,
-        owner_type: str = OwnerType.CUSTOMER,
     ) -> Optional[Account]:
         """Get account without creating."""
         return (
             db.query(Account)
             .filter(
-                Account.owner_type == owner_type,
-                Account.owner_id == owner_id,
+                Account.user_id == user_id,
                 Account.asset_code == asset_code,
             )
             .first()
         )
 
     def get_balance(
-        self, db: Session, owner_id: int,
+        self, db: Session, user_id: int,
         asset_code: str = AssetCode.IRR,
-        owner_type: str = OwnerType.CUSTOMER,
     ) -> Dict[str, int]:
         """Return balance summary."""
-        acct = self.get_account(db, owner_id, asset_code, owner_type)
+        acct = self.get_account(db, user_id, asset_code)
         if not acct:
             return {"balance": 0, "locked": 0, "available": 0, "credit": 0, "withdrawable": 0}
         return {
@@ -162,19 +155,18 @@ class WalletService:
     def deposit(
         self,
         db: Session,
-        owner_id: int,
+        user_id: int,
         amount: int,
         reference_type: str = "manual",
         reference_id: str = "",
         description: str = "واریز",
         asset_code: str = AssetCode.IRR,
         idempotency_key: Optional[str] = None,
-        owner_type: str = OwnerType.CUSTOMER,
     ) -> LedgerEntry:
-        """Add funds to owner balance."""
+        """Add funds to user balance."""
         if amount <= 0:
             raise ValueError("مبلغ باید مثبت باشد")
-        acct = self.get_or_create_account(db, owner_id, asset_code, owner_type)
+        acct = self.get_or_create_account(db, user_id, asset_code)
         key = idempotency_key or self._gen_key("deposit", reference_type, reference_id)
         return self._write_entry(
             db, acct, TransactionType.DEPOSIT,
@@ -188,18 +180,17 @@ class WalletService:
     def hold(
         self,
         db: Session,
-        owner_id: int,
+        user_id: int,
         amount: int,
         reference_type: str = "order",
         reference_id: str = "",
         description: str = "بلوکه برای سفارش",
         asset_code: str = AssetCode.IRR,
-        owner_type: str = OwnerType.CUSTOMER,
     ) -> LedgerEntry:
         """Lock funds (available -> locked). For order reservations."""
         if amount <= 0:
             raise ValueError("مبلغ باید مثبت باشد")
-        acct = self.get_or_create_account(db, owner_id, asset_code, owner_type)
+        acct = self.get_or_create_account(db, user_id, asset_code)
         if acct.withdrawable_balance < amount:
             raise ValueError(f"موجودی قابل برداشت کافی نیست (withdrawable={acct.withdrawable_balance}, need={amount})")
         key = self._gen_key("hold", reference_type, reference_id)
@@ -215,18 +206,17 @@ class WalletService:
     def commit(
         self,
         db: Session,
-        owner_id: int,
+        user_id: int,
         amount: int,
         reference_type: str = "order",
         reference_id: str = "",
         description: str = "تسویه سفارش",
         asset_code: str = AssetCode.IRR,
-        owner_type: str = OwnerType.CUSTOMER,
     ) -> LedgerEntry:
         """Finalize held funds (deduct from both balance & locked)."""
         if amount <= 0:
             raise ValueError("مبلغ باید مثبت باشد")
-        acct = self.get_or_create_account(db, owner_id, asset_code, owner_type)
+        acct = self.get_or_create_account(db, user_id, asset_code)
         key = self._gen_key("commit", reference_type, reference_id)
         return self._write_entry(
             db, acct, TransactionType.COMMIT,
@@ -240,18 +230,17 @@ class WalletService:
     def release(
         self,
         db: Session,
-        owner_id: int,
+        user_id: int,
         amount: int,
         reference_type: str = "order",
         reference_id: str = "",
         description: str = "آزادسازی بلوکه",
         asset_code: str = AssetCode.IRR,
-        owner_type: str = OwnerType.CUSTOMER,
     ) -> LedgerEntry:
         """Release held funds back to available."""
         if amount <= 0:
             raise ValueError("مبلغ باید مثبت باشد")
-        acct = self.get_or_create_account(db, owner_id, asset_code, owner_type)
+        acct = self.get_or_create_account(db, user_id, asset_code)
         key = self._gen_key("release", reference_type, reference_id)
         return self._write_entry(
             db, acct, TransactionType.RELEASE,
@@ -265,14 +254,13 @@ class WalletService:
     def withdraw(
         self,
         db: Session,
-        owner_id: int,
+        user_id: int,
         amount: int,
         reference_type: str = "withdrawal",
         reference_id: str = "",
         description: str = "برداشت",
         asset_code: str = AssetCode.IRR,
         idempotency_key: Optional[str] = None,
-        owner_type: str = OwnerType.CUSTOMER,
         consume_credit: bool = True,
     ) -> LedgerEntry:
         """Deduct from available balance.
@@ -282,7 +270,7 @@ class WalletService:
         """
         if amount <= 0:
             raise ValueError("مبلغ باید مثبت باشد")
-        acct = self.get_or_create_account(db, owner_id, asset_code, owner_type)
+        acct = self.get_or_create_account(db, user_id, asset_code)
 
         if consume_credit:
             # Can spend entire available_balance (including credit)
@@ -312,19 +300,18 @@ class WalletService:
     def refund(
         self,
         db: Session,
-        owner_id: int,
+        user_id: int,
         amount: int,
         reference_type: str = "order",
         reference_id: str = "",
         description: str = "بازگشت وجه",
         asset_code: str = AssetCode.IRR,
         idempotency_key: Optional[str] = None,
-        owner_type: str = OwnerType.CUSTOMER,
     ) -> LedgerEntry:
-        """Refund funds back to owner balance."""
+        """Refund funds back to user balance."""
         if amount <= 0:
             raise ValueError("مبلغ باید مثبت باشد")
-        acct = self.get_or_create_account(db, owner_id, asset_code, owner_type)
+        acct = self.get_or_create_account(db, user_id, asset_code)
         key = idempotency_key or self._gen_key("refund", reference_type, reference_id)
         return self._write_entry(
             db, acct, TransactionType.REFUND,
@@ -338,19 +325,18 @@ class WalletService:
     def deposit_credit(
         self,
         db: Session,
-        owner_id: int,
+        user_id: int,
         amount: int,
         reference_type: str = "buyback_wage_refund",
         reference_id: str = "",
         description: str = "اعتبار بازگشت اجرت بازخرید",
         asset_code: str = AssetCode.IRR,
         idempotency_key: Optional[str] = None,
-        owner_type: str = OwnerType.CUSTOMER,
     ) -> LedgerEntry:
         """Deposit non-withdrawable credit (increases both balance and credit_balance)."""
         if amount <= 0:
             raise ValueError("مبلغ باید مثبت باشد")
-        acct = self.get_or_create_account(db, owner_id, asset_code, owner_type)
+        acct = self.get_or_create_account(db, user_id, asset_code)
         key = idempotency_key or self._gen_key("credit", reference_type, reference_id)
         return self._write_entry(
             db, acct, TransactionType.CREDIT,
@@ -383,8 +369,7 @@ class WalletService:
         return float(s.value) if s else 2.0
 
     def convert_rial_to_gold(
-        self, db: Session, owner_id: int, amount_irr: int,
-        owner_type: str = OwnerType.CUSTOMER,
+        self, db: Session, user_id: int, amount_irr: int,
     ) -> Dict[str, Any]:
         """Buy gold: deduct IRR, credit XAU_MG."""
         if amount_irr <= 0:
@@ -398,18 +383,16 @@ class WalletService:
         actual_cost = int(gold_mg * buy_price)
 
         self.withdraw(
-            db, owner_id, actual_cost,
+            db, user_id, actual_cost,
             reference_type="gold_buy", reference_id="",
             description=f"خرید طلا ({gold_mg / 1000:.3f} گرم)",
-            owner_type=owner_type,
             consume_credit=True,
         )
         self.deposit(
-            db, owner_id, gold_mg,
+            db, user_id, gold_mg,
             reference_type="gold_buy", reference_id="",
             description=f"خرید طلا ({gold_mg / 1000:.3f} گرم)",
             asset_code=AssetCode.XAU_MG,
-            owner_type=owner_type,
         )
         return {
             "gold_mg": gold_mg,
@@ -419,8 +402,7 @@ class WalletService:
         }
 
     def convert_gold_to_rial(
-        self, db: Session, owner_id: int, gold_mg: int,
-        owner_type: str = OwnerType.CUSTOMER,
+        self, db: Session, user_id: int, gold_mg: int,
     ) -> Dict[str, Any]:
         """Sell gold: deduct XAU_MG, credit IRR."""
         if gold_mg <= 0:
@@ -433,17 +415,15 @@ class WalletService:
             raise ValueError("مقدار طلا برای فروش کافی نیست")
 
         self.withdraw(
-            db, owner_id, gold_mg,
+            db, user_id, gold_mg,
             reference_type="gold_sell", reference_id="",
             description=f"فروش طلا ({gold_mg / 1000:.3f} گرم)",
             asset_code=AssetCode.XAU_MG,
-            owner_type=owner_type,
         )
         self.deposit(
-            db, owner_id, amount_irr,
+            db, user_id, amount_irr,
             reference_type="gold_sell", reference_id="",
             description=f"فروش طلا ({gold_mg / 1000:.3f} گرم)",
-            owner_type=owner_type,
         )
         return {
             "gold_mg": gold_mg,
@@ -474,24 +454,22 @@ class WalletService:
     def get_transactions(
         self,
         db: Session,
-        owner_id: int,
+        user_id: int,
         asset_code: str = None,
         page: int = 1,
         per_page: int = 20,
-        owner_type: str = OwnerType.CUSTOMER,
     ) -> Tuple[List[LedgerEntry], int]:
         """Get paginated ledger entries. If asset_code is None, returns all assets."""
         if asset_code:
-            acct = self.get_account(db, owner_id, asset_code, owner_type)
+            acct = self.get_account(db, user_id, asset_code)
             if not acct:
                 return [], 0
             q = db.query(LedgerEntry).filter(LedgerEntry.account_id == acct.id)
         else:
-            # All accounts for this owner
+            # All accounts for this user
             acct_ids = [
                 a.id for a in db.query(Account).filter(
-                    Account.owner_type == owner_type,
-                    Account.owner_id == owner_id,
+                    Account.user_id == user_id,
                 ).all()
             ]
             if not acct_ids:
@@ -513,13 +491,13 @@ class WalletService:
     # ------------------------------------------
 
     def create_topup(
-        self, db: Session, customer_id: int, amount_irr: int
+        self, db: Session, user_id: int, amount_irr: int
     ) -> WalletTopup:
         """Create a pending topup request."""
         if amount_irr < 100_000:  # min 10,000 toman
             raise ValueError("حداقل مبلغ شارژ ۱۰,۰۰۰ تومان می‌باشد")
         topup = WalletTopup(
-            customer_id=customer_id,
+            user_id=user_id,
             amount_irr=amount_irr,
             status="PENDING",
         )
@@ -539,7 +517,7 @@ class WalletService:
         topup.ref_number = ref_number
 
         self.deposit(
-            db, topup.customer_id, topup.amount_irr,
+            db, topup.user_id, topup.amount_irr,
             reference_type="topup", reference_id=str(topup.id),
             description=f"شارژ آنلاین - کد پیگیری {ref_number}",
             idempotency_key=f"topup_confirm:{topup.id}",
@@ -562,11 +540,10 @@ class WalletService:
     def create_withdrawal(
         self,
         db: Session,
-        owner_id: int,
+        user_id: int,
         amount_irr: int,
         shaba_number: str,
         account_holder: str = "",
-        owner_type: str = OwnerType.CUSTOMER,
     ) -> WithdrawalRequest:
         """Create withdrawal request (holds funds immediately)."""
         if amount_irr < 1_000_000:  # min 100,000 toman
@@ -578,14 +555,12 @@ class WalletService:
             raise ValueError("شماره شبا نامعتبر است (فرمت: IR + ۲۴ رقم)")
 
         # Check withdrawable balance (excludes non-withdrawable credit)
-        bal = self.get_balance(db, owner_id, owner_type=owner_type)
+        bal = self.get_balance(db, user_id)
         if bal["withdrawable"] < amount_irr:
             raise ValueError("موجودی قابل برداشت کافی نیست")
 
         wr = WithdrawalRequest(
-            owner_type=owner_type,
-            customer_id=owner_id if owner_type == OwnerType.CUSTOMER else None,
-            dealer_id=owner_id if owner_type == OwnerType.DEALER else None,
+            user_id=user_id,
             amount_irr=amount_irr,
             shaba_number=shaba_clean,
             account_holder=account_holder,
@@ -596,10 +571,9 @@ class WalletService:
 
         # Hold funds immediately
         self.hold(
-            db, owner_id, amount_irr,
+            db, user_id, amount_irr,
             reference_type="withdrawal", reference_id=str(wr.id),
             description=f"بلوکه برای درخواست برداشت #{wr.id}",
-            owner_type=owner_type,
         )
         return wr
 
@@ -616,10 +590,9 @@ class WalletService:
 
         # Commit the held funds (deduct balance + locked)
         self.commit(
-            db, wr.owner_id, wr.amount_irr,
+            db, wr.user_id, wr.amount_irr,
             reference_type="withdrawal", reference_id=str(wr.id),
             description=f"تسویه برداشت #{wr.id} به شبا {wr.shaba_number}",
-            owner_type=wr.owner_type,
         )
         db.flush()
         return wr
@@ -637,10 +610,9 @@ class WalletService:
 
         # Release held funds
         self.release(
-            db, wr.owner_id, wr.amount_irr,
+            db, wr.user_id, wr.amount_irr,
             reference_type="withdrawal", reference_id=str(wr.id),
             description=f"آزادسازی بلوکه - رد درخواست برداشت #{wr.id}",
-            owner_type=wr.owner_type,
         )
         db.flush()
         return wr
@@ -652,14 +624,11 @@ class WalletService:
     def get_all_accounts(
         self, db: Session,
         asset_code: str = AssetCode.IRR,
-        owner_type: str = None,
         page: int = 1,
         per_page: int = 30,
     ) -> Tuple[List[Account], int]:
-        """Get all accounts with pagination. Optional owner_type filter."""
+        """Get all accounts with pagination."""
         q = db.query(Account).filter(Account.asset_code == asset_code)
-        if owner_type:
-            q = q.filter(Account.owner_type == owner_type)
         total = q.count()
         accounts = (
             q.order_by(Account.balance.desc())
@@ -680,12 +649,9 @@ class WalletService:
 
     def get_all_withdrawals(
         self, db: Session, page: int = 1, per_page: int = 30,
-        owner_type: str = None,
     ) -> Tuple[List[WithdrawalRequest], int]:
-        """Get all withdrawal requests with pagination. Optional owner_type filter."""
+        """Get all withdrawal requests with pagination."""
         q = db.query(WithdrawalRequest)
-        if owner_type:
-            q = q.filter(WithdrawalRequest.owner_type == owner_type)
         total = q.count()
         items = (
             q.order_by(WithdrawalRequest.created_at.desc())
@@ -698,29 +664,27 @@ class WalletService:
     def admin_adjust(
         self,
         db: Session,
-        owner_id: int,
+        user_id: int,
         amount: int,
         direction: str,
         description: str = "",
         admin_id: int = 0,
         asset_code: str = AssetCode.IRR,
-        owner_type: str = OwnerType.CUSTOMER,
     ) -> LedgerEntry:
         """Manual admin adjustment (deposit or withdraw)."""
         desc = description or ("واریز دستی مدیر" if direction == "deposit" else "برداشت دستی مدیر")
         ref_id = str(admin_id) if admin_id else ""
-        unique_key = f"admin_adjust:{direction}:{owner_type}:{owner_id}:{uuid.uuid4().hex[:12]}"
+        unique_key = f"admin_adjust:{direction}:{user_id}:{uuid.uuid4().hex[:12]}"
         if direction == "deposit":
             return self.deposit(
-                db, owner_id, amount, "admin_adjust", ref_id, desc,
-                asset_code=asset_code, owner_type=owner_type,
+                db, user_id, amount, "admin_adjust", ref_id, desc,
+                asset_code=asset_code,
                 idempotency_key=unique_key,
             )
         elif direction == "withdraw":
             return self.withdraw(
-                db, owner_id, amount, "admin_adjust", ref_id, desc,
+                db, user_id, amount, "admin_adjust", ref_id, desc,
                 asset_code=asset_code, idempotency_key=unique_key,
-                owner_type=owner_type,
             )
         else:
             raise ValueError("نوع عملیات نامعتبر")

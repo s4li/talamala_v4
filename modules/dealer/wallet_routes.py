@@ -15,7 +15,7 @@ from common.templating import templates
 from common.security import csrf_check, new_csrf_token
 from modules.auth.deps import require_dealer
 from modules.wallet.service import wallet_service
-from modules.wallet.models import AssetCode, OwnerType, WithdrawalRequest, WithdrawalStatus
+from modules.wallet.models import AssetCode, WithdrawalRequest, WithdrawalStatus
 
 router = APIRouter(prefix="/dealer/wallet", tags=["dealer-wallet"])
 
@@ -33,18 +33,16 @@ async def dealer_wallet_dashboard(
     db: Session = Depends(get_db),
 ):
     irr_balance = wallet_service.get_balance(
-        db, dealer.id, asset_code=AssetCode.IRR, owner_type=OwnerType.DEALER
-    )
+        db, dealer.id, asset_code=AssetCode.IRR    )
     gold_balance = wallet_service.get_balance(
-        db, dealer.id, asset_code=AssetCode.XAU_MG, owner_type=OwnerType.DEALER
-    )
+        db, dealer.id, asset_code=AssetCode.XAU_MG    )
     entries, total = wallet_service.get_transactions(
-        db, dealer.id, owner_type=OwnerType.DEALER, per_page=10
+        db, dealer.id, per_page=10
     )
     pending_wr = (
         db.query(WithdrawalRequest)
         .filter(
-            WithdrawalRequest.dealer_id == dealer.id,
+            WithdrawalRequest.user_id == dealer.id,
             WithdrawalRequest.status == WithdrawalStatus.PENDING,
         )
         .all()
@@ -82,7 +80,7 @@ async def dealer_wallet_transactions(
     per_page = 25
     asset_code = AssetCode.XAU_MG if asset == "gold" else (AssetCode.IRR if asset == "irr" else None)
     entries, total = wallet_service.get_transactions(
-        db, dealer.id, owner_type=OwnerType.DEALER,
+        db, dealer.id,
         page=page, per_page=per_page, asset_code=asset_code,
     )
     total_pages = max(1, (total + per_page - 1) // per_page)
@@ -117,8 +115,7 @@ async def dealer_gold_buy(
 
     try:
         result = wallet_service.convert_rial_to_gold(
-            db, dealer.id, amount_irr, owner_type=OwnerType.DEALER
-        )
+            db, dealer.id, amount_irr        )
         db.commit()
         gold_mg = result["gold_mg"]
         msg = urllib.parse.quote(f"خرید {gold_mg / 1000:.3f} گرم طلا با موفقیت انجام شد")
@@ -145,8 +142,7 @@ async def dealer_gold_sell(
         if gold_mg <= 0:
             raise ValueError("مقدار طلا باید بیشتر از صفر باشد")
         result = wallet_service.convert_gold_to_rial(
-            db, dealer.id, gold_mg, owner_type=OwnerType.DEALER
-        )
+            db, dealer.id, gold_mg        )
         db.commit()
         rial = result["amount_irr"]
         msg = urllib.parse.quote(f"فروش {gold_mg / 1000:.3f} گرم طلا — {rial // 10:,} تومان واریز شد")
@@ -169,11 +165,10 @@ async def dealer_wallet_withdraw_form(
 ):
     """Dealer withdrawal request form."""
     irr_balance = wallet_service.get_balance(
-        db, dealer.id, asset_code=AssetCode.IRR, owner_type=OwnerType.DEALER
-    )
+        db, dealer.id, asset_code=AssetCode.IRR    )
     withdrawals = (
         db.query(WithdrawalRequest)
-        .filter(WithdrawalRequest.dealer_id == dealer.id)
+        .filter(WithdrawalRequest.user_id == dealer.id)
         .order_by(WithdrawalRequest.created_at.desc())
         .limit(20)
         .all()
@@ -209,7 +204,6 @@ async def dealer_wallet_withdraw_submit(
     try:
         wr = wallet_service.create_withdrawal(
             db, dealer.id, amount_irr, shaba_number, account_holder,
-            owner_type=OwnerType.DEALER,
         )
         db.commit()
         msg = urllib.parse.quote(

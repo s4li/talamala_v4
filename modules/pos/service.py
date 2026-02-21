@@ -15,7 +15,8 @@ from modules.catalog.models import (
     Product, ProductCategory, ProductCategoryLink, ProductImage, ProductTierWage,
 )
 from modules.inventory.models import Bar, BarStatus, OwnershipHistory
-from modules.dealer.models import Dealer, DealerSale
+from modules.user.models import User
+from modules.dealer.models import DealerSale
 from modules.pricing.calculator import calculate_bar_price
 from modules.pricing.service import get_price_value, require_fresh_price
 from modules.pricing.models import GOLD_18K
@@ -81,7 +82,7 @@ class PosService:
         self, db: Session, dealer_id: int, category_id: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Products with live pricing + stock count for POS display."""
-        dealer = db.query(Dealer).filter(Dealer.id == dealer_id).first()
+        dealer = db.query(User).filter(User.id == dealer_id, User.is_dealer == True).first()
         if not dealer:
             return {"products": [], "gold_price_18k": 0, "tax_percent": "10"}
 
@@ -244,7 +245,7 @@ class PosService:
             db.flush()
             return {"success": False, "message": "زمان رزرو منقضی شده، لطفا دوباره تلاش کنید"}
 
-        dealer = db.query(Dealer).filter(Dealer.id == dealer_id).first()
+        dealer = db.query(User).filter(User.id == dealer_id, User.is_dealer == True).first()
         product = bar.product
 
         gold_price, tax_percent = self._get_price_settings(db)
@@ -274,10 +275,9 @@ class PosService:
         bar.delivered_at = now_utc()  # POS = in-person, already delivered
 
         # Link customer
-        from modules.customer.models import Customer
         customer = None
         if customer_mobile:
-            customer = db.query(Customer).filter(Customer.mobile == customer_mobile).first()
+            customer = db.query(User).filter(User.mobile == customer_mobile).first()
             if customer:
                 bar.customer_id = customer.id
 
@@ -324,14 +324,13 @@ class PosService:
         # Gold settlement
         if gold_profit_mg > 0:
             from modules.wallet.service import wallet_service
-            from modules.wallet.models import OwnerType, AssetCode
+            from modules.wallet.models import AssetCode
             wallet_service.deposit(
                 db, dealer_id, gold_profit_mg,
                 reference_type="pos_gold_profit",
                 reference_id=str(sale.id),
                 description=f"سود طلایی فروش POS شمش {bar.serial_code} ({gold_profit_mg / 1000:.3f} گرم)",
                 asset_code=AssetCode.XAU_MG,
-                owner_type=OwnerType.DEALER,
             )
 
         return {
@@ -390,7 +389,7 @@ class PosService:
         if not sale:
             return {"success": False, "message": "فروش یافت نشد"}
 
-        dealer = db.query(Dealer).filter(Dealer.id == dealer_id).first()
+        dealer = db.query(User).filter(User.id == dealer_id, User.is_dealer == True).first()
         bar = sale.bar
         product = bar.product if bar else None
 
@@ -407,7 +406,7 @@ class PosService:
                 "customer_name": sale.customer_name or "",
                 "customer_mobile": sale.customer_mobile or "",
                 "dealer_name": dealer.full_name if dealer else "",
-                "dealer_address": dealer.address if dealer else "",
+                "dealer_address": (dealer.dealer_address or dealer.address or "") if dealer else "",
                 "created_at": sale.created_at.isoformat() if sale.created_at else "",
             },
         }

@@ -26,7 +26,7 @@ from modules.coupon.models import (
     CouponType, DiscountMode, CouponScope, CouponStatus,
 )
 from modules.order.models import Order, OrderStatus
-from modules.customer.models import Customer
+from modules.user.models import User
 from common.helpers import now_utc
 
 
@@ -85,7 +85,7 @@ class CouponService:
         # 4. Per-customer usage limit
         customer_uses = (
             db.query(CouponUsage)
-            .filter(CouponUsage.coupon_id == coupon.id, CouponUsage.customer_id == customer_id)
+            .filter(CouponUsage.coupon_id == coupon.id, CouponUsage.user_id == customer_id)
             .count()
         )
         if customer_uses >= coupon.max_per_customer:
@@ -93,7 +93,7 @@ class CouponService:
 
         # 5. Mobile whitelist
         if coupon.allowed_mobiles:
-            customer = db.query(Customer).filter(Customer.id == customer_id).first()
+            customer = db.query(User).filter(User.id == customer_id).first()
             if not customer:
                 raise CouponValidationError("مشتری یافت نشد")
             allowed = {m.mobile for m in coupon.allowed_mobiles}
@@ -205,7 +205,7 @@ class CouponService:
         # Record usage
         usage = CouponUsage(
             coupon_id=coupon.id,
-            customer_id=customer_id,
+            user_id=customer_id,
             order_id=order_id,
             discount_amount=result["discount_amount"],
             cashback_settled=False,
@@ -244,7 +244,7 @@ class CouponService:
 
         # Credit wallet
         wallet_service.deposit(
-            db, usage.customer_id, usage.discount_amount,
+            db, usage.user_id, usage.discount_amount,
             reference_type="cashback",
             reference_id=str(order_id),
             description=f"کشبک سفارش #{order_id} — کد {usage.coupon.code}",
@@ -354,7 +354,7 @@ class CouponService:
             first_purchase_only=bool(data.get("first_purchase_only")),
             is_combinable=bool(data.get("is_combinable")),
             is_private=bool(data.get("is_private")),
-            referrer_customer_id=int(data["referrer_customer_id"]) if data.get("referrer_customer_id") else None,
+            referrer_user_id=int(data["referrer_user_id"]) if data.get("referrer_user_id") else None,
             status=data.get("status", CouponStatus.ACTIVE),
         )
         db.add(coupon)
@@ -383,7 +383,7 @@ class CouponService:
         for key in [
             "discount_value", "max_discount_amount", "min_order_amount",
             "max_order_amount", "min_quantity", "max_total_uses",
-            "max_per_customer", "scope_product_id", "referrer_customer_id",
+            "max_per_customer", "scope_product_id", "referrer_user_id",
         ]:
             if key in data:
                 val = data[key]

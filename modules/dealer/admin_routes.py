@@ -36,7 +36,7 @@ async def dealer_sales_admin(
     user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
-    from modules.dealer.models import Dealer as DealerModel
+    from modules.user.models import User
 
     # Parse dealer_id filter
     did = None
@@ -52,7 +52,7 @@ async def dealer_sales_admin(
     total_pages = (total + 29) // 30
 
     # Load dealer list for dropdown filter
-    dealers = db.query(DealerModel).filter(DealerModel.is_active == True).order_by(DealerModel.full_name).all()
+    dealers = db.query(User).filter(User.is_dealer == True, User.is_active == True).order_by(User.first_name).all()
 
     response = templates.TemplateResponse("admin/dealers/sales.html", {
         "request": request,

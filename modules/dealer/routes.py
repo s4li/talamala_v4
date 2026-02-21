@@ -16,7 +16,7 @@ from common.security import new_csrf_token, csrf_check
 from modules.auth.deps import require_dealer
 from modules.dealer.service import dealer_service
 from modules.wallet.service import wallet_service
-from modules.wallet.models import AssetCode, OwnerType
+from modules.wallet.models import AssetCode
 from modules.pricing.calculator import calculate_bar_price
 from modules.pricing.service import get_end_customer_wage, get_dealer_margin, get_price_value, is_price_fresh
 from modules.pricing.models import GOLD_18K
@@ -39,8 +39,8 @@ async def dealer_dashboard(
     available_bars = dealer_service.get_available_bars(db, dealer.id)
 
     # Wallet balances
-    irr_balance = wallet_service.get_balance(db, dealer.id, asset_code=AssetCode.IRR, owner_type=OwnerType.DEALER)
-    gold_balance = wallet_service.get_balance(db, dealer.id, asset_code=AssetCode.XAU_MG, owner_type=OwnerType.DEALER)
+    irr_balance = wallet_service.get_balance(db, dealer.id, asset_code=AssetCode.IRR)
+    gold_balance = wallet_service.get_balance(db, dealer.id, asset_code=AssetCode.XAU_MG)
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("dealer/dashboard.html", {

@@ -15,7 +15,7 @@ from common.security import csrf_check, new_csrf_token
 from modules.auth.deps import require_permission
 from modules.customer.admin_service import customer_admin_service
 from modules.wallet.service import wallet_service
-from modules.wallet.models import AssetCode, OwnerType
+from modules.wallet.models import AssetCode
 
 router = APIRouter(prefix="/admin/customers", tags=["admin-customer"])
 

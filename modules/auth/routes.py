@@ -2,6 +2,8 @@
 Auth Module - Routes
 =====================
 Login page, OTP send/verify, logout.
+
+NOTE: Unified auth — single auth_token cookie for all user types.
 """
 
 from fastapi import APIRouter, Request, Depends, Form, Response
@@ -47,9 +49,9 @@ async def login_page(
 ):
     """Show login page (redirect if already logged in)."""
     if user:
-        if getattr(user, "is_staff", False):
+        if user.is_admin:
             return RedirectResponse("/admin/dashboard", status_code=302)
-        if getattr(user, "is_dealer", False):
+        if user.is_dealer:
             return RedirectResponse("/dealer/dashboard", status_code=302)
         return RedirectResponse(_safe_next_url(next), status_code=302)
 
@@ -159,19 +161,19 @@ async def send_otp(
             return _error_response("لطفاً نام شرکت را وارد کنید.")
 
         # Check if mobile already exists
-        from modules.customer.models import Customer
-        existing = db.query(Customer).filter(Customer.mobile == mobile.strip()).first()
+        from modules.user.models import User
+        existing = db.query(User).filter(User.mobile == mobile.strip()).first()
         if existing:
             return _error_response("این شماره قبلاً ثبت نام شده است. لطفاً از بخش ورود استفاده کنید.")
 
         # Check if national_id already exists
-        existing_nid = db.query(Customer).filter(Customer.national_id == national_id).first()
+        existing_nid = db.query(User).filter(User.national_id == national_id).first()
         if existing_nid:
             return _error_response("این کد ملی قبلاً ثبت شده است.")
 
         # Validate referral code if provided
         if ref_code:
-            referrer = db.query(Customer).filter(Customer.referral_code == ref_code).first()
+            referrer = db.query(User).filter(User.referral_code == ref_code).first()
             if not referrer:
                 return _error_response("کد معرف نامعتبر است.")
 
@@ -249,25 +251,22 @@ async def verify_otp(
     csrf_check(request, csrf_token)
 
     try:
-        token, cookie_name, redirect_url = auth_service.verify_otp(db, mobile, code)
+        token, redirect_url = auth_service.verify_otp(db, mobile, code)
         db.commit()
 
-        # NOTE: Referral reward is processed on first purchase (order finalization),
-        # not on registration, to prevent abuse via mass fake registrations.
-
         # For customers, use next_url if provided (return to original page)
-        if next_url and cookie_name == "customer_token":
+        if next_url:
             redirect_url = _safe_next_url(next_url)
 
         # If customer profile is incomplete, redirect to profile page
-        if cookie_name == "customer_token" and not next_url:
-            from modules.customer.models import Customer
-            customer = db.query(Customer).filter(Customer.mobile == mobile.strip()).first()
-            if customer and not customer.is_profile_complete:
+        if not next_url:
+            from modules.user.models import User
+            user = db.query(User).filter(User.mobile == mobile.strip()).first()
+            if user and user.is_customer and not user.is_profile_complete:
                 redirect_url = "/profile"
 
         response = RedirectResponse(redirect_url, status_code=302)
-        response.set_cookie(cookie_name, token, **get_cookie_kwargs())
+        response.set_cookie("auth_token", token, **get_cookie_kwargs())
         return response
 
     except AuthenticationError as e:
@@ -290,6 +289,7 @@ async def logout(request: Request):
     """Clear auth cookies and redirect to login."""
     response = RedirectResponse("/auth/login", status_code=302)
     response.delete_cookie("auth_token")
+    # Clean up legacy cookies if they exist
     response.delete_cookie("customer_token")
     response.delete_cookie("dealer_token")
     response.delete_cookie("csrf_token")

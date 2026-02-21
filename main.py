@@ -80,7 +80,7 @@ def _static_page_ctx(request: Request, db: Session):
 
     user = get_current_active_user(request, db)
     cart_count = 0
-    if user and not getattr(user, "is_staff", False):
+    if user and user.is_customer:
         _, cart_count = cart_service.get_cart_map(db, user.id)
     gold_price = None
     try:
@@ -93,8 +93,8 @@ def _static_page_ctx(request: Request, db: Session):
 # ==========================================
 # Import ALL models so Alembic/Base can see them
 # ==========================================
-from modules.admin.models import SystemUser, SystemSetting, RequestLog  # noqa: F401
-from modules.customer.models import Customer  # noqa: F401
+from modules.user.models import User  # noqa: F401 — unified user model
+from modules.admin.models import SystemSetting, RequestLog  # noqa: F401
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress  # noqa: F401
 from modules.catalog.models import (  # noqa: F401
     ProductCategory, ProductCategoryLink, Product, ProductImage, CardDesign, CardDesignImage,
@@ -105,7 +105,7 @@ from modules.cart.models import Cart, CartItem  # noqa: F401
 from modules.order.models import Order, OrderItem, OrderStatusLog  # noqa: F401
 from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest  # noqa: F401
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory  # noqa: F401
-from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest  # noqa: F401
+from modules.dealer.models import DealerTier, DealerSale, BuybackRequest  # noqa: F401
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment  # noqa: F401
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike  # noqa: F401
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment  # noqa: F401
@@ -349,29 +349,29 @@ _SENSITIVE_KEYS = _re.compile(
 
 
 def _identify_user(request: Request):
-    """Identify user from JWT cookies without DB query. Returns (user_type, user_display)."""
-    from common.security import decode_staff_token, decode_customer_token, decode_dealer_token
+    """Identify user from JWT cookie without DB query. Returns (user_type, user_display)."""
+    from common.security import decode_token
 
-    # Staff / Admin
-    admin_tok = request.cookies.get("auth_token")
-    if admin_tok:
-        payload = decode_staff_token(admin_tok)
+    token = request.cookies.get("auth_token")
+    if token:
+        payload = decode_token(token)
         if payload:
-            return "admin", payload.get("sub", "?")
-
-    # Dealer
-    dealer_tok = request.cookies.get("dealer_token")
-    if dealer_tok:
-        payload = decode_dealer_token(dealer_tok)
-        if payload:
-            return "dealer", payload.get("sub", "?")
-
-    # Customer
-    cust_tok = request.cookies.get("customer_token")
-    if cust_tok:
-        payload = decode_customer_token(cust_tok)
-        if payload:
-            return "customer", payload.get("sub", "?")
+            mobile = payload.get("sub", "?")
+            # Quick DB lookup to determine user type for logging
+            try:
+                db = SessionLocal()
+                from modules.user.models import User
+                user = db.query(User).filter(User.mobile == mobile).first()
+                db.close()
+                if user:
+                    if user.is_admin:
+                        return user.admin_role or "admin", mobile
+                    if user.is_dealer:
+                        return "dealer", mobile
+                    return "customer", mobile
+            except Exception:
+                pass
+            return "customer", mobile
 
     return "anonymous", None
 

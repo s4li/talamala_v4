@@ -70,13 +70,12 @@ class Ticket(Base):
     status = Column(String, default=TicketStatus.OPEN, nullable=False)
     priority = Column(String, default=TicketPriority.MEDIUM, nullable=False)
 
-    # Sender: either a customer or a dealer (exactly one should be set)
+    # Sender: a user (customer or dealer)
     sender_type = Column(String, nullable=False)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
-    dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
-    # Assignment to staff
-    assigned_to = Column(Integer, ForeignKey("system_users.id", ondelete="SET NULL"), nullable=True)
+    # Assignment to staff (also a user now)
+    assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -84,9 +83,8 @@ class Ticket(Base):
     closed_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    customer = relationship("Customer", foreign_keys=[customer_id])
-    dealer = relationship("Dealer", foreign_keys=[dealer_id])
-    assigned_staff = relationship("SystemUser", foreign_keys=[assigned_to])
+    user = relationship("User", foreign_keys=[user_id])
+    assigned_staff = relationship("User", foreign_keys=[assigned_to])
     messages = relationship(
         "TicketMessage", back_populates="ticket",
         cascade="all, delete-orphan",
@@ -95,26 +93,21 @@ class Ticket(Base):
 
     __table_args__ = (
         Index("ix_ticket_status_sender", "status", "sender_type"),
-        Index("ix_ticket_customer", "customer_id"),
-        Index("ix_ticket_dealer", "dealer_id"),
+        Index("ix_ticket_user", "user_id"),
     )
 
     # --- Display properties ---
 
     @property
     def sender_name(self) -> str:
-        if self.sender_type == SenderType.CUSTOMER and self.customer:
-            return self.customer.full_name or "مشتری"
-        elif self.sender_type == SenderType.DEALER and self.dealer:
-            return self.dealer.full_name
+        if self.user:
+            return self.user.full_name or "کاربر"
         return "ناشناس"
 
     @property
     def sender_mobile(self) -> str:
-        if self.sender_type == SenderType.CUSTOMER and self.customer:
-            return self.customer.mobile
-        elif self.sender_type == SenderType.DEALER and self.dealer:
-            return self.dealer.mobile
+        if self.user:
+            return self.user.mobile
         return ""
 
     @property

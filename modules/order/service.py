@@ -199,8 +199,8 @@ class OrderService:
                 # Build helpful error message
                 location_name = ""
                 if delivery_method == DeliveryMethod.PICKUP and new_order.pickup_dealer_id:
-                    from modules.dealer.models import Dealer
-                    dlr = db.query(Dealer).filter(Dealer.id == new_order.pickup_dealer_id).first()
+                    from modules.user.models import User
+                    dlr = db.query(User).filter(User.id == new_order.pickup_dealer_id).first()
                     location_name = f" در {dlr.full_name}" if dlr else ""
                 elif delivery_method == DeliveryMethod.POSTAL:
                     location_name = " در انبار ارسال پستی"
@@ -329,25 +329,25 @@ class OrderService:
 
     def _process_referral_reward_on_first_purchase(self, db: Session, customer_id: int):
         """Credit referrer's wallet when referred customer makes their first purchase."""
-        from modules.customer.models import Customer
+        from modules.user.models import User
         from modules.wallet.service import wallet_service
 
         REFERRAL_REWARD_RIAL = 500_000  # 50,000 toman
 
-        customer = db.query(Customer).filter(Customer.id == customer_id).first()
+        customer = db.query(User).filter(User.id == customer_id).first()
         if not customer or customer.referral_rewarded:
             return
         if not customer.referred_by:
             return
 
-        referrer = db.query(Customer).filter(Customer.id == customer.referred_by).first()
+        referrer = db.query(User).filter(User.id == customer.referred_by).first()
         if not referrer:
             return
 
         try:
             wallet_service.deposit(
                 db,
-                owner_id=referrer.id,
+                referrer.id,
                 amount=REFERRAL_REWARD_RIAL,
                 reference_type="referral",
                 reference_id=str(customer.id),
@@ -443,7 +443,7 @@ class OrderService:
     def get_pending_delivery_stats(self, db: Session):
         """Get custodial gold/silver: SOLD bars not yet physically delivered."""
         from sqlalchemy.orm import joinedload
-        from modules.customer.models import Customer
+        from modules.user.models import User
 
         # Bar-based query: SOLD bars with delivered_at IS NULL
         bars = (
@@ -473,7 +473,7 @@ class OrderService:
             # Fetch original buyer names
             buyer_ids = {r.customer_id for r in rows if r.customer_id}
             if buyer_ids:
-                buyers = db.query(Customer).filter(Customer.id.in_(buyer_ids)).all()
+                buyers = db.query(User).filter(User.id.in_(buyer_ids)).all()
                 buyer_map = {c.id: c for c in buyers}
 
         gold_weight = Decimal("0")
@@ -547,12 +547,12 @@ class OrderService:
         if delivery:
             q = q.filter(Order.delivery_method == delivery)
         if search:
-            from modules.customer.models import Customer
+            from modules.user.models import User
             term = f"%{search.strip()}%"
             q = q.join(Order.customer).filter(
-                or_(Customer.first_name.ilike(term),
-                    Customer.last_name.ilike(term),
-                    Customer.mobile.ilike(term))
+                or_(User.first_name.ilike(term),
+                    User.last_name.ilike(term),
+                    User.mobile.ilike(term))
             )
         return q.all()
 

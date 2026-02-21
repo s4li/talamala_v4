@@ -5,7 +5,7 @@ Prospective dealers submit applications through the public form.
 Admin reviews and approves/rejects them.
 
 Models:
-  - DealerRequest: Application submitted by a customer
+  - DealerRequest: Application submitted by a user
   - DealerRequestAttachment: Document/image uploaded with the request
 
 Enums:
@@ -46,7 +46,7 @@ class DealerRequest(Base):
     __tablename__ = "dealer_requests"
 
     id = Column(Integer, primary_key=True, index=True)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     birth_date = Column(String, nullable=True)       # Jalali format "1370/01/15"
@@ -61,7 +61,7 @@ class DealerRequest(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
 
     # Relationships
-    customer = relationship("Customer", foreign_keys=[customer_id])
+    user = relationship("User", foreign_keys=[user_id])
     province = relationship("GeoProvince", foreign_keys=[province_id])
     city = relationship("GeoCity", foreign_keys=[city_id])
     attachments = relationship(
@@ -70,7 +70,7 @@ class DealerRequest(Base):
     )
 
     __table_args__ = (
-        Index("ix_dealer_req_customer", "customer_id"),
+        Index("ix_dealer_req_user", "user_id"),
         Index("ix_dealer_req_status", "status"),
     )
 

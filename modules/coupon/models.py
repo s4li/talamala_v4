@@ -13,7 +13,7 @@ Features:
   - Min/Max order constraints
   - First-purchase-only flag
   - Combinable flag (stack with other coupons)
-  - Referral tracking (referrer_customer_id)
+  - Referral tracking (referrer_user_id)
 """
 
 import enum
@@ -97,7 +97,7 @@ class Coupon(Base):
     is_private = Column(Boolean, default=False, nullable=False)  # فقط با کد (نه در لیست عمومی)
 
     # Referral
-    referrer_customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)
+    referrer_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Status
     status = Column(String, default=CouponStatus.ACTIVE, nullable=False)
@@ -106,7 +106,7 @@ class Coupon(Base):
 
     # Relationships
     scope_product = relationship("Product", foreign_keys=[scope_product_id])
-    referrer = relationship("Customer", foreign_keys=[referrer_customer_id])
+    referrer = relationship("User", foreign_keys=[referrer_user_id])
     allowed_mobiles = relationship("CouponMobile", back_populates="coupon", cascade="all, delete-orphan")
     usages = relationship("CouponUsage", back_populates="coupon", cascade="all, delete-orphan")
     categories = relationship("CouponCategory", back_populates="coupon", cascade="all, delete-orphan")
@@ -186,18 +186,18 @@ class CouponUsage(Base):
 
     id = Column(Integer, primary_key=True)
     coupon_id = Column(Integer, ForeignKey("coupons.id", ondelete="CASCADE"), nullable=False)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     order_id = Column(Integer, ForeignKey("orders.id", ondelete="SET NULL"), nullable=True)
     discount_amount = Column(BigInteger, nullable=False)  # مبلغ تخفیف / کشبک اعمال شده
     cashback_settled = Column(Boolean, default=False, nullable=False)  # آیا کشبک واریز شده؟
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     coupon = relationship("Coupon", back_populates="usages")
-    customer = relationship("Customer")
+    user = relationship("User")
     order = relationship("Order")
 
     __table_args__ = (
-        Index("ix_usage_coupon_customer", "coupon_id", "customer_id"),
+        Index("ix_usage_coupon_user", "coupon_id", "user_id"),
     )
 
 

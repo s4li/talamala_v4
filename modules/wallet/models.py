@@ -1,16 +1,15 @@
 """
 Wallet Module - Models
 ========================
-Double-entry ledger system for customer & dealer wallets.
+Double-entry ledger system for user wallets.
 
 Models:
-  - Account: Per-owner balance (IRR or XAU_MG) — polymorphic (customer/dealer)
+  - Account: Per-user balance (IRR or XAU_MG)
   - LedgerEntry: Immutable audit trail (every balance change)
   - WalletTopup: Online charge requests (linked to payment gateways)
-  - WithdrawalRequest: Customer cash-out requests (admin approval)
+  - WithdrawalRequest: User cash-out requests (admin approval)
 
 Enums:
-  - OwnerType: customer / dealer
   - AssetCode: IRR (ریال), XAU_MG (طلا میلی‌گرم)
   - TransactionType: Deposit/Withdraw/Payment/Refund/Hold/Release/Commit
   - WithdrawalStatus: Pending/Paid/Rejected
@@ -29,11 +28,6 @@ from config.database import Base
 # ==========================================
 # Enums
 # ==========================================
-
-class OwnerType(str, enum.Enum):
-    CUSTOMER = "customer"
-    DEALER = "dealer"
-
 
 class AssetCode(str, enum.Enum):
     IRR = "IRR"         # ریال (نمایش تومانی)
@@ -58,31 +52,29 @@ class WithdrawalStatus(str, enum.Enum):
 
 
 # ==========================================
-# Account (balance per owner per asset)
+# Account (balance per user per asset)
 # ==========================================
 
 class Account(Base):
     __tablename__ = "accounts"
 
     id = Column(Integer, primary_key=True)
-    owner_type = Column(String, nullable=False, default=OwnerType.CUSTOMER)
-    owner_id = Column(Integer, nullable=False)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=True, index=True)  # backward compat
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     asset_code = Column(String, nullable=False)
     balance = Column(BigInteger, default=0, nullable=False)
     locked_balance = Column(BigInteger, default=0, nullable=False)
     credit_balance = Column(BigInteger, default=0, nullable=False)  # اعتبار غیرقابل برداشت
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    customer = relationship("Customer")
+    user = relationship("User")
     entries = relationship("LedgerEntry", back_populates="account", order_by="LedgerEntry.created_at.desc()")
 
     __table_args__ = (
-        UniqueConstraint("owner_type", "owner_id", "asset_code", name="uq_account_owner_asset"),
+        UniqueConstraint("user_id", "asset_code", name="uq_account_user_asset"),
         CheckConstraint("balance >= 0", name="ck_account_balance_nonneg"),
         CheckConstraint("locked_balance >= 0", name="ck_account_locked_nonneg"),
         CheckConstraint("credit_balance >= 0", name="ck_account_credit_nonneg"),
-        Index("ix_account_owner", "owner_type", "owner_id", "asset_code"),
+        Index("ix_account_user_asset", "user_id", "asset_code"),
     )
 
     @property
@@ -97,9 +89,9 @@ class Account(Base):
 
     @property
     def owner_label(self) -> str:
-        if self.owner_type == OwnerType.CUSTOMER:
-            return f"مشتری #{self.owner_id}"
-        return f"نماینده #{self.owner_id}"
+        if self.user:
+            return self.user.display_name
+        return f"کاربر #{self.user_id}"
 
 
 # ==========================================
@@ -198,7 +190,7 @@ class WalletTopup(Base):
     __tablename__ = "wallet_topups"
 
     id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     amount_irr = Column(BigInteger, nullable=False)
     track_id = Column(String, unique=True, nullable=True)
     ref_number = Column(String, nullable=True)
@@ -206,20 +198,18 @@ class WalletTopup(Base):
     status = Column(String, default="PENDING", nullable=False)  # PENDING/PAID/FAILED
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    customer = relationship("Customer")
+    user = relationship("User")
 
 
 # ==========================================
-# WithdrawalRequest (customer → admin → bank)
+# WithdrawalRequest (user → admin → bank)
 # ==========================================
 
 class WithdrawalRequest(Base):
     __tablename__ = "withdrawal_requests"
 
     id = Column(Integer, primary_key=True)
-    owner_type = Column(String, default=OwnerType.CUSTOMER, nullable=False)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=True, index=True)
-    dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     amount_irr = Column(BigInteger, nullable=False)
     shaba_number = Column(String, nullable=False)
     account_holder = Column(String, nullable=True)
@@ -228,42 +218,19 @@ class WithdrawalRequest(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    customer = relationship("Customer")
-    dealer = relationship("Dealer")
-
-    @property
-    def owner_id(self) -> int:
-        if self.owner_type == OwnerType.DEALER:
-            return self.dealer_id
-        return self.customer_id
+    user = relationship("User")
 
     @property
     def owner_name(self) -> str:
-        if self.owner_type == OwnerType.DEALER and self.dealer:
-            return self.dealer.full_name
-        if self.customer:
-            return self.customer.full_name or self.customer.mobile
+        if self.user:
+            return self.user.full_name or self.user.mobile
         return "---"
 
     @property
     def owner_mobile(self) -> str:
-        if self.owner_type == OwnerType.DEALER and self.dealer:
-            return self.dealer.mobile
-        if self.customer:
-            return self.customer.mobile
+        if self.user:
+            return self.user.mobile
         return ""
-
-    @property
-    def owner_type_label(self) -> str:
-        if self.owner_type == OwnerType.DEALER:
-            return "نماینده"
-        return "مشتری"
-
-    @property
-    def owner_type_color(self) -> str:
-        if self.owner_type == OwnerType.DEALER:
-            return "info"
-        return "secondary"
 
     @property
     def status_label(self) -> str:

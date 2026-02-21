@@ -14,7 +14,7 @@ from modules.review.models import (
     Review, ReviewImage, ProductComment, CommentImage, CommentSenderType, CommentLike,
 )
 from modules.order.models import Order, OrderItem
-from modules.customer.models import Customer
+from modules.user.models import User
 from modules.catalog.models import Product
 from common.upload import save_upload_file
 from common.helpers import now_utc
@@ -72,7 +72,7 @@ class ReviewService:
             return {"success": False, "message": "آیتم سفارش معتبر نیست"}
 
         review = Review(
-            product_id=product_id, customer_id=customer_id,
+            product_id=product_id, user_id=customer_id,
             order_item_id=order_item_id, rating=rating, body=body.strip(),
         )
         db.add(review)
@@ -98,7 +98,7 @@ class ReviewService:
                 return {"success": False, "message": "نظر والد معتبر نیست"}
 
         comment = ProductComment(
-            product_id=product_id, customer_id=customer_id,
+            product_id=product_id, user_id=customer_id,
             parent_id=parent_id, body=body.strip(),
             sender_type=sender_type, sender_name=sender_name,
         )
@@ -117,7 +117,7 @@ class ReviewService:
     def get_product_reviews(self, db, product_id):
         return (
             db.query(Review)
-            .options(joinedload(Review.images), joinedload(Review.customer))
+            .options(joinedload(Review.images), joinedload(Review.user))
             .filter(Review.product_id == product_id)
             .order_by(Review.created_at.desc())
             .all()
@@ -134,7 +134,7 @@ class ReviewService:
     def get_product_comments(self, db, product_id):
         return (
             db.query(ProductComment)
-            .options(joinedload(ProductComment.images), joinedload(ProductComment.customer))
+            .options(joinedload(ProductComment.images), joinedload(ProductComment.user))
             .filter(ProductComment.product_id == product_id, ProductComment.parent_id == None)
             .order_by(ProductComment.created_at.desc())
             .all()
@@ -180,20 +180,20 @@ class ReviewService:
 
     def list_reviews_admin(self, db, page=1, per_page=30, search=None):
         q = db.query(Review).options(
-            joinedload(Review.product), joinedload(Review.customer), joinedload(Review.images),
+            joinedload(Review.product), joinedload(Review.user), joinedload(Review.images),
         )
         if search and search.strip():
             term = f"%{search.strip()}%"
             q = q.join(Product, Review.product_id == Product.id)
-            q = q.outerjoin(Customer, Review.customer_id == Customer.id)
-            q = q.filter(Product.name.ilike(term) | Customer.mobile.ilike(term) | Review.body.ilike(term))
+            q = q.outerjoin(User, Review.user_id == User.id)
+            q = q.filter(Product.name.ilike(term) | User.mobile.ilike(term) | Review.body.ilike(term))
         total = q.count()
         reviews = q.order_by(Review.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
         return reviews, total
 
     def list_comments_admin(self, db, page=1, per_page=30, search=None):
         q = db.query(ProductComment).options(
-            joinedload(ProductComment.product), joinedload(ProductComment.customer),
+            joinedload(ProductComment.product), joinedload(ProductComment.user),
             joinedload(ProductComment.images), joinedload(ProductComment.replies),
         ).filter(ProductComment.parent_id == None)
         if search and search.strip():
@@ -206,12 +206,12 @@ class ReviewService:
 
     def get_review(self, db, review_id):
         return db.query(Review).options(
-            joinedload(Review.product), joinedload(Review.customer), joinedload(Review.images),
+            joinedload(Review.product), joinedload(Review.user), joinedload(Review.images),
         ).filter(Review.id == review_id).first()
 
     def get_comment(self, db, comment_id):
         return db.query(ProductComment).options(
-            joinedload(ProductComment.product), joinedload(ProductComment.customer), joinedload(ProductComment.images),
+            joinedload(ProductComment.product), joinedload(ProductComment.user), joinedload(ProductComment.images),
         ).filter(ProductComment.id == comment_id).first()
 
     # ------------------------------------------
@@ -221,13 +221,13 @@ class ReviewService:
     def toggle_like(self, db: Session, comment_id: int, customer_id: int):
         existing = db.query(CommentLike).filter(
             CommentLike.comment_id == comment_id,
-            CommentLike.customer_id == customer_id,
+            CommentLike.user_id == customer_id,
         ).first()
         if existing:
             db.delete(existing)
             liked = False
         else:
-            db.add(CommentLike(comment_id=comment_id, customer_id=customer_id))
+            db.add(CommentLike(comment_id=comment_id, user_id=customer_id))
             liked = True
         db.flush()
         count = db.query(sa_func.count(CommentLike.id)).filter(
@@ -249,7 +249,7 @@ class ReviewService:
         if customer_id:
             liked_set = set(
                 r[0] for r in db.query(CommentLike.comment_id)
-                .filter(CommentLike.comment_id.in_(comment_ids), CommentLike.customer_id == customer_id)
+                .filter(CommentLike.comment_id.in_(comment_ids), CommentLike.user_id == customer_id)
                 .all()
             )
         return {

@@ -27,7 +27,7 @@ class Review(Base):
 
     id = Column(Integer, primary_key=True)
     product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     order_item_id = Column(Integer, ForeignKey("order_items.id", ondelete="SET NULL"), nullable=True, unique=True)
     rating = Column(Integer, nullable=False)  # 1-5
     body = Column(Text, nullable=False)
@@ -37,14 +37,14 @@ class Review(Base):
 
     # Relationships
     product = relationship("Product", foreign_keys=[product_id])
-    customer = relationship("Customer", foreign_keys=[customer_id])
+    user = relationship("User", foreign_keys=[user_id])
     order_item = relationship("OrderItem", foreign_keys=[order_item_id])
     images = relationship("ReviewImage", back_populates="review", cascade="all, delete-orphan")
 
     __table_args__ = (
         CheckConstraint("rating >= 1 AND rating <= 5", name="ck_review_rating_range"),
         Index("ix_review_product", "product_id"),
-        Index("ix_review_customer", "customer_id"),
+        Index("ix_review_user", "user_id"),
     )
 
 
@@ -67,7 +67,7 @@ class ProductComment(Base):
 
     id = Column(Integer, primary_key=True)
     product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     parent_id = Column(Integer, ForeignKey("product_comments.id", ondelete="CASCADE"), nullable=True)
     body = Column(Text, nullable=False)
     sender_type = Column(String, default=CommentSenderType.CUSTOMER, nullable=False)
@@ -76,7 +76,7 @@ class ProductComment(Base):
 
     # Relationships
     product = relationship("Product", foreign_keys=[product_id])
-    customer = relationship("Customer", foreign_keys=[customer_id])
+    user = relationship("User", foreign_keys=[user_id])
     parent = relationship("ProductComment", remote_side=[id], backref="replies")
     images = relationship("CommentImage", back_populates="comment", cascade="all, delete-orphan")
 
@@ -124,9 +124,9 @@ class CommentLike(Base):
 
     id = Column(Integer, primary_key=True)
     comment_id = Column(Integer, ForeignKey("product_comments.id", ondelete="CASCADE"), nullable=False)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     __table_args__ = (
-        UniqueConstraint("comment_id", "customer_id", name="uq_comment_like"),
+        UniqueConstraint("comment_id", "user_id", name="uq_comment_like"),
     )

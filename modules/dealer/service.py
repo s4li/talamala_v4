@@ -11,10 +11,10 @@ from decimal import Decimal
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func as sa_func, or_
 
-from modules.dealer.models import Dealer, DealerSale, BuybackRequest, BuybackStatus
+from modules.user.models import User
+from modules.dealer.models import DealerSale, BuybackRequest, BuybackStatus
 from modules.inventory.models import Bar, BarStatus, OwnershipHistory
 from modules.catalog.models import ProductTierWage
-from modules.customer.models import Customer
 from modules.pricing.service import get_end_customer_wage, get_dealer_margin
 from common.helpers import now_utc, generate_unique_claim_code
 
@@ -25,19 +25,20 @@ class DealerService:
     # Dealer CRUD
     # ------------------------------------------
 
-    def get_dealer(self, db: Session, dealer_id: int) -> Optional[Dealer]:
-        return db.query(Dealer).filter(Dealer.id == dealer_id).first()
+    def get_dealer(self, db: Session, dealer_id: int) -> Optional[User]:
+        return db.query(User).filter(User.id == dealer_id, User.is_dealer == True).first()
 
-    def get_dealer_by_mobile(self, db: Session, mobile: str) -> Optional[Dealer]:
-        return db.query(Dealer).filter(Dealer.mobile == mobile).first()
+    def get_dealer_by_mobile(self, db: Session, mobile: str) -> Optional[User]:
+        return db.query(User).filter(User.mobile == mobile, User.is_dealer == True).first()
 
-    def get_dealer_by_api_key(self, db: Session, api_key: str) -> Optional[Dealer]:
+    def get_dealer_by_api_key(self, db: Session, api_key: str) -> Optional[User]:
         """Lookup dealer by API key (for POS device auth)."""
         if not api_key:
             return None
-        return db.query(Dealer).filter(
-            Dealer.api_key == api_key,
-            Dealer.is_active == True,
+        return db.query(User).filter(
+            User.api_key == api_key,
+            User.is_dealer == True,
+            User.is_active == True,
         ).first()
 
     def generate_api_key(self, db: Session, dealer_id: int) -> Optional[str]:
@@ -58,8 +59,8 @@ class DealerService:
         db.flush()
         return True
 
-    def list_dealers(self, db: Session, page: int = 1, per_page: int = 30) -> Tuple[List[Dealer], int]:
-        q = db.query(Dealer).order_by(Dealer.created_at.desc())
+    def list_dealers(self, db: Session, page: int = 1, per_page: int = 30) -> Tuple[List[User], int]:
+        q = db.query(User).filter(User.is_dealer == True).order_by(User.created_at.desc())
         total = q.count()
         dealers = q.offset((page - 1) * per_page).limit(per_page).all()
         return dealers, total
@@ -72,17 +73,41 @@ class DealerService:
         district_id: int = None, address: str = "",
         postal_code: str = "", landline_phone: str = "",
         is_warehouse: bool = False, is_postal_hub: bool = False,
-    ) -> Dealer:
-        dealer = Dealer(
+    ) -> User:
+        # Check if user with this mobile already exists
+        existing = db.query(User).filter(User.mobile == mobile).first()
+        if existing:
+            # Promote existing user to dealer
+            existing.is_dealer = True
+            name_parts = full_name.split(" ", 1) if full_name else ["", ""]
+            existing.first_name = existing.first_name or name_parts[0]
+            existing.last_name = existing.last_name or (name_parts[1] if len(name_parts) > 1 else "")
+            existing.national_id = existing.national_id or national_id or None
+            existing.tier_id = tier_id
+            existing.province_id = province_id
+            existing.city_id = city_id
+            existing.district_id = district_id
+            existing.dealer_address = address or None
+            existing.dealer_postal_code = postal_code or None
+            existing.landline_phone = landline_phone or None
+            existing.is_warehouse = is_warehouse
+            existing.is_postal_hub = is_postal_hub
+            db.flush()
+            return existing
+
+        name_parts = full_name.split(" ", 1) if full_name else ["", ""]
+        dealer = User(
             mobile=mobile,
-            full_name=full_name,
+            first_name=name_parts[0],
+            last_name=name_parts[1] if len(name_parts) > 1 else "",
             national_id=national_id or None,
+            is_dealer=True,
             tier_id=tier_id,
             province_id=province_id,
             city_id=city_id,
             district_id=district_id,
-            address=address or None,
-            postal_code=postal_code or None,
+            dealer_address=address or None,
+            dealer_postal_code=postal_code or None,
             landline_phone=landline_phone or None,
             is_warehouse=is_warehouse,
             is_postal_hub=is_postal_hub,
@@ -99,12 +124,14 @@ class DealerService:
         district_id: int = None, address: str = None,
         postal_code: str = None, landline_phone: str = None,
         is_warehouse: bool = None, is_postal_hub: bool = None,
-    ) -> Optional[Dealer]:
+    ) -> Optional[User]:
         dealer = self.get_dealer(db, dealer_id)
         if not dealer:
             return None
         if full_name is not None:
-            dealer.full_name = full_name
+            name_parts = full_name.split(" ", 1) if full_name else ["", ""]
+            dealer.first_name = name_parts[0]
+            dealer.last_name = name_parts[1] if len(name_parts) > 1 else ""
         if tier_id is not None:
             dealer.tier_id = tier_id
         if is_active is not None:
@@ -116,9 +143,9 @@ class DealerService:
         if district_id is not None:
             dealer.district_id = district_id
         if address is not None:
-            dealer.address = address or None
+            dealer.dealer_address = address or None
         if postal_code is not None:
-            dealer.postal_code = postal_code or None
+            dealer.dealer_postal_code = postal_code or None
         if landline_phone is not None:
             dealer.landline_phone = landline_phone or None
         if is_warehouse is not None:
@@ -225,7 +252,7 @@ class DealerService:
         # Link to customer if mobile provided
         customer = None
         if customer_mobile:
-            customer = db.query(Customer).filter(Customer.mobile == customer_mobile).first()
+            customer = db.query(User).filter(User.mobile == customer_mobile).first()
             if customer:
                 bar.customer_id = customer.id
 
@@ -265,14 +292,13 @@ class DealerService:
 
         if gold_profit_mg > 0:
             from modules.wallet.service import wallet_service
-            from modules.wallet.models import OwnerType, AssetCode
+            from modules.wallet.models import AssetCode
             wallet_service.deposit(
                 db, dealer_id, gold_profit_mg,
                 reference_type="pos_gold_profit",
                 reference_id=str(sale.id),
                 description=f"سود طلایی فروش شمش {bar.serial_code} ({gold_profit_mg / 1000:.3f} گرم)",
                 asset_code=AssetCode.XAU_MG,
-                owner_type=OwnerType.DEALER,
             )
 
         return {
@@ -344,11 +370,15 @@ class DealerService:
             bb.bar.status = BarStatus.ASSIGNED
             bb.bar.customer_id = None
 
+            # Get dealer name for description
+            dealer = db.query(User).filter(User.id == bb.dealer_id).first()
+            dealer_name = dealer.full_name if dealer else "نامشخص"
+
             history = OwnershipHistory(
                 bar_id=bb.bar.id,
                 previous_owner_id=original_customer_id,
                 new_owner_id=None,
-                description=f"بازخرید - تایید توسط مدیر (نماینده: {bb.dealer.full_name})",
+                description=f"بازخرید - تایید توسط مدیر (نماینده: {dealer_name})",
             )
             db.add(history)
 
@@ -574,8 +604,8 @@ class DealerService:
 
     def get_admin_stats(self, db: Session) -> Dict[str, Any]:
         """Global stats for admin dashboard."""
-        total_dealers = db.query(Dealer).count()
-        active_dealers = db.query(Dealer).filter(Dealer.is_active == True).count()
+        total_dealers = db.query(User).filter(User.is_dealer == True).count()
+        active_dealers = db.query(User).filter(User.is_dealer == True, User.is_active == True).count()
         total_sales = db.query(DealerSale).count()
         total_revenue = (
             db.query(sa_func.coalesce(sa_func.sum(DealerSale.sale_price), 0)).scalar()

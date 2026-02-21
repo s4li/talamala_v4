@@ -19,8 +19,7 @@ from modules.auth.deps import require_permission
 from modules.inventory.models import BarStatus
 from modules.inventory.service import inventory_service
 from modules.catalog.models import Product, Batch
-from modules.customer.models import Customer
-from modules.dealer.models import Dealer
+from modules.user.models import User
 from modules.customer.address_models import GeoProvince
 
 router = APIRouter(tags=["inventory-admin"])
@@ -61,9 +60,9 @@ async def list_bars(
 
     filter_customer = None
     if _customer_id:
-        filter_customer = db.query(Customer).filter(Customer.id == _customer_id).first()
+        filter_customer = db.query(User).filter(User.id == _customer_id).first()
 
-    all_dealers = db.query(Dealer).filter(Dealer.is_active == True).order_by(Dealer.full_name).all()
+    all_dealers = db.query(User).filter(User.is_dealer == True, User.is_active == True).order_by(User.first_name, User.last_name).all()
     all_provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
 
     data, csrf = ctx(
@@ -78,7 +77,7 @@ async def list_bars(
         product_filter=product_id or "",
         dealer_filter=dealer_id or "",
         all_products=db.query(Product).all(),
-        all_customers=db.query(Customer).all(),
+        all_customers=db.query(User).filter(User.is_customer == True).all(),
         all_batches=db.query(Batch).all(),
         all_dealers=all_dealers,
         all_provinces=all_provinces,
@@ -129,8 +128,8 @@ async def edit_bar_form(
         bar=bar,
         products=db.query(Product).all(),
         batches=db.query(Batch).all(),
-        customers=db.query(Customer).all(),
-        dealers=db.query(Dealer).filter(Dealer.is_active == True).order_by(Dealer.full_name).all(),
+        customers=db.query(User).filter(User.is_customer == True).all(),
+        dealers=db.query(User).filter(User.is_dealer == True, User.is_active == True).order_by(User.first_name, User.last_name).all(),
         provinces=db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all(),
         bar_statuses=BarStatus,
     )

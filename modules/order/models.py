@@ -37,7 +37,7 @@ class Order(Base):
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True, index=True)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="RESTRICT"), nullable=False, index=True)
+    customer_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
     total_amount = Column(BigInteger, nullable=False)
     status = Column(String, default=OrderStatus.PENDING, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -48,7 +48,7 @@ class Order(Base):
     delivery_status = Column(String, default=DeliveryStatus.WAITING, nullable=True)
 
     # Pickup delivery
-    pickup_dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True)
+    pickup_dealer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     delivery_code_hash = Column(String, nullable=True)                # Hashed 6-digit code
     delivered_at = Column(DateTime(timezone=True), nullable=True)
 
@@ -80,8 +80,8 @@ class Order(Base):
     paid_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    customer = relationship("Customer", foreign_keys=[customer_id])
-    pickup_dealer = relationship("Dealer", foreign_keys=[pickup_dealer_id])
+    customer = relationship("User", foreign_keys=[customer_id])
+    pickup_dealer = relationship("User", foreign_keys=[pickup_dealer_id])
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     status_logs = relationship("OrderStatusLog", back_populates="order", order_by="OrderStatusLog.created_at.desc()", cascade="all, delete-orphan")
 

@@ -21,8 +21,8 @@ from config.database import Base
 # ==========================================
 # Import ALL models here for autogenerate
 # ==========================================
-from modules.admin.models import SystemUser, SystemSetting, RequestLog  # noqa: F401
-from modules.customer.models import Customer  # noqa: F401
+from modules.user.models import User  # noqa: F401
+from modules.admin.models import SystemSetting, RequestLog  # noqa: F401
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress  # noqa: F401
 from modules.catalog.models import (  # noqa: F401
     ProductCategory, ProductCategoryLink, Product, ProductImage, CardDesign, CardDesignImage,
@@ -33,7 +33,7 @@ from modules.cart.models import Cart, CartItem  # noqa: F401
 from modules.order.models import Order, OrderItem, OrderStatusLog  # noqa: F401
 from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest  # noqa: F401
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory  # noqa: F401
-from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest  # noqa: F401
+from modules.dealer.models import DealerTier, DealerSale, BuybackRequest  # noqa: F401
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment  # noqa: F401
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike  # noqa: F401
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment  # noqa: F401

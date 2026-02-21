@@ -12,10 +12,10 @@ from sqlalchemy import func as sa_func, cast, Date
 
 from modules.order.models import Order, OrderItem
 from modules.inventory.models import Bar, BarStatus
-from modules.customer.models import Customer
+from modules.user.models import User
 from modules.catalog.models import Product
 from modules.wallet.models import Account, WithdrawalRequest, WithdrawalStatus
-from modules.dealer.models import Dealer, DealerSale, BuybackRequest, BuybackStatus
+from modules.dealer.models import DealerSale, BuybackRequest, BuybackStatus
 from modules.admin.models import SystemSetting
 from common.helpers import now_utc
 
@@ -59,7 +59,7 @@ class DashboardService:
         reserved_bars = db.query(Bar).filter(Bar.status == BarStatus.RESERVED).count()
 
         # Customers
-        total_customers = db.query(Customer).count()
+        total_customers = db.query(User).filter(User.is_customer == True).count()
 
         # Products
         total_products = db.query(Product).filter(Product.is_active == True).count()
@@ -75,8 +75,8 @@ class DashboardService:
         )
 
         # Dealers
-        total_dealers = db.query(Dealer).count()
-        active_dealers = db.query(Dealer).filter(Dealer.is_active == True).count()
+        total_dealers = db.query(User).filter(User.is_dealer == True).count()
+        active_dealers = db.query(User).filter(User.is_dealer == True, User.is_active == True).count()
         dealer_total_sales = db.query(DealerSale).count()
         pending_buybacks = (
             db.query(BuybackRequest)

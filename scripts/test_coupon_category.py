@@ -8,16 +8,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.database import SessionLocal
 
 # Import all models to resolve relationships
-from modules.admin.models import SystemUser, SystemSetting  # noqa
-from modules.customer.models import Customer  # noqa
+from modules.user.models import User  # noqa
+from modules.admin.models import SystemSetting  # noqa
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress  # noqa
 from modules.catalog.models import ProductCategory, Product, ProductImage  # noqa
-from modules.inventory.models import Bar, Location, BarImage, OwnershipHistory  # noqa
+from modules.inventory.models import Bar, BarImage, OwnershipHistory  # noqa
 from modules.cart.models import Cart, CartItem  # noqa
 from modules.order.models import Order, OrderItem  # noqa
 from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest  # noqa
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory  # noqa
-from modules.dealer.models import Dealer, DealerSale, BuybackRequest  # noqa
+from modules.dealer.models import DealerSale, BuybackRequest  # noqa
 
 from modules.coupon.service import coupon_service, CouponValidationError
 

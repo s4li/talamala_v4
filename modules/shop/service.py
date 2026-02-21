@@ -140,21 +140,22 @@ class ShopService:
         ).count()
 
         # Dealer breakdown for customer display (dealer = location)
-        from modules.dealer.models import Dealer
+        from modules.user.models import User
         from modules.customer.address_models import GeoCity
         from sqlalchemy import func as sqlfunc
         loc_rows = db.query(
-            Dealer, GeoCity.name, sqlfunc.count(Bar.id)
+            User, GeoCity.name, sqlfunc.count(Bar.id)
         ).join(
-            Bar, Bar.dealer_id == Dealer.id
+            Bar, Bar.dealer_id == User.id
         ).outerjoin(
-            GeoCity, Dealer.city_id == GeoCity.id
+            GeoCity, User.city_id == GeoCity.id
         ).filter(
             Bar.product_id == product_id,
             Bar.status == BarStatus.ASSIGNED,
             Bar.customer_id.is_(None),
-            Dealer.is_active == True,
-        ).group_by(Dealer.id, GeoCity.name).all()
+            User.is_dealer == True,
+            User.is_active == True,
+        ).group_by(User.id, GeoCity.name).all()
 
         location_inventory = [
             {"name": dlr.full_name, "city": city or "", "type": dlr.type_label, "count": cnt}

@@ -14,7 +14,7 @@ from config.database import Base
 
 
 # ==========================================
-# 🌍 Geographic Data
+# Geographic Data
 # ==========================================
 
 class GeoProvince(Base):
@@ -50,14 +50,14 @@ class GeoDistrict(Base):
 
 
 # ==========================================
-# 📬 Customer Address
+# Customer Address
 # ==========================================
 
 class CustomerAddress(Base):
     __tablename__ = "customer_addresses"
 
     id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String, nullable=False)  # عنوان: خانه، محل کار، ...
     province_id = Column(Integer, ForeignKey("geo_provinces.id", ondelete="RESTRICT"), nullable=False, index=True)
     city_id = Column(Integer, ForeignKey("geo_cities.id", ondelete="RESTRICT"), nullable=False, index=True)
@@ -69,7 +69,7 @@ class CustomerAddress(Base):
     is_default = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    customer = relationship("Customer")
+    user = relationship("User")
     province = relationship("GeoProvince")
     city = relationship("GeoCity")
     district = relationship("GeoDistrict")

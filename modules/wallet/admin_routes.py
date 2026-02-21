@@ -13,9 +13,8 @@ from common.templating import templates
 from common.security import csrf_check, new_csrf_token
 from modules.auth.deps import require_permission
 from modules.wallet.service import wallet_service
-from modules.wallet.models import AssetCode, OwnerType, WithdrawalRequest, WithdrawalStatus
-from modules.customer.models import Customer
-from modules.dealer.models import Dealer
+from modules.wallet.models import AssetCode, WithdrawalRequest, WithdrawalStatus
+from modules.user.models import User
 
 router = APIRouter(prefix="/admin/wallets", tags=["admin-wallet"])
 
@@ -28,15 +27,13 @@ router = APIRouter(prefix="/admin/wallets", tags=["admin-wallet"])
 async def admin_wallet_list(
     request: Request,
     page: int = 1,
-    owner_type: str = "",
     asset: str = "",
     db: Session = Depends(get_db),
     user=Depends(require_permission("wallets")),
 ):
     per_page = 30
-    ot = owner_type if owner_type in ("customer", "dealer") else None
     ac = asset if asset in ("IRR", "XAU_MG") else None
-    accounts, total = wallet_service.get_all_accounts(db, page=page, per_page=per_page, owner_type=ot, asset_code=ac)
+    accounts, total = wallet_service.get_all_accounts(db, page=page, per_page=per_page, asset_code=ac)
     total_pages = max(1, (total + per_page - 1) // per_page)
     stats = wallet_service.get_stats(db)
 
@@ -48,44 +45,42 @@ async def admin_wallet_list(
         "page": page,
         "total_pages": total_pages,
         "total": total,
-        "owner_type_filter": owner_type,
         "asset_filter": asset,
         "active_page": "wallets",
     })
 
 
 # ==========================================
-# 👤 Customer Wallet Detail
+# User Wallet Detail (customer or dealer)
 # ==========================================
 
-@router.get("/customer/{customer_id}", response_class=HTMLResponse)
+@router.get("/customer/{user_id}", response_class=HTMLResponse)
 async def admin_wallet_detail(
     request: Request,
-    customer_id: int,
+    user_id: int,
     page: int = 1,
     msg: str = None,
     error: str = None,
     db: Session = Depends(get_db),
     user=Depends(require_permission("wallets")),
 ):
-    customer = db.query(Customer).filter(Customer.id == customer_id).first()
-    if not customer:
-        raise HTTPException(404, "مشتری یافت نشد")
+    owner = db.query(User).filter(User.id == user_id).first()
+    if not owner:
+        raise HTTPException(404, "کاربر یافت نشد")
 
-    balance = wallet_service.get_balance(db, customer_id)
-    gold_balance = wallet_service.get_balance(db, customer_id, asset_code=AssetCode.XAU_MG)
+    balance = wallet_service.get_balance(db, user_id)
+    gold_balance = wallet_service.get_balance(db, user_id, asset_code=AssetCode.XAU_MG)
     per_page = 25
-    entries, total = wallet_service.get_transactions(db, customer_id, page=page, per_page=per_page)
+    entries, total = wallet_service.get_transactions(db, user_id, page=page, per_page=per_page)
     total_pages = max(1, (total + per_page - 1) // per_page)
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("admin/wallet/detail.html", {
         "request": request,
         "user": user,
-        "owner_type": "customer",
-        "owner": customer,
-        "owner_name": customer.full_name or customer.mobile,
-        "owner_id": customer.id,
+        "owner": owner,
+        "owner_name": owner.full_name or owner.mobile,
+        "owner_id": owner.id,
         "balance": balance,
         "gold_balance": gold_balance,
         "entries": entries,
@@ -101,34 +96,33 @@ async def admin_wallet_detail(
     return response
 
 
-@router.get("/dealer/{dealer_id}", response_class=HTMLResponse)
+@router.get("/dealer/{user_id}", response_class=HTMLResponse)
 async def admin_wallet_dealer_detail(
     request: Request,
-    dealer_id: int,
+    user_id: int,
     page: int = 1,
     msg: str = None,
     error: str = None,
     db: Session = Depends(get_db),
     user=Depends(require_permission("wallets")),
 ):
-    dealer = db.query(Dealer).filter(Dealer.id == dealer_id).first()
-    if not dealer:
+    owner = db.query(User).filter(User.id == user_id, User.is_dealer == True).first()
+    if not owner:
         raise HTTPException(404, "نماینده یافت نشد")
 
-    balance = wallet_service.get_balance(db, dealer_id, owner_type=OwnerType.DEALER)
-    gold_balance = wallet_service.get_balance(db, dealer_id, asset_code=AssetCode.XAU_MG, owner_type=OwnerType.DEALER)
+    balance = wallet_service.get_balance(db, user_id)
+    gold_balance = wallet_service.get_balance(db, user_id, asset_code=AssetCode.XAU_MG)
     per_page = 25
-    entries, total = wallet_service.get_transactions(db, dealer_id, owner_type=OwnerType.DEALER, page=page, per_page=per_page)
+    entries, total = wallet_service.get_transactions(db, user_id, page=page, per_page=per_page)
     total_pages = max(1, (total + per_page - 1) // per_page)
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("admin/wallet/detail.html", {
         "request": request,
         "user": user,
-        "owner_type": "dealer",
-        "owner": dealer,
-        "owner_name": dealer.full_name,
-        "owner_id": dealer.id,
+        "owner": owner,
+        "owner_name": owner.full_name,
+        "owner_id": owner.id,
         "balance": balance,
         "gold_balance": gold_balance,
         "entries": entries,
@@ -151,8 +145,7 @@ async def admin_wallet_dealer_detail(
 @router.post("/adjust")
 async def admin_wallet_adjust(
     request: Request,
-    owner_type: str = Form(...),
-    owner_id: int = Form(...),
+    user_id: int = Form(...),
     direction: str = Form(...),
     asset: str = Form("IRR"),
     amount: str = Form(...),
@@ -163,9 +156,8 @@ async def admin_wallet_adjust(
 ):
     csrf_check(request, csrf_token)
 
-    ot = OwnerType.DEALER if owner_type == "dealer" else OwnerType.CUSTOMER
     ac = AssetCode.XAU_MG if asset == "XAU_MG" else AssetCode.IRR
-    redirect_url = f"/admin/wallets/{owner_type}/{owner_id}"
+    redirect_url = f"/admin/wallets/customer/{user_id}"
 
     try:
         if ac == AssetCode.IRR:
@@ -174,9 +166,9 @@ async def admin_wallet_adjust(
             adj_amount = int(float(amount) * 1000)  # gram → mg
 
         wallet_service.admin_adjust(
-            db, owner_id, adj_amount, direction,
+            db, user_id, adj_amount, direction,
             description=description, admin_id=user.id,
-            asset_code=ac, owner_type=ot,
+            asset_code=ac,
         )
         db.commit()
         label = "واریز" if direction == "deposit" else "برداشت"
@@ -194,13 +186,11 @@ async def admin_wallet_adjust(
 async def admin_withdrawals_list(
     request: Request,
     page: int = 1,
-    owner_type: str = "",
     db: Session = Depends(get_db),
     user=Depends(require_permission("wallets")),
 ):
     per_page = 30
-    ot = owner_type if owner_type in ("customer", "dealer") else None
-    withdrawals, total = wallet_service.get_all_withdrawals(db, page=page, per_page=per_page, owner_type=ot)
+    withdrawals, total = wallet_service.get_all_withdrawals(db, page=page, per_page=per_page)
     total_pages = max(1, (total + per_page - 1) // per_page)
     pending_count = (
         db.query(WithdrawalRequest)
@@ -219,7 +209,6 @@ async def admin_withdrawals_list(
         "total": total,
         "csrf_token": csrf,
         "active_page": "withdrawals",
-        "owner_type_filter": ot or "",
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response

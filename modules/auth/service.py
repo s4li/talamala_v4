@@ -2,11 +2,13 @@
 Auth Module - Service Layer
 =============================
 Business logic for OTP generation, verification, and user registration.
+
+NOTE: Unified auth — single User model, single token type.
 """
 
 import secrets
 from datetime import timedelta
-from typing import Optional, Tuple
+from typing import Tuple
 
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -14,13 +16,11 @@ from sqlalchemy.exc import IntegrityError
 from common.helpers import now_utc
 from common.security import (
     hash_otp, generate_otp, check_otp_rate_limit, check_otp_verify_rate_limit,
-    create_staff_token, create_customer_token, create_dealer_token,
+    create_token,
 )
 from common.exceptions import OTPError, AuthenticationError
 from config.settings import OTP_EXPIRE_MINUTES
-from modules.admin.models import SystemUser
-from modules.customer.models import Customer
-from modules.dealer.models import Dealer
+from modules.user.models import User
 
 
 class AuthService:
@@ -30,32 +30,21 @@ class AuthService:
         self, db: Session, mobile: str,
         first_name: str = "", last_name: str = "",
         ref_code: str = "", profile_data: dict = None,
-    ) -> Tuple[object, str]:
+    ) -> User:
         """
-        Find existing user (staff, dealer, or customer) by mobile.
-        If not found, create a new customer.
+        Find existing user by mobile. If not found, create a new customer user.
 
         Returns:
-            (user_object, user_type)  where user_type is 'staff', 'dealer', or 'customer'
+            User object
         """
         profile_data = profile_data or {}
 
-        # Check staff first
-        system_user = db.query(SystemUser).filter(SystemUser.mobile == mobile).first()
-        if system_user:
-            return system_user, "staff"
+        # Check existing user (any role)
+        user = db.query(User).filter(User.mobile == mobile).first()
+        if user:
+            return user
 
-        # Check dealer
-        dealer = db.query(Dealer).filter(Dealer.mobile == mobile, Dealer.is_active == True).first()
-        if dealer:
-            return dealer, "dealer"
-
-        # Check existing customer
-        customer = db.query(Customer).filter(Customer.mobile == mobile).first()
-        if customer:
-            return customer, "customer"
-
-        # Create new customer (with real name and profile if provided)
+        # Create new customer user
         try:
             # Use real national_id from registration, or generate guest placeholder
             national_id = profile_data.get("national_id", "").strip()
@@ -65,39 +54,40 @@ class AuthService:
             # Resolve referral code to referrer ID
             referred_by = None
             if ref_code:
-                referrer = db.query(Customer).filter(Customer.referral_code == ref_code).first()
+                referrer = db.query(User).filter(User.referral_code == ref_code).first()
                 if referrer:
                     referred_by = referrer.id
 
-            customer = Customer(
+            user = User(
                 mobile=mobile,
                 first_name=first_name or "کاربر",
                 last_name=last_name or "مهمان",
                 national_id=national_id,
+                is_customer=True,
                 referred_by=referred_by,
             )
 
             # Set profile fields from registration
             if profile_data:
-                customer.birth_date = profile_data.get("birth_date") or None
-                customer.customer_type = profile_data.get("customer_type", "real")
-                customer.postal_code = profile_data.get("postal_code") or None
-                customer.address = profile_data.get("address") or None
-                customer.phone = profile_data.get("phone") or None
-                if customer.customer_type == "legal":
-                    customer.company_name = profile_data.get("company_name") or None
-                    customer.economic_code = profile_data.get("economic_code") or None
+                user.birth_date = profile_data.get("birth_date") or None
+                user.customer_type = profile_data.get("customer_type", "real")
+                user.postal_code = profile_data.get("postal_code") or None
+                user.address = profile_data.get("address") or None
+                user.phone = profile_data.get("phone") or None
+                if user.customer_type == "legal":
+                    user.company_name = profile_data.get("company_name") or None
+                    user.economic_code = profile_data.get("economic_code") or None
 
-            db.add(customer)
+            db.add(user)
             db.flush()
-            db.refresh(customer)
-            return customer, "customer"
+            db.refresh(user)
+            return user
         except IntegrityError:
             db.rollback()
             # Race condition: another request created this user
-            customer = db.query(Customer).filter(Customer.mobile == mobile).first()
-            if customer:
-                return customer, "customer"
+            user = db.query(User).filter(User.mobile == mobile).first()
+            if user:
+                return user
             raise AuthenticationError("خطای ثبت نام. لطفا مجدد تلاش کنید.")
 
     def send_otp(
@@ -120,7 +110,7 @@ class AuthService:
         if not check_otp_rate_limit(mobile):
             raise OTPError("⛔ درخواست زیاد! ۱۰ دقیقه صبر کنید.")
 
-        user, user_type = self.find_or_create_user(
+        user = self.find_or_create_user(
             db, mobile, first_name=first_name, last_name=last_name,
             ref_code=ref_code, profile_data=profile_data or {},
         )
@@ -134,21 +124,16 @@ class AuthService:
         db.flush()
 
         # Display name for SMS
-        if user_type == "staff":
-            display_name = user.full_name
-        elif user_type == "dealer":
-            display_name = user.full_name
-        else:
-            display_name = user.first_name or "کاربر"
+        display_name = user.first_name or "کاربر"
 
         return otp_raw, display_name.replace(" ", "_")
 
-    def verify_otp(self, db: Session, mobile: str, code: str) -> Tuple[str, str, str]:
+    def verify_otp(self, db: Session, mobile: str, code: str) -> Tuple[str, str]:
         """
         Verify OTP code for a mobile number.
 
         Returns:
-            (token, cookie_name, redirect_url)
+            (token, redirect_url)
 
         Raises:
             AuthenticationError if OTP is invalid or expired
@@ -161,37 +146,31 @@ class AuthService:
         if not check_otp_verify_rate_limit(mobile):
             raise AuthenticationError("⛔ تعداد تلاش بیش از حد مجاز! ۱۰ دقیقه صبر کنید.")
 
-        # Check Staff
-        system_user = db.query(SystemUser).filter(SystemUser.mobile == mobile).first()
-        if system_user and system_user.otp_expiry and system_user.otp_expiry >= now:
-            if system_user.otp_code == hash_otp(mobile, code):
-                system_user.otp_code = None
-                system_user.otp_expiry = None
-                db.flush()
-                token = create_staff_token({"sub": system_user.mobile, "type": "staff"})
-                return token, "auth_token", "/admin/dashboard"
+        user = db.query(User).filter(User.mobile == mobile).first()
+        if not user:
+            raise AuthenticationError("❌ کد اشتباه یا منقضی شده است.")
 
-        # Check Dealer
-        dealer = db.query(Dealer).filter(Dealer.mobile == mobile, Dealer.is_active == True).first()
-        if dealer and dealer.otp_expiry and dealer.otp_expiry >= now:
-            if dealer.otp_code == hash_otp(mobile, code):
-                dealer.otp_code = None
-                dealer.otp_expiry = None
-                db.flush()
-                token = create_dealer_token({"sub": dealer.mobile, "type": "dealer"})
-                return token, "dealer_token", "/dealer/dashboard"
+        if not user.is_active:
+            raise AuthenticationError("❌ حساب کاربری شما غیرفعال شده است.")
 
-        # Check Customer
-        customer = db.query(Customer).filter(Customer.mobile == mobile).first()
-        if customer and customer.otp_expiry and customer.otp_expiry >= now:
-            if customer.otp_code == hash_otp(mobile, code):
-                customer.otp_code = None
-                customer.otp_expiry = None
-                db.flush()
-                token = create_customer_token({"sub": customer.mobile, "type": "customer"})
-                return token, "customer_token", "/"
+        if not user.otp_expiry or user.otp_expiry < now:
+            raise AuthenticationError("❌ کد اشتباه یا منقضی شده است.")
 
-        raise AuthenticationError("❌ کد اشتباه یا منقضی شده است.")
+        if user.otp_code != hash_otp(mobile, code):
+            raise AuthenticationError("❌ کد اشتباه یا منقضی شده است.")
+
+        # Clear OTP
+        user.otp_code = None
+        user.otp_expiry = None
+        db.flush()
+
+        # Create unified token
+        token = create_token({"sub": user.mobile})
+
+        # Determine redirect URL based on highest role
+        redirect_url = user.primary_redirect
+
+        return token, redirect_url
 
 
 # Singleton instance

@@ -38,19 +38,19 @@ class Bar(Base):
     serial_code = Column(String(8), unique=True, index=True, nullable=False)
     status = Column(String, default=BarStatus.RAW, nullable=False)
 
-    # Foreign keys to catalog + customer
+    # Foreign keys to catalog + user
     product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
-    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)
+    customer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     batch_id = Column(Integer, ForeignKey("batches.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Dealer/warehouse tracking (dealer IS the location)
-    dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True, index=True)
+    dealer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Claim code (for POS sales and gift orders)
     claim_code = Column(String(8), unique=True, nullable=True, index=True)
 
     # Reservation fields
-    reserved_customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
+    reserved_customer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     reserved_until = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -60,9 +60,9 @@ class Bar(Base):
 
     # Relationships
     product = relationship("Product", foreign_keys=[product_id])
-    customer = relationship("Customer", foreign_keys=[customer_id])
+    customer = relationship("User", foreign_keys=[customer_id])
     batch = relationship("Batch", foreign_keys=[batch_id])
-    dealer_location = relationship("Dealer", foreign_keys=[dealer_id])
+    dealer_location = relationship("User", foreign_keys=[dealer_id])
 
     images = relationship("BarImage", back_populates="bar", cascade="all, delete-orphan")
     history = relationship("OwnershipHistory", back_populates="bar", cascade="all, delete-orphan",
@@ -121,14 +121,14 @@ class OwnershipHistory(Base):
 
     id = Column(Integer, primary_key=True)
     bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False, index=True)
-    previous_owner_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
-    new_owner_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
+    previous_owner_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    new_owner_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     transfer_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     description = Column(String, nullable=True)
 
     bar = relationship("Bar", back_populates="history")
-    previous_owner = relationship("Customer", foreign_keys=[previous_owner_id])
-    new_owner = relationship("Customer", foreign_keys=[new_owner_id])
+    previous_owner = relationship("User", foreign_keys=[previous_owner_id])
+    new_owner = relationship("User", foreign_keys=[new_owner_id])
 
 
 # ==========================================
@@ -140,15 +140,15 @@ class DealerTransfer(Base):
 
     id = Column(Integer, primary_key=True)
     bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False, index=True)
-    from_dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True, index=True)
-    to_dealer_id = Column(Integer, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True, index=True)
+    from_dealer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    to_dealer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     transferred_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     transferred_by = Column(String, nullable=True)   # نام اپراتور / سیستم
     description = Column(String, nullable=True)       # توضیح: "ارسال با پست پیشتاز"
 
     bar = relationship("Bar", back_populates="transfers")
-    from_dealer = relationship("Dealer", foreign_keys=[from_dealer_id])
-    to_dealer = relationship("Dealer", foreign_keys=[to_dealer_id])
+    from_dealer = relationship("User", foreign_keys=[from_dealer_id])
+    to_dealer = relationship("User", foreign_keys=[to_dealer_id])
 
 
 # ==========================================
@@ -167,7 +167,7 @@ class BarTransfer(Base):
 
     id = Column(Integer, primary_key=True)
     bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False, index=True)
-    from_customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
+    from_customer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     to_mobile = Column(String(11), nullable=False)
     otp_hash = Column(String, nullable=True)
     otp_expiry = Column(DateTime(timezone=True), nullable=True)
@@ -175,4 +175,4 @@ class BarTransfer(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     bar = relationship("Bar")
-    from_customer = relationship("Customer", foreign_keys=[from_customer_id])
+    from_customer = relationship("User", foreign_keys=[from_customer_id])

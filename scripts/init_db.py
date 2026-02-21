@@ -17,8 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.database import Base, engine
 
 # Import ALL models so Base.metadata knows about them
-from modules.admin.models import SystemUser, SystemSetting  # noqa
-from modules.customer.models import Customer  # noqa
+from modules.user.models import User  # noqa
+from modules.admin.models import SystemSetting  # noqa
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress  # noqa
 from modules.catalog.models import (  # noqa
     Product, ProductCategory, ProductImage, ProductTierWage,
@@ -32,7 +32,7 @@ from modules.cart.models import Cart, CartItem  # noqa
 from modules.order.models import Order, OrderItem  # noqa
 from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest  # noqa
 from modules.coupon.models import Coupon, CouponMobile, CouponUsage, CouponCategory  # noqa
-from modules.dealer.models import Dealer, DealerTier, DealerSale, BuybackRequest  # noqa
+from modules.dealer.models import DealerTier, DealerSale, BuybackRequest  # noqa
 from modules.ticket.models import Ticket, TicketMessage, TicketAttachment  # noqa
 
 
