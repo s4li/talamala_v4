@@ -21,6 +21,7 @@ from modules.pricing.calculator import calculate_bar_price
 from modules.pricing.service import get_end_customer_wage, get_dealer_margin, get_price_value, get_product_pricing, is_price_fresh
 from modules.pricing.models import GOLD_18K
 from modules.inventory.models import Bar, BarStatus
+from modules.dealer.models import BuybackRequest, BuybackStatus
 
 router = APIRouter(prefix="/dealer", tags=["dealer"])
 
@@ -568,6 +569,14 @@ async def buyback_lookup(
         return JSONResponse({"found": False, "error": "شمش با این سریال یافت نشد"})
     if bar.status != BarStatus.SOLD:
         return JSONResponse({"found": False, "error": "فقط شمش‌های فروخته‌شده قابل بازخرید هستند"})
+
+    # Check if a buyback request already exists for this bar
+    existing_buyback = db.query(BuybackRequest).filter(
+        BuybackRequest.bar_id == bar.id,
+        BuybackRequest.status != BuybackStatus.REJECTED,
+    ).first()
+    if existing_buyback:
+        return JSONResponse({"found": False, "error": "برای این شمش قبلاً درخواست بازخرید ثبت شده است"})
 
     product = bar.product
     if not product:
