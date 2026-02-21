@@ -144,7 +144,7 @@
                     <td class="text-tm-primary">جمع کل</td>
                     <td class="text-start text-tm-primary">{{ invoice.total | toman }} <small>تومان</small></td>
                 </tr>
-                {% if invoice.wage %}
+                {% if buyback_amount %}
                 <tr>
                     <td class="text-success">
                         <i class="bi bi-arrow-repeat me-1"></i>مبلغ بازخرید
@@ -156,7 +156,7 @@
                            data-bs-placement="top"
                            title="این مبلغ در زمان فروش بصورت اعتبار کیف پول جهت خرید‌های دیگر به حساب شما واریز می‌گردد"></i>
                     </td>
-                    <td class="text-start text-success">{{ invoice.wage | toman }} <small>تومان</small></td>
+                    <td class="text-start text-success">{{ buyback_amount | toman }} <small>تومان</small></td>
                 </tr>
                 {% endif %}
             </table>

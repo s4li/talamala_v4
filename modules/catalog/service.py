@@ -164,6 +164,7 @@ class ProductService:
         p.card_design_id = data.get("card_design_id")
         p.package_type_id = data.get("package_type_id")
         p.wage = data.get("wage", 0)
+        p.buyback_wage_percent = data.get("buyback_wage_percent", 0)
         p.is_wage_percent = True
         p.is_active = data.get("is_active", False)
 

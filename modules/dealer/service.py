@@ -427,8 +427,6 @@ class DealerService:
 
         # --- Recalculate both amounts server-side ---
         p_price, p_bp, _ = get_product_pricing(db, product)
-        tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
-        ec_wage = get_end_customer_wage(db, product)
 
         # Raw metal value (no wage, no tax)
         raw_info = calculate_bar_price(
@@ -438,13 +436,16 @@ class DealerService:
         )
         raw_metal_rial = raw_info.get("total", 0)
 
-        # Full price to extract wage
-        full_info = calculate_bar_price(
-            weight=product.weight, purity=product.purity,
-            wage_percent=ec_wage, base_metal_price=p_price,
-            tax_percent=tax_percent, base_purity=p_bp,
-        )
-        wage_rial = full_info.get("wage", 0)
+        # Buyback wage uses separate buyback_wage_percent (no tax)
+        buyback_pct = float(product.buyback_wage_percent or 0)
+        wage_rial = 0
+        if buyback_pct > 0:
+            bb_info = calculate_bar_price(
+                weight=product.weight, purity=product.purity,
+                wage_percent=buyback_pct, base_metal_price=p_price,
+                tax_percent=0, base_purity=p_bp,
+            )
+            wage_rial = bb_info.get("wage", 0)
 
         total_deposit = raw_metal_rial + wage_rial
 

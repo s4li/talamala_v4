@@ -670,6 +670,10 @@ def seed():
                         p.wage = end_customer_wage
                         print(f"  ~ wage updated: {name} → {end_customer_wage}%")
 
+                    # Sync buyback_wage_percent = end_customer_wage
+                    if end_customer_wage and p.buyback_wage_percent != end_customer_wage:
+                        p.buyback_wage_percent = end_customer_wage
+
                     # Update metal_type
                     expected_metal = ptype.get("metal", "gold")
                     if p.metal_type != expected_metal:
@@ -697,6 +701,7 @@ def seed():
                         card_design_id=default_design.id if default_design else None,
                         package_type_id=default_package.id if default_package else None,
                         wage=end_customer_wage,
+                        buyback_wage_percent=end_customer_wage,
                         is_wage_percent=True,
                         is_active=True,
                         description=description,

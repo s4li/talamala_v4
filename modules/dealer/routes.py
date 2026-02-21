@@ -745,7 +745,7 @@ async def buyback_lookup(
     )
     raw_gold_toman = info.get("total", 0) // 10
 
-    # Also calc full retail price for reference
+    # Full retail price for reference
     tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
     ec_wage = get_end_customer_wage(db, product)
     full_info = calculate_bar_price(
@@ -755,7 +755,18 @@ async def buyback_lookup(
         base_purity=p_bp,
     )
     retail_toman = full_info.get("total", 0) // 10
-    wage_toman = full_info.get("wage", 0) // 10
+
+    # Buyback wage uses separate buyback_wage_percent (no tax)
+    buyback_pct = float(product.buyback_wage_percent or 0)
+    wage_toman = 0
+    if buyback_pct > 0:
+        bb_info = calculate_bar_price(
+            weight=product.weight, purity=product.purity,
+            wage_percent=buyback_pct,
+            base_metal_price=p_price, tax_percent=0,
+            base_purity=p_bp,
+        )
+        wage_toman = bb_info.get("wage", 0) // 10
 
     return JSONResponse({
         "found": True,

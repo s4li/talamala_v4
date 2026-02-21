@@ -14,8 +14,9 @@ from common.security import new_csrf_token
 from modules.auth.deps import get_current_active_user
 from modules.shop.service import shop_service
 from modules.cart.service import cart_service
-from modules.pricing.service import is_price_fresh
+from modules.pricing.service import is_price_fresh, get_product_pricing
 from modules.pricing.models import GOLD_18K
+from modules.pricing.calculator import calculate_bar_price
 
 router = APIRouter(tags=["shop"])
 
@@ -98,6 +99,19 @@ async def product_detail(
     product, invoice, inventory, gold_price, tax_percent, location_inventory = result
     cart_map, cart_count = _get_cart_info(db, user)
 
+    # Calculate buyback amount using separate buyback_wage_percent
+    buyback_amount = 0
+    buyback_pct = float(product.buyback_wage_percent or 0)
+    if buyback_pct > 0:
+        p_price, p_bp, _ = get_product_pricing(db, product)
+        bb_info = calculate_bar_price(
+            weight=product.weight, purity=product.purity,
+            wage_percent=buyback_pct,
+            base_metal_price=p_price, tax_percent=0,
+            base_purity=p_bp,
+        )
+        buyback_amount = bb_info.get("wage", 0)
+
     # Get active packages for selection
     from modules.catalog.models import PackageType
     packages = db.query(PackageType).filter(PackageType.is_active == True).order_by(PackageType.id).all()
@@ -129,6 +143,7 @@ async def product_detail(
         "gold_price": gold_price,
         "price_stale": not is_price_fresh(db, GOLD_18K),
         "invoice": invoice,
+        "buyback_amount": buyback_amount,
         "tax_percent": tax_percent,
         "inventory": inventory,
         "location_inventory": location_inventory,

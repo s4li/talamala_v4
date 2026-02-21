@@ -98,6 +98,7 @@ async def update_product(
     design: str = Form(None),
     card_design_id: str = Form(""), package_type_id: str = Form(""),
     wage: str = Form(...),
+    buyback_wage_percent: str = Form("0"),
     is_active: bool = Form(False),
     new_files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
@@ -114,6 +115,7 @@ async def update_product(
         "description": description,
         "category_ids": category_ids, "card_design_id": cd_id, "package_type_id": pt_id,
         "wage": wage,
+        "buyback_wage_percent": buyback_wage_percent,
         "is_active": is_active,
     }, new_files)
     db.commit()

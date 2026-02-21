@@ -63,6 +63,7 @@ class Product(Base):
     weight = Column(Numeric(10, 3), nullable=False)           # گرم
     purity = Column(Numeric(4, 1), default=750, nullable=False)  # عیار (750, 995, 999.9)
     wage = Column(Numeric(5, 2), default=0, nullable=False)     # اجرت ساخت (درصدی)
+    buyback_wage_percent = Column(Numeric(5, 2), default=0, nullable=False)  # درصد اجرت بازخرید (جدا از اجرت ساخت)
     is_wage_percent = Column(Boolean, default=True, nullable=False)  # همیشه True برای شمش
     metal_type = Column(String(20), default="gold", nullable=False)  # "gold", "silver" — maps to PRECIOUS_METALS keys
     design = Column(String, nullable=True)
@@ -73,6 +74,7 @@ class Product(Base):
         CheckConstraint("purity > 0 AND purity <= 999.9", name="ck_product_purity_range"),
         CheckConstraint("weight > 0", name="ck_product_weight_positive"),
         CheckConstraint("wage >= 0", name="ck_product_wage_nonneg"),
+        CheckConstraint("buyback_wage_percent >= 0", name="ck_product_buyback_wage_nonneg"),
     )
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
