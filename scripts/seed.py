@@ -46,7 +46,9 @@ from modules.catalog.models import (
 )
 from modules.inventory.models import (
     Bar, BarImage, OwnershipHistory, BarStatus,
-    DealerTransfer, BarTransfer,
+    DealerTransfer, BarTransfer, TransferType,
+    ReconciliationSession, ReconciliationItem, ReconciliationStatus, ReconciliationItemStatus,
+    CustodialDeliveryRequest, CustodialDeliveryStatus,
 )
 from modules.cart.models import Cart, CartItem
 from modules.order.models import Order, OrderItem, OrderStatusLog, OrderStatus, DeliveryMethod, DeliveryStatus
@@ -1684,6 +1686,45 @@ def seed():
                         balance=0, locked_balance=0,
                     ))
                     print(f"    + {d.full_name} ({asset})")
+        db.flush()
+
+        # ==========================================
+        # 10b. Sample Reconciliation + Custodial Delivery
+        # ==========================================
+        print("\n[10b] Reconciliation + Custodial Delivery")
+
+        # Reconciliation session for Esfahan dealer
+        esfahan_dealer = db.query(User).filter(User.mobile == "09161234567", User.is_dealer == True).first()
+        if esfahan_dealer and db.query(ReconciliationSession).count() == 0:
+            recon = ReconciliationSession(
+                dealer_id=esfahan_dealer.id,
+                initiated_by=esfahan_dealer.full_name,
+                status=ReconciliationStatus.COMPLETED,
+                total_expected=5,
+                total_scanned=4,
+                total_matched=3,
+                total_missing=2,
+                total_unexpected=1,
+                notes="تست انبارگردانی — ۲ مورد مفقود",
+            )
+            db.add(recon)
+            db.flush()
+            print(f"  + Reconciliation session #{recon.id} (completed, 3 matched, 2 missing, 1 unexpected)")
+
+        # Custodial delivery request
+        cust1 = db.query(User).filter(User.mobile == "09351234567").first()
+        cst_bar = db.query(Bar).filter(Bar.serial_code == "TSCST001").first()
+        if cust1 and cst_bar and esfahan_dealer and db.query(CustodialDeliveryRequest).count() == 0:
+            dlv_req = CustodialDeliveryRequest(
+                customer_id=cust1.id,
+                bar_id=cst_bar.id,
+                dealer_id=esfahan_dealer.id,
+                status=CustodialDeliveryStatus.PENDING,
+            )
+            db.add(dlv_req)
+            db.flush()
+            print(f"  + Custodial delivery request #{dlv_req.id} (TSCST001 → Esfahan dealer)")
+
         db.flush()
 
         # ==========================================

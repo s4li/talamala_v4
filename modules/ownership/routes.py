@@ -6,8 +6,8 @@ Customer-facing routes: my bars, claim bar, transfer ownership.
 
 from typing import Optional
 
-from fastapi import APIRouter, Request, Depends, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Request, Depends, Form, Query
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 
 from config.database import get_db
@@ -245,3 +245,129 @@ async def transfer_confirm(
         })
         response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
         return response
+
+
+# ==========================================
+# Custodial Delivery (درخواست تحویل امانی)
+# ==========================================
+
+@router.get("/my-bars/{bar_id}/delivery", response_class=HTMLResponse)
+async def delivery_request_page(
+    request: Request,
+    bar_id: int,
+    msg: str = None,
+    error: str = None,
+    db: Session = Depends(get_db),
+    me=Depends(require_customer),
+):
+    from modules.inventory.models import Bar, BarStatus, CustodialDeliveryRequest, CustodialDeliveryStatus
+    from modules.customer.address_models import GeoProvince
+
+    bar = db.query(Bar).filter(
+        Bar.id == bar_id, Bar.customer_id == me.id,
+        Bar.status == BarStatus.SOLD, Bar.delivered_at.is_(None),
+    ).first()
+    if not bar:
+        return RedirectResponse("/my-bars?error=شمش+یافت+نشد", status_code=303)
+
+    # Check for existing pending request
+    existing_req = db.query(CustodialDeliveryRequest).filter(
+        CustodialDeliveryRequest.bar_id == bar_id,
+        CustodialDeliveryRequest.status == CustodialDeliveryStatus.PENDING,
+    ).first()
+
+    provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
+    cart_map, cart_count = cart_service.get_cart_map(db, me.id)
+
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("shop/custodial_delivery.html", {
+        "request": request,
+        "user": me,
+        "bar": bar,
+        "existing_req": existing_req,
+        "provinces": provinces,
+        "cart_count": cart_count,
+        "csrf_token": csrf,
+        "msg": msg,
+        "error": error,
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/my-bars/{bar_id}/delivery")
+async def delivery_request_submit(
+    request: Request,
+    bar_id: int,
+    dealer_id: int = Form(...),
+    csrf_token: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    me=Depends(require_customer),
+):
+    csrf_check(request, csrf_token)
+    try:
+        req = ownership_service.create_delivery_request(db, me.id, bar_id, dealer_id)
+        db.commit()
+        import urllib.parse
+        msg = urllib.parse.quote("درخواست تحویل ثبت شد")
+        return RedirectResponse(f"/my-bars/{bar_id}/delivery?msg={msg}", status_code=303)
+    except ValueError as e:
+        db.rollback()
+        import urllib.parse
+        error = urllib.parse.quote(str(e))
+        return RedirectResponse(f"/my-bars/{bar_id}/delivery?error={error}", status_code=303)
+
+
+@router.post("/my-bars/{bar_id}/delivery/{req_id}/send-otp")
+async def delivery_send_otp(
+    request: Request,
+    bar_id: int,
+    req_id: int,
+    csrf_token: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    me=Depends(require_customer),
+):
+    csrf_check(request, csrf_token)
+    try:
+        result = ownership_service.send_delivery_otp(db, req_id, me.id)
+        db.commit()
+
+        # Send SMS
+        sms_sender.send_otp_lookup(
+            receptor=result["customer_mobile"],
+            token=result["otp_raw"],
+            token2="تحویل شمش",
+            template_name="OTP",
+        )
+
+        import urllib.parse
+        msg = urllib.parse.quote("کد تأیید ارسال شد")
+        return RedirectResponse(f"/my-bars/{bar_id}/delivery?msg={msg}", status_code=303)
+    except ValueError as e:
+        db.rollback()
+        import urllib.parse
+        error = urllib.parse.quote(str(e))
+        return RedirectResponse(f"/my-bars/{bar_id}/delivery?error={error}", status_code=303)
+
+
+@router.post("/my-bars/{bar_id}/delivery/{req_id}/cancel")
+async def delivery_cancel(
+    request: Request,
+    bar_id: int,
+    req_id: int,
+    csrf_token: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    me=Depends(require_customer),
+):
+    csrf_check(request, csrf_token)
+    try:
+        ownership_service.cancel_delivery_request(db, req_id, me.id, reason="لغو توسط مشتری")
+        db.commit()
+        import urllib.parse
+        msg = urllib.parse.quote("درخواست لغو شد")
+        return RedirectResponse(f"/my-bars?msg={msg}", status_code=303)
+    except ValueError as e:
+        db.rollback()
+        import urllib.parse
+        error = urllib.parse.quote(str(e))
+        return RedirectResponse(f"/my-bars/{bar_id}/delivery?error={error}", status_code=303)

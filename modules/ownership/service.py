@@ -11,7 +11,11 @@ from sqlalchemy.orm import Session
 
 from common.helpers import now_utc, generate_unique_claim_code
 from common.security import generate_otp, hash_otp
-from modules.inventory.models import Bar, BarStatus, OwnershipHistory, BarTransfer, TransferStatus
+from modules.inventory.models import (
+    Bar, BarStatus, OwnershipHistory, BarTransfer, TransferStatus,
+    CustodialDeliveryRequest, CustodialDeliveryStatus,
+    DealerTransfer, TransferType,
+)
 from modules.user.models import User
 
 
@@ -278,6 +282,173 @@ class OwnershipService:
             )
             .first()
         )
+
+    # ------------------------------------------
+    # Custodial Delivery (تحویل امانی)
+    # ------------------------------------------
+
+    def create_delivery_request(
+        self, db: Session, customer_id: int, bar_id: int, dealer_id: int,
+    ) -> CustodialDeliveryRequest:
+        """Create a custodial delivery request. Validates bar is custodial and undelivered."""
+        bar = db.query(Bar).filter(Bar.id == bar_id).first()
+        if not bar:
+            raise ValueError("شمش یافت نشد")
+        if bar.customer_id != customer_id:
+            raise ValueError("شما مالک این شمش نیستید")
+        if bar.status != BarStatus.SOLD:
+            raise ValueError("فقط شمش‌های فروخته‌شده قابل درخواست تحویل هستند")
+        if bar.delivered_at is not None:
+            raise ValueError("این شمش قبلاً تحویل داده شده است")
+
+        # Check no active request exists
+        existing = db.query(CustodialDeliveryRequest).filter(
+            CustodialDeliveryRequest.bar_id == bar_id,
+            CustodialDeliveryRequest.status == CustodialDeliveryStatus.PENDING,
+        ).first()
+        if existing:
+            raise ValueError("یک درخواست تحویل فعال برای این شمش وجود دارد")
+
+        # Validate dealer
+        dealer = db.query(User).filter(User.id == dealer_id, User.is_dealer == True, User.is_active == True).first()
+        if not dealer:
+            raise ValueError("نمایندگی انتخاب‌شده معتبر نیست")
+
+        req = CustodialDeliveryRequest(
+            customer_id=customer_id,
+            bar_id=bar_id,
+            dealer_id=dealer_id,
+            status=CustodialDeliveryStatus.PENDING,
+        )
+        db.add(req)
+        db.flush()
+        return req
+
+    def send_delivery_otp(self, db: Session, request_id: int, customer_id: int) -> Dict[str, Any]:
+        """Generate and return OTP for delivery confirmation. OTP sent to customer mobile."""
+        req = db.query(CustodialDeliveryRequest).filter(
+            CustodialDeliveryRequest.id == request_id,
+            CustodialDeliveryRequest.customer_id == customer_id,
+            CustodialDeliveryRequest.status == CustodialDeliveryStatus.PENDING,
+        ).first()
+        if not req:
+            raise ValueError("درخواست تحویل یافت نشد")
+
+        customer = db.query(User).filter(User.id == customer_id).first()
+        if not customer:
+            raise ValueError("مشتری یافت نشد")
+
+        otp_raw = generate_otp()
+        otp_hashed = hash_otp(customer.mobile, otp_raw)
+
+        req.otp_hash = otp_hashed
+        req.otp_expiry = now_utc() + timedelta(minutes=10)
+        db.flush()
+
+        return {
+            "request_id": req.id,
+            "otp_raw": otp_raw,
+            "customer_mobile": customer.mobile,
+        }
+
+    def confirm_delivery(
+        self, db: Session, request_id: int, dealer_id: int, otp_code: str, serial_code: str,
+    ) -> CustodialDeliveryRequest:
+        """Dealer confirms delivery: verify OTP + serial, mark delivered."""
+        req = db.query(CustodialDeliveryRequest).filter(
+            CustodialDeliveryRequest.id == request_id,
+            CustodialDeliveryRequest.dealer_id == dealer_id,
+            CustodialDeliveryRequest.status == CustodialDeliveryStatus.PENDING,
+        ).first()
+        if not req:
+            raise ValueError("درخواست تحویل یافت نشد")
+
+        # Check expiry
+        if not req.otp_hash or not req.otp_expiry:
+            raise ValueError("ابتدا کد تأیید باید ارسال شود")
+        if req.otp_expiry < now_utc():
+            raise ValueError("کد تأیید منقضی شده است")
+
+        # Verify serial
+        bar = db.query(Bar).filter(Bar.id == req.bar_id).first()
+        if not bar or bar.serial_code != serial_code.strip().upper():
+            raise ValueError("سریال شمش مطابقت ندارد")
+
+        # Verify OTP
+        customer = db.query(User).filter(User.id == req.customer_id).first()
+        expected_hash = hash_otp(customer.mobile, otp_code.strip())
+        if expected_hash != req.otp_hash:
+            raise ValueError("کد تأیید اشتباه است")
+
+        # Mark delivered
+        bar.delivered_at = now_utc()
+        req.status = CustodialDeliveryStatus.COMPLETED
+        req.completed_at = now_utc()
+        req.completed_by = f"dealer:{dealer_id}"
+
+        # Ownership history
+        db.add(OwnershipHistory(
+            bar_id=bar.id,
+            previous_owner_id=bar.customer_id,
+            new_owner_id=bar.customer_id,
+            description="تحویل فیزیکی امانی (تأیید با OTP)",
+        ))
+
+        # Dealer transfer record
+        db.add(DealerTransfer(
+            bar_id=bar.id,
+            from_dealer_id=bar.dealer_id,
+            to_dealer_id=None,
+            transferred_by=f"dealer:{dealer_id}",
+            description=f"تحویل امانی به مشتری (درخواست #{req.id})",
+            transfer_type=TransferType.CUSTODIAL_DELIVERY,
+            reference_type="custodial_delivery",
+            reference_id=req.id,
+        ))
+
+        db.flush()
+        return req
+
+    def cancel_delivery_request(
+        self, db: Session, request_id: int, customer_id: int, reason: str = None,
+    ) -> CustodialDeliveryRequest:
+        """Customer cancels a pending delivery request."""
+        req = db.query(CustodialDeliveryRequest).filter(
+            CustodialDeliveryRequest.id == request_id,
+            CustodialDeliveryRequest.customer_id == customer_id,
+            CustodialDeliveryRequest.status == CustodialDeliveryStatus.PENDING,
+        ).first()
+        if not req:
+            raise ValueError("درخواست تحویل یافت نشد")
+
+        req.status = CustodialDeliveryStatus.CANCELLED
+        req.cancelled_at = now_utc()
+        req.cancel_reason = reason
+        db.flush()
+        return req
+
+    def get_customer_delivery_requests(self, db: Session, customer_id: int) -> List:
+        """List delivery requests for a customer."""
+        return db.query(CustodialDeliveryRequest).filter(
+            CustodialDeliveryRequest.customer_id == customer_id,
+        ).order_by(CustodialDeliveryRequest.created_at.desc()).all()
+
+    def get_dealer_delivery_requests(
+        self, db: Session, dealer_id: int, status_filter: str = None,
+    ) -> List:
+        """List delivery requests assigned to a dealer."""
+        query = db.query(CustodialDeliveryRequest).filter(
+            CustodialDeliveryRequest.dealer_id == dealer_id,
+        )
+        if status_filter:
+            query = query.filter(CustodialDeliveryRequest.status == status_filter)
+        return query.order_by(CustodialDeliveryRequest.created_at.desc()).all()
+
+    def get_delivery_request(self, db: Session, request_id: int) -> Optional[CustodialDeliveryRequest]:
+        """Get a single delivery request with relationships."""
+        return db.query(CustodialDeliveryRequest).filter(
+            CustodialDeliveryRequest.id == request_id,
+        ).first()
 
 
 ownership_service = OwnershipService()

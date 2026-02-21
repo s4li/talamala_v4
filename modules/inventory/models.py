@@ -5,11 +5,13 @@ Bar: Physical gold bar with serial code and lifecycle status.
 BarImage: Photos of each bar.
 OwnershipHistory: Tracks ownership changes over time.
 DealerTransfer: History of bar movements between dealers/warehouses.
+ReconciliationSession / ReconciliationItem: Inventory count & mismatch detection.
+CustodialDeliveryRequest: Customer-initiated physical delivery of custodial bars.
 """
 
 import enum
 from sqlalchemy import (
-    Column, Integer, String, DateTime, ForeignKey, Boolean, Text,
+    Column, Integer, String, DateTime, ForeignKey, Boolean, Text, Numeric,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -25,6 +27,19 @@ class BarStatus(str, enum.Enum):
     ASSIGNED = "Assigned"  # اختصاص - محصول تخصیص داده شده
     RESERVED = "Reserved"  # رزرو - در سبد خرید مشتری
     SOLD = "Sold"          # فروخته شده
+
+
+# ==========================================
+# Transfer Type (reason for physical bar movement)
+# ==========================================
+
+class TransferType(str, enum.Enum):
+    MANUAL = "Manual"                         # دستی (ادمین)
+    B2B_FULFILLMENT = "B2BFulfillment"        # تحویل سفارش عمده
+    ADMIN_TRANSFER = "AdminTransfer"          # انتقال ادمین
+    RECONCILIATION = "Reconciliation"         # تعدیل انبارگردانی
+    CUSTODIAL_DELIVERY = "CustodialDelivery"  # تحویل امانی به مشتری
+    RETURN = "Return"                         # بازگشت به انبار
 
 
 # ==========================================
@@ -146,9 +161,38 @@ class DealerTransfer(Base):
     transferred_by = Column(String, nullable=True)   # نام اپراتور / سیستم
     description = Column(String, nullable=True)       # توضیح: "ارسال با پست پیشتاز"
 
+    # Phase 22: structured transfer audit
+    transfer_type = Column(String(30), default=TransferType.MANUAL, nullable=False)
+    reference_type = Column(String(50), nullable=True)   # e.g. "b2b_order", "reconciliation_session"
+    reference_id = Column(Integer, nullable=True)         # ID of the referenced entity
+
     bar = relationship("Bar", back_populates="transfers")
     from_dealer = relationship("User", foreign_keys=[from_dealer_id])
     to_dealer = relationship("User", foreign_keys=[to_dealer_id])
+
+    @property
+    def transfer_type_label(self) -> str:
+        labels = {
+            TransferType.MANUAL: "دستی",
+            TransferType.B2B_FULFILLMENT: "تحویل سفارش عمده",
+            TransferType.ADMIN_TRANSFER: "انتقال ادمین",
+            TransferType.RECONCILIATION: "تعدیل انبارگردانی",
+            TransferType.CUSTODIAL_DELIVERY: "تحویل امانی",
+            TransferType.RETURN: "بازگشت به انبار",
+        }
+        return labels.get(self.transfer_type, str(self.transfer_type))
+
+    @property
+    def transfer_type_color(self) -> str:
+        colors = {
+            TransferType.MANUAL: "secondary",
+            TransferType.B2B_FULFILLMENT: "primary",
+            TransferType.ADMIN_TRANSFER: "info",
+            TransferType.RECONCILIATION: "warning",
+            TransferType.CUSTODIAL_DELIVERY: "success",
+            TransferType.RETURN: "danger",
+        }
+        return colors.get(self.transfer_type, "secondary")
 
 
 # ==========================================
@@ -176,3 +220,162 @@ class BarTransfer(Base):
 
     bar = relationship("Bar")
     from_customer = relationship("User", foreign_keys=[from_customer_id])
+
+
+# ==========================================
+# Reconciliation (انبارگردانی)
+# ==========================================
+
+class ReconciliationStatus(str, enum.Enum):
+    IN_PROGRESS = "InProgress"
+    COMPLETED = "Completed"
+    CANCELLED = "Cancelled"
+
+
+class ReconciliationItemStatus(str, enum.Enum):
+    MATCHED = "Matched"        # اسکن شده و تطابق دارد
+    MISSING = "Missing"        # در سیستم هست ولی اسکن نشده
+    UNEXPECTED = "Unexpected"  # اسکن شده ولی در سیستم این لوکیشن نیست
+
+
+class ReconciliationSession(Base):
+    __tablename__ = "reconciliation_sessions"
+
+    id = Column(Integer, primary_key=True)
+    dealer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    initiated_by = Column(String, nullable=False)
+    status = Column(String, default=ReconciliationStatus.IN_PROGRESS, nullable=False)
+
+    # Summary stats (computed on finalize)
+    total_expected = Column(Integer, default=0)
+    total_scanned = Column(Integer, default=0)
+    total_matched = Column(Integer, default=0)
+    total_missing = Column(Integer, default=0)
+    total_unexpected = Column(Integer, default=0)
+
+    notes = Column(Text, nullable=True)
+    started_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    dealer = relationship("User", foreign_keys=[dealer_id])
+    items = relationship("ReconciliationItem", back_populates="session",
+                         cascade="all, delete-orphan",
+                         order_by="ReconciliationItem.id.desc()")
+
+    @property
+    def status_label(self) -> str:
+        labels = {
+            ReconciliationStatus.IN_PROGRESS: "در حال انجام",
+            ReconciliationStatus.COMPLETED: "تکمیل‌شده",
+            ReconciliationStatus.CANCELLED: "لغو‌شده",
+        }
+        return labels.get(self.status, str(self.status))
+
+    @property
+    def status_color(self) -> str:
+        colors = {
+            ReconciliationStatus.IN_PROGRESS: "warning",
+            ReconciliationStatus.COMPLETED: "success",
+            ReconciliationStatus.CANCELLED: "secondary",
+        }
+        return colors.get(self.status, "secondary")
+
+    @property
+    def has_mismatches(self) -> bool:
+        return (self.total_missing or 0) > 0 or (self.total_unexpected or 0) > 0
+
+
+class ReconciliationItem(Base):
+    __tablename__ = "reconciliation_items"
+
+    id = Column(Integer, primary_key=True)
+    session_id = Column(Integer, ForeignKey("reconciliation_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="SET NULL"), nullable=True, index=True)
+    serial_code = Column(String(12), nullable=False)
+    item_status = Column(String(20), nullable=False)
+    scanned_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=True)
+
+    # Snapshot of bar state at scan time
+    expected_status = Column(String, nullable=True)
+    expected_product = Column(String, nullable=True)
+
+    session = relationship("ReconciliationSession", back_populates="items")
+    bar = relationship("Bar")
+
+    @property
+    def item_status_label(self) -> str:
+        labels = {
+            ReconciliationItemStatus.MATCHED: "تطابق",
+            ReconciliationItemStatus.MISSING: "مفقود",
+            ReconciliationItemStatus.UNEXPECTED: "اضافی",
+        }
+        return labels.get(self.item_status, str(self.item_status))
+
+    @property
+    def item_status_color(self) -> str:
+        colors = {
+            ReconciliationItemStatus.MATCHED: "success",
+            ReconciliationItemStatus.MISSING: "danger",
+            ReconciliationItemStatus.UNEXPECTED: "warning",
+        }
+        return colors.get(self.item_status, "secondary")
+
+
+# ==========================================
+# Custodial Delivery Request (تحویل امانی)
+# ==========================================
+
+class CustodialDeliveryStatus(str, enum.Enum):
+    PENDING = "Pending"       # درخواست ثبت شده
+    COMPLETED = "Completed"   # تحویل شد (OTP تایید)
+    CANCELLED = "Cancelled"   # لغو شده
+    EXPIRED = "Expired"       # منقضی شده
+
+
+class CustodialDeliveryRequest(Base):
+    __tablename__ = "custodial_delivery_requests"
+
+    id = Column(Integer, primary_key=True)
+    customer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False, index=True)
+    dealer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    status = Column(String, default=CustodialDeliveryStatus.PENDING, nullable=False)
+
+    # OTP for handoff verification (sent to customer mobile)
+    otp_hash = Column(String, nullable=True)
+    otp_expiry = Column(DateTime(timezone=True), nullable=True)
+
+    # Tracking
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    completed_by = Column(String, nullable=True)
+    cancelled_at = Column(DateTime(timezone=True), nullable=True)
+    cancel_reason = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
+
+    # Relationships
+    customer = relationship("User", foreign_keys=[customer_id])
+    bar = relationship("Bar")
+    dealer = relationship("User", foreign_keys=[dealer_id])
+
+    @property
+    def status_label(self) -> str:
+        labels = {
+            CustodialDeliveryStatus.PENDING: "در انتظار تحویل",
+            CustodialDeliveryStatus.COMPLETED: "تحویل داده شده",
+            CustodialDeliveryStatus.CANCELLED: "لغو شده",
+            CustodialDeliveryStatus.EXPIRED: "منقضی شده",
+        }
+        return labels.get(self.status, str(self.status))
+
+    @property
+    def status_color(self) -> str:
+        colors = {
+            CustodialDeliveryStatus.PENDING: "warning",
+            CustodialDeliveryStatus.COMPLETED: "success",
+            CustodialDeliveryStatus.CANCELLED: "secondary",
+            CustodialDeliveryStatus.EXPIRED: "danger",
+        }
+        return colors.get(self.status, "secondary")

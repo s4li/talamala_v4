@@ -6,6 +6,10 @@
 <div class="page-header tm-animate-fade-in">
     <h4 class="fw-bold mb-0"><i class="bi bi-upc-scan me-2"></i>مدیریت شمش‌ها <small class="text-muted fw-normal">({{ total }})</small></h4>
     <div class="d-flex gap-2">
+        <!-- Scanner Button -->
+        <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#scannerModal">
+            <i class="bi bi-upc-scan me-1"></i> اسکن
+        </button>
         <!-- Generate Button -->
         <button class="btn btn-tm-primary" data-bs-toggle="modal" data-bs-target="#generateModal">
             <i class="bi bi-plus-lg me-1"></i> ایجاد شمش
@@ -269,9 +273,17 @@
         </div>
     </div>
 </div>
+
+<!-- Scanner Modal -->
+{% set scanner_modal_id = "scannerModal" %}
+{% set scanner_title = "اسکن شمش" %}
+{% set scanner_lookup_url = "/api/admin/bars/lookup" %}
+{% include "components/scanner_modal.html" %}
 {% endblock %}
 
 {% block page_js %}
+<script src="/static/vendor/html5-qrcode/html5-qrcode.min.js?v={{ STATIC_VER }}"></script>
+<script src="/static/js/scanner.js?v={{ STATIC_VER }}"></script>
 <script>
 (function(){
     // ====== Checkbox / Bulk Selection ======

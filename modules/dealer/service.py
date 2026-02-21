@@ -1529,7 +1529,7 @@ class DealerService:
 
     def fulfill_b2b_order(self, db: Session, order_id: int, admin_id: int) -> Dict[str, Any]:
         """Admin fulfills a paid B2B order by assigning bars from warehouse to dealer."""
-        from modules.inventory.models import DealerTransfer
+        from modules.inventory.models import DealerTransfer, TransferType
         from sqlalchemy.orm import joinedload
 
         order = (
@@ -1576,6 +1576,9 @@ class DealerService:
                     to_dealer_id=order.dealer_id,
                     transferred_by=admin_id,
                     description=f"تحویل سفارش عمده #{order.id}",
+                    transfer_type=TransferType.B2B_FULFILLMENT,
+                    reference_type="b2b_order",
+                    reference_id=order.id,
                 )
                 db.add(transfer)
 

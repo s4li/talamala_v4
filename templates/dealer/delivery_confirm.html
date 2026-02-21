@@ -1,0 +1,122 @@
+{% extends "dealer/base_dealer.html" %}
+
+{% block title %}تایید تحویل #{{ delivery_req.id }} - طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-truck text-tm-primary"></i>
+        تایید تحویل امانی #{{ delivery_req.id }}
+    </h4>
+    <a href="/dealer/deliveries" class="btn btn-sm btn-tm-outline"><i class="bi bi-arrow-right me-1"></i>بازگشت</a>
+</div>
+
+{% if msg %}<div class="alert-tm-success py-2 mb-3">{{ msg }}</div>{% endif %}
+{% if error %}<div class="alert-tm-danger py-2 mb-3">{{ error }}</div>{% endif %}
+
+<!-- Request Info -->
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-1">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <small class="text-muted d-block">مشتری</small>
+            <strong>{{ delivery_req.customer.full_name if delivery_req.customer else '—' }}</strong>
+        </div>
+        <div class="col-md-3">
+            <small class="text-muted d-block">سریال شمش</small>
+            <strong dir="ltr">{{ delivery_req.bar.serial_code if delivery_req.bar else '—' }}</strong>
+        </div>
+        <div class="col-md-3">
+            <small class="text-muted d-block">محصول</small>
+            <strong>{{ delivery_req.bar.product.name if delivery_req.bar and delivery_req.bar.product else '—' }}</strong>
+        </div>
+        <div class="col-md-3">
+            <small class="text-muted d-block">وضعیت</small>
+            <span class="badge bg-{{ delivery_req.status_color }}">{{ delivery_req.status_label }}</span>
+        </div>
+    </div>
+</div>
+
+{% if delivery_req.status.value == 'Pending' %}
+<!-- Confirmation Form -->
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+    <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-shield-check me-1"></i>تایید تحویل</h6>
+
+    <form method="POST" action="/dealer/deliveries/{{ delivery_req.id }}/confirm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label-tm small">سریال شمش</label>
+                <div class="input-group">
+                    <input type="text" name="serial_code" id="confirmSerial" class="form-control form-control-tm"
+                           placeholder="سریال را اسکن یا وارد کنید..." dir="ltr" maxlength="12"
+                           style="text-transform:uppercase;" required>
+                    <button class="btn btn-outline-info" type="button" id="startCamBtn">
+                        <i class="bi bi-camera"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" id="stopCamBtn" style="display:none;">
+                        <i class="bi bi-stop-circle"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label-tm small">کد تأیید (OTP)</label>
+                <input type="text" name="otp_code" class="form-control form-control-tm"
+                       placeholder="کد ۶ رقمی" dir="ltr" maxlength="6" required>
+            </div>
+        </div>
+
+        <div id="cameraArea" style="display:none;" class="mb-3">
+            <div id="confirm_reader" style="width:100%;max-width:400px;"></div>
+        </div>
+
+        <button class="btn btn-success"><i class="bi bi-check2-circle me-1"></i>تایید و ثبت تحویل</button>
+    </form>
+
+    <div class="alert alert-info mt-3 py-2 small">
+        <i class="bi bi-info-circle me-1"></i>
+        سریال شمش را اسکن کنید و کد تأیید که مشتری از SMS دریافت کرده را وارد نمایید.
+    </div>
+</div>
+
+<script src="/static/vendor/html5-qrcode/html5-qrcode.min.js?v={{ STATIC_VER }}"></script>
+<script src="/static/js/scanner.js?v={{ STATIC_VER }}"></script>
+<script>
+(function(){
+    const serialInput = document.getElementById('confirmSerial');
+    const startCam = document.getElementById('startCamBtn');
+    const stopCam = document.getElementById('stopCamBtn');
+    const cameraArea = document.getElementById('cameraArea');
+
+    TmScanner.init({
+        containerId: 'confirm_reader',
+        onScan: (code) => { serialInput.value = code; TmScanner.stopCamera(); cameraArea.style.display='none'; stopCam.style.display='none'; startCam.style.display=''; },
+        onError: () => {}
+    });
+
+    startCam.addEventListener('click', () => {
+        cameraArea.style.display = 'block';
+        startCam.style.display = 'none';
+        stopCam.style.display = '';
+        TmScanner.startCamera();
+    });
+    stopCam.addEventListener('click', () => {
+        TmScanner.stopCamera();
+        cameraArea.style.display = 'none';
+        stopCam.style.display = 'none';
+        startCam.style.display = '';
+    });
+})();
+</script>
+
+{% elif delivery_req.status.value == 'Completed' %}
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+    <div class="text-center py-3">
+        <i class="bi bi-check-circle-fill text-success" style="font-size:3rem;"></i>
+        <h5 class="mt-2">تحویل ثبت شده</h5>
+        <small class="text-muted">{{ delivery_req.completed_at | jdate if delivery_req.completed_at else '' }}</small>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

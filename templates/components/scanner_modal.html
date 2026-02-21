@@ -1,0 +1,148 @@
+{#
+  Scanner Modal — Reusable barcode/QR scanner partial.
+  Include with: {% include "components/scanner_modal.html" %}
+  Caller must set these variables before include:
+    scanner_modal_id  — unique modal ID (default: "scannerModal")
+    scanner_title     — modal title (default: "اسکن شمش")
+    scanner_lookup_url — AJAX URL for bar lookup (receives ?serial=X)
+#}
+
+{% set mid = scanner_modal_id | default("scannerModal") %}
+{% set stitle = scanner_title | default("اسکن شمش") %}
+
+<div class="modal fade" id="{{ mid }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title"><i class="bi bi-upc-scan me-1"></i> {{ stitle }}</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Manual Input -->
+        <div class="input-group mb-3">
+          <input type="text" id="{{ mid }}_serial" class="form-control form-control-tm"
+                 placeholder="سریال شمش را وارد کنید..." maxlength="12" dir="ltr"
+                 style="text-transform:uppercase;">
+          <button class="btn btn-tm-primary" type="button" id="{{ mid }}_searchBtn">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+
+        <!-- Camera Area -->
+        <div id="{{ mid }}_cameraArea" style="display:none;">
+          <div id="{{ mid }}_reader" style="width:100%;"></div>
+        </div>
+        <div class="d-flex gap-2 mb-3">
+          <button class="btn btn-sm btn-outline-primary" id="{{ mid }}_startCam" type="button">
+            <i class="bi bi-camera me-1"></i> دوربین
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" id="{{ mid }}_stopCam" type="button" style="display:none;">
+            <i class="bi bi-stop-circle me-1"></i> توقف
+          </button>
+        </div>
+
+        <!-- Result Area -->
+        <div id="{{ mid }}_result" style="display:none;"></div>
+
+        <!-- Error Area -->
+        <div id="{{ mid }}_error" class="alert alert-danger py-2 d-none" role="alert"></div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const mid = '{{ mid }}';
+    const lookupUrl = '{{ scanner_lookup_url | default("") }}';
+    const serialInput = document.getElementById(mid + '_serial');
+    const searchBtn = document.getElementById(mid + '_searchBtn');
+    const startCam = document.getElementById(mid + '_startCam');
+    const stopCam = document.getElementById(mid + '_stopCam');
+    const cameraArea = document.getElementById(mid + '_cameraArea');
+    const resultDiv = document.getElementById(mid + '_result');
+    const errorDiv = document.getElementById(mid + '_error');
+
+    function showError(msg) {
+        errorDiv.textContent = msg;
+        errorDiv.classList.remove('d-none');
+        setTimeout(() => errorDiv.classList.add('d-none'), 5000);
+    }
+
+    function doLookup(serial) {
+        if (!serial || !lookupUrl) return;
+        resultDiv.style.display = 'none';
+        errorDiv.classList.add('d-none');
+
+        fetch(lookupUrl + '?serial=' + encodeURIComponent(serial))
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) { showError(data.error); return; }
+                resultDiv.innerHTML = data.html || buildResultCard(data);
+                resultDiv.style.display = 'block';
+                serialInput.value = serial;
+            })
+            .catch(() => showError('خطا در ارتباط با سرور'));
+    }
+
+    function buildResultCard(d) {
+        let html = '<div class="card-tm no-hover p-3">';
+        html += '<div class="d-flex justify-content-between align-items-center mb-2">';
+        html += '<strong dir="ltr">' + (d.serial || '') + '</strong>';
+        html += '<span class="badge bg-' + (d.status_color || 'secondary') + '">' + (d.status_label || d.status || '') + '</span>';
+        html += '</div>';
+        if (d.product_name) html += '<div class="small text-muted mb-1"><i class="bi bi-box me-1"></i>' + d.product_name + '</div>';
+        if (d.dealer_name) html += '<div class="small text-muted mb-1"><i class="bi bi-shop me-1"></i>' + d.dealer_name + '</div>';
+        if (d.customer_name) html += '<div class="small text-muted mb-1"><i class="bi bi-person me-1"></i>' + d.customer_name + '</div>';
+        if (d.edit_url) html += '<a href="' + d.edit_url + '" class="btn btn-sm btn-tm-primary mt-2"><i class="bi bi-pencil me-1"></i>ویرایش</a>';
+        if (d.at_my_location !== undefined) {
+            const locBadge = d.at_my_location
+                ? '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>در انبار شما</span>'
+                : '<span class="badge bg-warning"><i class="bi bi-exclamation-triangle me-1"></i>در انبار شما نیست</span>';
+            html += '<div class="mt-2">' + locBadge + '</div>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    // Manual search
+    searchBtn.addEventListener('click', () => doLookup(serialInput.value.trim().toUpperCase()));
+    serialInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); doLookup(serialInput.value.trim().toUpperCase()); }
+    });
+
+    // Camera
+    startCam.addEventListener('click', () => {
+        cameraArea.style.display = 'block';
+        startCam.style.display = 'none';
+        stopCam.style.display = '';
+        TmScanner.startCamera();
+    });
+    stopCam.addEventListener('click', () => {
+        TmScanner.stopCamera();
+        cameraArea.style.display = 'none';
+        stopCam.style.display = 'none';
+        startCam.style.display = '';
+    });
+
+    // Init scanner
+    TmScanner.init({
+        containerId: mid + '_reader',
+        onScan: (code) => doLookup(code),
+        onError: (err) => showError(err)
+    });
+
+    // Stop camera when modal closes
+    const modal = document.getElementById(mid);
+    if (modal) {
+        modal.addEventListener('hidden.bs.modal', () => {
+            TmScanner.stopCamera();
+            cameraArea.style.display = 'none';
+            stopCam.style.display = 'none';
+            startCam.style.display = '';
+        });
+    }
+});
+</script>

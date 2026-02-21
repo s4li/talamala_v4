@@ -377,6 +377,157 @@ async def dealer_inventory(
 
 
 # ==========================================
+# Scanner Lookup (Dealer)
+# ==========================================
+
+@router.get("/scan/lookup")
+async def dealer_scan_lookup(
+    serial: str = Query(...),
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    """JSON lookup for dealer scanner — returns bar info + at_my_location flag."""
+    bar = db.query(Bar).filter(Bar.serial_code == serial.strip().upper()).first()
+    if not bar:
+        return JSONResponse({"error": "شمش با این سریال یافت نشد"})
+
+    return JSONResponse({
+        "bar_id": bar.id,
+        "serial": bar.serial_code,
+        "status": bar.status,
+        "status_label": bar.status_label,
+        "status_color": bar.status_color,
+        "product_name": bar.product.name if bar.product else None,
+        "at_my_location": bar.dealer_id == dealer.id,
+    })
+
+
+# ==========================================
+# Reconciliation (Dealer)
+# ==========================================
+
+@router.get("/reconciliation", response_class=HTMLResponse)
+async def dealer_reconciliation_list(
+    request: Request,
+    page: int = 1,
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    from modules.inventory.service import inventory_service
+    sessions, total = inventory_service.list_reconciliation_sessions(db, dealer_id=dealer.id, page=page)
+    total_pages = (total + 19) // 20
+
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("dealer/reconciliation.html", {
+        "request": request,
+        "dealer": dealer,
+        "sessions": sessions,
+        "total": total,
+        "page": page,
+        "total_pages": total_pages,
+        "csrf_token": csrf,
+        "active_page": "reconciliation",
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/reconciliation/start")
+async def dealer_reconciliation_start(
+    request: Request,
+    csrf_token: str = Form(None),
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    from modules.inventory.service import inventory_service
+    try:
+        session = inventory_service.start_reconciliation(db, dealer.id, dealer.full_name)
+        db.commit()
+        return RedirectResponse(f"/dealer/reconciliation/{session.id}", status_code=303)
+    except ValueError as e:
+        import urllib.parse as _up
+        return RedirectResponse(f"/dealer/reconciliation?error={_up.quote(str(e))}", status_code=303)
+
+
+@router.get("/reconciliation/{session_id}", response_class=HTMLResponse)
+async def dealer_reconciliation_detail(
+    request: Request,
+    session_id: int,
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    from modules.inventory.service import inventory_service
+    recon = inventory_service.get_reconciliation_session(db, session_id, dealer_id=dealer.id)
+    if not recon:
+        return RedirectResponse("/dealer/reconciliation", status_code=303)
+
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("dealer/reconciliation_detail.html", {
+        "request": request,
+        "dealer": dealer,
+        "recon": recon,
+        "csrf_token": csrf,
+        "active_page": "reconciliation",
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/reconciliation/{session_id}/scan")
+async def dealer_reconciliation_scan(
+    request: Request,
+    session_id: int,
+    serial: str = Form(...),
+    csrf_token: str = Form(None),
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    from modules.inventory.service import inventory_service
+    result = inventory_service.scan_for_reconciliation(db, session_id, serial, dealer.id)
+    db.commit()
+    return JSONResponse(result)
+
+
+@router.post("/reconciliation/{session_id}/finalize")
+async def dealer_reconciliation_finalize(
+    request: Request,
+    session_id: int,
+    notes: str = Form(None),
+    csrf_token: str = Form(None),
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    from modules.inventory.service import inventory_service
+    try:
+        inventory_service.finalize_reconciliation(db, session_id, dealer.id, notes=notes)
+        db.commit()
+        return RedirectResponse(f"/dealer/reconciliation/{session_id}", status_code=303)
+    except ValueError:
+        return RedirectResponse("/dealer/reconciliation", status_code=303)
+
+
+@router.post("/reconciliation/{session_id}/cancel")
+async def dealer_reconciliation_cancel(
+    request: Request,
+    session_id: int,
+    csrf_token: str = Form(None),
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    from modules.inventory.service import inventory_service
+    try:
+        inventory_service.cancel_reconciliation(db, session_id, dealer.id)
+        db.commit()
+    except ValueError:
+        pass
+    return RedirectResponse("/dealer/reconciliation", status_code=303)
+
+
+# ==========================================
 # B2B Bulk Orders (Dealer)
 # ==========================================
 
@@ -617,3 +768,85 @@ async def buyback_lookup(
         "retail_toman": retail_toman,
         "owner_name": bar.customer.full_name if bar.customer_id and bar.customer else "نامشخص",
     })
+
+
+# ==========================================
+# Custodial Deliveries (Dealer)
+# ==========================================
+
+@router.get("/deliveries", response_class=HTMLResponse)
+async def dealer_deliveries(
+    request: Request,
+    status_filter: str = "",
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    from modules.ownership.service import ownership_service
+    requests = ownership_service.get_dealer_delivery_requests(
+        db, dealer.id, status_filter=status_filter or None,
+    )
+
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("dealer/deliveries.html", {
+        "request": request,
+        "dealer": dealer,
+        "delivery_requests": requests,
+        "status_filter": status_filter,
+        "csrf_token": csrf,
+        "active_page": "deliveries",
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.get("/deliveries/{req_id}", response_class=HTMLResponse)
+async def dealer_delivery_detail(
+    request: Request,
+    req_id: int,
+    error: str = None,
+    msg: str = None,
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    from modules.ownership.service import ownership_service
+    req = ownership_service.get_delivery_request(db, req_id)
+    if not req or req.dealer_id != dealer.id:
+        return RedirectResponse("/dealer/deliveries", status_code=303)
+
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("dealer/delivery_confirm.html", {
+        "request": request,
+        "dealer": dealer,
+        "delivery_req": req,
+        "csrf_token": csrf,
+        "error": error,
+        "msg": msg,
+        "active_page": "deliveries",
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/deliveries/{req_id}/confirm")
+async def dealer_delivery_confirm(
+    request: Request,
+    req_id: int,
+    otp_code: str = Form(...),
+    serial_code: str = Form(...),
+    csrf_token: str = Form(None),
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    from modules.ownership.service import ownership_service
+    try:
+        ownership_service.confirm_delivery(db, req_id, dealer.id, otp_code, serial_code)
+        db.commit()
+        import urllib.parse
+        msg = urllib.parse.quote("تحویل با موفقیت ثبت شد")
+        return RedirectResponse(f"/dealer/deliveries/{req_id}?msg={msg}", status_code=303)
+    except ValueError as e:
+        db.rollback()
+        import urllib.parse
+        error = urllib.parse.quote(str(e))
+        return RedirectResponse(f"/dealer/deliveries/{req_id}?error={error}", status_code=303)

@@ -57,7 +57,7 @@ talamala_v4/
 │   ├── admin/                   # SystemSetting, RequestLog, admin settings page, staff service
 │   ├── auth/                    # Login (OTP), JWT, deps (require_customer etc.)
 │   ├── catalog/                 # Product, ProductCategory, CardDesign, PackageType, Batch
-│   ├── inventory/               # Bar, BarImage, OwnershipHistory, DealerTransfer
+│   ├── inventory/               # Bar, BarImage, OwnershipHistory, DealerTransfer, TransferType, ReconciliationSession, ReconciliationItem, CustodialDeliveryRequest
 │   ├── shop/                    # Public storefront (product list + detail)
 │   ├── cart/                    # Cart, CartItem, checkout, delivery location API
 │   ├── order/                   # Order, OrderItem, delivery_service, admin order mgmt
@@ -94,6 +94,7 @@ talamala_v4/
 │   │   ├── profile.html
 │   │   ├── addresses.html       # Address book CRUD
 │   │   ├── tickets.html         # Customer ticket list
+│   │   ├── custodial_delivery.html # Customer custodial delivery request page
 │   │   ├── ticket_new.html      # Customer create ticket
 │   │   └── ticket_detail.html   # Customer ticket conversation
 │   ├── admin/
@@ -102,6 +103,8 @@ talamala_v4/
 │   │   ├── settings.html        # Asset prices (gold/silver) + tax, shipping config + active gateway + precious metal trade fees (gold + silver)
 │   │   ├── catalog/             # products, categories, designs, packages, batches
 │   │   ├── inventory/           # bars, edit_bar
+│   │   ├── reconciliation.html  # Admin reconciliation session list
+│   │   ├── reconciliation_detail.html  # Admin session detail + scanner
 │   │   ├── orders/list.html     # Order management + delivery status
 │   │   ├── wallet/              # accounts, detail, withdrawals
 │   │   ├── coupon/              # list, form, detail
@@ -110,6 +113,10 @@ talamala_v4/
 │   │   └── logs/                # request audit log list
 │   ├── dealer/
 │   │   ├── base_dealer.html     # Dealer sidebar layout
+│   │   ├── reconciliation.html  # Dealer reconciliation session list
+│   │   ├── reconciliation_detail.html  # Dealer session detail + scanner
+│   │   ├── deliveries.html      # Dealer custodial delivery requests
+│   │   ├── delivery_confirm.html # Dealer delivery confirmation (OTP + serial)
 │   │   ├── tickets.html         # Dealer ticket list
 │   │   ├── ticket_new.html      # Dealer create ticket
 │   │   └── ticket_detail.html   # Dealer ticket conversation
@@ -118,7 +125,10 @@ talamala_v4/
 │   ├── seed.py                  # Database seeder (--reset flag)
 │   └── init_db.py               # DB initialization utility
 ├── alembic/                     # Migrations
-├── static/uploads/              # Uploaded images
+├── static/
+│   ├── js/scanner.js            # TmScanner barcode/QR wrapper
+│   ├── vendor/html5-qrcode/     # Scanner library
+│   └── uploads/                 # Uploaded images
 ├── .env.example
 └── requirements.txt
 ```
@@ -166,6 +176,11 @@ talamala_v4/
 - **OwnershipHistory**: id, bar_id, previous_owner_id, new_owner_id, transfer_date, description
 - **DealerTransfer**: id, bar_id, from_dealer_id, to_dealer_id, transferred_by, transferred_at, description (table: dealer_location_transfers)
 - **BarTransfer**: id, bar_id, from_customer_id, to_mobile, otp_hash, otp_expiry, status (Pending/Completed/Cancelled/Expired), created_at
+- **TransferType** (enum): MANUAL, B2B_FULFILLMENT, ADMIN_TRANSFER, RECONCILIATION, CUSTODIAL_DELIVERY, RETURN
+- **ReconciliationSession**: id, dealer_id (FK→users), initiated_by, status (InProgress/Completed/Cancelled), total_expected, total_scanned, total_matched, total_missing, total_unexpected, notes, started_at, completed_at
+- **ReconciliationItem**: id, session_id (FK→reconciliation_sessions, CASCADE), bar_id (FK→bars, SET NULL), serial_code, item_status (Matched/Missing/Unexpected), scanned_at, expected_status, expected_product
+- **CustodialDeliveryStatus** (enum): PENDING, COMPLETED, CANCELLED, EXPIRED
+- **CustodialDeliveryRequest**: id, customer_id (FK→users), bar_id (FK→bars), dealer_id (FK→users), status, otp_hash, otp_expiry, created_at, completed_at, completed_by, cancelled_at, cancel_reason, notes
 
 ### cart/models.py
 - **Cart**: id, customer_id (FK→users, unique), created_at
@@ -378,6 +393,7 @@ STATIC_VERSION = "1.1"  # ← عدد را افزایش بده
 | 15 | Customer-Facing POS API (reserve→confirm/cancel) | ✅ |
 | 16 | Reviews & Comments (star rating, Q&A, likes) | ✅ |
 | 21 | Dealer B2B Dashboard (inventory, analytics, sub-dealer, B2B orders) | ✅ |
+| 22 | Advanced Inventory & Physical Tracking (scanner, reconciliation, custodial delivery, transfer audit) | ✅ |
 
 ---
 
@@ -413,12 +429,6 @@ STATIC_VERSION = "1.1"  # ← عدد را افزایش بده
 - زیرمجموعه‌ها (Sub-dealer): نماینده اصلی → زیرنماینده + تقسیم کمیسیون + درخت نمایندگان
 - سفارش عمده نمایندگان (B2B Orders): ثبت سفارش عمده از پنل نماینده + تأیید ادمین
 - اعلان‌های اختصاصی نماینده (موجودی کم، محصول جدید، تغییر قیمت)
-
-### 📌 Phase 22: Advanced Inventory & Tracking (متوسط-بالا)
-- هشدار موجودی: آستانه هر محصول + اعلان ادمین/نماینده + پیش‌بینی اتمام
-- رهگیری فیزیکی: لاگ جابجایی شمش بین لوکیشن‌ها + بارکد/QR scan + گزارش مغایرت
-- ارتقای مدل امانی: درخواست تحویل فیزیکی از پنل مشتری + انتخاب لوکیشن + تأیید OTP
-- ادغام رهگیری پست: API پست ایران/تیپاکس + نمایش وضعیت + اعلان خودکار
 
 ### 📌 Phase 23: SEO + Content (متوسط)
 - بلاگ/مجله آموزشی: ماژول Article + آموزش محصول فیزیکی (نه تحلیل بازار)
@@ -672,6 +682,16 @@ total     = raw_metal + wage + tax
 - `GET /dealer/b2b-orders/{id}` — B2B order detail
 - `POST /dealer/b2b-orders/{id}/pay` — Pay via wallet
 - `POST /dealer/b2b-orders/{id}/cancel` — Cancel order
+- `GET /dealer/scan/lookup?serial=X` — Bar lookup (scanner)
+- `GET /dealer/reconciliation` — Reconciliation sessions
+- `POST /dealer/reconciliation/start` — Start session
+- `GET /dealer/reconciliation/{id}` — Session detail
+- `POST /dealer/reconciliation/{id}/scan` — AJAX scan
+- `POST /dealer/reconciliation/{id}/finalize` — Complete
+- `POST /dealer/reconciliation/{id}/cancel` — Cancel
+- `GET /dealer/deliveries` — Custodial delivery requests
+- `GET /dealer/deliveries/{id}` — Delivery detail
+- `POST /dealer/deliveries/{id}/confirm` — Confirm delivery (OTP + serial)
 
 ### Dealer POS REST API (JSON, API Key auth via X-API-Key header)
 - `GET /api/dealer/info` — Dealer identity / health check
@@ -693,6 +713,10 @@ total     = raw_metal + wage + tax
 - `GET /my-bars/{bar_id}/transfer` — Transfer form (enter recipient mobile)
 - `POST /my-bars/{bar_id}/transfer` — Send OTP to owner
 - `POST /my-bars/{bar_id}/transfer/confirm` — Confirm transfer with OTP
+- `GET /my-bars/{bar_id}/delivery` — Delivery request page
+- `POST /my-bars/{bar_id}/delivery` — Create request
+- `POST /my-bars/{bar_id}/delivery/{req_id}/send-otp` — Send OTP
+- `POST /my-bars/{bar_id}/delivery/{req_id}/cancel` — Cancel request
 
 ### Admin
 - `/admin/dashboard|products|categories|designs|packages|batches`
@@ -721,6 +745,13 @@ total     = raw_metal + wage + tax
 - `POST /admin/dealers/b2b-orders/{id}/reject` — Reject B2B order
 - `POST /admin/dealers/b2b-orders/{id}/fulfill` — Fulfill (assign bars from warehouse)
 - `/admin/dealers/buybacks` — Buyback approval/rejection
+- `GET /api/admin/bars/lookup?serial=X` — Bar lookup JSON (scanner)
+- `GET /admin/reconciliation` — Reconciliation session list
+- `POST /admin/reconciliation/start` — Start session
+- `GET /admin/reconciliation/{id}` — Session detail + scanner
+- `POST /admin/reconciliation/{id}/scan` — AJAX scan
+- `POST /admin/reconciliation/{id}/finalize` — Complete session
+- `POST /admin/reconciliation/{id}/cancel` — Cancel session
 - `GET /admin/tickets` — Ticket list (tabs: all/customer/dealer + status/category filter + search)
 - `GET /admin/tickets/{id}` — Ticket detail + reply + internal notes + assign
 - `POST /admin/tickets/{id}/reply` — Admin reply (with file attachments)

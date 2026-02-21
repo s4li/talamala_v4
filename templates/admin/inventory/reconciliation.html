@@ -1,0 +1,103 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "reconciliation" %}
+{% block title %}انبارگردانی - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header tm-animate-fade-in">
+    <h4 class="fw-bold mb-0"><i class="bi bi-clipboard2-check me-2"></i>انبارگردانی</h4>
+    <button class="btn btn-tm-primary" data-bs-toggle="modal" data-bs-target="#startModal">
+        <i class="bi bi-plus-lg me-1"></i> شروع انبارگردانی
+    </button>
+</div>
+
+{% if error %}<div class="alert-tm-danger py-2">{{ error }}</div>{% endif %}
+
+<!-- Filter -->
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-1">
+    <form method="GET" class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <select name="dealer_id" class="form-select form-select-tm form-select-sm">
+                <option value="">همه نمایندگان</option>
+                {% for d in all_dealers %}
+                <option value="{{ d.id }}" {% if dealer_filter|string == d.id|string %}selected{% endif %}>{{ d.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-sm btn-tm-primary"><i class="bi bi-funnel"></i></button>
+            <a href="/admin/reconciliation" class="btn btn-sm btn-light">پاک</a>
+        </div>
+    </form>
+</div>
+
+<!-- Sessions Table -->
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+    <div class="p-0">
+        <table class="table table-tm table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>نمایندگی</th>
+                    <th>وضعیت</th>
+                    <th>مورد انتظار</th>
+                    <th>اسکن شده</th>
+                    <th>تطابق</th>
+                    <th>مفقود</th>
+                    <th>اضافی</th>
+                    <th>تاریخ</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr>
+                    <td>{{ s.id }}</td>
+                    <td>{{ s.dealer.full_name if s.dealer else '—' }}</td>
+                    <td><span class="badge bg-{{ s.status_color }}">{{ s.status_label }}</span></td>
+                    <td>{{ s.total_expected | persian_number }}</td>
+                    <td>{{ (s.total_scanned or 0) | persian_number }}</td>
+                    <td class="text-success">{{ (s.total_matched or 0) | persian_number }}</td>
+                    <td class="text-danger">{{ (s.total_missing or 0) | persian_number }}</td>
+                    <td class="text-warning">{{ (s.total_unexpected or 0) | persian_number }}</td>
+                    <td><small>{{ s.started_at | jdate }}</small></td>
+                    <td><a href="/admin/reconciliation/{{ s.id }}" class="btn btn-sm btn-tm-outline"><i class="bi bi-eye"></i></a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="10" class="text-center text-muted py-4">هنوز انبارگردانی انجام نشده</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% from "components/pagination.html" import pagination %}
+{{ pagination(page, total_pages, '/admin/reconciliation', '&dealer_id=' ~ dealer_filter if dealer_filter else '') }}
+
+<!-- Start Modal -->
+<div class="modal fade" id="startModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <form method="POST" action="/admin/reconciliation/start">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-clipboard2-check me-1"></i> شروع انبارگردانی</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label-tm">نمایندگی</label>
+                    <select name="dealer_id" class="form-select form-select-tm" required>
+                        <option value="">انتخاب کنید...</option>
+                        {% for d in all_dealers %}
+                        <option value="{{ d.id }}">{{ d.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-tm-primary"><i class="bi bi-play-fill me-1"></i> شروع</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

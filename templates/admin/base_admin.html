@@ -69,6 +69,9 @@
         <a href="/admin/bars" class="nav-link {% if active_page == 'bars' %}active{% endif %}">
             <i class="bi bi-upc-scan"></i> شمش‌ها
         </a>
+        <a href="/admin/reconciliation" class="nav-link {% if active_page == 'reconciliation' %}active{% endif %}">
+            <i class="bi bi-clipboard2-check"></i> انبارگردانی
+        </a>
         {% endif %}
         {% if user.has_permission('orders') %}
         <a href="/admin/orders" class="nav-link {% if active_page == 'orders' %}active{% endif %}">

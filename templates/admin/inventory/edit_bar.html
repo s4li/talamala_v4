@@ -138,11 +138,12 @@
             </div>
             <div class="p-0">
                 <table class="table table-tm table-sm mb-0">
-                    <thead><tr><th>تاریخ</th><th>از</th><th>به</th><th>توسط</th><th>توضیح</th></tr></thead>
+                    <thead><tr><th>تاریخ</th><th>نوع</th><th>از</th><th>به</th><th>توسط</th><th>توضیح</th></tr></thead>
                     <tbody>
                         {% for t in bar.transfers %}
                         <tr>
                             <td><small>{{ t.transferred_at | jdate if t.transferred_at else '' }}</small></td>
+                            <td><span class="badge bg-{{ t.transfer_type_color }}">{{ t.transfer_type_label }}</span></td>
                             <td>
                                 {% if t.from_dealer %}
                                 <span class="badge bg-{{ t.from_dealer.type_color }}">{{ t.from_dealer.full_name }}</span>

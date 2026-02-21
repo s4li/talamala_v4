@@ -1,0 +1,60 @@
+{% extends "dealer/base_dealer.html" %}
+
+{% block title %}انبارگردانی - طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-clipboard2-check text-tm-primary"></i>
+        انبارگردانی
+    </h4>
+    <form method="POST" action="/dealer/reconciliation/start" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="btn btn-tm-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> شروع انبارگردانی
+        </button>
+    </form>
+</div>
+
+{% if error %}<div class="alert-tm-danger py-2 mb-3">{{ error }}</div>{% endif %}
+
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-1">
+    <div class="p-0">
+        <table class="table table-tm table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>وضعیت</th>
+                    <th>مورد انتظار</th>
+                    <th>اسکن شده</th>
+                    <th>تطابق</th>
+                    <th>مفقود</th>
+                    <th>اضافی</th>
+                    <th>تاریخ</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr>
+                    <td>{{ s.id }}</td>
+                    <td><span class="badge bg-{{ s.status_color }}">{{ s.status_label }}</span></td>
+                    <td>{{ s.total_expected | persian_number }}</td>
+                    <td>{{ (s.total_scanned or 0) | persian_number }}</td>
+                    <td class="text-success">{{ (s.total_matched or 0) | persian_number }}</td>
+                    <td class="text-danger">{{ (s.total_missing or 0) | persian_number }}</td>
+                    <td class="text-warning">{{ (s.total_unexpected or 0) | persian_number }}</td>
+                    <td><small>{{ s.started_at | jdate }}</small></td>
+                    <td><a href="/dealer/reconciliation/{{ s.id }}" class="btn btn-sm btn-tm-outline"><i class="bi bi-eye"></i></a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="text-center text-muted py-4">هنوز انبارگردانی انجام نشده</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% from "components/pagination.html" import pagination %}
+{{ pagination(page, total_pages, '/dealer/reconciliation', '') }}
+{% endblock %}

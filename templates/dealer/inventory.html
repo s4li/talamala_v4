@@ -8,7 +8,12 @@
         <i class="bi bi-box-seam text-tm-primary"></i>
         موجودی انبار
     </h4>
-    <span class="badge-tm badge-tm-info">{{ total }} شمش</span>
+    <div class="d-flex gap-2 align-items-center">
+        <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#scannerModal">
+            <i class="bi bi-upc-scan me-1"></i> اسکن شمش
+        </button>
+        <span class="badge-tm badge-tm-info">{{ total }} شمش</span>
+    </div>
 </div>
 
 <!-- Summary Stats -->
@@ -134,4 +139,13 @@
 {% if status_filter %} {% set qs = qs ~ '&status=' ~ status_filter %} {% endif %}
 {% from "components/pagination.html" import pagination %}
 {{ pagination(page, total_pages, '/dealer/inventory', qs) }}
+
+<!-- Scanner Modal -->
+{% set scanner_modal_id = "scannerModal" %}
+{% set scanner_title = "اسکن شمش" %}
+{% set scanner_lookup_url = "/dealer/scan/lookup" %}
+{% include "components/scanner_modal.html" %}
+
+<script src="/static/vendor/html5-qrcode/html5-qrcode.min.js?v={{ STATIC_VER }}"></script>
+<script src="/static/js/scanner.js?v={{ STATIC_VER }}"></script>
 {% endblock %}

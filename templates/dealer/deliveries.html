@@ -1,0 +1,60 @@
+{% extends "dealer/base_dealer.html" %}
+
+{% block title %}تحویل امانی - طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-truck text-tm-primary"></i>
+        درخواست‌های تحویل امانی
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="/dealer/deliveries?status_filter=Pending" class="btn btn-sm {% if status_filter == 'Pending' %}btn-warning{% else %}btn-outline-warning{% endif %}">در انتظار</a>
+        <a href="/dealer/deliveries?status_filter=Completed" class="btn btn-sm {% if status_filter == 'Completed' %}btn-success{% else %}btn-outline-success{% endif %}">تحویل شده</a>
+        <a href="/dealer/deliveries" class="btn btn-sm {% if not status_filter %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">همه</a>
+    </div>
+</div>
+
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-1">
+    <div class="p-0">
+        <table class="table table-tm table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>مشتری</th>
+                    <th>سریال شمش</th>
+                    <th>محصول</th>
+                    <th>وضعیت</th>
+                    <th>تاریخ</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in delivery_requests %}
+                <tr>
+                    <td>{{ r.id }}</td>
+                    <td>{{ r.customer.full_name if r.customer else '—' }}</td>
+                    <td dir="ltr"><strong>{{ r.bar.serial_code if r.bar else '—' }}</strong></td>
+                    <td>{{ r.bar.product.name if r.bar and r.bar.product else '—' }}</td>
+                    <td><span class="badge bg-{{ r.status_color }}">{{ r.status_label }}</span></td>
+                    <td><small>{{ r.created_at | jdate }}</small></td>
+                    <td>
+                        {% if r.status.value == 'Pending' %}
+                        <a href="/dealer/deliveries/{{ r.id }}" class="btn btn-sm btn-success">
+                            <i class="bi bi-check2-circle me-1"></i>تایید تحویل
+                        </a>
+                        {% else %}
+                        <a href="/dealer/deliveries/{{ r.id }}" class="btn btn-sm btn-tm-outline">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center text-muted py-4">هیچ درخواستی وجود ندارد</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

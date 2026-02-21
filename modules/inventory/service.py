@@ -15,7 +15,8 @@ from sqlalchemy.exc import IntegrityError
 from common.helpers import safe_int, now_utc
 from common.upload import save_upload_file, delete_file
 from modules.inventory.models import (
-    Bar, BarImage, BarStatus, OwnershipHistory, DealerTransfer,
+    Bar, BarImage, BarStatus, OwnershipHistory, DealerTransfer, TransferType,
+    ReconciliationSession, ReconciliationItem, ReconciliationStatus, ReconciliationItemStatus,
 )
 
 # Characters for serial codes (no ambiguous: 0, O, I, 1)
@@ -143,6 +144,7 @@ class InventoryService:
                 to_dealer_id=new_dealer,
                 transferred_by=updated_by,
                 description=data.get("transfer_note", ""),
+                transfer_type=TransferType.ADMIN_TRANSFER,
             ))
             bar.dealer_id = new_dealer
 
@@ -321,6 +323,9 @@ class InventoryService:
         to_dealer_id: int,
         transferred_by: str = "System",
         description: str = "",
+        transfer_type=TransferType.MANUAL,
+        reference_type: str = None,
+        reference_id: int = None,
     ) -> Optional[Bar]:
         """Move a bar to a new dealer/warehouse with history tracking."""
         bar = db.query(Bar).filter(Bar.id == bar_id).first()
@@ -337,6 +342,9 @@ class InventoryService:
             to_dealer_id=to_dealer_id if to_dealer_id else None,
             transferred_by=transferred_by,
             description=description,
+            transfer_type=transfer_type,
+            reference_type=reference_type,
+            reference_id=reference_id,
         ))
         bar.dealer_id = to_dealer_id if to_dealer_id else None
         db.flush()
@@ -346,6 +354,187 @@ class InventoryService:
         return db.query(DealerTransfer).filter(
             DealerTransfer.bar_id == bar_id,
         ).order_by(DealerTransfer.transferred_at.desc()).all()
+
+    # ==========================================
+    # Reconciliation (انبارگردانی)
+    # ==========================================
+
+    def start_reconciliation(self, db: Session, dealer_id: int, initiated_by: str) -> ReconciliationSession:
+        """Start a new reconciliation session for a dealer. Blocks if active session exists."""
+        active = db.query(ReconciliationSession).filter(
+            ReconciliationSession.dealer_id == dealer_id,
+            ReconciliationSession.status == ReconciliationStatus.IN_PROGRESS,
+        ).first()
+        if active:
+            raise ValueError("یک جلسه انبارگردانی فعال برای این نمایندگی وجود دارد")
+
+        expected = db.query(Bar).filter(
+            Bar.dealer_id == dealer_id,
+            Bar.status.in_([BarStatus.ASSIGNED, BarStatus.RESERVED]),
+        ).count()
+
+        session = ReconciliationSession(
+            dealer_id=dealer_id,
+            initiated_by=initiated_by,
+            status=ReconciliationStatus.IN_PROGRESS,
+            total_expected=expected,
+        )
+        db.add(session)
+        db.flush()
+        return session
+
+    def scan_for_reconciliation(
+        self, db: Session, session_id: int, serial_code: str, dealer_id: int,
+    ) -> dict:
+        """Record a scanned bar in a reconciliation session. Returns result dict."""
+        session = db.query(ReconciliationSession).filter(
+            ReconciliationSession.id == session_id,
+            ReconciliationSession.dealer_id == dealer_id,
+            ReconciliationSession.status == ReconciliationStatus.IN_PROGRESS,
+        ).first()
+        if not session:
+            return {"error": "جلسه انبارگردانی فعال یافت نشد"}
+
+        serial_code = serial_code.strip().upper()
+
+        # Check for duplicate scan
+        existing = db.query(ReconciliationItem).filter(
+            ReconciliationItem.session_id == session_id,
+            ReconciliationItem.serial_code == serial_code,
+        ).first()
+        if existing:
+            return {"error": "این سریال قبلاً اسکن شده", "duplicate": True}
+
+        bar = db.query(Bar).filter(Bar.serial_code == serial_code).first()
+
+        if bar and bar.dealer_id == dealer_id:
+            # Matched — bar is at this location
+            item = ReconciliationItem(
+                session_id=session_id,
+                bar_id=bar.id,
+                serial_code=serial_code,
+                item_status=ReconciliationItemStatus.MATCHED,
+                expected_status=bar.status,
+                expected_product=bar.product.name if bar.product else None,
+            )
+            status = "matched"
+        else:
+            # Unexpected — bar not at this location (or doesn't exist)
+            item = ReconciliationItem(
+                session_id=session_id,
+                bar_id=bar.id if bar else None,
+                serial_code=serial_code,
+                item_status=ReconciliationItemStatus.UNEXPECTED,
+                expected_status=bar.status if bar else None,
+                expected_product=bar.product.name if bar and bar.product else None,
+            )
+            status = "unexpected"
+
+        db.add(item)
+        session.total_scanned = (session.total_scanned or 0) + 1
+        db.flush()
+
+        return {
+            "status": status,
+            "serial": serial_code,
+            "product": item.expected_product or "—",
+            "bar_status": item.expected_status or "—",
+            "item_id": item.id,
+        }
+
+    def finalize_reconciliation(
+        self, db: Session, session_id: int, dealer_id: int, notes: str = None,
+    ) -> ReconciliationSession:
+        """Finalize: generate Missing items, compute summary stats."""
+        session = db.query(ReconciliationSession).filter(
+            ReconciliationSession.id == session_id,
+            ReconciliationSession.dealer_id == dealer_id,
+            ReconciliationSession.status == ReconciliationStatus.IN_PROGRESS,
+        ).first()
+        if not session:
+            raise ValueError("جلسه انبارگردانی فعال یافت نشد")
+
+        # Find bars that should be at this dealer but weren't scanned
+        scanned_bar_ids = {
+            item.bar_id for item in session.items if item.bar_id
+        }
+        expected_bars = db.query(Bar).filter(
+            Bar.dealer_id == dealer_id,
+            Bar.status.in_([BarStatus.ASSIGNED, BarStatus.RESERVED]),
+        ).all()
+
+        for bar in expected_bars:
+            if bar.id not in scanned_bar_ids:
+                db.add(ReconciliationItem(
+                    session_id=session_id,
+                    bar_id=bar.id,
+                    serial_code=bar.serial_code,
+                    item_status=ReconciliationItemStatus.MISSING,
+                    scanned_at=None,
+                    expected_status=bar.status,
+                    expected_product=bar.product.name if bar.product else None,
+                ))
+
+        # Compute summary stats
+        matched = sum(1 for i in session.items if i.item_status == ReconciliationItemStatus.MATCHED)
+        unexpected = sum(1 for i in session.items if i.item_status == ReconciliationItemStatus.UNEXPECTED)
+        missing = len(expected_bars) - len(scanned_bar_ids & {b.id for b in expected_bars})
+
+        session.total_matched = matched
+        session.total_unexpected = unexpected
+        session.total_missing = missing
+        session.notes = notes
+        session.status = ReconciliationStatus.COMPLETED
+        session.completed_at = now_utc()
+
+        db.flush()
+        return session
+
+    def cancel_reconciliation(self, db: Session, session_id: int, dealer_id: int) -> ReconciliationSession:
+        """Cancel an in-progress reconciliation session."""
+        session = db.query(ReconciliationSession).filter(
+            ReconciliationSession.id == session_id,
+            ReconciliationSession.dealer_id == dealer_id,
+            ReconciliationSession.status == ReconciliationStatus.IN_PROGRESS,
+        ).first()
+        if not session:
+            raise ValueError("جلسه انبارگردانی فعال یافت نشد")
+
+        session.status = ReconciliationStatus.CANCELLED
+        session.completed_at = now_utc()
+        db.flush()
+        return session
+
+    def list_reconciliation_sessions(
+        self, db: Session, dealer_id: int = None, page: int = 1, per_page: int = 20,
+    ) -> Tuple[list, int]:
+        """List reconciliation sessions. Optional dealer filter. Returns (sessions, total)."""
+        from sqlalchemy.orm import joinedload
+        query = db.query(ReconciliationSession).options(
+            joinedload(ReconciliationSession.dealer),
+        ).order_by(ReconciliationSession.started_at.desc())
+
+        if dealer_id:
+            query = query.filter(ReconciliationSession.dealer_id == dealer_id)
+
+        total = query.count()
+        sessions = query.offset((page - 1) * per_page).limit(per_page).all()
+        return sessions, total
+
+    def get_reconciliation_session(
+        self, db: Session, session_id: int, dealer_id: int = None,
+    ) -> Optional[ReconciliationSession]:
+        """Get a single reconciliation session with items."""
+        from sqlalchemy.orm import joinedload
+        query = db.query(ReconciliationSession).options(
+            joinedload(ReconciliationSession.items),
+            joinedload(ReconciliationSession.dealer),
+        ).filter(ReconciliationSession.id == session_id)
+
+        if dealer_id:
+            query = query.filter(ReconciliationSession.dealer_id == dealer_id)
+
+        return query.first()
 
 
 # Singleton

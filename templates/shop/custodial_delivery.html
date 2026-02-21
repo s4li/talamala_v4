@@ -1,0 +1,148 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}درخواست تحویل شمش - طلاملا{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:700px;">
+
+    <a href="/my-bars" class="btn btn-sm btn-tm-outline mb-3"><i class="bi bi-arrow-right me-1"></i>بازگشت</a>
+
+    <h5 class="fw-bold mb-3"><i class="bi bi-truck me-2"></i>درخواست تحویل فیزیکی</h5>
+
+    {% if msg %}<div class="alert-tm-success py-2 mb-3">{{ msg }}</div>{% endif %}
+    {% if error %}<div class="alert-tm-danger py-2 mb-3">{{ error }}</div>{% endif %}
+
+    <!-- Bar Info -->
+    <div class="card-tm no-hover mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong dir="ltr">{{ bar.serial_code }}</strong>
+                {% if bar.product %}<span class="text-muted ms-2">{{ bar.product.name }}</span>{% endif %}
+            </div>
+            <span class="badge bg-{{ bar.status_color }}">{{ bar.status_label }}</span>
+        </div>
+    </div>
+
+    {% if existing_req %}
+    <!-- Existing Request Status -->
+    <div class="card-tm no-hover mb-3">
+        <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-info-circle me-1"></i>درخواست فعال</h6>
+        <div class="mb-2">
+            <small class="text-muted">وضعیت:</small>
+            <span class="badge bg-{{ existing_req.status_color }}">{{ existing_req.status_label }}</span>
+        </div>
+        <div class="mb-2">
+            <small class="text-muted">نمایندگی:</small>
+            {% if existing_req.dealer %}{{ existing_req.dealer.full_name }}{% endif %}
+        </div>
+        <div class="mb-3">
+            <small class="text-muted">تاریخ ثبت:</small>
+            {{ existing_req.created_at | jdate }}
+        </div>
+
+        <div class="d-flex gap-2">
+            <!-- Send OTP -->
+            <form method="POST" action="/my-bars/{{ bar.id }}/delivery/{{ existing_req.id }}/send-otp">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-sm btn-tm-primary">
+                    <i class="bi bi-send me-1"></i> ارسال کد تأیید
+                </button>
+            </form>
+
+            <!-- Cancel -->
+            <form method="POST" action="/my-bars/{{ bar.id }}/delivery/{{ existing_req.id }}/cancel"
+                  onsubmit="return confirm('لغو درخواست؟')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-x-lg me-1"></i> لغو
+                </button>
+            </form>
+        </div>
+
+        <div class="alert alert-info mt-3 py-2 small">
+            <i class="bi bi-info-circle me-1"></i>
+            پس از ارسال کد، به نمایندگی مراجعه و کد را اعلام کنید. نماینده سریال شمش و کد تأیید را وارد می‌کند.
+        </div>
+    </div>
+
+    {% else %}
+    <!-- New Request Form -->
+    <div class="card-tm no-hover mb-3">
+        <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-geo-alt me-1"></i>انتخاب نمایندگی</h6>
+        <form method="POST" action="/my-bars/{{ bar.id }}/delivery">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label-tm small">استان</label>
+                    <select class="form-select form-select-tm" id="dlvProvince" required>
+                        <option value="">انتخاب استان...</option>
+                        {% for p in provinces %}
+                        <option value="{{ p.id }}">{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label-tm small">شهر</label>
+                    <select class="form-select form-select-tm" id="dlvCity" disabled>
+                        <option value="">ابتدا استان...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label-tm small">نمایندگی</label>
+                <select name="dealer_id" class="form-select form-select-tm" id="dlvDealer" required disabled>
+                    <option value="">ابتدا شهر...</option>
+                </select>
+            </div>
+
+            <button class="btn btn-tm-primary"><i class="bi bi-check-lg me-1"></i>ثبت درخواست</button>
+        </form>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const provSel = document.getElementById('dlvProvince');
+    const citySel = document.getElementById('dlvCity');
+    const dealerSel = document.getElementById('dlvDealer');
+    if (!provSel) return;
+
+    provSel.addEventListener('change', function() {
+        citySel.innerHTML = '<option value="">در حال بارگذاری...</option>';
+        citySel.disabled = true;
+        dealerSel.innerHTML = '<option value="">ابتدا شهر...</option>';
+        dealerSel.disabled = true;
+        if (!this.value) return;
+
+        fetch('/api/geo/cities?province_id=' + this.value)
+            .then(r => r.json())
+            .then(cities => {
+                citySel.innerHTML = '<option value="">انتخاب شهر...</option>';
+                cities.forEach(c => {
+                    citySel.innerHTML += '<option value="' + c.id + '">' + c.name + '</option>';
+                });
+                citySel.disabled = false;
+            });
+    });
+
+    citySel.addEventListener('change', function() {
+        dealerSel.innerHTML = '<option value="">در حال بارگذاری...</option>';
+        dealerSel.disabled = true;
+        if (!this.value) return;
+
+        fetch('/api/geo/dealers?province_id=' + provSel.value + '&city_id=' + this.value)
+            .then(r => r.json())
+            .then(dealers => {
+                dealerSel.innerHTML = '<option value="">انتخاب نمایندگی...</option>';
+                dealers.forEach(d => {
+                    dealerSel.innerHTML += '<option value="' + d.id + '">' + d.name + '</option>';
+                });
+                dealerSel.disabled = false;
+            });
+    });
+});
+</script>
+{% endblock %}
