@@ -1,36 +1,19 @@
 {% extends "admin/base_admin.html" %}
 
-{% block title %}مدیریت بازخرید - طلاملا{% endblock %}
+{% block title %}گزارش بازخرید - طلاملا{% endblock %}
 
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-4">
     <h4 class="mb-0 fw-bold">
         <i class="bi bi-arrow-return-left text-tm-primary"></i>
-        مدیریت درخواست‌های بازخرید
+        گزارش بازخرید نمایندگان
     </h4>
     <a href="/admin/dealers" class="btn btn-sm btn-tm-outline">
         <i class="bi bi-arrow-right me-1"></i> بازگشت به نمایندگان
     </a>
 </div>
 
-<!-- Status Filter -->
-<div class="mb-3">
-    <div class="btn-group" role="group">
-        <a href="/admin/dealers/buybacks" class="btn btn-sm {% if not status_filter %}btn-dark{% else %}btn-outline-dark{% endif %}">
-            همه
-        </a>
-        <a href="/admin/dealers/buybacks?status_filter=Pending" class="btn btn-sm {% if status_filter == 'Pending' %}btn-tm-warning{% else %}btn-tm-outline{% endif %}">
-            در انتظار
-        </a>
-        <a href="/admin/dealers/buybacks?status_filter=Approved" class="btn btn-sm {% if status_filter == 'Approved' %}btn-tm-info{% else %}btn-tm-outline{% endif %}">
-            تایید شده
-        </a>
-        <a href="/admin/dealers/buybacks?status_filter=Rejected" class="btn btn-sm {% if status_filter == 'Rejected' %}btn-tm-danger{% else %}btn-tm-outline{% endif %}">
-            رد شده
-        </a>
-    </div>
-    <span class="ms-2 text-muted">{{ total }} درخواست</span>
-</div>
+<span class="text-muted mb-3 d-block">{{ total }} بازخرید</span>
 
 <div class="card-tm no-hover">
     <div class="table-responsive">
@@ -41,11 +24,10 @@
                     <th>نماینده</th>
                     <th>سریال شمش</th>
                     <th>فروشنده</th>
+                    <th>مالک شمش</th>
                     <th>مبلغ بازخرید</th>
                     <th>وضعیت</th>
-                    <th>اعتبار اجرت</th>
                     <th>تاریخ</th>
-                    <th>عملیات</th>
                 </tr>
             </thead>
             <tbody>
@@ -72,50 +54,24 @@
                         <br><small class="text-muted" dir="ltr">{{ bb.customer_mobile }}</small>
                         {% endif %}
                     </td>
+                    <td>
+                        {% if bb.bar and bb.bar.customer %}
+                        {{ bb.bar.customer.full_name }}
+                        <br><small class="text-muted" dir="ltr">{{ bb.bar.customer.mobile }}</small>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
                     <td class="fw-bold">{{ bb.buyback_price | toman }} <small class="text-muted">تومان</small></td>
                     <td>
                         <span class="badge-tm badge-tm-{{ bb.status_color }}">{{ bb.status_label }}</span>
-                        {% if bb.admin_note %}
-                        <br><small class="text-muted">{{ bb.admin_note }}</small>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if bb.wage_refund_amount > 0 %}
-                        <span class="badge-tm badge-tm-info">{{ bb.wage_refund_amount | toman }} تومان</span>
-                        {% else %}
-                        <span class="text-muted">-</span>
-                        {% endif %}
                     </td>
                     <td>{{ bb.created_at | jdate }}</td>
-                    <td>
-                        {% if bb.status == 'Pending' %}
-                        <div class="btn-group-vertical btn-group-sm">
-                            <form method="POST" action="/admin/dealers/buybacks/{{ bb.id }}/approve" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                <input type="hidden" name="admin_note" value="">
-                                <button type="submit" class="btn btn-sm btn-tm-success w-100 mb-1"
-                                        onclick="this.form.admin_note.value = prompt('یادداشت (اختیاری):') || ''">
-                                    <i class="bi bi-check"></i> تایید
-                                </button>
-                            </form>
-                            <form method="POST" action="/admin/dealers/buybacks/{{ bb.id }}/reject" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                <input type="hidden" name="admin_note" value="">
-                                <button type="submit" class="btn btn-sm btn-tm-danger w-100"
-                                        onclick="this.form.admin_note.value = prompt('دلیل رد:') || ''">
-                                    <i class="bi bi-x"></i> رد
-                                </button>
-                            </form>
-                        </div>
-                        {% else %}
-                        <span class="text-muted">-</span>
-                        {% endif %}
-                    </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="9" class="text-center text-muted py-4">
-                        درخواست بازخریدی یافت نشد
+                    <td colspan="8" class="text-center text-muted py-4">
+                        بازخریدی یافت نشد
                     </td>
                 </tr>
                 {% endfor %}
@@ -126,6 +82,5 @@
 
 <!-- Pagination -->
 {% from "components/pagination.html" import pagination %}
-{% set qs %}{% if status_filter %}&status_filter={{ status_filter }}{% endif %}{% endset %}
-{{ pagination(page, total_pages, '/admin/dealers/buybacks', qs) }}
+{{ pagination(page, total_pages, '/admin/dealers/buybacks', '') }}
 {% endblock %}

@@ -380,7 +380,14 @@ class DealerService:
         buyback_price: int, customer_name: str = "",
         customer_mobile: str = "", description: str = "",
     ) -> Dict[str, Any]:
-        """Dealer initiates a buyback request for a bar."""
+        """
+        Dealer initiates a buyback — instant process:
+        1. Deposit buyback_price to bar owner's IRR wallet (withdrawable)
+        2. Set buyback status to COMPLETED
+        3. Bar stays SOLD with customer_id (shows in /my-bars with badge)
+        """
+        from modules.wallet.service import wallet_service
+
         dealer = self.get_dealer(db, dealer_id)
         if not dealer or not dealer.is_active:
             return {"success": False, "message": "نماینده غیرفعال"}
@@ -391,6 +398,23 @@ class DealerService:
         if bar.status != BarStatus.SOLD:
             return {"success": False, "message": "فقط شمش‌های فروخته‌شده قابل بازخرید هستند"}
 
+        # Prevent duplicate buyback for same bar
+        existing = (
+            db.query(BuybackRequest)
+            .filter(
+                BuybackRequest.bar_id == bar.id,
+                BuybackRequest.status != BuybackStatus.REJECTED,
+            )
+            .first()
+        )
+        if existing:
+            return {"success": False, "message": "برای این شمش قبلاً درخواست بازخرید ثبت شده است"}
+
+        if not bar.customer_id:
+            return {"success": False, "message": "مالک شمش مشخص نیست"}
+
+        owner_id = bar.customer_id
+
         buyback = BuybackRequest(
             dealer_id=dealer_id,
             bar_id=bar.id,
@@ -398,90 +422,37 @@ class DealerService:
             customer_mobile=customer_mobile,
             buyback_price=buyback_price,
             description=description,
+            status=BuybackStatus.COMPLETED,
         )
         db.add(buyback)
         db.flush()
 
+        # Deposit buyback amount to bar owner's IRR wallet (withdrawable)
+        wallet_service.deposit(
+            db, owner_id, buyback_price,
+            reference_type="buyback",
+            reference_id=str(buyback.id),
+            description=f"واریز مبلغ بازخرید شمش {bar.serial_code}",
+            idempotency_key=f"buyback:{buyback.id}",
+        )
+
+        # Ownership history
+        db.add(OwnershipHistory(
+            bar_id=bar.id,
+            previous_owner_id=owner_id,
+            new_owner_id=owner_id,
+            description=f"بازخرید توسط نماینده {dealer.full_name} — مبلغ {buyback_price // 10:,} تومان به کیف پول واریز شد",
+        ))
+
+        db.flush()
+
         return {
             "success": True,
-            "message": f"درخواست بازخرید شمش {bar.serial_code} ثبت شد",
+            "message": f"بازخرید شمش {bar.serial_code} انجام شد — مبلغ {buyback_price // 10:,} تومان به کیف پول مالک واریز شد",
             "buyback": buyback,
         }
 
-    def approve_buyback(self, db: Session, buyback_id: int, admin_note: str = "") -> Dict[str, Any]:
-        """Admin approves a buyback — bar goes back to ASSIGNED, wage refunded as credit."""
-        from modules.order.models import OrderItem
-        from modules.wallet.service import wallet_service
-
-        bb = db.query(BuybackRequest).filter(BuybackRequest.id == buyback_id).first()
-        if not bb:
-            return {"success": False, "message": "درخواست یافت نشد"}
-        if bb.status != BuybackStatus.PENDING:
-            return {"success": False, "message": "درخواست قبلا پردازش شده"}
-
-        bb.status = BuybackStatus.APPROVED
-        bb.admin_note = admin_note
-
-        wage_refunded = 0
-
-        # Return bar to dealer's location
-        if bb.bar:
-            # Save customer_id BEFORE clearing (fix: was lost before OwnershipHistory)
-            original_customer_id = bb.bar.customer_id
-
-            bb.bar.status = BarStatus.ASSIGNED
-            bb.bar.customer_id = None
-
-            # Get dealer name for description
-            dealer = db.query(User).filter(User.id == bb.dealer_id).first()
-            dealer_name = dealer.full_name if dealer else "نامشخص"
-
-            history = OwnershipHistory(
-                bar_id=bb.bar.id,
-                previous_owner_id=original_customer_id,
-                new_owner_id=None,
-                description=f"بازخرید - تایید توسط مدیر (نماینده: {dealer_name})",
-            )
-            db.add(history)
-
-            # Wage refund: credit original wage as non-withdrawable store credit
-            if original_customer_id:
-                order_item = (
-                    db.query(OrderItem)
-                    .filter(OrderItem.bar_id == bb.bar.id)
-                    .order_by(OrderItem.id.desc())
-                    .first()
-                )
-                if order_item and order_item.final_wage_amount and order_item.final_wage_amount > 0:
-                    wage_amount = int(order_item.final_wage_amount)
-                    wallet_service.deposit_credit(
-                        db, original_customer_id, wage_amount,
-                        reference_type="buyback_wage_refund",
-                        reference_id=str(bb.id),
-                        description=f"اعتبار بازگشت اجرت بازخرید شمش {bb.bar.serial_code}",
-                        idempotency_key=f"buyback_wage:{bb.id}",
-                    )
-                    wage_refunded = wage_amount
-                    bb.wage_refund_amount = wage_refunded
-                    bb.wage_refund_customer_id = original_customer_id
-
-        db.flush()
-        msg = f"بازخرید #{bb.id} تایید شد"
-        if wage_refunded:
-            msg += f" — اعتبار اجرت {wage_refunded // 10:,} تومان به کیف پول مشتری واریز شد"
-        return {"success": True, "message": msg, "wage_refunded": wage_refunded}
-
-    def reject_buyback(self, db: Session, buyback_id: int, admin_note: str = "") -> Dict[str, Any]:
-        bb = db.query(BuybackRequest).filter(BuybackRequest.id == buyback_id).first()
-        if not bb:
-            return {"success": False, "message": "درخواست یافت نشد"}
-        if bb.status != BuybackStatus.PENDING:
-            return {"success": False, "message": "درخواست قبلا پردازش شده"}
-
-        bb.status = BuybackStatus.REJECTED
-        bb.admin_note = admin_note
-        db.flush()
-        return {"success": True, "message": f"بازخرید #{bb.id} رد شد"}
+    # approve_buyback / reject_buyback removed — buyback is now instant (no admin approval)
 
     # ------------------------------------------
     # Reports & Stats

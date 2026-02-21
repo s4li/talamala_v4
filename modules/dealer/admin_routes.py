@@ -362,65 +362,28 @@ async def rasis_sync_dealer(
 async def buyback_management(
     request: Request,
     page: int = 1,
-    status_filter: str = "",
     user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
-    from modules.dealer.models import BuybackRequest, BuybackStatus
+    from modules.dealer.models import BuybackRequest
 
     q = db.query(BuybackRequest)
-    if status_filter:
-        q = q.filter(BuybackRequest.status == status_filter)
     total = q.count()
     buybacks = q.order_by(BuybackRequest.created_at.desc()).offset((page - 1) * 20).limit(20).all()
     total_pages = (total + 19) // 20
 
-    csrf = new_csrf_token()
-    response = templates.TemplateResponse("admin/dealers/buybacks.html", {
+    return templates.TemplateResponse("admin/dealers/buybacks.html", {
         "request": request,
         "user": user,
         "buybacks": buybacks,
         "total": total,
         "page": page,
         "total_pages": total_pages,
-        "status_filter": status_filter,
-        "csrf_token": csrf,
         "active_page": "dealer_buybacks",
     })
-    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
-    return response
 
 
-@router.post("/buybacks/{buyback_id}/approve")
-async def approve_buyback(
-    buyback_id: int,
-    request: Request,
-    admin_note: str = Form(""),
-    csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
-    db: Session = Depends(get_db),
-):
-    csrf_check(request, csrf_token)
-    result = dealer_service.approve_buyback(db, buyback_id, admin_note=admin_note)
-    if result["success"]:
-        db.commit()
-    return RedirectResponse("/admin/dealers/buybacks", status_code=302)
-
-
-@router.post("/buybacks/{buyback_id}/reject")
-async def reject_buyback(
-    buyback_id: int,
-    request: Request,
-    admin_note: str = Form(""),
-    csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
-    db: Session = Depends(get_db),
-):
-    csrf_check(request, csrf_token)
-    result = dealer_service.reject_buyback(db, buyback_id, admin_note=admin_note)
-    if result["success"]:
-        db.commit()
-    return RedirectResponse("/admin/dealers/buybacks", status_code=302)
+# approve_buyback / reject_buyback routes removed — buyback is now instant
 
 
 # ==========================================
