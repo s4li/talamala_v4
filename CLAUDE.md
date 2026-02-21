@@ -72,6 +72,7 @@ talamala_v4/
 │   ├── dealer_request/          # DealerRequest, attachments, admin review (approve/revision/reject)
 │   ├── pos/                     # Customer-facing POS API (reserve→confirm/cancel pattern)
 │   ├── review/                  # Product reviews (star rating) + comments/Q&A + likes
+│   ├── rasis/                   # Rasis POS device integration (auto-sync inventory + pricing)
 │   └── ticket/                  # Ticket, TicketMessage, TicketAttachment, categories, internal notes
 ├── templates/
 │   ├── base.html                # HTML skeleton (Bootstrap RTL, Vazirmatn)
@@ -128,7 +129,7 @@ talamala_v4/
   - **Role flags**: `is_customer` (bool), `is_dealer` (bool), `is_admin` (bool) — a user can have multiple roles
   - **Identity**: mobile, first_name, last_name, national_id, birth_date
   - **Customer fields**: customer_type (real/legal), company_name, economic_code, postal_code, address, phone, referral_code
-  - **Dealer fields**: tier_id (FK→dealer_tiers), province_id, city_id, district_id, dealer_address, landline_phone, is_warehouse, is_postal_hub, commission_percent, api_key (unique), otp_code, otp_expiry
+  - **Dealer fields**: tier_id (FK→dealer_tiers), province_id, city_id, district_id, dealer_address, landline_phone, is_warehouse, is_postal_hub, commission_percent, api_key (unique), otp_code, otp_expiry, rasis_sharepoint (Integer, nullable — Rasis POS device mapping)
   - **Admin fields**: admin_role (admin/operator), operator_permissions (JSON)
   - Properties: `full_name`, `display_name`, `is_staff` (→ is_admin), `is_profile_complete`, `primary_redirect`, `tier_name`, `type_label`, `type_icon`, `type_color`, `has_permission()`
   - Relationship: `bars_at_location` → list of Bar objects at this dealer
@@ -672,6 +673,7 @@ total    = raw_gold + wage + tax
 - `GET /admin/dealers/sales` — گزارش فروش نمایندگان (فیلتر: نماینده، تاریخ، جستجو، تخفیف + آمار تجمیعی)
 - `POST /admin/dealers/{id}/generate-api-key` — Generate POS API key
 - `POST /admin/dealers/{id}/revoke-api-key` — Revoke POS API key
+- `POST /admin/dealers/{id}/rasis-sync` — Manual full sync of dealer inventory + pricing to Rasis POS device
 - `/admin/dealers/buybacks` — Buyback approval/rejection
 - `GET /admin/tickets` — Ticket list (tabs: all/customer/dealer + status/category filter + search)
 - `GET /admin/tickets/{id}` — Ticket detail + reply + internal notes + assign
@@ -725,6 +727,9 @@ SEPEHR_TERMINAL_ID=99079327
 TOP_USERNAME=your-top-username
 TOP_PASSWORD=your-top-password
 PARSIAN_PIN=your-parsian-pin
+RASIS_API_URL=https://rasis-api-url
+RASIS_USERNAME=your-rasis-username
+RASIS_PASSWORD=your-rasis-password
 DEBUG=true
 BASE_URL=http://127.0.0.1:8000
 MAINTENANCE_MODE=false
