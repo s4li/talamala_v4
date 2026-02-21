@@ -135,13 +135,13 @@
 <div class="row g-3 mb-4 align-items-stretch">
     <div class="col-6 col-lg tm-animate-fade-in-up">
         <a href="/admin/orders?delivery=Pickup" class="text-decoration-none h-100 d-block">
-            <div class="stat-card-tm h-100" style="border-right:3px solid var(--tm-warning);">
+            <div class="stat-card-tm h-100" style="border-right:3px solid #d4a843;">
                 <div class="d-flex align-items-center gap-3">
                     <div class="stat-icon" style="background:rgba(212,168,67,0.15);">
-                        <i class="bi bi-safe2 text-warning"></i>
+                        <i class="bi bi-safe2" style="color:#d4a843;"></i>
                     </div>
                     <div>
-                        <div class="stat-value text-warning">{{ pending_stats.gold.total_weight }} گرم</div>
+                        <div class="stat-value" style="color:#d4a843;">{{ pending_stats.gold.total_weight }} گرم</div>
                         <div class="stat-label">طلای امانی ({{ pending_stats.gold.total_bars }} شمش)</div>
                     </div>
                 </div>
@@ -196,13 +196,13 @@
     </div>
     <div class="col-6 col-lg tm-animate-fade-in-up">
         <a href="/admin/dealers/sales" class="text-decoration-none h-100 d-block">
-            <div class="stat-card-tm h-100" style="border-right:3px solid #fbbf24;">
+            <div class="stat-card-tm h-100" style="border-right:3px solid #d4a843;">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="stat-icon" style="background:rgba(251,191,36,0.15);">
-                        <i class="bi bi-people" style="color:#fbbf24;"></i>
+                    <div class="stat-icon" style="background:rgba(212,168,67,0.15);">
+                        <i class="bi bi-people" style="color:#d4a843;"></i>
                     </div>
                     <div>
-                        <div class="stat-value" style="color:#fbbf24;">{{ dealer_sales_stats.gold_dealer_profit_mg | gold_gram }}</div>
+                        <div class="stat-value" style="color:#d4a843;">{{ dealer_sales_stats.gold_dealer_profit_mg | gold_gram }}</div>
                         <div class="stat-label">سود طلایی نمایندگان</div>
                     </div>
                 </div>
