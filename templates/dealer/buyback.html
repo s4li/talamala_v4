@@ -157,7 +157,8 @@
     const submitBtn = document.getElementById('submitBtn');
 
     function fmt(n) {
-        return Number(n).toLocaleString('fa-IR') + ' تومان';
+        var v = Number(n);
+        return (isNaN(v) ? 0 : v).toLocaleString('fa-IR') + ' تومان';
     }
 
     /* ---- تبدیل عدد به حروف فارسی ---- */
@@ -215,7 +216,8 @@
     }
 
     function fmtInput(n) {
-        return Number(n).toLocaleString('fa-IR');
+        var v = Number(n);
+        return (isNaN(v) ? 0 : v).toLocaleString('fa-IR');
     }
 
     function doLookup() {
@@ -237,14 +239,17 @@
                     document.getElementById('barWeight').textContent = data.weight;
                     document.getElementById('barPurity').textContent = data.purity;
                     document.getElementById('barOwner').textContent = data.owner_name;
-                    document.getElementById('rawGoldPrice').textContent = fmt(data.raw_gold_toman);
-                    document.getElementById('wagePrice').textContent = fmt(data.wage_toman);
-                    document.getElementById('retailPrice').textContent = fmt(data.retail_toman);
-                    var totalDeposit = data.raw_gold_toman + data.wage_toman;
+                    var rawGold = data.raw_gold_toman || 0;
+                    var wage = data.wage_toman || 0;
+                    var retail = data.retail_toman || 0;
+                    var totalDeposit = rawGold + wage;
+                    document.getElementById('rawGoldPrice').textContent = fmt(rawGold);
+                    document.getElementById('wagePrice').textContent = fmt(wage);
+                    document.getElementById('retailPrice').textContent = fmt(retail);
                     document.getElementById('totalDepositPrice').textContent = fmt(totalDeposit);
-                    priceInput.value = data.raw_gold_toman;
-                    rawGoldDisplay.value = fmtInput(data.raw_gold_toman);
-                    wageDisplay.value = fmtInput(data.wage_toman);
+                    priceInput.value = rawGold;
+                    rawGoldDisplay.value = fmtInput(rawGold);
+                    wageDisplay.value = fmtInput(wage);
                     showPriceWords(totalDeposit);
                     submitBtn.disabled = false;
                     infoBox.style.display = 'block';
