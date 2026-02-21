@@ -124,6 +124,7 @@ def seed():
                     first_name=parts[0] if parts else "",
                     last_name=" ".join(parts[1:]) if len(parts) > 1 else "",
                     is_admin=True,
+                    is_customer=True,
                     admin_role=admin_data["role"],
                 ))
                 print(f"  + admin: {admin_data['mobile']}")
