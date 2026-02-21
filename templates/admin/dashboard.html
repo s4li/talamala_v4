@@ -209,6 +209,53 @@
             </div>
         </a>
     </div>
+    {% if dealer_sales_stats.silver_weight_mg %}
+    <div class="col-6 col-lg tm-animate-fade-in-up">
+        <a href="/admin/dealers/sales" class="text-decoration-none">
+            <div class="stat-card-tm" style="border-right:3px solid #adb5bd;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon" style="background:rgba(108,117,125,0.12);">
+                        <i class="bi bi-shop" style="color:#adb5bd;"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value" style="color:#6c757d;">{{ dealer_sales_stats.silver_weight_mg | gold_gram }}</div>
+                        <div class="stat-label">وزن فروش نقره</div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-lg tm-animate-fade-in-up">
+        <a href="/admin/dealers/sales" class="text-decoration-none">
+            <div class="stat-card-tm" style="border-right:3px solid #78909c;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon" style="background:rgba(120,144,156,0.12);">
+                        <i class="bi bi-gem" style="color:#78909c;"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value" style="color:#78909c;">{{ dealer_sales_stats.silver_our_profit_mg | gold_gram }}</div>
+                        <div class="stat-label">سود نقره‌ای ما</div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-lg tm-animate-fade-in-up">
+        <a href="/admin/dealers/sales" class="text-decoration-none">
+            <div class="stat-card-tm" style="border-right:3px solid #b0bec5;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon" style="background:rgba(176,190,197,0.15);">
+                        <i class="bi bi-people" style="color:#b0bec5;"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value" style="color:#90a4ae;">{{ dealer_sales_stats.silver_dealer_profit_mg | gold_gram }}</div>
+                        <div class="stat-label">سود نقره‌ای نمایندگان</div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endif %}
     {% endif %}
 </div>
 {% endif %}
