@@ -50,16 +50,16 @@
                         <td><a href="/orders/{{ bar.order_id }}" class="fw-bold text-decoration-none">#{{ bar.order_id }}</a></td>
                         <td>
                             {{ bar.buyer_name }}
-                            <small class="d-block text-muted" dir="ltr">{{ bar.buyer_mobile }}</small>
+                            <small class="d-block text-muted">{{ bar.buyer_mobile | persian_number }}</small>
                         </td>
                         <td>
                             {% if bar.ownership_transferred %}
                             <span class="fw-bold" style="color:var(--tm-primary);">{{ bar.owner_name }}</span>
-                            <small class="d-block text-muted" dir="ltr">{{ bar.owner_mobile }}</small>
+                            <small class="d-block text-muted">{{ bar.owner_mobile | persian_number }}</small>
                             <span class="badge bg-info badge-sm mt-1"><i class="bi bi-arrow-left-right me-1"></i>انتقال یافته</span>
                             {% else %}
                             {{ bar.owner_name }}
-                            <small class="d-block text-muted" dir="ltr">{{ bar.owner_mobile }}</small>
+                            <small class="d-block text-muted">{{ bar.owner_mobile | persian_number }}</small>
                             {% endif %}
                         </td>
                         <td>{{ bar.product_name }}</td>
@@ -116,16 +116,16 @@
                         <td><a href="/orders/{{ bar.order_id }}" class="fw-bold text-decoration-none">#{{ bar.order_id }}</a></td>
                         <td>
                             {{ bar.buyer_name }}
-                            <small class="d-block text-muted" dir="ltr">{{ bar.buyer_mobile }}</small>
+                            <small class="d-block text-muted">{{ bar.buyer_mobile | persian_number }}</small>
                         </td>
                         <td>
                             {% if bar.ownership_transferred %}
                             <span class="fw-bold" style="color:var(--tm-primary);">{{ bar.owner_name }}</span>
-                            <small class="d-block text-muted" dir="ltr">{{ bar.owner_mobile }}</small>
+                            <small class="d-block text-muted">{{ bar.owner_mobile | persian_number }}</small>
                             <span class="badge bg-info badge-sm mt-1"><i class="bi bi-arrow-left-right me-1"></i>انتقال یافته</span>
                             {% else %}
                             {{ bar.owner_name }}
-                            <small class="d-block text-muted" dir="ltr">{{ bar.owner_mobile }}</small>
+                            <small class="d-block text-muted">{{ bar.owner_mobile | persian_number }}</small>
                             {% endif %}
                         </td>
                         <td>{{ bar.product_name }}</td>
