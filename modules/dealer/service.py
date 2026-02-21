@@ -385,11 +385,14 @@ class DealerService:
     ) -> Dict[str, Any]:
         """
         Dealer initiates a buyback — instant process:
-        1. Deposit buyback_price to bar owner's IRR wallet (withdrawable)
-        2. Set buyback status to COMPLETED
-        3. Bar stays SOLD with customer_id (shows in /my-bars with badge)
+        1. Recalculate raw metal value + wage server-side
+        2. Deposit raw metal value to owner's wallet (transaction 1)
+        3. Deposit wage amount to owner's wallet (transaction 2)
+        4. Set buyback status to COMPLETED
         """
         from modules.wallet.service import wallet_service
+        from modules.pricing.calculator import calculate_bar_price
+        from common.templating import get_setting_from_db
 
         dealer = self.get_dealer(db, dealer_id)
         if not dealer or not dealer.is_active:
@@ -416,42 +419,81 @@ class DealerService:
         if not bar.customer_id:
             return {"success": False, "message": "مالک شمش مشخص نیست"}
 
+        product = bar.product
+        if not product:
+            return {"success": False, "message": "محصول مرتبط یافت نشد"}
+
         owner_id = bar.customer_id
+
+        # --- Recalculate both amounts server-side ---
+        p_price, p_bp, _ = get_product_pricing(db, product)
+        tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
+        ec_wage = get_end_customer_wage(db, product)
+
+        # Raw metal value (no wage, no tax)
+        raw_info = calculate_bar_price(
+            weight=product.weight, purity=product.purity,
+            wage_percent=0, base_metal_price=p_price,
+            tax_percent=0, base_purity=p_bp,
+        )
+        raw_metal_rial = raw_info.get("total", 0)
+
+        # Full price to extract wage
+        full_info = calculate_bar_price(
+            weight=product.weight, purity=product.purity,
+            wage_percent=ec_wage, base_metal_price=p_price,
+            tax_percent=tax_percent, base_purity=p_bp,
+        )
+        wage_rial = full_info.get("wage", 0)
+
+        total_deposit = raw_metal_rial + wage_rial
 
         buyback = BuybackRequest(
             dealer_id=dealer_id,
             bar_id=bar.id,
             customer_name=customer_name,
             customer_mobile=customer_mobile,
-            buyback_price=buyback_price,
+            buyback_price=raw_metal_rial,
+            wage_refund_amount=wage_rial,
+            wage_refund_customer_id=owner_id,
             description=description,
             status=BuybackStatus.COMPLETED,
         )
         db.add(buyback)
         db.flush()
 
-        # Deposit buyback amount to bar owner's IRR wallet (withdrawable)
+        # Transaction 1: Raw metal value
         wallet_service.deposit(
-            db, owner_id, buyback_price,
+            db, owner_id, raw_metal_rial,
             reference_type="buyback",
             reference_id=str(buyback.id),
-            description=f"واریز مبلغ بازخرید شمش {bar.serial_code}",
-            idempotency_key=f"buyback:{buyback.id}",
+            description=f"واریز ارزش طلای خام شمش {bar.serial_code}",
+            idempotency_key=f"buyback_raw:{buyback.id}",
         )
+
+        # Transaction 2: Wage refund
+        if wage_rial > 0:
+            wallet_service.deposit(
+                db, owner_id, wage_rial,
+                reference_type="buyback_wage",
+                reference_id=str(buyback.id),
+                description=f"واریز مبلغ بازخرید (اجرت) شمش {bar.serial_code}",
+                idempotency_key=f"buyback_wage:{buyback.id}",
+            )
 
         # Ownership history
         db.add(OwnershipHistory(
             bar_id=bar.id,
             previous_owner_id=owner_id,
             new_owner_id=owner_id,
-            description=f"بازخرید توسط نماینده {dealer.full_name} — مبلغ {buyback_price // 10:,} تومان به کیف پول واریز شد",
+            description=f"بازخرید توسط نماینده {dealer.full_name} — مبلغ {total_deposit // 10:,} تومان به کیف پول واریز شد",
         ))
 
         db.flush()
 
         return {
             "success": True,
-            "message": f"بازخرید شمش {bar.serial_code} انجام شد — مبلغ {buyback_price // 10:,} تومان به کیف پول مالک واریز شد",
+            "message": f"بازخرید شمش {bar.serial_code} انجام شد — مبلغ {raw_metal_rial // 10:,} تومان (طلای خام) + {wage_rial // 10:,} تومان (اجرت) به کیف پول مالک واریز شد",
             "buyback": buyback,
         }
 

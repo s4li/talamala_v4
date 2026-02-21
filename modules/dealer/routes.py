@@ -595,6 +595,7 @@ async def buyback_lookup(
         base_purity=p_bp,
     )
     retail_toman = full_info.get("total", 0) // 10
+    wage_toman = full_info.get("wage", 0) // 10
 
     return JSONResponse({
         "found": True,
@@ -603,6 +604,7 @@ async def buyback_lookup(
         "weight": str(product.weight),
         "purity": float(product.purity),
         "raw_gold_toman": raw_gold_toman,
+        "wage_toman": wage_toman,
         "retail_toman": retail_toman,
         "owner_name": bar.customer.full_name if bar.customer_id and bar.customer else "نامشخص",
     })

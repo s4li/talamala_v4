@@ -30,7 +30,7 @@
 <div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
     <div class="alert-tm-info mb-4">
         <i class="bi bi-info-circle me-1"></i>
-        درخواست بازخرید پس از ثبت، توسط مدیریت بررسی و تایید/رد خواهد شد.
+        پس از ثبت بازخرید، ارزش طلای خام و مبلغ بازخرید (اجرت) بصورت جداگانه به کیف پول مالک شمش واریز می‌شود.
     </div>
 
     <form method="POST" action="/dealer/buyback">
@@ -63,14 +63,25 @@
                     <div class="col-auto">مالک: <span id="barOwner"></span></div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6">
-                        <div class="small text-muted">ارزش طلای خام (قیمت بازخرید پیشنهادی)</div>
+                    <div class="col-md-4">
+                        <div class="small text-muted">ارزش طلای خام</div>
                         <div class="fw-bold fs-5" style="color:var(--tm-primary);" id="rawGoldPrice"></div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                        <div class="small text-muted">مبلغ بازخرید (اجرت)</div>
+                        <div class="fw-bold fs-5 text-success" id="wagePrice"></div>
+                    </div>
+                    <div class="col-md-4">
                         <div class="small text-muted">قیمت خرده‌فروشی (مرجع)</div>
                         <div class="fw-bold text-muted" id="retailPrice"></div>
                     </div>
+                </div>
+                <div class="mt-2 p-2 rounded" style="background:rgba(25,135,84,0.08); border:1px solid rgba(25,135,84,0.2);">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="small fw-bold">مجموع واریز به کیف پول مالک:</span>
+                        <span class="fw-bold fs-5" style="color:var(--tm-primary);" id="totalDepositPrice"></span>
+                    </div>
+                    <small class="text-muted">ارزش طلای خام + مبلغ بازخرید (اجرت) — در دو تراکنش جداگانه واریز می‌شود</small>
                 </div>
             </div>
         </div>
@@ -81,14 +92,23 @@
             </div>
         </div>
 
-        <!-- Buyback Price -->
-        <div class="mb-3">
-            <label class="form-label-tm fw-bold">مبلغ بازخرید (تومان) <span class="text-danger">*</span></label>
-            <input type="number" name="buyback_price" id="buybackPriceInput" class="form-control form-control-tm" required min="1"
-                   placeholder="ابتدا سریال را استعلام کنید" readonly
-                   style="background-color: var(--tm-info-900, #f8f5f0);">
-            <small id="priceInWords" class="text-muted d-block mt-1" style="display:none !important;"></small>
-            <small class="text-muted">مبلغ بر اساس ارزش طلای خام محاسبه می‌شود و قابل تغییر نیست</small>
+        <!-- Buyback Price (hidden, sent to server) -->
+        <input type="hidden" name="buyback_price" id="buybackPriceInput" value="0">
+
+        <div class="row mb-3">
+            <div class="col-md-6 mb-2">
+                <label class="form-label-tm fw-bold">ارزش طلای خام (تومان)</label>
+                <input type="text" id="rawGoldDisplay" class="form-control form-control-tm" readonly
+                       style="background-color: var(--tm-info-900, #f8f5f0);" placeholder="—">
+            </div>
+            <div class="col-md-6 mb-2">
+                <label class="form-label-tm fw-bold">مبلغ بازخرید — اجرت (تومان)</label>
+                <input type="text" id="wageDisplay" class="form-control form-control-tm" readonly
+                       style="background-color: rgba(25,135,84,0.06); border-color: rgba(25,135,84,0.3);" placeholder="—">
+            </div>
+        </div>
+        <div id="priceWordsBox" class="mb-3" style="display:none;">
+            <small id="priceInWords" class="text-muted d-block" style="color:var(--tm-primary); font-weight:600;"></small>
         </div>
 
         <hr>
@@ -131,6 +151,9 @@
     const errorBox = document.getElementById('barErrorBox');
     const priceInput = document.getElementById('buybackPriceInput');
     const priceWords = document.getElementById('priceInWords');
+    const priceWordsBox = document.getElementById('priceWordsBox');
+    const rawGoldDisplay = document.getElementById('rawGoldDisplay');
+    const wageDisplay = document.getElementById('wageDisplay');
     const submitBtn = document.getElementById('submitBtn');
 
     function fmt(n) {
@@ -181,14 +204,18 @@
         return chunks.join(' و ');
     }
 
-    function showPriceWords(toman) {
-        if (toman && toman > 0) {
-            priceWords.textContent = numToWords(toman) + ' تومان';
-            priceWords.style.cssText = 'display:block !important; margin-top:0.25rem; color:var(--tm-primary); font-weight:600;';
+    function showPriceWords(totalToman) {
+        if (totalToman && totalToman > 0) {
+            priceWords.textContent = 'مجموع واریز: ' + numToWords(totalToman) + ' تومان';
+            priceWordsBox.style.display = 'block';
         } else {
-            priceWords.style.cssText = 'display:none !important;';
+            priceWordsBox.style.display = 'none';
             priceWords.textContent = '';
         }
+    }
+
+    function fmtInput(n) {
+        return Number(n).toLocaleString('fa-IR');
     }
 
     function doLookup() {
@@ -211,9 +238,14 @@
                     document.getElementById('barPurity').textContent = data.purity;
                     document.getElementById('barOwner').textContent = data.owner_name;
                     document.getElementById('rawGoldPrice').textContent = fmt(data.raw_gold_toman);
+                    document.getElementById('wagePrice').textContent = fmt(data.wage_toman);
                     document.getElementById('retailPrice').textContent = fmt(data.retail_toman);
+                    var totalDeposit = data.raw_gold_toman + data.wage_toman;
+                    document.getElementById('totalDepositPrice').textContent = fmt(totalDeposit);
                     priceInput.value = data.raw_gold_toman;
-                    showPriceWords(data.raw_gold_toman);
+                    rawGoldDisplay.value = fmtInput(data.raw_gold_toman);
+                    wageDisplay.value = fmtInput(data.wage_toman);
+                    showPriceWords(totalDeposit);
                     submitBtn.disabled = false;
                     infoBox.style.display = 'block';
                     errorBox.style.display = 'none';
@@ -222,6 +254,8 @@
                     errorBox.style.display = 'block';
                     infoBox.style.display = 'none';
                     priceInput.value = '';
+                    rawGoldDisplay.value = '';
+                    wageDisplay.value = '';
                     showPriceWords(0);
                     submitBtn.disabled = true;
                 }
