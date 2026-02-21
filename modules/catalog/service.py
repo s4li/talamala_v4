@@ -119,7 +119,8 @@ class ProductService:
             design=data.get("design"),
             card_design_id=data.get("card_design_id"),
             package_type_id=data.get("package_type_id"),
-            wage=data.get("wage", 0),
+            wage=safe_decimal(data.get("wage", "0"), Decimal("0")),
+            buyback_wage_percent=safe_decimal(data.get("buyback_wage_percent", "0"), Decimal("0")),
             is_wage_percent=True,
             is_active=data.get("is_active", True),
         )
@@ -163,8 +164,8 @@ class ProductService:
         p.description = data.get("description") or None
         p.card_design_id = data.get("card_design_id")
         p.package_type_id = data.get("package_type_id")
-        p.wage = data.get("wage", 0)
-        p.buyback_wage_percent = data.get("buyback_wage_percent", 0)
+        p.wage = safe_decimal(data.get("wage", "0"), Decimal("0"))
+        p.buyback_wage_percent = safe_decimal(data.get("buyback_wage_percent", "0"), Decimal("0"))
         p.is_wage_percent = True
         p.is_active = data.get("is_active", False)
 
