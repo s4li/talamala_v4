@@ -70,10 +70,12 @@
 
 | نقش | مدل | نحوه لاگین | کوکی JWT | دسترسی |
 |------|------|------------|----------|--------|
-| **Super Admin** | SystemUser (role=super_admin) | OTP موبایل | `auth_token` | دسترسی کامل به پنل مدیریت |
-| **Operator** | SystemUser (role=operator) | OTP موبایل | `auth_token` | دسترسی عملیاتی (بدون تنظیمات سیستمی) |
-| **Dealer** | Dealer | OTP موبایل | `dealer_token` | پنل نماینده (POS + بازخرید) |
-| **Customer** | Customer | OTP موبایل | `customer_token` | فروشگاه + سبد خرید + کیف پول |
+| **Super Admin** | User (is_admin=True, role=super_admin) | OTP موبایل | `auth_token` | دسترسی کامل به پنل مدیریت |
+| **Operator** | User (is_admin=True, role=operator) | OTP موبایل | `auth_token` | دسترسی عملیاتی (بدون تنظیمات سیستمی) |
+| **Dealer** | User (is_dealer=True) | OTP موبایل | `auth_token` | پنل نماینده (POS + بازخرید) |
+| **Customer** | User (is_customer=True) | OTP موبایل | `auth_token` | فروشگاه + سبد خرید + کیف پول |
+
+> **نکته معماری**: سیستم از یک جدول یکپارچه `users` با پرچم‌های نقش (`is_customer`, `is_dealer`, `is_admin`) استفاده می‌کند. تمام نقش‌ها با یک کوکی JWT واحد (`auth_token`) احراز هویت می‌شوند. یک کاربر می‌تواند همزمان چند نقش داشته باشد.
 
 ### تفاوت Super Admin و Operator
 - Super Admin: تنظیمات سیستم (قیمت طلا، مالیات)، ایجاد/حذف اپراتور
@@ -182,7 +184,7 @@
   - **Assigned** (تخصیص): به محصول وصل شده، آماده فروش
   - **Reserved** (رزرو): در سبد خرید مشتری قرار دارد
   - **Sold** (فروخته شده): فروش نهایی شده
-- ارتباطات: محصول، مشتری، بچ، طرح کارت، بسته‌بندی، نمایندگی (dealer_id FK → dealers)
+- ارتباطات: محصول، مالک (user_id FK → users)، بچ، طرح کارت، بسته‌بندی، نمایندگی (dealer_id FK → users where is_dealer=True)
 - تصاویر شمش (BarImage)
 
 #### طلای امانی (Custodial Gold)
@@ -194,7 +196,7 @@
 - ثبت هر تغییر مالکیت شمش
 
 #### DealerTransfer (تاریخچه جابه‌جایی)
-- ثبت هر انتقال شمش بین نمایندگان (from_dealer_id, to_dealer_id)
+- ثبت هر انتقال شمش بین نمایندگان (from_dealer_id, to_dealer_id — هر دو FK → users)
 
 ### آدرس‌های ادمین
 | متد | مسیر | توضیح |
@@ -273,7 +275,7 @@
 
 #### Order (سفارش)
 - شناسه یکتا
-- شناسه مشتری (FK → customers)
+- شناسه کاربر (user_id FK → users)
 - وضعیت سفارش (Pending/Paid/Shipped/Delivered/Cancelled)
 - دلیل و زمان لغو (اگر لغو شده باشد)
 - روش تحویل (Pickup/Postal)
@@ -428,8 +430,7 @@
 | متد | مسیر | توضیح |
 |------|------|--------|
 | GET | `/admin/wallets` | لیست حساب‌ها |
-| GET | `/admin/wallets/customer/{id}` | جزئیات حساب مشتری |
-| GET | `/admin/wallets/dealer/{id}` | جزئیات حساب نماینده |
+| GET | `/admin/wallets/{user_id}` | جزئیات حساب کاربر (مشتری یا نماینده) |
 | GET | `/admin/wallets/withdrawals/list` | درخواست‌های برداشت |
 | POST | `/admin/wallets/withdrawals/{id}/approve` | تایید برداشت |
 | POST | `/admin/wallets/withdrawals/{id}/reject` | رد برداشت |
@@ -499,8 +500,8 @@
 
 ### مدل‌ها
 
-#### Dealer (نماینده)
-- شماره موبایل (یکتا)، نام کامل، کد ملی
+#### نماینده (Dealer = User with is_dealer=True)
+- نمایندگان در جدول یکپارچه `users` با پرچم `is_dealer=True` ذخیره می‌شوند
 - سطح نمایندگی (FK → DealerTier): پخش / بنکدار / فروشگاه
 - آدرس: استان (FK → GeoProvince)، شهر (FK → GeoCity)، محله (FK → GeoDistrict)، آدرس متنی، کد پستی، تلفن ثابت
 - پرچم‌ها: `is_warehouse` (انبار مرکزی)، `is_postal_hub` (هاب ارسال پستی)
@@ -523,7 +524,7 @@
 - مبلغ پیشنهادی بازخرید
 - وضعیت: Pending → Approved/Rejected → Completed
 - `wage_refund_amount`: مبلغ اجرت بازگشتی به کیف پول مشتری (ریال)
-- `wage_refund_customer_id`: شناسه مشتری دریافت‌کننده اعتبار
+- `wage_refund_user_id`: شناسه کاربر دریافت‌کننده اعتبار (FK → users)
 - در صورت تایید ادمین و وجود OrderItem اصلی، اجرت به‌صورت اعتبار غیرقابل‌برداشت واریز می‌شود ([بخش ۱۷](#17-بازگشت-اجرت-بازخرید-buyback-wage-refund))
 
 ### قابلیت‌های پنل نماینده
@@ -619,11 +620,14 @@
 
 ### مدل‌ها
 
-#### Customer (مشتری)
+#### User (کاربر یکپارچه)
+- جدول واحد `users` با پرچم‌های نقش: `is_customer`, `is_dealer`, `is_admin`
 - شماره موبایل (یکتا)، نام کامل، کد ملی، تاریخ تولد
 - **نوع مشتری** (`customer_type`): حقیقی (`real`) یا حقوقی (`legal`) — پیش‌فرض: حقیقی
 - **فیلدهای حقوقی**: نام شرکت (`company_name`)، کد اقتصادی (`economic_code`) — فقط برای مشتریان حقوقی
 - **فیلدهای تماس/آدرس**: تلفن ثابت (`phone`)، کد پستی (`postal_code`)، آدرس (`address`)
+- **فیلدهای نماینده**: `tier_id`, `province_id`, `city_id`, `district_id`, `commission_percent`, `api_key`, `is_warehouse`, `is_postal_hub` و غیره
+- **فیلدهای ادمین**: `role` (super_admin/operator), `is_staff`, `hashed_password`
 - **Property** `display_name`: برای حقیقی → `full_name`، برای حقوقی → `company_name`
 - **Property** `is_profile_complete`: بررسی تکمیل بودن اطلاعات ضروری (نام، کد ملی، کد پستی، آدرس + برای حقوقی: نام شرکت و کد اقتصادی)
 
@@ -631,7 +635,7 @@
 - **GeoProvince**: لیست استان‌ها
 - **GeoCity**: شهرهای هر استان
 - **GeoDistrict**: مناطق هر شهر
-- **CustomerAddress**: دفتر آدرس مشتری (عنوان، آدرس کامل، کدپستی، گیرنده)
+- **CustomerAddress**: دفتر آدرس کاربر (عنوان، آدرس کامل، کدپستی، گیرنده) — `user_id` FK
 
 ### قابلیت‌ها
 - ویرایش پروفایل (نام، کد ملی، تاریخ تولد، نوع مشتری، فیلدهای حقوقی، تلفن، کد پستی، آدرس)
@@ -700,8 +704,8 @@
 - موضوع، متن اولیه، وضعیت، اولویت
 - **دسته‌بندی** (`category`): TicketCategory enum — مالی / فنی / فروش / شکایات / سایر
 - نوع فرستنده (مشتری/نماینده)
-- ارتباط: customer_id یا dealer_id (بسته به فرستنده)
-- تخصیص: assigned_to (FK → SystemUser)
+- ارتباط: `user_id` (FK → users) — کاربر ایجادکننده تیکت
+- تخصیص: assigned_to (FK → users) — کارشناس اختصاص‌یافته
 - زمان‌ها: ایجاد، بروزرسانی، بسته شدن
 
 #### TicketMessage (پیام تیکت)
@@ -892,7 +896,7 @@
 3. سیستم در آیتم‌های سفارش اصلی (`OrderItem`) آن شمش را جستجو کرده و مقدار `final_wage_amount` را استخراج می‌کند
 4. اگر شمش از طریق **فروشگاه آنلاین** فروخته شده باشد (OrderItem موجود باشد):
    - مبلغ اجرت به‌عنوان اعتبار غیرقابل‌برداشت به کیف پول مشتری واریز می‌شود
-   - مقادیر `wage_refund_amount` و `wage_refund_customer_id` در BuybackRequest ثبت می‌شود
+   - مقادیر `wage_refund_amount` و `wage_refund_user_id` در BuybackRequest ثبت می‌شود
 5. اگر شمش از طریق **POS (فروش حضوری)** فروخته شده باشد (بدون OrderItem):
    - بازگشت اجرت صورت نمی‌گیرد
 
@@ -912,7 +916,7 @@
 
 #### BuybackRequest (درخواست بازخرید) — ستون‌های جدید
 - `wage_refund_amount`: مبلغ اجرت بازگشتی (ریال)
-- `wage_refund_customer_id`: شناسه مشتری دریافت‌کننده اعتبار
+- `wage_refund_user_id`: شناسه کاربر دریافت‌کننده اعتبار (FK → users)
 
 ### رفتار کیف پول
 
@@ -936,7 +940,7 @@
 | صفحه | تغییر |
 |-------|--------|
 | کیف پول مشتری (`/wallet`) | نمایش موجودی اعتبار + مبلغ قابل‌برداشت |
-| جزئیات حساب ادمین (`/admin/wallets/customer/{id}` یا `/admin/wallets/dealer/{id}`) | نمایش تفکیک: موجودی کل، اعتبار، قابل‌برداشت |
+| جزئیات حساب ادمین (`/admin/wallets/{user_id}`) | نمایش تفکیک: موجودی کل، اعتبار، قابل‌برداشت |
 | لیست بازخریدها ادمین (`/admin/dealers/buybacks`) | نمایش مبلغ بازگشت اجرت در هر درخواست |
 
 ### فایل‌های مرتبط
@@ -945,7 +949,7 @@
 |-------|---------|
 | `modules/wallet/models.py` | `credit_balance` در Account، `delta_credit`/`credit_after` در LedgerEntry، نوع `CREDIT` در TransactionType |
 | `modules/wallet/service.py` | متد `deposit_credit()`، پارامتر `consume_credit` در `withdraw()`، بررسی `withdrawable_balance` |
-| `modules/dealer/models.py` | `wage_refund_amount`/`wage_refund_customer_id` در BuybackRequest |
+| `modules/dealer/models.py` | `wage_refund_amount`/`wage_refund_user_id` در BuybackRequest |
 | `modules/dealer/service.py` | منطق بازگشت اجرت در `approve_buyback()` |
 | `modules/payment/service.py` | ارسال `consume_credit=True` هنگام پرداخت با کیف پول |
 
@@ -1119,12 +1123,12 @@
 
 #### Order — فیلد جدید `is_gift`
 - `is_gift` (Boolean, default=False): آیا سفارش به‌عنوان هدیه ثبت شده
-- در سفارش هدیه: `customer_id` شمش NULL می‌ماند و `claim_code` تولید می‌شود
+- در سفارش هدیه: `user_id` شمش NULL می‌ماند و `claim_code` تولید می‌شود
 
 #### BarTransfer (مدل جدید)
 - `id`: شناسه یکتا
 - `bar_id` (FK → bars): شمش مورد انتقال
-- `from_customer_id` (FK → customers): مالک فعلی (فرستنده)
+- `from_user_id` (FK → users): مالک فعلی (فرستنده)
 - `to_mobile` (String): شماره موبایل گیرنده
 - `otp_hash` (String): هش رمز یک‌بارمصرف ارسال‌شده به فرستنده
 - `otp_expiry` (DateTime): زمان انقضای OTP
@@ -1142,7 +1146,7 @@
 #### ۲. خرید هدیه (Gift Purchase)
 - مشتری در صفحه checkout تیک «خرید به‌عنوان هدیه» (`is_gift`) را می‌زند
 - پس از پرداخت موفق، `claim_code` برای شمش تولید می‌شود
-- `customer_id` شمش NULL می‌ماند (مالکیت ثبت نمی‌شود)
+- `user_id` شمش NULL می‌ماند (مالکیت ثبت نمی‌شود)
 - خریدار `claim_code` را به گیرنده هدیه می‌دهد
 
 #### ۳. ثبت مالکیت (Claim Bar)
@@ -1162,7 +1166,7 @@
 1. **مرحله ۱**: مالک شمش به `/my-bars/{bar_id}/transfer` می‌رود و شماره موبایل گیرنده را وارد می‌کند
 2. **مرحله ۲**: سیستم OTP به موبایل **مالک فعلی** (فرستنده) ارسال می‌کند (تایید هویت فرستنده)
 3. **مرحله ۳**: مالک OTP را وارد و تایید می‌کند → مالکیت شمش منتقل می‌شود:
-   - `customer_id` شمش به مشتری گیرنده تغییر می‌کند (اگر گیرنده حساب ندارد، ایجاد می‌شود)
+   - `user_id` شمش به کاربر گیرنده تغییر می‌کند (اگر گیرنده حساب ندارد، ایجاد می‌شود)
    - رکورد OwnershipHistory ثبت می‌شود
    - رکورد BarTransfer با وضعیت Completed ثبت می‌شود
 
@@ -1401,7 +1405,7 @@
 ### مدل‌ها
 
 #### DealerRequest (درخواست نمایندگی)
-- `customer_id` (FK → customers): مشتری درخواست‌دهنده
+- `user_id` (FK → users): کاربر درخواست‌دهنده
 - `first_name`, `last_name`: نام و نام خانوادگی
 - `mobile`: شماره تماس
 - `birth_date`: تاریخ تولد (فرمت شمسی)
@@ -1412,7 +1416,7 @@
 - `admin_note`: یادداشت ادمین (الزامی برای بازبینی)
 - `created_at`, `updated_at`
 - Properties: `full_name`, `status_label`, `status_color`, `gender_label`, `province_name`, `city_name`
-- Relationships: `customer`, `province`, `city`, `attachments`
+- Relationships: `user`, `province`, `city`, `attachments`
 
 #### DealerRequestAttachment (پیوست درخواست)
 - `dealer_request_id` (FK → dealer_requests, CASCADE)
