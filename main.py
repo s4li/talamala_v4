@@ -547,12 +547,14 @@ async def admin_dashboard(
 ):
     from modules.admin.dashboard_service import dashboard_service
     from modules.order.service import order_service
+    from modules.dealer.service import dealer_service
 
     stats = dashboard_service.get_overview_stats(db)
     recent_orders = dashboard_service.get_recent_orders(db, limit=8)
     daily_revenue = dashboard_service.get_daily_revenue(db, days=30)
     inventory_status = dashboard_service.get_inventory_by_status(db)
     pending_stats = order_service.get_pending_delivery_stats(db)
+    _, _, dealer_sales_stats = dealer_service.list_all_sales_admin(db, page=1, per_page=1)
 
     return templates.TemplateResponse("admin/dashboard.html", {
         "request": request,
@@ -562,6 +564,7 @@ async def admin_dashboard(
         "daily_revenue": daily_revenue,
         "inventory_status": inventory_status,
         "pending_stats": pending_stats,
+        "dealer_sales_stats": dealer_sales_stats,
         "active_page": "dashboard",
     })
 
