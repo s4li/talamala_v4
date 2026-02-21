@@ -640,6 +640,7 @@ class DealerService:
     ) -> Tuple[List[DealerSale], int, Dict[str, Any]]:
         """List all dealer sales with filters + aggregate stats for the filtered set."""
         from modules.inventory.models import Bar
+        from modules.catalog.models import Product
 
         q = db.query(DealerSale).options(
             joinedload(DealerSale.dealer),
@@ -689,34 +690,58 @@ class DealerService:
         total = q.count()
 
         if total > 0:
+            filtered_ids = db.query(ids_subq.c.id)
             filtered_revenue = (
                 db.query(sa_func.coalesce(sa_func.sum(DealerSale.sale_price), 0))
-                .filter(DealerSale.id.in_(db.query(ids_subq.c.id)))
+                .filter(DealerSale.id.in_(filtered_ids))
                 .scalar()
             )
             filtered_gold_profit = (
                 db.query(sa_func.coalesce(sa_func.sum(DealerSale.gold_profit_mg), 0))
-                .filter(DealerSale.id.in_(db.query(ids_subq.c.id)))
+                .filter(DealerSale.id.in_(filtered_ids))
                 .scalar()
             )
             filtered_discount_count = (
                 db.query(sa_func.count(DealerSale.id))
                 .filter(
-                    DealerSale.id.in_(db.query(ids_subq.c.id)),
+                    DealerSale.id.in_(filtered_ids),
                     DealerSale.discount_wage_percent > 0,
                 )
                 .scalar()
             )
+            # Total weight sold (grams) — via Bar → Product
+            total_weight = (
+                db.query(sa_func.coalesce(sa_func.sum(Product.weight), 0))
+                .join(Bar, Bar.product_id == Product.id)
+                .join(DealerSale, DealerSale.bar_id == Bar.id)
+                .filter(DealerSale.id.in_(filtered_ids))
+                .scalar()
+            )
+            # Our profit in mg gold = total customer wage (mg) - dealer gold profit (mg)
+            total_wage_mg = (
+                db.query(sa_func.coalesce(
+                    sa_func.sum(Product.weight * Product.wage / 100 * 1000), 0
+                ))
+                .join(Bar, Bar.product_id == Product.id)
+                .join(DealerSale, DealerSale.bar_id == Bar.id)
+                .filter(DealerSale.id.in_(filtered_ids))
+                .scalar()
+            )
+            our_profit_mg = int(total_wage_mg) - int(filtered_gold_profit)
         else:
             filtered_revenue = 0
             filtered_gold_profit = 0
             filtered_discount_count = 0
+            total_weight = 0
+            our_profit_mg = 0
 
         stats = {
             "total": total,
             "total_revenue": filtered_revenue,
             "total_gold_profit_mg": filtered_gold_profit,
             "discount_count": filtered_discount_count,
+            "total_weight_mg": int(float(total_weight) * 1000),
+            "our_profit_mg": our_profit_mg,
         }
 
         # --- Paginate ---
