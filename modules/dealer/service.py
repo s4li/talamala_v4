@@ -651,7 +651,7 @@ class DealerService:
     ) -> Tuple[List[DealerSale], int, Dict[str, Any]]:
         """List all dealer sales with filters + aggregate stats for the filtered set."""
         from modules.inventory.models import Bar
-        from modules.catalog.models import Product
+        from modules.catalog.models import Product, ProductCategoryLink, ProductCategory
 
         q = db.query(DealerSale).options(
             joinedload(DealerSale.dealer),
@@ -707,11 +707,6 @@ class DealerService:
                 .filter(DealerSale.id.in_(filtered_ids))
                 .scalar()
             )
-            filtered_gold_profit = (
-                db.query(sa_func.coalesce(sa_func.sum(DealerSale.gold_profit_mg), 0))
-                .filter(DealerSale.id.in_(filtered_ids))
-                .scalar()
-            )
             filtered_discount_count = (
                 db.query(sa_func.count(DealerSale.id))
                 .filter(
@@ -720,39 +715,72 @@ class DealerService:
                 )
                 .scalar()
             )
-            # Total weight sold (grams) — via Bar → Product
-            total_weight = (
-                db.query(sa_func.coalesce(sa_func.sum(Product.weight), 0))
-                .join(Bar, Bar.product_id == Product.id)
-                .join(DealerSale, DealerSale.bar_id == Bar.id)
-                .filter(DealerSale.id.in_(filtered_ids))
-                .scalar()
+
+            # --- Metal-specific stats (gold vs silver) ---
+            silver_pids = (
+                db.query(ProductCategoryLink.product_id)
+                .join(ProductCategory, ProductCategory.id == ProductCategoryLink.category_id)
+                .filter(ProductCategory.slug.like("silver%"))
+                .distinct()
             )
-            # Our profit in mg gold = total customer wage (mg) - dealer gold profit (mg)
-            total_wage_mg = (
-                db.query(sa_func.coalesce(
-                    sa_func.sum(Product.weight * Product.wage / 100 * 1000), 0
-                ))
-                .join(Bar, Bar.product_id == Product.id)
-                .join(DealerSale, DealerSale.bar_id == Bar.id)
-                .filter(DealerSale.id.in_(filtered_ids))
-                .scalar()
-            )
-            our_profit_mg = int(total_wage_mg) - int(filtered_gold_profit)
+
+            def _metal_agg(is_silver: bool):
+                """Calculate weight, wage_mg, dealer_profit_mg for a metal type."""
+                metal_filter = (
+                    Product.id.in_(silver_pids) if is_silver
+                    else ~Product.id.in_(silver_pids)
+                )
+                base_filters = [
+                    DealerSale.id.in_(filtered_ids),
+                    metal_filter,
+                ]
+                weight = (
+                    db.query(sa_func.coalesce(sa_func.sum(Product.weight), 0))
+                    .join(Bar, Bar.product_id == Product.id)
+                    .join(DealerSale, DealerSale.bar_id == Bar.id)
+                    .filter(*base_filters)
+                    .scalar()
+                )
+                wage_mg = (
+                    db.query(sa_func.coalesce(
+                        sa_func.sum(Product.weight * Product.wage / 100 * 1000), 0
+                    ))
+                    .join(Bar, Bar.product_id == Product.id)
+                    .join(DealerSale, DealerSale.bar_id == Bar.id)
+                    .filter(*base_filters)
+                    .scalar()
+                )
+                dealer_profit = (
+                    db.query(sa_func.coalesce(sa_func.sum(DealerSale.gold_profit_mg), 0))
+                    .join(Bar, DealerSale.bar_id == Bar.id)
+                    .join(Product, Bar.product_id == Product.id)
+                    .filter(*base_filters)
+                    .scalar()
+                )
+                our = int(wage_mg) - int(dealer_profit)
+                return int(float(weight) * 1000), our, int(dealer_profit)
+
+            gold_weight_mg, gold_our_mg, gold_dealer_mg = _metal_agg(False)
+            silver_weight_mg, silver_our_mg, silver_dealer_mg = _metal_agg(True)
         else:
             filtered_revenue = 0
-            filtered_gold_profit = 0
             filtered_discount_count = 0
-            total_weight = 0
-            our_profit_mg = 0
+            gold_weight_mg = silver_weight_mg = 0
+            gold_our_mg = silver_our_mg = 0
+            gold_dealer_mg = silver_dealer_mg = 0
 
         stats = {
             "total": total,
             "total_revenue": filtered_revenue,
-            "total_gold_profit_mg": filtered_gold_profit,
             "discount_count": filtered_discount_count,
-            "total_weight_mg": int(float(total_weight) * 1000),
-            "our_profit_mg": our_profit_mg,
+            # Gold
+            "gold_weight_mg": gold_weight_mg,
+            "gold_our_profit_mg": gold_our_mg,
+            "gold_dealer_profit_mg": gold_dealer_mg,
+            # Silver
+            "silver_weight_mg": silver_weight_mg,
+            "silver_our_profit_mg": silver_our_mg,
+            "silver_dealer_profit_mg": silver_dealer_mg,
         }
 
         # --- Paginate ---

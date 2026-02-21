@@ -172,8 +172,8 @@
                         <i class="bi bi-shop" style="color:#d4a843;"></i>
                     </div>
                     <div>
-                        <div class="stat-value" style="color:#d4a843;">{{ dealer_sales_stats.total_weight_mg | gold_gram }}</div>
-                        <div class="stat-label">مجموع وزنی فروش نمایندگان</div>
+                        <div class="stat-value" style="color:#d4a843;">{{ dealer_sales_stats.gold_weight_mg | gold_gram }}</div>
+                        <div class="stat-label">وزن فروش طلا</div>
                     </div>
                 </div>
             </div>
@@ -187,8 +187,8 @@
                         <i class="bi bi-gem text-tm-primary"></i>
                     </div>
                     <div>
-                        <div class="stat-value text-tm-primary">{{ dealer_sales_stats.our_profit_mg | gold_gram }}</div>
-                        <div class="stat-label">سود طلایی ما از فروش نمایندگان</div>
+                        <div class="stat-value text-tm-primary">{{ dealer_sales_stats.gold_our_profit_mg | gold_gram }}</div>
+                        <div class="stat-label">سود طلایی ما</div>
                     </div>
                 </div>
             </div>
@@ -202,7 +202,7 @@
                         <i class="bi bi-people" style="color:#fbbf24;"></i>
                     </div>
                     <div>
-                        <div class="stat-value" style="color:#fbbf24;">{{ dealer_sales_stats.total_gold_profit_mg | gold_gram }}</div>
+                        <div class="stat-value" style="color:#fbbf24;">{{ dealer_sales_stats.gold_dealer_profit_mg | gold_gram }}</div>
                         <div class="stat-label">سود طلایی نمایندگان</div>
                     </div>
                 </div>
