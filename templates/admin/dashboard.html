@@ -132,10 +132,10 @@
 
 <!-- ========== ROW 1.5: Pending Delivery (Gold & Silver) + Dealer Sales ========== -->
 {% if pending_stats %}
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4 align-items-stretch">
     <div class="col-6 col-lg tm-animate-fade-in-up">
-        <a href="/admin/orders?delivery=Pickup" class="text-decoration-none">
-            <div class="stat-card-tm" style="border-right:3px solid var(--tm-warning);">
+        <a href="/admin/orders?delivery=Pickup" class="text-decoration-none h-100 d-block">
+            <div class="stat-card-tm h-100" style="border-right:3px solid var(--tm-warning);">
                 <div class="d-flex align-items-center gap-3">
                     <div class="stat-icon" style="background:rgba(212,168,67,0.15);">
                         <i class="bi bi-safe2 text-warning"></i>
@@ -149,8 +149,8 @@
         </a>
     </div>
     <div class="col-6 col-lg tm-animate-fade-in-up">
-        <a href="/admin/orders?delivery=Pickup" class="text-decoration-none">
-            <div class="stat-card-tm" style="border-right:3px solid #adb5bd;">
+        <a href="/admin/orders?delivery=Pickup" class="text-decoration-none h-100 d-block">
+            <div class="stat-card-tm h-100" style="border-right:3px solid #adb5bd;">
                 <div class="d-flex align-items-center gap-3">
                     <div class="stat-icon" style="background:rgba(108,117,125,0.12);">
                         <i class="bi bi-safe2" style="color:#adb5bd;"></i>
@@ -165,8 +165,8 @@
     </div>
     {% if dealer_sales_stats %}
     <div class="col-6 col-lg tm-animate-fade-in-up">
-        <a href="/admin/dealers/sales" class="text-decoration-none">
-            <div class="stat-card-tm" style="border-right:3px solid #d4a843;">
+        <a href="/admin/dealers/sales" class="text-decoration-none h-100 d-block">
+            <div class="stat-card-tm h-100" style="border-right:3px solid #d4a843;">
                 <div class="d-flex align-items-center gap-3">
                     <div class="stat-icon" style="background:rgba(212,168,67,0.15);">
                         <i class="bi bi-shop" style="color:#d4a843;"></i>
@@ -180,14 +180,14 @@
         </a>
     </div>
     <div class="col-6 col-lg tm-animate-fade-in-up">
-        <a href="/admin/dealers/sales" class="text-decoration-none">
-            <div class="stat-card-tm" style="border-right:3px solid var(--tm-primary);">
+        <a href="/admin/dealers/sales" class="text-decoration-none h-100 d-block">
+            <div class="stat-card-tm h-100" style="border-right:3px solid #d4a843;">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="stat-icon" style="background:rgba(107,0,45,0.1);">
-                        <i class="bi bi-gem text-tm-primary"></i>
+                    <div class="stat-icon" style="background:rgba(212,168,67,0.15);">
+                        <i class="bi bi-gem" style="color:#d4a843;"></i>
                     </div>
                     <div>
-                        <div class="stat-value text-tm-primary">{{ dealer_sales_stats.gold_our_profit_mg | gold_gram }}</div>
+                        <div class="stat-value" style="color:#d4a843;">{{ dealer_sales_stats.gold_our_profit_mg | gold_gram }}</div>
                         <div class="stat-label">سود طلایی ما</div>
                     </div>
                 </div>
@@ -195,8 +195,8 @@
         </a>
     </div>
     <div class="col-6 col-lg tm-animate-fade-in-up">
-        <a href="/admin/dealers/sales" class="text-decoration-none">
-            <div class="stat-card-tm" style="border-right:3px solid #fbbf24;">
+        <a href="/admin/dealers/sales" class="text-decoration-none h-100 d-block">
+            <div class="stat-card-tm h-100" style="border-right:3px solid #fbbf24;">
                 <div class="d-flex align-items-center gap-3">
                     <div class="stat-icon" style="background:rgba(251,191,36,0.15);">
                         <i class="bi bi-people" style="color:#fbbf24;"></i>
@@ -211,8 +211,8 @@
     </div>
     {% if dealer_sales_stats.silver_weight_mg %}
     <div class="col-6 col-lg tm-animate-fade-in-up">
-        <a href="/admin/dealers/sales" class="text-decoration-none">
-            <div class="stat-card-tm" style="border-right:3px solid #adb5bd;">
+        <a href="/admin/dealers/sales" class="text-decoration-none h-100 d-block">
+            <div class="stat-card-tm h-100" style="border-right:3px solid #adb5bd;">
                 <div class="d-flex align-items-center gap-3">
                     <div class="stat-icon" style="background:rgba(108,117,125,0.12);">
                         <i class="bi bi-shop" style="color:#adb5bd;"></i>
@@ -226,8 +226,8 @@
         </a>
     </div>
     <div class="col-6 col-lg tm-animate-fade-in-up">
-        <a href="/admin/dealers/sales" class="text-decoration-none">
-            <div class="stat-card-tm" style="border-right:3px solid #78909c;">
+        <a href="/admin/dealers/sales" class="text-decoration-none h-100 d-block">
+            <div class="stat-card-tm h-100" style="border-right:3px solid #78909c;">
                 <div class="d-flex align-items-center gap-3">
                     <div class="stat-icon" style="background:rgba(120,144,156,0.12);">
                         <i class="bi bi-gem" style="color:#78909c;"></i>
@@ -241,8 +241,8 @@
         </a>
     </div>
     <div class="col-6 col-lg tm-animate-fade-in-up">
-        <a href="/admin/dealers/sales" class="text-decoration-none">
-            <div class="stat-card-tm" style="border-right:3px solid #b0bec5;">
+        <a href="/admin/dealers/sales" class="text-decoration-none h-100 d-block">
+            <div class="stat-card-tm h-100" style="border-right:3px solid #b0bec5;">
                 <div class="d-flex align-items-center gap-3">
                     <div class="stat-icon" style="background:rgba(176,190,197,0.15);">
                         <i class="bi bi-people" style="color:#b0bec5;"></i>
