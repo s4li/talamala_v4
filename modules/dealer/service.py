@@ -425,10 +425,35 @@ class DealerService:
 
         owner_id = bar.customer_id
 
-        # --- Recalculate both amounts server-side ---
-        p_price, p_bp, _ = get_product_pricing(db, product)
+        # --- Find the original sale price (at time of purchase) ---
+        from modules.order.models import OrderItem, Order
 
-        # Raw metal value (no wage, no tax)
+        original_metal_price = None
+
+        # Check DealerSale (POS sale)
+        dealer_sale = db.query(DealerSale).filter(DealerSale.bar_id == bar.id).first()
+        if dealer_sale and dealer_sale.applied_metal_price:
+            original_metal_price = int(dealer_sale.applied_metal_price)
+
+        # Check OrderItem (online order) if not found in POS
+        if not original_metal_price:
+            order_item = (
+                db.query(OrderItem)
+                .join(Order, Order.id == OrderItem.order_id)
+                .filter(OrderItem.bar_id == bar.id, Order.status == "Paid")
+                .first()
+            )
+            if order_item and order_item.applied_metal_price:
+                original_metal_price = int(order_item.applied_metal_price)
+
+        # Fallback to current price only if no sale record found
+        _, p_bp, _ = get_product_pricing(db, product)
+        if original_metal_price:
+            p_price = original_metal_price
+        else:
+            p_price, p_bp, _ = get_product_pricing(db, product)
+
+        # Raw metal value (no wage, no tax) — based on ORIGINAL sale price
         raw_info = calculate_bar_price(
             weight=product.weight, purity=product.purity,
             wage_percent=0, base_metal_price=p_price,
@@ -436,7 +461,7 @@ class DealerService:
         )
         raw_metal_rial = raw_info.get("total", 0)
 
-        # Buyback wage uses separate buyback_wage_percent (no tax)
+        # Buyback wage uses separate buyback_wage_percent (no tax) — based on ORIGINAL sale price
         buyback_pct = float(product.buyback_wage_percent or 0)
         wage_rial = 0
         if buyback_pct > 0:

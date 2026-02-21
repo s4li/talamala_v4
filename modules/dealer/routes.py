@@ -21,7 +21,7 @@ from modules.pricing.calculator import calculate_bar_price
 from modules.pricing.service import get_end_customer_wage, get_dealer_margin, get_price_value, get_product_pricing, is_price_fresh
 from modules.pricing.models import GOLD_18K
 from modules.inventory.models import Bar, BarStatus
-from modules.dealer.models import BuybackRequest, BuybackStatus
+from modules.dealer.models import DealerSale, BuybackRequest, BuybackStatus
 
 router = APIRouter(prefix="/dealer", tags=["dealer"])
 
@@ -733,9 +733,34 @@ async def buyback_lookup(
     if not product:
         return JSONResponse({"found": False, "error": "محصول مرتبط یافت نشد"})
 
-    # Calculate raw metal value (buyback = metal value without wage/profit/tax)
+    # --- Find original sale price (at time of purchase) ---
     from common.templating import get_setting_from_db
-    p_price, p_bp, _ = get_product_pricing(db, product)
+    from modules.order.models import OrderItem, Order
+
+    original_metal_price = None
+
+    # Check DealerSale (POS sale)
+    dealer_sale = db.query(DealerSale).filter(DealerSale.bar_id == bar.id).first()
+    if dealer_sale and dealer_sale.applied_metal_price:
+        original_metal_price = int(dealer_sale.applied_metal_price)
+
+    # Check OrderItem (online order) if not found in POS
+    if not original_metal_price:
+        order_item = (
+            db.query(OrderItem)
+            .join(Order, Order.id == OrderItem.order_id)
+            .filter(OrderItem.bar_id == bar.id, Order.status == "Paid")
+            .first()
+        )
+        if order_item and order_item.applied_metal_price:
+            original_metal_price = int(order_item.applied_metal_price)
+
+    # Use original sale price; fallback to current if no sale record
+    _, p_bp, _ = get_product_pricing(db, product)
+    if original_metal_price:
+        p_price = original_metal_price
+    else:
+        p_price, p_bp, _ = get_product_pricing(db, product)
 
     info = calculate_bar_price(
         weight=product.weight, purity=product.purity,
@@ -745,7 +770,7 @@ async def buyback_lookup(
     )
     raw_gold_toman = info.get("total", 0) // 10
 
-    # Full retail price for reference
+    # Full retail price for reference (using original sale price)
     tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
     ec_wage = get_end_customer_wage(db, product)
     full_info = calculate_bar_price(
@@ -756,7 +781,7 @@ async def buyback_lookup(
     )
     retail_toman = full_info.get("total", 0) // 10
 
-    # Buyback wage uses separate buyback_wage_percent (no tax)
+    # Buyback wage uses separate buyback_wage_percent (no tax) — original sale price
     buyback_pct = float(product.buyback_wage_percent or 0)
     wage_toman = 0
     if buyback_pct > 0:
