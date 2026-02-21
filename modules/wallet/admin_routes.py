@@ -189,12 +189,50 @@ async def admin_withdrawals_list(
     db: Session = Depends(get_db),
     user=Depends(require_permission("wallets")),
 ):
+    from sqlalchemy.orm import joinedload
+
     per_page = 30
-    withdrawals, total = wallet_service.get_all_withdrawals(db, page=page, per_page=per_page)
-    total_pages = max(1, (total + per_page - 1) // per_page)
-    pending_count = (
+
+    # Dealer user IDs
+    dealer_ids_q = db.query(User.id).filter(User.is_dealer == True)
+
+    # --- Customer withdrawals ---
+    cust_q = (
+        db.query(WithdrawalRequest)
+        .filter(~WithdrawalRequest.user_id.in_(dealer_ids_q))
+        .options(joinedload(WithdrawalRequest.user))
+    )
+    customer_total = cust_q.count()
+    customer_withdrawals = (
+        cust_q.order_by(WithdrawalRequest.created_at.desc())
+        .offset((page - 1) * per_page).limit(per_page).all()
+    )
+    customer_pages = max(1, (customer_total + per_page - 1) // per_page)
+
+    # --- Dealer withdrawals ---
+    dealer_q = (
+        db.query(WithdrawalRequest)
+        .filter(WithdrawalRequest.user_id.in_(dealer_ids_q))
+        .options(joinedload(WithdrawalRequest.user))
+    )
+    dealer_total = dealer_q.count()
+    dealer_withdrawals = (
+        dealer_q.order_by(WithdrawalRequest.created_at.desc())
+        .offset((page - 1) * per_page).limit(per_page).all()
+    )
+    dealer_pages = max(1, (dealer_total + per_page - 1) // per_page)
+
+    # Pending counts
+    customer_pending = (
         db.query(WithdrawalRequest)
         .filter(WithdrawalRequest.status == WithdrawalStatus.PENDING)
+        .filter(~WithdrawalRequest.user_id.in_(dealer_ids_q))
+        .count()
+    )
+    dealer_pending = (
+        db.query(WithdrawalRequest)
+        .filter(WithdrawalRequest.status == WithdrawalStatus.PENDING)
+        .filter(WithdrawalRequest.user_id.in_(dealer_ids_q))
         .count()
     )
 
@@ -202,11 +240,16 @@ async def admin_withdrawals_list(
     response = templates.TemplateResponse("admin/wallet/withdrawals.html", {
         "request": request,
         "user": user,
-        "withdrawals": withdrawals,
-        "pending_count": pending_count,
+        "customer_withdrawals": customer_withdrawals,
+        "dealer_withdrawals": dealer_withdrawals,
+        "customer_pending": customer_pending,
+        "dealer_pending": dealer_pending,
+        "pending_count": customer_pending + dealer_pending,
         "page": page,
-        "total_pages": total_pages,
-        "total": total,
+        "customer_pages": customer_pages,
+        "dealer_pages": dealer_pages,
+        "total_pages": max(customer_pages, dealer_pages),
+        "total": customer_total + dealer_total,
         "csrf_token": csrf,
         "active_page": "withdrawals",
     })
