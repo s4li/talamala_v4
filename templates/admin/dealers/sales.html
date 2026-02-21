@@ -117,8 +117,10 @@
                     <tr>
                         <th style="width:50px;">#</th>
                         <th>نماینده</th>
+                        <th>محصول</th>
                         <th>سریال شمش</th>
                         <th>مشتری</th>
+                        <th>قیمت طلا</th>
                         <th>مبلغ فروش</th>
                         <th>سود طلایی</th>
                         <th>تخفیف اجرت</th>
@@ -136,6 +138,14 @@
                                 {{ s.dealer.full_name }}
                             </a>
                             <br><small class="text-muted" dir="ltr">{{ s.dealer.mobile }}</small>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            {% if s.bar and s.bar.product %}
+                            {{ s.bar.product.name }}
+                            <br><small class="text-muted">{{ s.bar.product.weight }} گرم</small>
                             {% else %}
                             <span class="text-muted">—</span>
                             {% endif %}
@@ -162,6 +172,14 @@
                             {% endif %}
                             {% if not s.customer_name and not s.customer_mobile %}
                             <span class="text-muted small">بدون اطلاعات</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            {% if s.applied_gold_price %}
+                            {{ s.applied_gold_price | toman }}
+                            <small class="text-muted">تومان</small>
+                            {% else %}
+                            <span class="text-muted">—</span>
                             {% endif %}
                         </td>
                         <td class="fw-bold text-nowrap">

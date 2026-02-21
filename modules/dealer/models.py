@@ -65,6 +65,7 @@ class DealerSale(Base):
     customer_mobile = Column(String(15), nullable=True)
     customer_national_id = Column(String, nullable=True)
     sale_price = Column(BigInteger, nullable=False)           # ریال
+    applied_gold_price = Column(BigInteger, nullable=True)   # قیمت طلای ۱۸ عیار در لحظه فروش (ریال/گرم)
     commission_amount = Column(BigInteger, default=0, nullable=False)  # ریال (legacy)
     gold_profit_mg = Column(BigInteger, default=0, nullable=False)    # سود طلایی (میلی‌گرم)
     discount_wage_percent = Column(Numeric(5, 2), default=0, nullable=False)  # تخفیف اجرت از سهم نماینده (درصد)

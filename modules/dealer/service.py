@@ -219,20 +219,22 @@ class DealerService:
         if margin_pct <= 0:
             discount_wage_percent = 0.0  # no margin = no discount possible
 
+        # Fetch current gold price (needed for storage + discount verification)
+        from modules.pricing.service import get_price_value
+        current_gold_price = get_price_value(db, GOLD_18K)
+
         # Server-side price verification
         # Tax is ALWAYS on full base wage (ec_wage_pct), discount only reduces wage portion
         if product and discount_wage_percent > 0:
             from modules.pricing.calculator import calculate_bar_price
-            from modules.pricing.service import get_price_value
             from common.templating import get_setting_from_db
             from decimal import Decimal, ROUND_FLOOR
-            gold_price = get_price_value(db, GOLD_18K)
             tax_pct = float(get_setting_from_db(db, "tax_percent", "10"))
             # Full system price (tax calculated on full base wage)
             full_price = calculate_bar_price(
                 weight=product.weight, purity=product.purity,
                 wage_percent=ec_wage_pct,
-                base_gold_price_18k=gold_price, tax_percent=tax_pct,
+                base_gold_price_18k=current_gold_price, tax_percent=tax_pct,
             )
             # Discount = rawGold * discount_pct / 100 (no tax on discount)
             raw_gold = full_price.get("raw_gold", 0)
@@ -283,6 +285,7 @@ class DealerService:
             customer_mobile=customer_mobile,
             customer_national_id=customer_national_id,
             sale_price=sale_price,
+            applied_gold_price=current_gold_price,
             commission_amount=0,
             discount_wage_percent=discount_wage_percent,
             description=description,
@@ -654,7 +657,7 @@ class DealerService:
 
         q = db.query(DealerSale).options(
             joinedload(DealerSale.dealer),
-            joinedload(DealerSale.bar),
+            joinedload(DealerSale.bar).joinedload(Bar.product),
         )
 
         # --- Filters ---
