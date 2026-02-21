@@ -176,7 +176,7 @@ async def address_list(
     me=Depends(require_customer),
 ):
     addresses = db.query(CustomerAddress).filter(
-        CustomerAddress.customer_id == me.id
+        CustomerAddress.user_id == me.id
     ).order_by(CustomerAddress.is_default.desc(), CustomerAddress.id.desc()).all()
 
     provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
@@ -218,10 +218,10 @@ async def address_add(
     dist_id = int(district_id) if district_id.strip().isdigit() else None
 
     if is_default == "on":
-        db.query(CustomerAddress).filter(CustomerAddress.customer_id == me.id).update({"is_default": False})
+        db.query(CustomerAddress).filter(CustomerAddress.user_id == me.id).update({"is_default": False})
 
     addr = CustomerAddress(
-        customer_id=me.id,
+        user_id=me.id,
         title=title.strip(),
         province_id=province_id,
         city_id=city_id,
@@ -254,7 +254,7 @@ async def address_delete(
 ):
     csrf_check(request, csrf_token)
     addr = db.query(CustomerAddress).filter(
-        CustomerAddress.id == addr_id, CustomerAddress.customer_id == me.id
+        CustomerAddress.id == addr_id, CustomerAddress.user_id == me.id
     ).first()
     if addr:
         db.delete(addr)
@@ -272,9 +272,9 @@ async def address_set_default(
     me=Depends(require_customer),
 ):
     csrf_check(request, csrf_token)
-    db.query(CustomerAddress).filter(CustomerAddress.customer_id == me.id).update({"is_default": False})
+    db.query(CustomerAddress).filter(CustomerAddress.user_id == me.id).update({"is_default": False})
     addr = db.query(CustomerAddress).filter(
-        CustomerAddress.id == addr_id, CustomerAddress.customer_id == me.id
+        CustomerAddress.id == addr_id, CustomerAddress.user_id == me.id
     ).first()
     if addr:
         addr.is_default = True
