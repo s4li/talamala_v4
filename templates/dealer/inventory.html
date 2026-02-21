@@ -1,0 +1,137 @@
+{% extends "dealer/base_dealer.html" %}
+
+{% block title %}موجودی انبار - طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-box-seam text-tm-primary"></i>
+        موجودی انبار
+    </h4>
+    <span class="badge-tm badge-tm-info">{{ total }} شمش</span>
+</div>
+
+<!-- Summary Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-1">
+        <div class="stat-card-tm">
+            <i class="bi bi-box-seam"></i>
+            <div class="stat-value">{{ inv_stats.total_bars | persian_number }}</div>
+            <div class="stat-label">کل شمش‌ها</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-2">
+        <div class="stat-card-tm">
+            <i class="bi bi-gem" style="color:#fbbf24;"></i>
+            <div class="stat-value" style="color:#fbbf24;">{{ inv_stats.gold_bars | persian_number }}</div>
+            <div class="stat-label">طلا ({{ inv_stats.gold_weight_g }} گرم)</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-3">
+        <div class="stat-card-tm">
+            <i class="bi bi-gem" style="color:#adb5bd;"></i>
+            <div class="stat-value" style="color:#adb5bd;">{{ inv_stats.silver_bars | persian_number }}</div>
+            <div class="stat-label">نقره ({{ inv_stats.silver_weight_g }} گرم)</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-4">
+        <div class="stat-card-tm">
+            <i class="bi bi-check-circle text-success"></i>
+            <div class="stat-value text-success">{{ inv_stats.assigned_count | persian_number }}</div>
+            <div class="stat-label">آماده فروش</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card-tm no-hover mb-4 tm-animate-fade-in-up tm-delay-5">
+    <form method="get" action="/dealer/inventory" class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label text-muted small">نوع فلز</label>
+            <select name="metal_type" class="form-select form-select-sm form-select-tm">
+                <option value="">همه</option>
+                <option value="gold" {% if metal_type == 'gold' %}selected{% endif %}>طلا</option>
+                <option value="silver" {% if metal_type == 'silver' %}selected{% endif %}>نقره</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label text-muted small">وضعیت</label>
+            <select name="status" class="form-select form-select-sm form-select-tm">
+                <option value="">همه</option>
+                <option value="Assigned" {% if status_filter == 'Assigned' %}selected{% endif %}>تخصیص‌یافته (آماده فروش)</option>
+                <option value="Reserved" {% if status_filter == 'Reserved' %}selected{% endif %}>رزرو شده</option>
+                <option value="Sold" {% if status_filter == 'Sold' %}selected{% endif %}>فروخته‌شده</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-sm btn-tm-primary w-100">
+                <i class="bi bi-funnel me-1"></i> فیلتر
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Inventory Table -->
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-6">
+    <div class="table-responsive">
+        <table class="table table-tm mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>سریال</th>
+                    <th>محصول</th>
+                    <th>وزن (گرم)</th>
+                    <th>عیار</th>
+                    <th>فلز</th>
+                    <th>وضعیت</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bar in bars %}
+                <tr>
+                    <td>{{ loop.index + (page - 1) * 30 }}</td>
+                    <td><span class="font-monospace" dir="ltr">{{ bar.serial_code }}</span></td>
+                    <td>{{ bar.product.name if bar.product else '—' }}</td>
+                    <td>{{ bar.product.weight if bar.product else '—' }}</td>
+                    <td>{{ bar.product.purity | int if bar.product else '—' }}</td>
+                    <td>
+                        {% set mt = bar.product.metal_type if bar.product else 'gold' %}
+                        {% if mt == 'silver' %}
+                        <span class="badge bg-secondary">نقره</span>
+                        {% else %}
+                        <span class="badge" style="background:#fbbf24;color:#000;">طلا</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% set st = bar.status.value if bar.status is not string else bar.status %}
+                        {% if st == 'Assigned' %}
+                        <span class="badge bg-success">آماده فروش</span>
+                        {% elif st == 'Reserved' %}
+                        <span class="badge bg-warning text-dark">رزرو</span>
+                        {% elif st == 'Sold' %}
+                        <span class="badge bg-info">فروخته‌شده</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ st }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox" style="font-size:2rem;"></i>
+                        <div class="mt-2">شمشی در انبار موجود نیست</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% set qs = '' %}
+{% if metal_type %} {% set qs = qs ~ '&metal_type=' ~ metal_type %} {% endif %}
+{% if status_filter %} {% set qs = qs ~ '&status=' ~ status_filter %} {% endif %}
+{% from "components/pagination.html" import pagination %}
+{{ pagination(page, total_pages, '/dealer/inventory', qs) }}
+{% endblock %}

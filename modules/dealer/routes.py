@@ -18,7 +18,7 @@ from modules.dealer.service import dealer_service
 from modules.wallet.service import wallet_service
 from modules.wallet.models import AssetCode
 from modules.pricing.calculator import calculate_bar_price
-from modules.pricing.service import get_end_customer_wage, get_dealer_margin, get_price_value, is_price_fresh
+from modules.pricing.service import get_end_customer_wage, get_dealer_margin, get_price_value, get_product_pricing, is_price_fresh
 from modules.pricing.models import GOLD_18K
 from modules.inventory.models import Bar, BarStatus
 
@@ -42,6 +42,12 @@ async def dealer_dashboard(
     irr_balance = wallet_service.get_balance(db, dealer.id, asset_code=AssetCode.IRR)
     gold_balance = wallet_service.get_balance(db, dealer.id, asset_code=AssetCode.XAU_MG)
 
+    # Analytics data
+    daily_sales = dealer_service.get_daily_sales_data(db, dealer.id, days=30)
+    metal_breakdown = dealer_service.get_metal_profit_breakdown(db, dealer.id)
+    period_comparison = dealer_service.get_period_comparison(db, dealer.id)
+    inventory_value = dealer_service.get_inventory_value(db, dealer.id)
+
     csrf = new_csrf_token()
     response = templates.TemplateResponse("dealer/dashboard.html", {
         "request": request,
@@ -50,6 +56,10 @@ async def dealer_dashboard(
         "available_bars_count": len(available_bars),
         "irr_balance": irr_balance,
         "gold_balance": gold_balance,
+        "daily_sales": daily_sales,
+        "metal_breakdown": metal_breakdown,
+        "period_comparison": period_comparison,
+        "inventory_value": inventory_value,
         "active_page": "dashboard",
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
@@ -61,11 +71,10 @@ async def dealer_dashboard(
 # ==========================================
 
 def _calc_bar_prices(db: Session, bars, dealer):
-    """Calculate system price + dealer margin for each bar."""
+    """Calculate system price + dealer margin for each bar (per-product metal pricing)."""
     if not bars:
         return {}
     from common.templating import get_setting_from_db
-    gold_price = get_price_value(db, GOLD_18K)
     tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
 
     prices = {}
@@ -73,13 +82,15 @@ def _calc_bar_prices(db: Session, bars, dealer):
         p = bar.product
         if not p:
             continue
+        p_price, p_bp, _ = get_product_pricing(db, p)
         ec_wage, dealer_wage_pct, margin_pct = get_dealer_margin(db, p, dealer)
 
         info = calculate_bar_price(
             weight=p.weight, purity=p.purity,
             wage_percent=ec_wage,
-            base_gold_price_18k=gold_price,
+            base_metal_price=p_price,
             tax_percent=tax_percent,
+            base_purity=p_bp,
         )
         prices[bar.id] = {
             "total_toman": info.get("total", 0) // 10,
@@ -92,7 +103,8 @@ def _calc_bar_prices(db: Session, bars, dealer):
             "margin_pct": margin_pct,
             "weight": str(p.weight),
             "purity": int(p.purity),
-            "gold_price": gold_price,
+            "gold_price": p_price,
+            "base_purity": p_bp,
             "tax_percent": tax_percent,
         }
     return prices
@@ -306,6 +318,39 @@ async def buyback_list(
 
 
 # ==========================================
+# Physical Inventory
+# ==========================================
+
+@router.get("/inventory", response_class=HTMLResponse)
+async def dealer_inventory(
+    request: Request,
+    metal_type: str = "",
+    status: str = "",
+    page: int = 1,
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    bars, total, inv_stats = dealer_service.get_inventory_at_location(
+        db, dealer.id, metal_type=metal_type, status_filter=status, page=page,
+    )
+    total_pages = (total + 29) // 30
+
+    response = templates.TemplateResponse("dealer/inventory.html", {
+        "request": request,
+        "dealer": dealer,
+        "bars": bars,
+        "total": total,
+        "inv_stats": inv_stats,
+        "page": page,
+        "total_pages": total_pages,
+        "metal_type": metal_type,
+        "status_filter": status,
+        "active_page": "inventory",
+    })
+    return response
+
+
+# ==========================================
 # Buyback Bar Lookup (AJAX)
 # ==========================================
 
@@ -329,14 +374,15 @@ async def buyback_lookup(
     if not product:
         return JSONResponse({"found": False, "error": "محصول مرتبط یافت نشد"})
 
-    # Calculate raw gold value (buyback = gold value without wage/profit/tax)
+    # Calculate raw metal value (buyback = metal value without wage/profit/tax)
     from common.templating import get_setting_from_db
-    gold_price = get_price_value(db, GOLD_18K)
+    p_price, p_bp, _ = get_product_pricing(db, product)
 
     info = calculate_bar_price(
         weight=product.weight, purity=product.purity,
         wage_percent=0,
-        base_gold_price_18k=gold_price, tax_percent=0,
+        base_metal_price=p_price, tax_percent=0,
+        base_purity=p_bp,
     )
     raw_gold_toman = info.get("total", 0) // 10
 
@@ -346,7 +392,8 @@ async def buyback_lookup(
     full_info = calculate_bar_price(
         weight=product.weight, purity=product.purity,
         wage_percent=ec_wage,
-        base_gold_price_18k=gold_price, tax_percent=tax_percent,
+        base_metal_price=p_price, tax_percent=tax_percent,
+        base_purity=p_bp,
     )
     retail_toman = full_info.get("total", 0) // 10
 

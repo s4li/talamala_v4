@@ -15,7 +15,7 @@ from modules.user.models import User
 from modules.dealer.models import DealerSale, BuybackRequest, BuybackStatus
 from modules.inventory.models import Bar, BarStatus, OwnershipHistory
 from modules.catalog.models import ProductTierWage
-from modules.pricing.service import get_end_customer_wage, get_dealer_margin
+from modules.pricing.service import get_end_customer_wage, get_dealer_margin, get_product_pricing, get_price_value
 from common.helpers import now_utc, generate_unique_claim_code
 
 
@@ -183,13 +183,7 @@ class DealerService:
         discount_wage_percent: float = 0.0,
     ) -> Dict[str, Any]:
         """Process a POS sale: dealer sells a bar to a walk-in customer."""
-        # Staleness guard: block sale if gold price is expired
         from modules.pricing.service import require_fresh_price
-        from modules.pricing.models import GOLD_18K
-        try:
-            require_fresh_price(db, GOLD_18K)
-        except ValueError as e:
-            return {"success": False, "message": str(e)}
 
         dealer = self.get_dealer(db, dealer_id)
         if not dealer or not dealer.is_active:
@@ -203,8 +197,19 @@ class DealerService:
         if bar.dealer_id != dealer.id:
             return {"success": False, "message": "این شمش در محل نمایندگی شما نیست"}
 
-        # --- Resolve wage tiers for discount validation & gold profit ---
+        # --- Resolve metal type + pricing ---
         product = bar.product
+        metal_type = (product.metal_type if product else "gold") or "gold"
+        metal_price, base_purity, metal_info = get_product_pricing(db, product) if product else (0, 750, {})
+
+        # Staleness guard: block sale if metal price is expired
+        if product:
+            try:
+                require_fresh_price(db, metal_info["pricing_code"])
+            except ValueError as e:
+                return {"success": False, "message": str(e)}
+
+        # --- Resolve wage tiers for discount validation & metal profit ---
         ec_wage_pct = 0.0
         dealer_wage_pct = 0.0
         margin_pct = 0.0
@@ -219,13 +224,9 @@ class DealerService:
         if margin_pct <= 0:
             discount_wage_percent = 0.0  # no margin = no discount possible
 
-        # Fetch current gold price (needed for storage + discount verification)
-        from modules.pricing.service import get_price_value
-        current_gold_price = get_price_value(db, GOLD_18K)
-
         # Server-side authoritative price calculation
         # When discount is applied, recalculate on server to avoid JS float rounding
-        # and gold price change between page load and submission
+        # and metal price change between page load and submission
         if product:
             from modules.pricing.calculator import calculate_bar_price
             from common.templating import get_setting_from_db
@@ -234,7 +235,8 @@ class DealerService:
             full_price = calculate_bar_price(
                 weight=product.weight, purity=product.purity,
                 wage_percent=ec_wage_pct,
-                base_gold_price_18k=current_gold_price, tax_percent=tax_pct,
+                base_metal_price=metal_price, tax_percent=tax_pct,
+                base_purity=base_purity,
             )
             if discount_wage_percent > 0:
                 raw_gold = full_price.get("raw_gold", 0)
@@ -283,7 +285,8 @@ class DealerService:
             customer_mobile=customer_mobile,
             customer_national_id=customer_national_id,
             sale_price=sale_price,
-            applied_gold_price=current_gold_price,
+            applied_metal_price=metal_price,
+            metal_type=metal_type,
             commission_amount=0,
             discount_wage_percent=discount_wage_percent,
             description=description,
@@ -291,32 +294,34 @@ class DealerService:
         db.add(sale)
         db.flush()
 
-        # --- Gold settlement: auto-credit gold profit to dealer wallet ---
-        gold_profit_mg = 0
+        # --- Metal settlement: auto-credit profit to dealer wallet ---
+        metal_profit_mg = 0
         if product and margin_pct > 0:
             effective_margin = margin_pct - discount_wage_percent
             if effective_margin > 0:
-                gold_profit_grams = float(product.weight) * effective_margin / 100
-                gold_profit_mg = int(gold_profit_grams * 1000)
+                profit_grams = float(product.weight) * effective_margin / 100
+                metal_profit_mg = int(profit_grams * 1000)
 
-        sale.gold_profit_mg = gold_profit_mg
+        sale.metal_profit_mg = metal_profit_mg
 
-        if gold_profit_mg > 0:
+        if metal_profit_mg > 0 and metal_info:
             from modules.wallet.service import wallet_service
             from modules.wallet.models import AssetCode
+            asset_code = AssetCode(metal_info["asset_code"])
+            metal_label = metal_info.get("label", "فلز")
             wallet_service.deposit(
-                db, dealer_id, gold_profit_mg,
-                reference_type="pos_gold_profit",
+                db, dealer_id, metal_profit_mg,
+                reference_type=f"pos_{metal_type}_profit",
                 reference_id=str(sale.id),
-                description=f"سود طلایی فروش شمش {bar.serial_code} ({gold_profit_mg / 1000:.3f} گرم)",
-                asset_code=AssetCode.XAU_MG,
+                description=f"سود {metal_label}ی فروش شمش {bar.serial_code} ({metal_profit_mg / 1000:.3f} گرم)",
+                asset_code=asset_code,
             )
 
         return {
             "success": True,
             "message": f"فروش شمش {bar.serial_code} ثبت شد",
             "sale": sale,
-            "gold_profit_mg": gold_profit_mg,
+            "metal_profit_mg": metal_profit_mg,
             "claim_code": bar.claim_code,
         }
 
@@ -460,9 +465,14 @@ class DealerService:
             .filter(DealerSale.dealer_id == dealer_id)
             .scalar()
         )
-        total_gold_profit_mg = (
-            db.query(sa_func.coalesce(sa_func.sum(DealerSale.gold_profit_mg), 0))
-            .filter(DealerSale.dealer_id == dealer_id)
+        gold_profit_mg = (
+            db.query(sa_func.coalesce(sa_func.sum(DealerSale.metal_profit_mg), 0))
+            .filter(DealerSale.dealer_id == dealer_id, DealerSale.metal_type == "gold")
+            .scalar()
+        )
+        silver_profit_mg = (
+            db.query(sa_func.coalesce(sa_func.sum(DealerSale.metal_profit_mg), 0))
+            .filter(DealerSale.dealer_id == dealer_id, DealerSale.metal_type == "silver")
             .scalar()
         )
         pending_buybacks = (
@@ -473,7 +483,8 @@ class DealerService:
         return {
             "total_sales": total_sales,
             "total_revenue": total_revenue,
-            "total_gold_profit_mg": total_gold_profit_mg,
+            "total_gold_profit_mg": gold_profit_mg,
+            "total_silver_profit_mg": silver_profit_mg,
             "pending_buybacks": pending_buybacks,
         }
 
@@ -490,10 +501,10 @@ class DealerService:
         if not dealer:
             return {"products": [], "gold_price_18k": 0, "tax_percent": "0"}
 
-        # Get gold price + tax
-        from modules.pricing.service import get_price_value
+        # Get tax (metal prices are resolved per-product below)
         from common.templating import get_setting_from_db
-        gold_price = get_price_value(db, GOLD_18K)
+        from modules.pricing.models import GOLD_18K
+        gold_price = get_price_value(db, GOLD_18K)  # default display price
         tax_percent = get_setting_from_db(db, "tax_percent", "10")
 
         # Get available bars at dealer, grouped by product
@@ -541,12 +552,15 @@ class DealerService:
 
         result_products = []
         for p in products:
+            # Per-product metal pricing
+            p_price, p_bp, _ = get_product_pricing(db, p)
             ec_wage = get_end_customer_wage(db, p)
             price_info = calculate_bar_price(
                 weight=p.weight, purity=p.purity,
                 wage_percent=ec_wage,
-                base_gold_price_18k=gold_price,
+                base_metal_price=p_price,
                 tax_percent=float(tax_percent),
+                base_purity=p_bp,
             )
 
             # Dealer's tier wage from batch map
@@ -621,8 +635,15 @@ class DealerService:
         total_revenue = (
             db.query(sa_func.coalesce(sa_func.sum(DealerSale.sale_price), 0)).scalar()
         )
-        total_gold_profit_mg = (
-            db.query(sa_func.coalesce(sa_func.sum(DealerSale.gold_profit_mg), 0)).scalar()
+        gold_profit_mg = (
+            db.query(sa_func.coalesce(sa_func.sum(DealerSale.metal_profit_mg), 0))
+            .filter(DealerSale.metal_type == "gold")
+            .scalar()
+        )
+        silver_profit_mg = (
+            db.query(sa_func.coalesce(sa_func.sum(DealerSale.metal_profit_mg), 0))
+            .filter(DealerSale.metal_type == "silver")
+            .scalar()
         )
         pending_buybacks = (
             db.query(BuybackRequest).filter(BuybackRequest.status == BuybackStatus.PENDING).count()
@@ -632,7 +653,8 @@ class DealerService:
             "active_dealers": active_dealers,
             "total_sales": total_sales,
             "total_revenue": total_revenue,
-            "total_gold_profit_mg": total_gold_profit_mg,
+            "total_gold_profit_mg": gold_profit_mg,
+            "total_silver_profit_mg": silver_profit_mg,
             "pending_buybacks": pending_buybacks,
         }
 
@@ -651,7 +673,7 @@ class DealerService:
     ) -> Tuple[List[DealerSale], int, Dict[str, Any]]:
         """List all dealer sales with filters + aggregate stats for the filtered set."""
         from modules.inventory.models import Bar
-        from modules.catalog.models import Product, ProductCategoryLink, ProductCategory
+        from modules.catalog.models import Product
 
         q = db.query(DealerSale).options(
             joinedload(DealerSale.dealer),
@@ -696,7 +718,6 @@ class DealerService:
             q = q.filter(DealerSale.discount_wage_percent == 0)
 
         # --- Aggregates on filtered set ---
-        # Build a clean filter-only query (no joinedload) for aggregates
         ids_subq = q.with_entities(DealerSale.id).subquery()
         total = q.count()
 
@@ -716,23 +737,12 @@ class DealerService:
                 .scalar()
             )
 
-            # --- Metal-specific stats (gold vs silver) ---
-            silver_pids = (
-                db.query(ProductCategoryLink.product_id)
-                .join(ProductCategory, ProductCategory.id == ProductCategoryLink.category_id)
-                .filter(ProductCategory.slug.like("silver%"))
-                .distinct()
-            )
-
-            def _metal_agg(is_silver: bool):
+            # --- Metal-specific stats using DealerSale.metal_type ---
+            def _metal_agg(metal_key: str):
                 """Calculate weight, wage_mg, dealer_profit_mg for a metal type."""
-                metal_filter = (
-                    Product.id.in_(silver_pids) if is_silver
-                    else ~Product.id.in_(silver_pids)
-                )
                 base_filters = [
                     DealerSale.id.in_(filtered_ids),
-                    metal_filter,
+                    DealerSale.metal_type == metal_key,
                 ]
                 weight = (
                     db.query(sa_func.coalesce(sa_func.sum(Product.weight), 0))
@@ -751,17 +761,15 @@ class DealerService:
                     .scalar()
                 )
                 dealer_profit = (
-                    db.query(sa_func.coalesce(sa_func.sum(DealerSale.gold_profit_mg), 0))
-                    .join(Bar, DealerSale.bar_id == Bar.id)
-                    .join(Product, Bar.product_id == Product.id)
+                    db.query(sa_func.coalesce(sa_func.sum(DealerSale.metal_profit_mg), 0))
                     .filter(*base_filters)
                     .scalar()
                 )
                 our = int(wage_mg) - int(dealer_profit)
                 return int(float(weight) * 1000), our, int(dealer_profit)
 
-            gold_weight_mg, gold_our_mg, gold_dealer_mg = _metal_agg(False)
-            silver_weight_mg, silver_our_mg, silver_dealer_mg = _metal_agg(True)
+            gold_weight_mg, gold_our_mg, gold_dealer_mg = _metal_agg("gold")
+            silver_weight_mg, silver_our_mg, silver_dealer_mg = _metal_agg("silver")
         else:
             filtered_revenue = 0
             filtered_discount_count = 0
@@ -792,6 +800,237 @@ class DealerService:
         )
 
         return sales, total, stats
+
+
+    # ------------------------------------------
+    # Dealer Analytics
+    # ------------------------------------------
+
+    def get_daily_sales_data(self, db: Session, dealer_id: int, days: int = 30) -> List[Dict[str, Any]]:
+        """Get daily sales count + revenue for the last N days."""
+        from datetime import timedelta
+        cutoff = now_utc() - timedelta(days=days)
+
+        rows = (
+            db.query(
+                sa_func.cast(DealerSale.created_at, sa_func.DATE if hasattr(sa_func, 'DATE') else None).label("dt")
+                if False else  # PostgreSQL specific cast
+                sa_func.date(DealerSale.created_at).label("dt"),
+                sa_func.count(DealerSale.id).label("cnt"),
+                sa_func.coalesce(sa_func.sum(DealerSale.sale_price), 0).label("rev"),
+                sa_func.coalesce(
+                    sa_func.sum(
+                        sa_func.case(
+                            (DealerSale.metal_type == "gold", DealerSale.metal_profit_mg),
+                            else_=0,
+                        )
+                    ), 0
+                ).label("gold_mg"),
+                sa_func.coalesce(
+                    sa_func.sum(
+                        sa_func.case(
+                            (DealerSale.metal_type == "silver", DealerSale.metal_profit_mg),
+                            else_=0,
+                        )
+                    ), 0
+                ).label("silver_mg"),
+            )
+            .filter(DealerSale.dealer_id == dealer_id, DealerSale.created_at >= cutoff)
+            .group_by("dt")
+            .order_by("dt")
+            .all()
+        )
+
+        result = []
+        for r in rows:
+            dt_str = str(r.dt) if r.dt else ""
+            result.append({
+                "date": dt_str,
+                "count": int(r.cnt),
+                "revenue": int(r.rev),
+                "gold_profit_mg": int(r.gold_mg),
+                "silver_profit_mg": int(r.silver_mg),
+            })
+        return result
+
+    def get_metal_profit_breakdown(self, db: Session, dealer_id: int) -> Dict[str, Any]:
+        """Gold vs silver profit aggregate."""
+        gold_mg = (
+            db.query(sa_func.coalesce(sa_func.sum(DealerSale.metal_profit_mg), 0))
+            .filter(DealerSale.dealer_id == dealer_id, DealerSale.metal_type == "gold")
+            .scalar()
+        )
+        silver_mg = (
+            db.query(sa_func.coalesce(sa_func.sum(DealerSale.metal_profit_mg), 0))
+            .filter(DealerSale.dealer_id == dealer_id, DealerSale.metal_type == "silver")
+            .scalar()
+        )
+        gold_count = (
+            db.query(DealerSale)
+            .filter(DealerSale.dealer_id == dealer_id, DealerSale.metal_type == "gold")
+            .count()
+        )
+        silver_count = (
+            db.query(DealerSale)
+            .filter(DealerSale.dealer_id == dealer_id, DealerSale.metal_type == "silver")
+            .count()
+        )
+        return {
+            "gold_mg": int(gold_mg),
+            "silver_mg": int(silver_mg),
+            "gold_count": gold_count,
+            "silver_count": silver_count,
+        }
+
+    def get_period_comparison(self, db: Session, dealer_id: int) -> Dict[str, Any]:
+        """This month vs last month stats."""
+        from datetime import timedelta
+        today = now_utc()
+        # First day of current month
+        month_start = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        # First day of last month
+        if month_start.month == 1:
+            last_month_start = month_start.replace(year=month_start.year - 1, month=12)
+        else:
+            last_month_start = month_start.replace(month=month_start.month - 1)
+
+        def _period_stats(start, end):
+            q = db.query(
+                sa_func.count(DealerSale.id),
+                sa_func.coalesce(sa_func.sum(DealerSale.sale_price), 0),
+                sa_func.coalesce(sa_func.sum(DealerSale.metal_profit_mg), 0),
+            ).filter(
+                DealerSale.dealer_id == dealer_id,
+                DealerSale.created_at >= start,
+                DealerSale.created_at < end,
+            )
+            row = q.one()
+            return {"sales": int(row[0]), "revenue": int(row[1]), "profit_mg": int(row[2])}
+
+        this_m = _period_stats(month_start, today)
+        last_m = _period_stats(last_month_start, month_start)
+
+        # Calculate percentage change
+        change = {}
+        for key in ("sales", "revenue", "profit_mg"):
+            if last_m[key] > 0:
+                change[key] = round((this_m[key] - last_m[key]) / last_m[key] * 100, 1)
+            else:
+                change[key] = 100.0 if this_m[key] > 0 else 0.0
+
+        return {"this_month": this_m, "last_month": last_m, "change_pct": change}
+
+    def get_inventory_value(self, db: Session, dealer_id: int) -> Dict[str, Any]:
+        """Current inventory value at spot prices."""
+        from modules.catalog.models import Product
+        from modules.pricing.models import GOLD_18K, SILVER
+
+        gold_price = get_price_value(db, GOLD_18K)
+        silver_price = get_price_value(db, SILVER)
+
+        bars = (
+            db.query(Bar)
+            .filter(Bar.dealer_id == dealer_id, Bar.status == BarStatus.ASSIGNED)
+            .all()
+        )
+
+        gold_val = 0
+        silver_val = 0
+        for bar in bars:
+            p = bar.product
+            if not p:
+                continue
+            w = float(p.weight) if p.weight else 0
+            purity = float(p.purity) if p.purity else 750
+            mt = getattr(p, "metal_type", "gold") or "gold"
+            if mt == "silver":
+                unit = (silver_price / 999) * purity if silver_price else 0
+                silver_val += int(w * unit)
+            else:
+                unit = (gold_price / 750) * purity if gold_price else 0
+                gold_val += int(w * unit)
+
+        return {
+            "gold_value_rial": gold_val,
+            "silver_value_rial": silver_val,
+            "total_value_rial": gold_val + silver_val,
+        }
+
+    # ------------------------------------------
+    # Dealer Physical Inventory
+    # ------------------------------------------
+
+    def get_inventory_at_location(
+        self, db: Session, dealer_id: int,
+        metal_type: str = "", status_filter: str = "",
+        page: int = 1, per_page: int = 30,
+    ) -> Tuple[List[Bar], int, Dict[str, Any]]:
+        """Get all bars at dealer's location with optional filters + summary stats."""
+        from modules.catalog.models import Product
+
+        q = db.query(Bar).filter(Bar.dealer_id == dealer_id)
+
+        if metal_type:
+            q = q.join(Product, Bar.product_id == Product.id).filter(Product.metal_type == metal_type)
+        if status_filter:
+            q = q.filter(Bar.status == status_filter)
+
+        total = q.count()
+        bars = (
+            q.order_by(Bar.status, Bar.serial_code)
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+
+        stats = self._calc_inventory_stats(db, dealer_id)
+        return bars, total, stats
+
+    def _calc_inventory_stats(self, db: Session, dealer_id: int) -> Dict[str, Any]:
+        """Aggregate inventory statistics for a dealer location."""
+        from modules.catalog.models import Product
+
+        all_bars = (
+            db.query(Bar)
+            .filter(Bar.dealer_id == dealer_id)
+            .all()
+        )
+
+        total_bars = len(all_bars)
+        gold_weight_g = 0.0
+        silver_weight_g = 0.0
+        gold_bars = 0
+        silver_bars = 0
+        by_status: Dict[str, int] = {}
+
+        for bar in all_bars:
+            # Count by status
+            st = bar.status if isinstance(bar.status, str) else bar.status.value
+            by_status[st] = by_status.get(st, 0) + 1
+
+            p = bar.product
+            if not p:
+                continue
+            w = float(p.weight) if p.weight else 0
+            mt = getattr(p, "metal_type", "gold") or "gold"
+            if mt == "silver":
+                silver_bars += 1
+                silver_weight_g += w
+            else:
+                gold_bars += 1
+                gold_weight_g += w
+
+        return {
+            "total_bars": total_bars,
+            "gold_bars": gold_bars,
+            "silver_bars": silver_bars,
+            "gold_weight_g": round(gold_weight_g, 3),
+            "silver_weight_g": round(silver_weight_g, 3),
+            "by_status": by_status,
+            "assigned_count": by_status.get("Assigned", 0),
+            "reserved_count": by_status.get("Reserved", 0),
+            "sold_count": by_status.get("Sold", 0),
+        }
 
 
 dealer_service = DealerService()

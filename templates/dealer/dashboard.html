@@ -11,7 +11,7 @@
     <span class="text-muted">{{ dealer.display_name }}</span>
 </div>
 
-<!-- Stats Cards -->
+<!-- ========== ROW 1: Main Stats ========== -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-1">
         <div class="stat-card-tm">
@@ -30,26 +30,119 @@
     <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-3">
         <div class="stat-card-tm">
             <i class="bi bi-gem"></i>
-            <div class="stat-value" style="color:#fbbf24;">{{ stats.total_gold_profit_mg | gold_gram }}</div>
-            <div class="stat-label">سود طلایی کل</div>
+            <div class="stat-value" style="color:#fbbf24;">{{ stats.total_gold_profit_mg | metal_gram }}</div>
+            <div class="stat-label">سود طلایی</div>
+            {% if stats.total_silver_profit_mg %}
+            <div class="stat-value mt-1" style="color:#adb5bd;">{{ stats.total_silver_profit_mg | metal_gram }}</div>
+            <div class="stat-label">سود نقره‌ای</div>
+            {% endif %}
         </div>
     </div>
     <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-4">
         <div class="stat-card-tm">
-            <i class="bi bi-hourglass-split"></i>
-            <div class="stat-value">{{ stats.pending_buybacks | persian_number }}</div>
-            <div class="stat-label">بازخرید در انتظار</div>
+            <i class="bi bi-box-seam"></i>
+            <div class="stat-value">{{ inventory_value.total_value_rial | toman }}</div>
+            <div class="stat-label">ارزش موجودی (تومان)</div>
         </div>
     </div>
 </div>
 
-<!-- Wallet Balance -->
+<!-- ========== ROW 2: Period Comparison ========== -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4 tm-animate-fade-in-up tm-delay-5">
+        <div class="stat-card-tm">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label mb-1">فروش این ماه</div>
+                    <div class="stat-value">{{ period_comparison.this_month.sales | persian_number }}</div>
+                </div>
+                {% set ch = period_comparison.change_pct.sales %}
+                {% if ch > 0 %}
+                <span class="badge bg-success"><i class="bi bi-arrow-up"></i> {{ ch }}%</span>
+                {% elif ch < 0 %}
+                <span class="badge bg-danger"><i class="bi bi-arrow-down"></i> {{ ch }}%</span>
+                {% else %}
+                <span class="badge bg-secondary">—</span>
+                {% endif %}
+            </div>
+            <small class="text-muted">ماه قبل: {{ period_comparison.last_month.sales | persian_number }}</small>
+        </div>
+    </div>
+    <div class="col-md-4 tm-animate-fade-in-up tm-delay-6">
+        <div class="stat-card-tm">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label mb-1">درآمد این ماه</div>
+                    <div class="stat-value">{{ period_comparison.this_month.revenue | toman }}</div>
+                </div>
+                {% set ch = period_comparison.change_pct.revenue %}
+                {% if ch > 0 %}
+                <span class="badge bg-success"><i class="bi bi-arrow-up"></i> {{ ch }}%</span>
+                {% elif ch < 0 %}
+                <span class="badge bg-danger"><i class="bi bi-arrow-down"></i> {{ ch }}%</span>
+                {% else %}
+                <span class="badge bg-secondary">—</span>
+                {% endif %}
+            </div>
+            <small class="text-muted">ماه قبل: {{ period_comparison.last_month.revenue | toman }}</small>
+        </div>
+    </div>
+    <div class="col-md-4 tm-animate-fade-in-up tm-delay-7">
+        <div class="stat-card-tm">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label mb-1">سود فلزی این ماه</div>
+                    <div class="stat-value">{{ period_comparison.this_month.profit_mg | metal_gram }}</div>
+                </div>
+                {% set ch = period_comparison.change_pct.profit_mg %}
+                {% if ch > 0 %}
+                <span class="badge bg-success"><i class="bi bi-arrow-up"></i> {{ ch }}%</span>
+                {% elif ch < 0 %}
+                <span class="badge bg-danger"><i class="bi bi-arrow-down"></i> {{ ch }}%</span>
+                {% else %}
+                <span class="badge bg-secondary">—</span>
+                {% endif %}
+            </div>
+            <small class="text-muted">ماه قبل: {{ period_comparison.last_month.profit_mg | metal_gram }}</small>
+        </div>
+    </div>
+</div>
+
+<!-- ========== ROW 3: Charts ========== -->
+<div class="row g-3 mb-4">
+    <!-- Sales Trend Chart -->
+    <div class="col-lg-8 tm-animate-fade-in-up tm-delay-8">
+        <div class="card-tm no-hover h-100">
+            <div class="border-bottom pb-3 mb-3">
+                <i class="bi bi-graph-up me-1"></i>
+                <strong>روند فروش (۳۰ روز اخیر)</strong>
+            </div>
+            <div style="position:relative;height:280px;">
+                <canvas id="salesTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Metal Profit Breakdown -->
+    <div class="col-lg-4 tm-animate-fade-in-up tm-delay-9">
+        <div class="card-tm no-hover h-100">
+            <div class="border-bottom pb-3 mb-3">
+                <i class="bi bi-pie-chart me-1"></i>
+                <strong>تفکیک سود فلزی</strong>
+            </div>
+            <div style="position:relative;height:280px;">
+                <canvas id="metalProfitChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== ROW 4: Wallet + Inventory ========== -->
 <div class="row g-3 mb-4">
     <div class="col-md-6">
         <div class="stat-card-tm">
             <i class="bi bi-coin" style="color:#fbbf24;"></i>
             <div class="stat-value" style="color:#fbbf24;">{{ gold_balance.balance | gold_gram }}</div>
-            <div class="stat-label">موجودی طلا</div>
+            <div class="stat-label">موجودی طلا (کیف پول)</div>
         </div>
     </div>
     <div class="col-md-6">
@@ -61,9 +154,9 @@
     </div>
 </div>
 
-<!-- Quick Actions -->
+<!-- ========== ROW 5: Quick Actions ========== -->
 <div class="row g-3 mb-4">
-    <div class="col-md-4 tm-animate-fade-in-up tm-delay-6">
+    <div class="col-md-4 tm-animate-fade-in-up">
         <div class="card-tm no-hover tm-hover-lift h-100">
             <div class="text-center py-4 d-flex flex-column justify-content-between h-100">
                 <div>
@@ -82,14 +175,13 @@
                 </div>
                 <div>
                     <a href="/dealer/pos" class="btn btn-tm-primary px-4">
-                        <i class="bi bi-plus-circle me-1"></i>
-                        ثبت فروش
+                        <i class="bi bi-plus-circle me-1"></i> ثبت فروش
                     </a>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4 tm-animate-fade-in-up tm-delay-7">
+    <div class="col-md-4 tm-animate-fade-in-up">
         <div class="card-tm no-hover tm-hover-lift h-100">
             <div class="text-center py-4 d-flex flex-column justify-content-between h-100">
                 <div>
@@ -99,14 +191,13 @@
                 </div>
                 <div>
                     <a href="/dealer/buyback" class="btn btn-tm-outline px-4">
-                        <i class="bi bi-plus-circle me-1"></i>
-                        ثبت بازخرید
+                        <i class="bi bi-plus-circle me-1"></i> ثبت بازخرید
                     </a>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4 tm-animate-fade-in-up tm-delay-8">
+    <div class="col-md-4 tm-animate-fade-in-up">
         <div class="card-tm no-hover tm-hover-lift h-100">
             <div class="text-center py-4 d-flex flex-column justify-content-between h-100">
                 <div>
@@ -116,8 +207,7 @@
                 </div>
                 <div>
                     <a href="/wallet" class="btn btn-tm-outline px-4">
-                        <i class="bi bi-coin me-1"></i>
-                        کیف پول
+                        <i class="bi bi-coin me-1"></i> کیف پول
                     </a>
                 </div>
             </div>
@@ -125,7 +215,7 @@
     </div>
 </div>
 
-<!-- Dealer Info -->
+<!-- ========== ROW 6: Dealer Info ========== -->
 <div class="card-tm no-hover">
     <div class="border-bottom pb-3 mb-3">
         <i class="bi bi-info-circle me-1"></i>
@@ -146,4 +236,96 @@
         </tr>
     </table>
 </div>
+{% endblock %}
+
+{% block page_js %}
+<!-- Chart.js (local) -->
+<script src="/static/vendor/chartjs/chart.umd.min.js?v={{ STATIC_VER }}"></script>
+<script>
+(function() {
+    // ===== Sales Trend Line Chart =====
+    var salesData = {{ daily_sales | tojson }};
+    var labels = salesData.map(function(d) { return d.date; });
+    var revenues = salesData.map(function(d) { return d.revenue / 10; });
+    var counts = salesData.map(function(d) { return d.count; });
+
+    if (document.getElementById('salesTrendChart') && salesData.length > 0) {
+        new Chart(document.getElementById('salesTrendChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '\u062f\u0631\u0622\u0645\u062f (\u062a\u0648\u0645\u0627\u0646)',
+                        data: revenues,
+                        borderColor: '#D4A843',
+                        backgroundColor: 'rgba(212,168,67,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        yAxisID: 'y',
+                    },
+                    {
+                        label: '\u062a\u0639\u062f\u0627\u062f \u0641\u0631\u0648\u0634',
+                        data: counts,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13,110,253,0.1)',
+                        fill: false,
+                        tension: 0.4,
+                        yAxisID: 'y1',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: window.innerWidth < 768 ? 'bottom' : 'top',
+                        labels: { font: { size: 12 }, boxWidth: 30 }
+                    }
+                },
+                scales: {
+                    y: { type: 'linear', position: 'right', title: { display: true, text: '\u062a\u0648\u0645\u0627\u0646' }, ticks: { font: { size: 10 } } },
+                    y1: { type: 'linear', position: 'left', title: { display: true, text: '\u062a\u0639\u062f\u0627\u062f' }, grid: { drawOnChartArea: false }, ticks: { font: { size: 10 } } },
+                    x: { ticks: { maxRotation: 45, font: { size: 9 } } }
+                }
+            }
+        });
+    }
+
+    // ===== Metal Profit Doughnut =====
+    var metalData = {{ metal_breakdown | tojson }};
+    var goldMg = metalData.gold_mg || 0;
+    var silverMg = metalData.silver_mg || 0;
+
+    if (document.getElementById('metalProfitChart') && (goldMg > 0 || silverMg > 0)) {
+        new Chart(document.getElementById('metalProfitChart'), {
+            type: 'doughnut',
+            data: {
+                labels: [
+                    '\u0637\u0644\u0627 (' + (goldMg / 1000).toFixed(3) + ' \u06af\u0631\u0645)',
+                    '\u0646\u0642\u0631\u0647 (' + (silverMg / 1000).toFixed(3) + ' \u06af\u0631\u0645)'
+                ],
+                datasets: [{
+                    data: [goldMg, silverMg],
+                    backgroundColor: ['#fbbf24', '#adb5bd'],
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 12 }, boxWidth: 20, padding: 12 }
+                    }
+                }
+            }
+        });
+    }
+})();
+</script>
 {% endblock %}
