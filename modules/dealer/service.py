@@ -193,19 +193,27 @@ class DealerService:
             discount_wage_percent = 0.0  # no margin = no discount possible
 
         # Server-side price verification
+        # Tax is ALWAYS on full base wage (ec_wage_pct), discount only reduces wage portion
         if product and discount_wage_percent > 0:
             from modules.pricing.calculator import calculate_bar_price
             from modules.pricing.service import get_price_value
             from common.templating import get_setting_from_db
+            from decimal import Decimal, ROUND_FLOOR
             gold_price = get_price_value(db, GOLD_18K)
             tax_pct = float(get_setting_from_db(db, "tax_percent", "10"))
-            effective_wage = ec_wage_pct - discount_wage_percent
-            expected = calculate_bar_price(
+            # Full system price (tax calculated on full base wage)
+            full_price = calculate_bar_price(
                 weight=product.weight, purity=product.purity,
-                wage_percent=effective_wage,
+                wage_percent=ec_wage_pct,
                 base_gold_price_18k=gold_price, tax_percent=tax_pct,
             )
-            expected_total = expected.get("total", 0)
+            # Discount = rawGold * discount_pct / 100 (no tax on discount)
+            raw_gold = full_price.get("raw_gold", 0)
+            discount_rial = int(
+                (Decimal(str(raw_gold)) * Decimal(str(discount_wage_percent))
+                 / Decimal("100")).quantize(Decimal("1"), rounding=ROUND_FLOOR)
+            )
+            expected_total = full_price.get("total", 0) - discount_rial
             if abs(sale_price - expected_total) > 10:
                 return {"success": False, "message": "مبلغ فروش با قیمت محاسباتی مطابقت ندارد"}
 

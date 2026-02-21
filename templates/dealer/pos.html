@@ -218,29 +218,31 @@
     }
 
     // Mirror calculate_bar_price() from Python using Math.floor (ROUND_FLOOR)
+    // Tax is ALWAYS on full base wage — discount only reduces wage portion (no tax impact)
     function recalcPrice(bd, discPct) {
         var w = parseFloat(bd.weight);
         var pur = parseInt(bd.purity);
         var gp = bd.gold_price;
         var tp = bd.tax_percent;
-        var effWage = bd.ec_wage_pct - discPct;
 
         var pricePerGram = (gp / 750) * pur;
         var unitPrice = Math.floor(pricePerGram);
         var rawGold = Math.floor(w * unitPrice);
-        var wage = Math.floor(rawGold * effWage / 100);
-        var tax = Math.floor(wage * tp / 100);
-        var total = rawGold + wage + tax;
-        return { rawGold: rawGold, wage: wage, tax: tax, total: total, totalToman: Math.floor(total / 10) };
+        // Full wage & tax (always on base wage, unaffected by discount)
+        var fullWage = Math.floor(rawGold * bd.ec_wage_pct / 100);
+        var tax = Math.floor(fullWage * tp / 100);
+        // Discount = only wage portion (rawGold * discPct / 100), no tax
+        var discountRial = Math.floor(rawGold * discPct / 100);
+        var total = rawGold + fullWage + tax - discountRial;
+        return { rawGold: rawGold, wage: fullWage, tax: tax, total: total, totalToman: Math.floor(total / 10), discountRial: discountRial };
     }
 
     // Convert Toman discount to approximate wage percent
+    // discount_toman = rawGold × pct/100 / 10 (no tax factor — discount is pure wage)
     function tomanToPct(bd, tomanDisc) {
         if (!bd || tomanDisc <= 0) return 0;
         var rawGold = recalcPrice(bd, 0).rawGold;
-        var taxFactor = 1 + bd.tax_percent / 100;
-        // discount_toman ≈ rawGold × pct/100 × (1+tax/100) / 10
-        var pct = tomanDisc * 10 * 100 / (rawGold * taxFactor);
+        var pct = tomanDisc * 10 * 100 / rawGold;
         // Clamp to margin
         if (pct > bd.margin_pct) pct = bd.margin_pct;
         if (pct < 0) pct = 0;
