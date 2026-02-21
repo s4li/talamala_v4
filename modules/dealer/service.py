@@ -9,7 +9,7 @@ from typing import List, Tuple, Dict, Any, Optional
 from decimal import Decimal
 
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func as sa_func, or_
+from sqlalchemy import func as sa_func, or_, case as sa_case
 
 from modules.user.models import User
 from modules.dealer.models import (
@@ -964,7 +964,7 @@ class DealerService:
                 sa_func.coalesce(sa_func.sum(DealerSale.sale_price), 0).label("rev"),
                 sa_func.coalesce(
                     sa_func.sum(
-                        sa_func.case(
+                        sa_case(
                             (DealerSale.metal_type == "gold", DealerSale.metal_profit_mg),
                             else_=0,
                         )
@@ -972,7 +972,7 @@ class DealerService:
                 ).label("gold_mg"),
                 sa_func.coalesce(
                     sa_func.sum(
-                        sa_func.case(
+                        sa_case(
                             (DealerSale.metal_type == "silver", DealerSale.metal_profit_mg),
                             else_=0,
                         )
