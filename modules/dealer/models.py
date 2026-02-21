@@ -33,6 +33,15 @@ class BuybackStatus(str, enum.Enum):
     REJECTED = "Rejected"     # رد شده
 
 
+class B2BOrderStatus(str, enum.Enum):
+    SUBMITTED = "Submitted"     # ارسال شده — در انتظار تایید ادمین
+    APPROVED = "Approved"       # تایید شده — آماده پرداخت
+    PAID = "Paid"               # پرداخت شده — آماده ارسال شمش
+    FULFILLED = "Fulfilled"     # تحویل شده — شمش‌ها تخصیص یافته
+    REJECTED = "Rejected"       # رد شده
+    CANCELLED = "Cancelled"     # لغو شده
+
+
 # ==========================================
 # Dealer Tier (سطوح نمایندگان)
 # ==========================================
@@ -160,3 +169,78 @@ class SubDealerRelation(Base):
     @property
     def status_color(self) -> str:
         return "success" if self.is_active else "secondary"
+
+
+# ==========================================
+# B2B Bulk Orders (سفارش عمده نمایندگان)
+# ==========================================
+
+class B2BOrder(Base):
+    __tablename__ = "b2b_orders"
+
+    id = Column(Integer, primary_key=True)
+    dealer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    status = Column(String, default=B2BOrderStatus.SUBMITTED, nullable=False)
+    total_amount = Column(BigInteger, default=0, nullable=False)      # ریال — مجموع line_total آیتم‌ها
+    applied_tax_percent = Column(Numeric(5, 2), nullable=True)
+    payment_method = Column(String, nullable=True)                     # "wallet"
+    payment_ref = Column(String, nullable=True)
+    paid_at = Column(DateTime(timezone=True), nullable=True)
+    admin_note = Column(Text, nullable=True)
+    approved_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    fulfilled_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    dealer = relationship("User", foreign_keys=[dealer_id])
+    approver = relationship("User", foreign_keys=[approved_by])
+    items = relationship("B2BOrderItem", back_populates="order", cascade="all, delete-orphan")
+
+    @property
+    def status_label(self) -> str:
+        labels = {
+            B2BOrderStatus.SUBMITTED: "در انتظار تایید",
+            B2BOrderStatus.APPROVED: "تایید شده — آماده پرداخت",
+            B2BOrderStatus.PAID: "پرداخت شده — آماده تحویل",
+            B2BOrderStatus.FULFILLED: "تحویل شده",
+            B2BOrderStatus.REJECTED: "رد شده",
+            B2BOrderStatus.CANCELLED: "لغو شده",
+        }
+        return labels.get(self.status, self.status)
+
+    @property
+    def status_color(self) -> str:
+        colors = {
+            B2BOrderStatus.SUBMITTED: "warning",
+            B2BOrderStatus.APPROVED: "info",
+            B2BOrderStatus.PAID: "primary",
+            B2BOrderStatus.FULFILLED: "success",
+            B2BOrderStatus.REJECTED: "danger",
+            B2BOrderStatus.CANCELLED: "secondary",
+        }
+        return colors.get(self.status, "secondary")
+
+    @property
+    def total_items(self) -> int:
+        return sum(item.quantity for item in self.items) if self.items else 0
+
+
+class B2BOrderItem(Base):
+    __tablename__ = "b2b_order_items"
+
+    id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey("b2b_orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="RESTRICT"), nullable=False, index=True)
+    quantity = Column(Integer, nullable=False)
+    applied_wage_percent = Column(Numeric(5, 2), nullable=False)       # اجرت سطح نماینده
+    applied_metal_price = Column(BigInteger, nullable=True)            # قیمت فلز در لحظه ثبت
+    unit_price = Column(BigInteger, nullable=False)                    # قیمت واحد (ریال)
+    line_total = Column(BigInteger, nullable=False)                    # unit_price × quantity
+
+    order = relationship("B2BOrder", back_populates="items")
+    product = relationship("Product")
+
+    __table_args__ = (
+        CheckConstraint("quantity > 0", name="ck_b2b_item_qty_positive"),
+    )

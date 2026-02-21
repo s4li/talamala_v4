@@ -1,0 +1,99 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}سفارش‌های عمده نمایندگان - ادمین طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-cart4 text-tm-primary"></i>
+        سفارش‌های عمده نمایندگان
+    </h4>
+    <span class="badge-tm badge-tm-info">{{ total }} سفارش</span>
+</div>
+
+<!-- Filters -->
+<div class="card-tm no-hover mb-4 tm-animate-fade-in-up tm-delay-1">
+    <form method="get" action="/admin/dealers/b2b-orders" class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label">نماینده</label>
+            <select name="dealer_id" class="form-select form-select-sm">
+                <option value="">همه نمایندگان</option>
+                {% for d in dealers %}
+                <option value="{{ d.id }}" {% if filter_dealer_id == d.id|string %}selected{% endif %}>
+                    {{ d.full_name }} ({{ d.mobile }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">وضعیت</label>
+            <select name="status" class="form-select form-select-sm">
+                <option value="">همه</option>
+                <option value="Submitted" {% if filter_status == 'Submitted' %}selected{% endif %}>در انتظار تایید</option>
+                <option value="Approved" {% if filter_status == 'Approved' %}selected{% endif %}>تایید شده</option>
+                <option value="Paid" {% if filter_status == 'Paid' %}selected{% endif %}>پرداخت شده</option>
+                <option value="Fulfilled" {% if filter_status == 'Fulfilled' %}selected{% endif %}>تحویل شده</option>
+                <option value="Rejected" {% if filter_status == 'Rejected' %}selected{% endif %}>رد شده</option>
+                <option value="Cancelled" {% if filter_status == 'Cancelled' %}selected{% endif %}>لغو شده</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-sm btn-tm-primary w-100">
+                <i class="bi bi-funnel"></i> فیلتر
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Orders Table -->
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+    <div class="table-responsive">
+        <table class="table table-tm mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>نماینده</th>
+                    <th>تعداد شمش</th>
+                    <th>مبلغ کل</th>
+                    <th>وضعیت</th>
+                    <th>تاریخ</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td class="fw-bold">{{ order.id }}</td>
+                    <td>
+                        {% if order.dealer %}
+                        {{ order.dealer.full_name }}
+                        <br><small class="text-muted" dir="ltr">{{ order.dealer.mobile }}</small>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>{{ order.total_items | persian_number }}</td>
+                    <td class="fw-bold">{{ order.total_amount | toman }} <small class="text-muted">تومان</small></td>
+                    <td><span class="badge bg-{{ order.status_color }}">{{ order.status_label }}</span></td>
+                    <td>{{ order.created_at | jdate }}</td>
+                    <td>
+                        <a href="/admin/dealers/b2b-orders/{{ order.id }}" class="btn btn-sm btn-outline-primary">
+                            جزئیات
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox" style="font-size:2rem;"></i>
+                        <div class="mt-2">سفارش عمده‌ای یافت نشد</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% from "components/pagination.html" import pagination %}
+{{ pagination(page, total_pages, '/admin/dealers/b2b-orders') }}
+{% endblock %}

@@ -376,6 +376,180 @@ async def dealer_inventory(
 
 
 # ==========================================
+# B2B Bulk Orders (Dealer)
+# ==========================================
+
+@router.get("/b2b-orders", response_class=HTMLResponse)
+async def b2b_order_list(
+    request: Request,
+    page: int = 1,
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    orders, total = dealer_service.get_b2b_orders(db, dealer.id, page=page)
+    total_pages = (total + 19) // 20
+
+    response = templates.TemplateResponse("dealer/b2b_orders.html", {
+        "request": request,
+        "dealer": dealer,
+        "orders": orders,
+        "total": total,
+        "page": page,
+        "total_pages": total_pages,
+        "active_page": "b2b_orders",
+    })
+    return response
+
+
+@router.get("/b2b-orders/new", response_class=HTMLResponse)
+async def b2b_order_new(
+    request: Request,
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    catalog = dealer_service.get_b2b_catalog_for_dealer(db, dealer.id)
+    irr_balance = wallet_service.get_balance(db, dealer.id, asset_code=AssetCode.IRR)
+
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("dealer/b2b_order_new.html", {
+        "request": request,
+        "dealer": dealer,
+        "catalog": catalog,
+        "irr_balance": irr_balance,
+        "csrf_token": csrf,
+        "active_page": "b2b_orders",
+        "error": None,
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/b2b-orders/new")
+async def b2b_order_submit(
+    request: Request,
+    csrf_token: str = Form(""),
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+
+    form = await request.form()
+
+    # Collect items from form: qty_{product_id} fields
+    items_data = []
+    for key, val in form.items():
+        if key.startswith("qty_") and val and val.strip().isdigit() and int(val.strip()) > 0:
+            product_id = int(key.replace("qty_", ""))
+            items_data.append({"product_id": product_id, "quantity": int(val.strip())})
+
+    result = dealer_service.create_b2b_order(db, dealer.id, items_data)
+
+    if result["success"]:
+        db.commit()
+        return RedirectResponse(
+            f"/dealer/b2b-orders/{result['order'].id}",
+            status_code=302,
+        )
+    else:
+        db.rollback()
+        # Re-render form with error
+        catalog = dealer_service.get_b2b_catalog_for_dealer(db, dealer.id)
+        irr_balance = wallet_service.get_balance(db, dealer.id, asset_code=AssetCode.IRR)
+        csrf = new_csrf_token()
+        response = templates.TemplateResponse("dealer/b2b_order_new.html", {
+            "request": request,
+            "dealer": dealer,
+            "catalog": catalog,
+            "irr_balance": irr_balance,
+            "csrf_token": csrf,
+            "active_page": "b2b_orders",
+            "error": result["message"],
+        })
+        response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+        return response
+
+
+@router.get("/b2b-orders/{order_id}", response_class=HTMLResponse)
+async def b2b_order_detail(
+    request: Request,
+    order_id: int,
+    msg: str = "",
+    error: str = "",
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    order = dealer_service.get_b2b_order(db, order_id, dealer_id=dealer.id)
+    if not order:
+        return RedirectResponse("/dealer/b2b-orders", status_code=302)
+
+    irr_balance = wallet_service.get_balance(db, dealer.id, asset_code=AssetCode.IRR)
+
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("dealer/b2b_order_detail.html", {
+        "request": request,
+        "dealer": dealer,
+        "order": order,
+        "irr_balance": irr_balance,
+        "csrf_token": csrf,
+        "msg": msg,
+        "error": error,
+        "active_page": "b2b_orders",
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/b2b-orders/{order_id}/pay")
+async def b2b_order_pay(
+    request: Request,
+    order_id: int,
+    csrf_token: str = Form(""),
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    result = dealer_service.pay_b2b_order(db, order_id, dealer.id)
+
+    if result["success"]:
+        db.commit()
+        return RedirectResponse(
+            f"/dealer/b2b-orders/{order_id}?msg={result['message']}",
+            status_code=302,
+        )
+    else:
+        db.rollback()
+        return RedirectResponse(
+            f"/dealer/b2b-orders/{order_id}?msg={result['message']}&error=1",
+            status_code=302,
+        )
+
+
+@router.post("/b2b-orders/{order_id}/cancel")
+async def b2b_order_cancel(
+    request: Request,
+    order_id: int,
+    csrf_token: str = Form(""),
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    result = dealer_service.cancel_b2b_order(db, order_id, dealer.id)
+
+    if result["success"]:
+        db.commit()
+        return RedirectResponse(
+            f"/dealer/b2b-orders/{order_id}?msg={result['message']}",
+            status_code=302,
+        )
+    else:
+        db.rollback()
+        return RedirectResponse(
+            f"/dealer/b2b-orders/{order_id}?msg={result['message']}&error=1",
+            status_code=302,
+        )
+
+
+# ==========================================
 # Buyback Bar Lookup (AJAX)
 # ==========================================
 

@@ -1,0 +1,175 @@
+{% extends "dealer/base_dealer.html" %}
+
+{% block title %}سفارش عمده #{{ order.id }} - طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-cart4 text-tm-primary"></i>
+        سفارش عمده #{{ order.id }}
+    </h4>
+    <a href="/dealer/b2b-orders" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-right"></i> بازگشت
+    </a>
+</div>
+
+{% if msg %}
+<div class="alert alert-{{ 'danger' if error else 'success' }} alert-dismissible fade show" role="alert">
+    <i class="bi bi-{{ 'exclamation-triangle' if error else 'check-circle' }} me-1"></i> {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Order Header -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 tm-animate-fade-in-up tm-delay-1">
+        <div class="stat-card-tm">
+            <i class="bi bi-hash"></i>
+            <div class="stat-value">{{ order.id }}</div>
+            <div class="stat-label">شماره سفارش</div>
+        </div>
+    </div>
+    <div class="col-md-3 tm-animate-fade-in-up tm-delay-2">
+        <div class="stat-card-tm">
+            <i class="bi bi-box-seam"></i>
+            <div class="stat-value">{{ order.total_items | persian_number }}</div>
+            <div class="stat-label">تعداد شمش</div>
+        </div>
+    </div>
+    <div class="col-md-3 tm-animate-fade-in-up tm-delay-3">
+        <div class="stat-card-tm">
+            <i class="bi bi-cash-coin" style="color:var(--tm-primary);"></i>
+            <div class="stat-value" style="color:var(--tm-primary);">{{ order.total_amount | toman }}</div>
+            <div class="stat-label">مبلغ کل (تومان)</div>
+        </div>
+    </div>
+    <div class="col-md-3 tm-animate-fade-in-up tm-delay-4">
+        <div class="stat-card-tm">
+            <div class="stat-value"><span class="badge bg-{{ order.status_color }} fs-6">{{ order.status_label }}</span></div>
+            <div class="stat-label">وضعیت</div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Info -->
+<div class="card-tm no-hover mb-4 tm-animate-fade-in-up tm-delay-5">
+    <div class="border-bottom pb-3 mb-3">
+        <i class="bi bi-info-circle me-1"></i>
+        <strong>اطلاعات سفارش</strong>
+    </div>
+    <table class="table table-tm table-borderless mb-0">
+        <tr>
+            <td class="text-muted">تاریخ ثبت</td>
+            <td>{{ order.created_at | jdate }}</td>
+            <td class="text-muted">مالیات</td>
+            <td>{{ order.applied_tax_percent }}%</td>
+        </tr>
+        {% if order.paid_at %}
+        <tr>
+            <td class="text-muted">تاریخ پرداخت</td>
+            <td>{{ order.paid_at | jdate }}</td>
+            <td class="text-muted">روش پرداخت</td>
+            <td>{{ 'کیف پول' if order.payment_method == 'wallet' else order.payment_method or '—' }}</td>
+        </tr>
+        {% endif %}
+        {% if order.fulfilled_at %}
+        <tr>
+            <td class="text-muted">تاریخ تحویل</td>
+            <td>{{ order.fulfilled_at | jdate }}</td>
+            <td></td><td></td>
+        </tr>
+        {% endif %}
+        {% if order.admin_note %}
+        <tr>
+            <td class="text-muted">یادداشت ادمین</td>
+            <td colspan="3">{{ order.admin_note }}</td>
+        </tr>
+        {% endif %}
+    </table>
+</div>
+
+<!-- Items Table -->
+<div class="card-tm no-hover mb-4 tm-animate-fade-in-up tm-delay-6">
+    <div class="border-bottom pb-3 mb-3">
+        <i class="bi bi-list-ul me-1"></i>
+        <strong>اقلام سفارش</strong>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-tm mb-0">
+            <thead>
+                <tr>
+                    <th>محصول</th>
+                    <th>وزن</th>
+                    <th>عیار</th>
+                    <th>اجرت</th>
+                    <th>قیمت واحد</th>
+                    <th>تعداد</th>
+                    <th>جمع ردیف</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.items %}
+                <tr>
+                    <td class="fw-bold">{{ item.product.name if item.product else '—' }}</td>
+                    <td>{{ item.product.weight if item.product else '—' }} گرم</td>
+                    <td>{{ item.product.purity | int if item.product else '—' }}</td>
+                    <td><span class="badge bg-info">{{ item.applied_wage_percent }}%</span></td>
+                    <td>{{ item.unit_price | toman }} <small class="text-muted">تومان</small></td>
+                    <td class="fw-bold">{{ item.quantity | persian_number }}</td>
+                    <td class="fw-bold">{{ item.line_total | toman }} <small class="text-muted">تومان</small></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-active">
+                    <td colspan="6" class="text-start fw-bold">جمع کل:</td>
+                    <td class="fw-bold" style="color:var(--tm-primary);">{{ order.total_amount | toman }} تومان</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+{% if order.status.value == 'Approved' %}
+<div class="card-tm no-hover mb-4">
+    <div class="border-bottom pb-3 mb-3">
+        <i class="bi bi-credit-card me-1 text-success"></i>
+        <strong>پرداخت سفارش</strong>
+    </div>
+    <p>
+        سفارش توسط ادمین تایید شده. برای تکمیل سفارش، از کیف پول پرداخت کنید.
+    </p>
+    <p>
+        <i class="bi bi-wallet2 text-success"></i>
+        موجودی فعلی: <strong class="text-success">{{ irr_balance.available | toman }} تومان</strong>
+    </p>
+    {% if irr_balance.available >= order.total_amount %}
+    <form method="post" action="/dealer/b2b-orders/{{ order.id }}/pay"
+          onsubmit="return confirm('آیا از پرداخت {{ order.total_amount | toman }} تومان از کیف پول مطمئن هستید؟')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-success">
+            <i class="bi bi-wallet-fill"></i> پرداخت {{ order.total_amount | toman }} تومان
+        </button>
+    </form>
+    {% else %}
+    <div class="alert alert-warning mb-0">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        موجودی کیف پول کافی نیست. لطفاً ابتدا <a href="/wallet">کیف پول</a> خود را شارژ کنید.
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if order.status.value in ('Submitted', 'Approved', 'Paid') %}
+<div class="d-flex justify-content-end">
+    <form method="post" action="/dealer/b2b-orders/{{ order.id }}/cancel"
+          onsubmit="return confirm('آیا از لغو سفارش مطمئن هستید؟{{ ' وجه پرداختی به کیف پول بازگشت داده می‌شود.' if order.status.value == 'Paid' else '' }}')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-x-circle"></i> لغو سفارش
+        </button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}

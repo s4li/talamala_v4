@@ -12,7 +12,10 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func as sa_func, or_
 
 from modules.user.models import User
-from modules.dealer.models import DealerSale, BuybackRequest, BuybackStatus, SubDealerRelation
+from modules.dealer.models import (
+    DealerSale, BuybackRequest, BuybackStatus, SubDealerRelation,
+    B2BOrder, B2BOrderItem, B2BOrderStatus,
+)
 from modules.inventory.models import Bar, BarStatus, OwnershipHistory
 from modules.catalog.models import ProductTierWage
 from modules.pricing.service import get_end_customer_wage, get_dealer_margin, get_product_pricing, get_price_value
@@ -1172,6 +1175,403 @@ class DealerService:
             "reserved_count": by_status.get("Reserved", 0),
             "sold_count": by_status.get("Sold", 0),
         }
+
+
+    # ------------------------------------------
+    # B2B Bulk Orders
+    # ------------------------------------------
+
+    def get_b2b_catalog_for_dealer(self, db: Session, dealer_id: int) -> List[Dict[str, Any]]:
+        """Get products with dealer tier pricing for B2B order page."""
+        from modules.catalog.models import Product, ProductImage
+        from modules.pricing.calculator import calculate_bar_price
+        from common.templating import get_setting_from_db
+
+        dealer = self.get_dealer(db, dealer_id)
+        if not dealer:
+            return []
+
+        tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
+
+        # Get all active products
+        products = (
+            db.query(Product)
+            .filter(Product.is_active == True)
+            .order_by(Product.name)
+            .all()
+        )
+
+        if not products:
+            return []
+
+        product_ids = [p.id for p in products]
+
+        # Batch: default images
+        default_images = db.query(ProductImage).filter(
+            ProductImage.product_id.in_(product_ids),
+            ProductImage.is_default == True,
+        ).all()
+        img_map = {img.product_id: img.file_path for img in default_images}
+
+        # Batch: dealer tier wages
+        dealer_wage_map: Dict[int, float] = {}
+        if dealer.tier_id:
+            from modules.catalog.models import ProductTierWage
+            dealer_wages = db.query(ProductTierWage).filter(
+                ProductTierWage.product_id.in_(product_ids),
+                ProductTierWage.tier_id == dealer.tier_id,
+            ).all()
+            dealer_wage_map = {dw.product_id: float(dw.wage_percent) for dw in dealer_wages}
+
+        # Batch: warehouse stock count per product (ASSIGNED bars at warehouse locations)
+        warehouse_stock: Dict[int, int] = {}
+        wh_rows = (
+            db.query(Bar.product_id, sa_func.count(Bar.id))
+            .join(User, Bar.dealer_id == User.id)
+            .filter(
+                Bar.status == BarStatus.ASSIGNED,
+                Bar.product_id.in_(product_ids),
+                User.is_warehouse == True,
+            )
+            .group_by(Bar.product_id)
+            .all()
+        )
+        for pid, cnt in wh_rows:
+            warehouse_stock[pid] = cnt
+
+        result = []
+        for p in products:
+            p_price, p_bp, _ = get_product_pricing(db, p)
+            dealer_wage_pct = dealer_wage_map.get(p.id, 0.0)
+
+            # Calculate dealer price (using dealer's tier wage)
+            if dealer_wage_pct > 0:
+                price_info = calculate_bar_price(
+                    weight=p.weight, purity=p.purity,
+                    wage_percent=dealer_wage_pct,
+                    base_metal_price=p_price,
+                    tax_percent=tax_percent,
+                    base_purity=p_bp,
+                )
+            else:
+                # Fallback to product's default wage if no tier wage set
+                price_info = calculate_bar_price(
+                    weight=p.weight, purity=p.purity,
+                    wage_percent=float(p.wage),
+                    base_metal_price=p_price,
+                    tax_percent=tax_percent,
+                    base_purity=p_bp,
+                )
+
+            stock = warehouse_stock.get(p.id, 0)
+            if stock == 0:
+                continue  # Skip products with no warehouse stock
+
+            result.append({
+                "product": p,
+                "unit_price": price_info.get("total", 0),
+                "price_breakdown": price_info,
+                "dealer_wage_pct": dealer_wage_pct or float(p.wage),
+                "metal_price": p_price,
+                "base_purity": p_bp,
+                "tax_percent": tax_percent,
+                "stock": stock,
+                "image": img_map.get(p.id),
+            })
+
+        return result
+
+    def create_b2b_order(
+        self, db: Session, dealer_id: int,
+        items_data: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Create a B2B order with items, pricing locked at creation time.
+
+        items_data: [{"product_id": int, "quantity": int}, ...]
+        """
+        from modules.catalog.models import Product
+        from modules.pricing.calculator import calculate_bar_price
+        from common.templating import get_setting_from_db
+
+        dealer = self.get_dealer(db, dealer_id)
+        if not dealer or not dealer.is_active:
+            return {"success": False, "message": "نماینده غیرفعال یا نامعتبر"}
+
+        if not items_data:
+            return {"success": False, "message": "حداقل یک محصول انتخاب کنید"}
+
+        tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
+
+        # Get dealer's tier wage map
+        dealer_wage_map: Dict[int, float] = {}
+        if dealer.tier_id:
+            from modules.catalog.models import ProductTierWage
+            pids = [it["product_id"] for it in items_data]
+            dealer_wages = db.query(ProductTierWage).filter(
+                ProductTierWage.product_id.in_(pids),
+                ProductTierWage.tier_id == dealer.tier_id,
+            ).all()
+            dealer_wage_map = {dw.product_id: float(dw.wage_percent) for dw in dealer_wages}
+
+        order = B2BOrder(
+            dealer_id=dealer_id,
+            status=B2BOrderStatus.SUBMITTED,
+            applied_tax_percent=tax_percent,
+        )
+        db.add(order)
+        db.flush()
+
+        total_amount = 0
+        for item_data in items_data:
+            product = db.query(Product).filter(Product.id == item_data["product_id"]).first()
+            if not product or not product.is_active:
+                db.rollback()
+                return {"success": False, "message": f"محصول با شناسه {item_data['product_id']} نامعتبر است"}
+
+            qty = int(item_data["quantity"])
+            if qty <= 0:
+                continue
+
+            # Check warehouse stock
+            wh_stock = (
+                db.query(sa_func.count(Bar.id))
+                .join(User, Bar.dealer_id == User.id)
+                .filter(
+                    Bar.product_id == product.id,
+                    Bar.status == BarStatus.ASSIGNED,
+                    User.is_warehouse == True,
+                )
+                .scalar()
+            )
+            if wh_stock < qty:
+                db.rollback()
+                return {"success": False, "message": f"موجودی انبار {product.name} کافی نیست (موجود: {wh_stock}, درخواست: {qty})"}
+
+            # Calculate dealer price
+            p_price, p_bp, _ = get_product_pricing(db, product)
+            dealer_wage_pct = dealer_wage_map.get(product.id, float(product.wage))
+            price_info = calculate_bar_price(
+                weight=product.weight, purity=product.purity,
+                wage_percent=dealer_wage_pct,
+                base_metal_price=p_price,
+                tax_percent=tax_percent,
+                base_purity=p_bp,
+            )
+            unit_price = price_info.get("total", 0)
+            line_total = unit_price * qty
+
+            item = B2BOrderItem(
+                order_id=order.id,
+                product_id=product.id,
+                quantity=qty,
+                applied_wage_percent=dealer_wage_pct,
+                applied_metal_price=p_price,
+                unit_price=unit_price,
+                line_total=line_total,
+            )
+            db.add(item)
+            total_amount += line_total
+
+        if total_amount == 0:
+            db.rollback()
+            return {"success": False, "message": "سفارش خالی — حداقل یک محصول با تعداد مثبت انتخاب کنید"}
+
+        order.total_amount = total_amount
+        db.flush()
+
+        return {
+            "success": True,
+            "message": f"سفارش عمده #{order.id} ثبت شد — در انتظار تایید ادمین",
+            "order": order,
+        }
+
+    def get_b2b_order(self, db: Session, order_id: int, dealer_id: int = None) -> Optional[B2BOrder]:
+        """Get a B2B order with items. If dealer_id given, verify ownership."""
+        from sqlalchemy.orm import joinedload
+        q = db.query(B2BOrder).options(
+            joinedload(B2BOrder.items).joinedload(B2BOrderItem.product),
+            joinedload(B2BOrder.dealer),
+        ).filter(B2BOrder.id == order_id)
+        if dealer_id:
+            q = q.filter(B2BOrder.dealer_id == dealer_id)
+        return q.first()
+
+    def get_b2b_orders(
+        self, db: Session, dealer_id: int, page: int = 1, per_page: int = 20,
+    ) -> Tuple[List[B2BOrder], int]:
+        """Get paginated B2B orders for a dealer."""
+        q = db.query(B2BOrder).filter(B2BOrder.dealer_id == dealer_id)
+        total = q.count()
+        orders = q.order_by(B2BOrder.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
+        return orders, total
+
+    def list_all_b2b_orders_admin(
+        self, db: Session,
+        status_filter: str = "",
+        dealer_id: int = None,
+        page: int = 1, per_page: int = 30,
+    ) -> Tuple[List[B2BOrder], int]:
+        """Admin: list all B2B orders with optional filters."""
+        from sqlalchemy.orm import joinedload
+        q = db.query(B2BOrder).options(joinedload(B2BOrder.dealer))
+        if status_filter:
+            q = q.filter(B2BOrder.status == status_filter)
+        if dealer_id:
+            q = q.filter(B2BOrder.dealer_id == dealer_id)
+        total = q.count()
+        orders = q.order_by(B2BOrder.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
+        return orders, total
+
+    def approve_b2b_order(
+        self, db: Session, order_id: int, admin_id: int, admin_note: str = "",
+    ) -> Dict[str, Any]:
+        """Admin approves a B2B order."""
+        order = db.query(B2BOrder).filter(B2BOrder.id == order_id).first()
+        if not order:
+            return {"success": False, "message": "سفارش یافت نشد"}
+        if order.status != B2BOrderStatus.SUBMITTED:
+            return {"success": False, "message": f"فقط سفارش‌های در انتظار تایید قابل تایید هستند (وضعیت فعلی: {order.status_label})"}
+
+        order.status = B2BOrderStatus.APPROVED
+        order.approved_by = admin_id
+        order.approved_at = now_utc()
+        order.admin_note = admin_note or order.admin_note
+        db.flush()
+        return {"success": True, "message": f"سفارش #{order.id} تایید شد — آماده پرداخت توسط نماینده"}
+
+    def reject_b2b_order(
+        self, db: Session, order_id: int, admin_id: int, admin_note: str = "",
+    ) -> Dict[str, Any]:
+        """Admin rejects a B2B order."""
+        order = db.query(B2BOrder).filter(B2BOrder.id == order_id).first()
+        if not order:
+            return {"success": False, "message": "سفارش یافت نشد"}
+        if order.status != B2BOrderStatus.SUBMITTED:
+            return {"success": False, "message": f"فقط سفارش‌های در انتظار تایید قابل رد هستند (وضعیت فعلی: {order.status_label})"}
+
+        order.status = B2BOrderStatus.REJECTED
+        order.approved_by = admin_id
+        order.admin_note = admin_note or order.admin_note
+        db.flush()
+        return {"success": True, "message": f"سفارش #{order.id} رد شد"}
+
+    def pay_b2b_order(self, db: Session, order_id: int, dealer_id: int) -> Dict[str, Any]:
+        """Dealer pays for an approved B2B order via wallet."""
+        from modules.wallet.service import wallet_service
+
+        order = db.query(B2BOrder).filter(
+            B2BOrder.id == order_id, B2BOrder.dealer_id == dealer_id,
+        ).first()
+        if not order:
+            return {"success": False, "message": "سفارش یافت نشد"}
+        if order.status != B2BOrderStatus.APPROVED:
+            return {"success": False, "message": f"فقط سفارش‌های تایید شده قابل پرداخت هستند (وضعیت فعلی: {order.status_label})"}
+
+        # Withdraw from wallet
+        try:
+            wallet_service.withdraw(
+                db, dealer_id, order.total_amount,
+                reference_type="b2b_order_payment",
+                reference_id=str(order.id),
+                description=f"پرداخت سفارش عمده #{order.id} ({order.total_amount // 10:,} تومان)",
+                consume_credit=True,
+            )
+        except ValueError as e:
+            return {"success": False, "message": str(e)}
+
+        order.status = B2BOrderStatus.PAID
+        order.payment_method = "wallet"
+        order.paid_at = now_utc()
+        db.flush()
+        return {"success": True, "message": f"سفارش #{order.id} پرداخت شد — در انتظار تحویل شمش‌ها"}
+
+    def fulfill_b2b_order(self, db: Session, order_id: int, admin_id: int) -> Dict[str, Any]:
+        """Admin fulfills a paid B2B order by assigning bars from warehouse to dealer."""
+        from modules.inventory.models import DealerTransfer
+        from sqlalchemy.orm import joinedload
+
+        order = (
+            db.query(B2BOrder)
+            .options(joinedload(B2BOrder.items))
+            .filter(B2BOrder.id == order_id)
+            .first()
+        )
+        if not order:
+            return {"success": False, "message": "سفارش یافت نشد"}
+        if order.status != B2BOrderStatus.PAID:
+            return {"success": False, "message": f"فقط سفارش‌های پرداخت‌شده قابل تحویل هستند (وضعیت فعلی: {order.status_label})"}
+
+        # For each item, find bars at warehouse and transfer to dealer
+        for item in order.items:
+            available_bars = (
+                db.query(Bar)
+                .join(User, Bar.dealer_id == User.id)
+                .filter(
+                    Bar.product_id == item.product_id,
+                    Bar.status == BarStatus.ASSIGNED,
+                    User.is_warehouse == True,
+                )
+                .limit(item.quantity)
+                .all()
+            )
+
+            if len(available_bars) < item.quantity:
+                return {
+                    "success": False,
+                    "message": f"موجودی انبار محصول «{item.product.name}» کافی نیست "
+                               f"(نیاز: {item.quantity}، موجود: {len(available_bars)}). "
+                               f"ابتدا موجودی انبار مرکزی را تکمیل کنید.",
+                }
+
+            for bar in available_bars:
+                old_dealer_id = bar.dealer_id
+                bar.dealer_id = order.dealer_id
+
+                # Record transfer
+                transfer = DealerTransfer(
+                    bar_id=bar.id,
+                    from_dealer_id=old_dealer_id,
+                    to_dealer_id=order.dealer_id,
+                    transferred_by=admin_id,
+                    description=f"تحویل سفارش عمده #{order.id}",
+                )
+                db.add(transfer)
+
+        order.status = B2BOrderStatus.FULFILLED
+        order.fulfilled_at = now_utc()
+        db.flush()
+        return {
+            "success": True,
+            "message": f"سفارش #{order.id} تحویل شد — {order.total_items} شمش به نمایندگی منتقل شد",
+        }
+
+    def cancel_b2b_order(self, db: Session, order_id: int, dealer_id: int) -> Dict[str, Any]:
+        """Dealer cancels a B2B order. Refund if already paid."""
+        from modules.wallet.service import wallet_service
+
+        order = db.query(B2BOrder).filter(
+            B2BOrder.id == order_id, B2BOrder.dealer_id == dealer_id,
+        ).first()
+        if not order:
+            return {"success": False, "message": "سفارش یافت نشد"}
+
+        if order.status in (B2BOrderStatus.FULFILLED, B2BOrderStatus.CANCELLED):
+            return {"success": False, "message": f"سفارش در وضعیت {order.status_label} قابل لغو نیست"}
+
+        # Refund if paid
+        if order.status == B2BOrderStatus.PAID:
+            wallet_service.deposit(
+                db, dealer_id, order.total_amount,
+                reference_type="b2b_order_refund",
+                reference_id=str(order.id),
+                description=f"بازگشت وجه سفارش عمده #{order.id} ({order.total_amount // 10:,} تومان)",
+            )
+
+        order.status = B2BOrderStatus.CANCELLED
+        db.flush()
+
+        refund_msg = " — وجه پرداختی به کیف پول بازگشت" if order.payment_method else ""
+        return {"success": True, "message": f"سفارش #{order.id} لغو شد{refund_msg}"}
 
 
 dealer_service = DealerService()

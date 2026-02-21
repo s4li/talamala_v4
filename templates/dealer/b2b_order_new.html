@@ -1,0 +1,151 @@
+{% extends "dealer/base_dealer.html" %}
+
+{% block title %}سفارش عمده جدید - طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-cart4 text-tm-primary"></i>
+        سفارش عمده جدید
+    </h4>
+    <a href="/dealer/b2b-orders" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-right"></i> بازگشت
+    </a>
+</div>
+
+{% if error %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle me-1"></i> {{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Wallet Balance Info -->
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-1">
+    <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-wallet2 text-success"></i>
+        <span>موجودی کیف پول:</span>
+        <strong class="text-success">{{ irr_balance.available | toman }} تومان</strong>
+    </div>
+</div>
+
+{% if catalog %}
+<form method="post" action="/dealer/b2b-orders/new" id="b2bForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+        <div class="border-bottom pb-3 mb-3">
+            <i class="bi bi-grid me-1"></i>
+            <strong>محصولات موجود (قیمت نمایندگی)</strong>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-tm mb-0">
+                <thead>
+                    <tr>
+                        <th>محصول</th>
+                        <th>وزن</th>
+                        <th>عیار</th>
+                        <th>اجرت</th>
+                        <th>قیمت واحد</th>
+                        <th>موجودی انبار</th>
+                        <th style="width:120px;">تعداد</th>
+                        <th>جمع ردیف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in catalog %}
+                    <tr data-unit-price="{{ item.unit_price }}">
+                        <td class="fw-bold">
+                            {{ item.product.name }}
+                            {% if item.image %}
+                            <br><img src="/{{ item.image }}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:4px;" class="mt-1">
+                            {% endif %}
+                        </td>
+                        <td>{{ item.product.weight }} گرم</td>
+                        <td>{{ item.product.purity | int }}</td>
+                        <td><span class="badge bg-info">{{ item.dealer_wage_pct }}%</span></td>
+                        <td class="fw-bold">{{ item.unit_price | toman }} <small class="text-muted">تومان</small></td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if item.stock > 5 else 'warning' }}">
+                                {{ item.stock | persian_number }}
+                            </span>
+                        </td>
+                        <td>
+                            <input type="number"
+                                   name="qty_{{ item.product.id }}"
+                                   class="form-control form-control-sm text-center qty-input"
+                                   min="0" max="{{ item.stock }}" value="0"
+                                   data-max="{{ item.stock }}"
+                                   style="width:100px;">
+                        </td>
+                        <td class="fw-bold line-total-cell">۰ تومان</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-active">
+                        <td colspan="7" class="text-start fw-bold">جمع کل سفارش:</td>
+                        <td class="fw-bold fs-5" id="grandTotal" style="color:var(--tm-primary);">۰ تومان</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end mt-3 gap-2">
+        <a href="/dealer/b2b-orders" class="btn btn-outline-secondary">انصراف</a>
+        <button type="submit" class="btn btn-tm-primary" id="submitBtn" disabled>
+            <i class="bi bi-send"></i> ارسال سفارش
+        </button>
+    </div>
+</form>
+{% else %}
+<div class="card-tm no-hover text-center py-5">
+    <i class="bi bi-inbox" style="font-size:2rem;" class="text-muted"></i>
+    <div class="mt-2 text-muted">محصولی با موجودی انبار مرکزی یافت نشد.</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block page_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const qtyInputs = document.querySelectorAll('.qty-input');
+    const grandTotalEl = document.getElementById('grandTotal');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function formatToman(rial) {
+        if (rial === 0) return '۰ تومان';
+        const toman = Math.floor(rial / 10);
+        return toman.toLocaleString('fa-IR') + ' تومان';
+    }
+
+    function updateTotals() {
+        let grandTotal = 0;
+        let hasItems = false;
+        qtyInputs.forEach(input => {
+            const row = input.closest('tr');
+            const unitPrice = parseInt(row.getAttribute('data-unit-price')) || 0;
+            const qty = parseInt(input.value) || 0;
+            const lineTotal = unitPrice * qty;
+            const lineTotalCell = row.querySelector('.line-total-cell');
+            lineTotalCell.textContent = formatToman(lineTotal);
+            grandTotal += lineTotal;
+            if (qty > 0) hasItems = true;
+        });
+        grandTotalEl.textContent = formatToman(grandTotal);
+        submitBtn.disabled = !hasItems;
+    }
+
+    qtyInputs.forEach(input => {
+        input.addEventListener('input', updateTotals);
+        input.addEventListener('change', function() {
+            const max = parseInt(this.getAttribute('data-max')) || 0;
+            if (parseInt(this.value) > max) this.value = max;
+            if (parseInt(this.value) < 0) this.value = 0;
+            updateTotals();
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -720,3 +720,139 @@ async def admin_deactivate_sub_dealer(
         f"/admin/dealers/{parent_id}/sub-dealers?msg={result['message']}{'&error=1' if not result['success'] else ''}",
         status_code=302,
     )
+
+
+# ==========================================
+# B2B Bulk Orders (Admin)
+# ==========================================
+
+@router.get("/b2b-orders", response_class=HTMLResponse)
+async def admin_b2b_orders(
+    request: Request,
+    page: int = 1,
+    status: str = "",
+    dealer_id: str = "",
+    user=Depends(require_permission("dealers")),
+    db: Session = Depends(get_db),
+):
+    from modules.user.models import User
+
+    did = None
+    if dealer_id and dealer_id.strip().isdigit():
+        did = int(dealer_id.strip())
+
+    orders, total = dealer_service.list_all_b2b_orders_admin(
+        db, status_filter=status, dealer_id=did, page=page,
+    )
+    total_pages = (total + 29) // 30
+
+    dealers = db.query(User).filter(User.is_dealer == True, User.is_active == True).order_by(User.first_name).all()
+
+    response = templates.TemplateResponse("admin/dealers/b2b_orders.html", {
+        "request": request,
+        "user": user,
+        "orders": orders,
+        "total": total,
+        "page": page,
+        "total_pages": total_pages,
+        "dealers": dealers,
+        "filter_status": status,
+        "filter_dealer_id": dealer_id,
+        "active_page": "b2b_orders",
+    })
+    return response
+
+
+@router.get("/b2b-orders/{order_id}", response_class=HTMLResponse)
+async def admin_b2b_order_detail(
+    request: Request,
+    order_id: int,
+    msg: str = "",
+    error: str = "",
+    user=Depends(require_permission("dealers")),
+    db: Session = Depends(get_db),
+):
+    order = dealer_service.get_b2b_order(db, order_id)
+    if not order:
+        return RedirectResponse("/admin/dealers/b2b-orders", status_code=302)
+
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("admin/dealers/b2b_order_detail.html", {
+        "request": request,
+        "user": user,
+        "order": order,
+        "csrf_token": csrf,
+        "msg": msg,
+        "error": error,
+        "active_page": "b2b_orders",
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/b2b-orders/{order_id}/approve")
+async def admin_b2b_approve(
+    request: Request,
+    order_id: int,
+    admin_note: str = Form(""),
+    csrf_token: str = Form(""),
+    user=Depends(require_permission("dealers")),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    result = dealer_service.approve_b2b_order(db, order_id, user.id, admin_note)
+
+    if result["success"]:
+        db.commit()
+    else:
+        db.rollback()
+
+    return RedirectResponse(
+        f"/admin/dealers/b2b-orders/{order_id}?msg={result['message']}{'&error=1' if not result['success'] else ''}",
+        status_code=302,
+    )
+
+
+@router.post("/b2b-orders/{order_id}/reject")
+async def admin_b2b_reject(
+    request: Request,
+    order_id: int,
+    admin_note: str = Form(""),
+    csrf_token: str = Form(""),
+    user=Depends(require_permission("dealers")),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    result = dealer_service.reject_b2b_order(db, order_id, user.id, admin_note)
+
+    if result["success"]:
+        db.commit()
+    else:
+        db.rollback()
+
+    return RedirectResponse(
+        f"/admin/dealers/b2b-orders/{order_id}?msg={result['message']}{'&error=1' if not result['success'] else ''}",
+        status_code=302,
+    )
+
+
+@router.post("/b2b-orders/{order_id}/fulfill")
+async def admin_b2b_fulfill(
+    request: Request,
+    order_id: int,
+    csrf_token: str = Form(""),
+    user=Depends(require_permission("dealers")),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    result = dealer_service.fulfill_b2b_order(db, order_id, user.id)
+
+    if result["success"]:
+        db.commit()
+    else:
+        db.rollback()
+
+    return RedirectResponse(
+        f"/admin/dealers/b2b-orders/{order_id}?msg={result['message']}{'&error=1' if not result['success'] else ''}",
+        status_code=302,
+    )

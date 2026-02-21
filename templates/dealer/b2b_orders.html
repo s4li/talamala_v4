@@ -1,0 +1,65 @@
+{% extends "dealer/base_dealer.html" %}
+
+{% block title %}سفارش‌های عمده - طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-cart4 text-tm-primary"></i>
+        سفارش‌های عمده
+    </h4>
+    <div class="d-flex gap-2 align-items-center">
+        <span class="badge-tm badge-tm-info">{{ total }} سفارش</span>
+        <a href="/dealer/b2b-orders/new" class="btn btn-sm btn-tm-primary">
+            <i class="bi bi-plus-lg"></i> سفارش جدید
+        </a>
+    </div>
+</div>
+
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
+    <div class="table-responsive">
+        <table class="table table-tm mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>تعداد شمش</th>
+                    <th>مبلغ کل</th>
+                    <th>وضعیت</th>
+                    <th>تاریخ ثبت</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td class="fw-bold">{{ order.id }}</td>
+                    <td>{{ order.total_items | persian_number }} شمش</td>
+                    <td class="fw-bold">{{ order.total_amount | toman }} <small class="text-muted">تومان</small></td>
+                    <td><span class="badge bg-{{ order.status_color }}">{{ order.status_label }}</span></td>
+                    <td>{{ order.created_at | jdate }}</td>
+                    <td>
+                        <a href="/dealer/b2b-orders/{{ order.id }}" class="btn btn-sm btn-outline-primary">
+                            جزئیات
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox" style="font-size:2rem;"></i>
+                        <div class="mt-2">هنوز سفارش عمده‌ای ثبت نشده</div>
+                        <a href="/dealer/b2b-orders/new" class="btn btn-sm btn-tm-primary mt-2">
+                            <i class="bi bi-plus-lg"></i> ثبت سفارش جدید
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% from "components/pagination.html" import pagination %}
+{{ pagination(page, total_pages, '/dealer/b2b-orders') }}
+{% endblock %}
