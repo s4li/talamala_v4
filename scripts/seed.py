@@ -1763,6 +1763,109 @@ def seed():
             print(f"  = {existing_tickets} tickets exist, skipping")
 
         # ==========================================
+        # 12. Sample Reviews & Comments
+        # ==========================================
+        print("\n[12] Sample Reviews & Comments")
+
+        existing_reviews = db.query(Review).count()
+        if existing_reviews == 0:
+            test_customer_1 = db.query(Customer).filter(Customer.mobile == "09351234567").first()
+            test_customer_2 = db.query(Customer).filter(Customer.mobile == "09359876543").first()
+            first_product = db.query(Product).filter(Product.is_active == True).first()
+            second_product = db.query(Product).filter(
+                Product.is_active == True,
+                Product.id != (first_product.id if first_product else 0),
+            ).first()
+
+            if test_customer_1 and first_product:
+                # Find a paid order item for this customer+product (if exists)
+                test_order_item = db.query(OrderItem).join(Order).filter(
+                    Order.customer_id == test_customer_1.id,
+                    Order.status == OrderStatus.PAID,
+                    OrderItem.product_id == first_product.id,
+                ).first()
+
+                r1 = Review(
+                    product_id=first_product.id,
+                    customer_id=test_customer_1.id,
+                    order_item_id=test_order_item.id if test_order_item else None,
+                    rating=5,
+                    body="کیفیت شمش عالی بود و بسته‌بندی هم بسیار مناسب. حتما دوباره خرید می‌کنم.",
+                    admin_reply="ممنون از اعتماد شما. خوشحالیم که رضایت داشتید.",
+                    admin_reply_at=datetime.now(timezone.utc),
+                )
+                db.add(r1)
+                db.flush()
+                print(f"  + Review #{r1.id}: {first_product.name} (5 stars)")
+
+                if second_product:
+                    r2 = Review(
+                        product_id=second_product.id,
+                        customer_id=test_customer_1.id,
+                        rating=4,
+                        body="محصول خوبی بود. فقط زمان ارسال کمی طولانی شد.",
+                    )
+                    db.add(r2)
+                    db.flush()
+                    print(f"  + Review #{r2.id}: {second_product.name} (4 stars)")
+
+            if test_customer_2 and first_product:
+                r3 = Review(
+                    product_id=first_product.id,
+                    customer_id=test_customer_2.id,
+                    rating=3,
+                    body="شمش اصل بود ولی قیمت نسبت به بازار کمی بالاتر بود.",
+                )
+                db.add(r3)
+                db.flush()
+                print(f"  + Review #{r3.id}: {first_product.name} (3 stars)")
+
+            # Comments (Q&A on product page)
+            if test_customer_1 and first_product:
+                c1 = ProductComment(
+                    product_id=first_product.id,
+                    customer_id=test_customer_1.id,
+                    sender_name=test_customer_1.full_name or "مشتری",
+                    sender_type="CUSTOMER",
+                    body="آیا این شمش قابلیت ضرب سفارشی دارد؟",
+                )
+                db.add(c1)
+                db.flush()
+
+                # Admin reply to comment
+                c1_reply = ProductComment(
+                    product_id=first_product.id,
+                    customer_id=None,
+                    sender_name="پشتیبانی",
+                    sender_type="ADMIN",
+                    parent_id=c1.id,
+                    body="سلام، بله امکان ضرب سفارشی برای سفارشات بالای ۱۰ عدد وجود دارد. با پشتیبانی تماس بگیرید.",
+                )
+                db.add(c1_reply)
+                db.flush()
+                print(f"  + Comment #{c1.id}: Q&A with admin reply")
+
+            if test_customer_2 and first_product:
+                c2 = ProductComment(
+                    product_id=first_product.id,
+                    customer_id=test_customer_2.id,
+                    sender_name=test_customer_2.full_name or "مشتری",
+                    sender_type="CUSTOMER",
+                    body="زمان تحویل حضوری چقدر طول می‌کشد؟",
+                )
+                db.add(c2)
+                db.flush()
+                print(f"  + Comment #{c2.id}: pending question")
+
+                # Like on comment
+                if test_customer_1:
+                    db.add(CommentLike(comment_id=c2.id, customer_id=test_customer_1.id))
+
+            db.flush()
+        else:
+            print(f"  = {existing_reviews} reviews exist, skipping")
+
+        # ==========================================
         # Commit
         # ==========================================
         db.commit()
@@ -1790,6 +1893,8 @@ def seed():
         print(f"  Tier Wages:     {db.query(ProductTierWage).count()}")
         print(f"  Dealers:        {db.query(Dealer).count()}")
         print(f"  Tickets:        {db.query(Ticket).count()}")
+        print(f"  Reviews:        {db.query(Review).count()}")
+        print(f"  Comments:       {db.query(ProductComment).count()}")
         print(f"  Withdrawals:    {db.query(WithdrawalRequest).count()}")
 
         print("\n--- Credentials ---")

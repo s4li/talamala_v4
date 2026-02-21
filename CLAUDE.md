@@ -62,7 +62,10 @@ talamala_v4/
 │   ├── customer/                # Profile, CustomerAddress, GeoProvince/City/District
 │   ├── verification/            # QR/serial code authenticity check
 │   ├── dealer/                  # Dealer, DealerSale, BuybackRequest, POS, admin mgmt, REST API
+│   │   └── auth_deps.py         # Shared API Key auth dependency (used by dealer + pos)
 │   ├── dealer_request/          # DealerRequest, attachments, admin review (approve/revision/reject)
+│   ├── pos/                     # Customer-facing POS API (reserve→confirm/cancel pattern)
+│   ├── review/                  # Product reviews (star rating) + comments/Q&A + likes
 │   └── ticket/                  # Ticket, TicketMessage, TicketAttachment, categories, internal notes
 ├── templates/
 │   ├── base.html                # HTML skeleton (Bootstrap RTL, Vazirmatn)
@@ -93,6 +96,7 @@ talamala_v4/
 │   │   ├── wallet/              # accounts, detail, withdrawals
 │   │   ├── coupon/              # list, form, detail
 │   │   ├── tickets/             # admin ticket list + detail
+│   │   ├── reviews/             # admin review + comment list + detail
 │   │   └── logs/                # request audit log list
 │   ├── dealer/
 │   │   ├── base_dealer.html     # Dealer sidebar layout
@@ -187,6 +191,18 @@ talamala_v4/
   - Relationships: attachments
 - **TicketAttachment**: id, message_id (FK→ticket_messages, CASCADE), file_path, created_at
   - Relationship: message
+
+### review/models.py
+- **Review**: id, product_id (FK→products), customer_id (FK→customers), order_item_id (FK→order_items, unique), rating (1-5), body (Text), admin_reply, admin_reply_at, created_at
+  - Relationships: product, customer, order_item, images
+  - CheckConstraint: rating 1-5
+- **ReviewImage**: id, review_id (FK→reviews, CASCADE), file_path
+- **ProductComment**: id, product_id (FK→products), customer_id (FK→customers), parent_id (FK→self, CASCADE — threaded), body (Text), sender_type (CUSTOMER/ADMIN), sender_name, created_at
+  - Properties: `is_admin`, `has_admin_reply`, `sender_badge_color`, `sender_type_label`
+  - Relationships: product, customer, parent, replies, images
+- **CommentImage**: id, comment_id (FK→product_comments, CASCADE), file_path
+- **CommentLike**: id, comment_id (FK→product_comments, CASCADE), customer_id (FK→customers, CASCADE), created_at
+  - UniqueConstraint: (comment_id, customer_id)
 
 ### pricing/models.py
 - **Asset**: id, asset_code (unique, e.g. "gold_18k", "silver"), asset_label, price_per_gram (BigInteger, rial), stale_after_minutes (default 15), auto_update (bool, default True), update_interval_minutes (default 5), source_url, updated_at, updated_by
@@ -326,6 +342,8 @@ STATIC_VERSION = "1.1"  # ← عدد را افزایش بده
 | 13 | Ticketing / Support (customer + dealer + admin) | ✅ |
 | 14 | Dealer POS REST API (API Key auth, JSON endpoints) | ✅ |
 | 14.5 | Bar Claim & Gifting + Ownership Transfer | ✅ |
+| 15 | Customer-Facing POS API (reserve→confirm/cancel) | ✅ |
+| 16 | Reviews & Comments (star rating, Q&A, likes) | ✅ |
 
 ---
 
@@ -333,17 +351,17 @@ STATIC_VERSION = "1.1"  # ← عدد را افزایش بده
 - نمودار: Chart.js
 - گزارش: PDF export
 
-### 📌 Phase 15: Notifications
+### 📌 Phase 17: Notifications
 - SMS (order status, delivery)
 - Email
 - In-app notification center
 
-### 📌 Phase 16: Shahkar Identity Verification
+### 📌 Phase 18: Shahkar Identity Verification
 - اتصال به سامانه شاهکار (تطبیق موبایل + کد ملی)
 - پس از احراز: full_name, national_id → readonly
 - فیلدهای فعلاً readonly در profile
 
-### 📌 Phase 17: Advanced Features
+### 📌 Phase 19: Advanced Features
 - Price alerts
 - Wishlist
 - Product comparison
@@ -442,6 +460,20 @@ uvicorn main:app --reload
 2. در `main.py` → `app.include_router()` اضافه کن
 3. POST routes: `csrf_check(request, csrf_token)`
 4. GET routes با فرم: `csrf_token` به template + cookie set
+
+### ⚠️ وقتی ماژول یا فیچر مهم جدید اضافه می‌کنی — الزام مستندسازی:
+> **قانون بدون استثنا**: بعد از ساخت هر ماژول، فیچر مهم یا endpoint جدید، **حتماً** این سندها بروزرسانی شوند:
+
+1. **CLAUDE.md** → بخش‌های مربوطه:
+   - ساختار فایل‌ها (بخش 2)
+   - مدل‌های دیتابیس (بخش 3) — اگر مدل جدید داری
+   - API Endpoints (بخش 11) — اگر route جدید داری
+   - فازهای تکمیل‌شده (بخش 6) — اگر فاز جدید تکمیل شده
+2. **docs/Feature-Catalog.md** → ماژول + endpoint ها + جدول دسترسی
+3. **docs/Test-Playbook.md** → تست‌کیس‌های جدید
+4. **scripts/seed.py** → داده تست برای ماژول جدید (اگر لازم)
+
+**چرا مهمه؟** بدون مستندسازی، ماژول‌ها «گم» می‌شوند (مثل review و pos که کد کامل داشتند ولی مستند نشده بودند).
 
 ### الگوی Atomic Transaction (پرداخت):
 ```python
@@ -607,6 +639,28 @@ total    = raw_gold + wage + tax
 - `POST /admin/tickets/{id}/status` — Change status (sends notification)
 - `POST /admin/tickets/{id}/close` — Close ticket
 - `POST /admin/tickets/{id}/assign` — Assign to staff
+
+### Reviews & Comments (Customer)
+- `POST /reviews/submit` — Submit review (from order detail page, with images)
+- `POST /reviews/comment` — Add comment on product page (with images for buyers)
+- `POST /reviews/comment/{comment_id}/like` — Toggle like (AJAX, CSRF via header)
+
+### Customer-Facing POS API (JSON, API Key auth via X-API-Key header)
+- `GET /api/pos/categories` — Product categories with available stock at dealer
+- `GET /api/pos/products?category_id=X` — Products with live pricing + stock count
+- `POST /api/pos/reserve` — Reserve a bar before card payment (2-minute hold)
+- `POST /api/pos/confirm` — Confirm sale after successful payment
+- `POST /api/pos/cancel` — Cancel reservation (payment failed)
+- `GET /api/pos/receipt/{sale_id}` — Receipt data for printing
+
+### Admin Reviews
+- `GET /admin/reviews` — Review + comment list (tabs: comments/reviews, search, pagination)
+- `GET /admin/reviews/comment/{id}` — Comment detail + replies
+- `GET /admin/reviews/review/{id}` — Review detail
+- `POST /admin/reviews/comment/{id}/reply` — Admin reply to comment
+- `POST /admin/reviews/review/{id}/reply` — Admin reply to review
+- `POST /admin/reviews/comment/{id}/delete` — Delete comment
+- `POST /admin/reviews/review/{id}/delete` — Delete review
 
 ### Request Audit Log
 - `GET /admin/logs` — لاگ درخواست‌ها با فیلتر (متد، وضعیت، مسیر، نوع کاربر، IP)

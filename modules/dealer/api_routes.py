@@ -12,7 +12,7 @@ Endpoints:
 """
 
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -20,27 +20,10 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from modules.dealer.models import Dealer
 from modules.dealer.service import dealer_service
+from modules.dealer.auth_deps import get_dealer_by_api_key
 
 
 router = APIRouter(prefix="/api/dealer", tags=["dealer-api"])
-
-
-# ==========================================
-# Auth Dependency
-# ==========================================
-
-def get_dealer_by_api_key(
-    x_api_key: str = Header(..., alias="X-API-Key"),
-    db: Session = Depends(get_db),
-) -> Dealer:
-    """Authenticate dealer via X-API-Key header."""
-    dealer = dealer_service.get_dealer_by_api_key(db, x_api_key)
-    if not dealer:
-        raise HTTPException(
-            status_code=401,
-            detail={"success": False, "error": "کلید API نامعتبر", "code": 401},
-        )
-    return dealer
 
 
 # ==========================================
