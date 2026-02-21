@@ -85,8 +85,10 @@
         <div class="mb-3">
             <label class="form-label-tm fw-bold">مبلغ بازخرید (تومان) <span class="text-danger">*</span></label>
             <input type="number" name="buyback_price" id="buybackPriceInput" class="form-control form-control-tm" required min="1"
-                   placeholder="ابتدا سریال را استعلام کنید" readonly>
-            <small class="text-muted">مبلغ بر اساس ارزش طلای خام محاسبه می‌شود</small>
+                   placeholder="ابتدا سریال را استعلام کنید" readonly
+                   style="background-color: var(--tm-info-900, #f8f5f0);">
+            <small id="priceInWords" class="text-muted d-block mt-1" style="display:none !important;"></small>
+            <small class="text-muted">مبلغ بر اساس ارزش طلای خام محاسبه می‌شود و قابل تغییر نیست</small>
         </div>
 
         <hr>
@@ -128,10 +130,65 @@
     const infoBox = document.getElementById('barInfoBox');
     const errorBox = document.getElementById('barErrorBox');
     const priceInput = document.getElementById('buybackPriceInput');
+    const priceWords = document.getElementById('priceInWords');
     const submitBtn = document.getElementById('submitBtn');
 
     function fmt(n) {
         return Number(n).toLocaleString('fa-IR') + ' تومان';
+    }
+
+    /* ---- تبدیل عدد به حروف فارسی ---- */
+    function numToWords(n) {
+        if (!n || n <= 0) return '';
+        n = Math.floor(n);
+        if (n === 0) return 'صفر';
+
+        const yekan = ['','یک','دو','سه','چهار','پنج','شش','هفت','هشت','نه'];
+        const dahgan = ['','','بیست','سی','چهل','پنجاه','شصت','هفتاد','هشتاد','نود'];
+        const dahyek = ['ده','یازده','دوازده','سیزده','چهارده','پانزده','شانزده','هفده','هجده','نوزده'];
+        const sadgan = ['','یکصد','دویست','سیصد','چهارصد','پانصد','ششصد','هفتصد','هشتصد','نهصد'];
+        const scale = ['','هزار','میلیون','میلیارد','تریلیون'];
+
+        function threeDigit(x) {
+            if (x === 0) return '';
+            let parts = [];
+            let s = Math.floor(x / 100);
+            let remainder = x % 100;
+            if (s > 0) parts.push(sadgan[s]);
+            if (remainder >= 10 && remainder <= 19) {
+                parts.push(dahyek[remainder - 10]);
+            } else {
+                let d = Math.floor(remainder / 10);
+                let y = remainder % 10;
+                if (d > 0) parts.push(dahgan[d]);
+                if (y > 0) parts.push(yekan[y]);
+            }
+            return parts.join(' و ');
+        }
+
+        let chunks = [];
+        let i = 0;
+        while (n > 0) {
+            let chunk = n % 1000;
+            if (chunk > 0) {
+                let words = threeDigit(chunk);
+                if (scale[i]) words += ' ' + scale[i];
+                chunks.unshift(words);
+            }
+            n = Math.floor(n / 1000);
+            i++;
+        }
+        return chunks.join(' و ');
+    }
+
+    function showPriceWords(toman) {
+        if (toman && toman > 0) {
+            priceWords.textContent = numToWords(toman) + ' تومان';
+            priceWords.style.cssText = 'display:block !important; margin-top:0.25rem; color:var(--tm-primary); font-weight:600;';
+        } else {
+            priceWords.style.cssText = 'display:none !important;';
+            priceWords.textContent = '';
+        }
     }
 
     function doLookup() {
@@ -142,6 +199,7 @@
         lookupBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> ...';
         infoBox.style.display = 'none';
         errorBox.style.display = 'none';
+        showPriceWords(0);
 
         fetch('/dealer/buyback/lookup?serial=' + encodeURIComponent(serial))
             .then(r => r.json())
@@ -155,7 +213,7 @@
                     document.getElementById('rawGoldPrice').textContent = fmt(data.raw_gold_toman);
                     document.getElementById('retailPrice').textContent = fmt(data.retail_toman);
                     priceInput.value = data.raw_gold_toman;
-                    priceInput.removeAttribute('readonly');
+                    showPriceWords(data.raw_gold_toman);
                     submitBtn.disabled = false;
                     infoBox.style.display = 'block';
                     errorBox.style.display = 'none';
@@ -164,7 +222,7 @@
                     errorBox.style.display = 'block';
                     infoBox.style.display = 'none';
                     priceInput.value = '';
-                    priceInput.setAttribute('readonly', '');
+                    showPriceWords(0);
                     submitBtn.disabled = true;
                 }
             })
