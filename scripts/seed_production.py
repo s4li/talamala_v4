@@ -899,24 +899,24 @@ def seed():
         # ==========================================
         print("\n[8] Real Bars")
 
+        # Build product name → id map (needed by both section 8 and 9)
+        v4_name_to_id = {p.name: p.id for p in db.query(Product).all()}
+
+        # Resolve type_slug + weight → product name
+        def resolve_product_name(type_slug, weight):
+            for ptype in product_types:
+                if ptype["slug"] == type_slug:
+                    for w, label, _ in weights_def:
+                        if abs(w - weight) < 0.01:
+                            return f"{ptype['name_prefix']} {label}"
+            return None
+
         bars_json_path = os.path.join(PROJECT_ROOT, "_private", "bars_data.json")
         if not os.path.exists(bars_json_path):
             print(f"  ! bars_data.json not found — skipping bar import")
         else:
             with open(bars_json_path, "r", encoding="utf-8") as f:
                 bars_data = json.load(f)
-
-            # Build product name → id map
-            v4_name_to_id = {p.name: p.id for p in db.query(Product).all()}
-
-            # Resolve type_slug + weight → product name
-            def resolve_product_name(type_slug, weight):
-                for ptype in product_types:
-                    if ptype["slug"] == type_slug:
-                        for w, label, _ in weights_def:
-                            if abs(w - weight) < 0.01:
-                                return f"{ptype['name_prefix']} {label}"
-                return None
 
             # Get batch
             batch = db.query(Batch).filter(Batch.batch_number == "BATCH-20241203").first()
