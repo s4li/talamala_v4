@@ -97,7 +97,7 @@ async def qr_code_image(serial_code: str, db: Session = Depends(get_db)):
     if not bar:
         return Response(status_code=404, content=b"Not found")
 
-    png_bytes = verification_service.generate_qr_bytes(bar.serial_code)
+    png_bytes = verification_service.generate_qr_for_print(bar.serial_code)
     return Response(
         content=png_bytes,
         media_type="image/png",
