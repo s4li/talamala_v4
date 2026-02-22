@@ -167,15 +167,17 @@ def _cleanup_expired_orders():
         db.close()
 
 def _cleanup_old_request_logs():
-    """Background job: delete request logs older than 30 days."""
+    """Background job: delete request logs older than configured retention days."""
     db = SessionLocal()
     try:
         from datetime import datetime, timedelta, timezone
-        cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+        from common.templating import parse_int_setting
+        retention_days = parse_int_setting(db, "log_retention_days", 45)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
         deleted = db.query(RequestLog).filter(RequestLog.created_at < cutoff).delete()
         if deleted:
             db.commit()
-            scheduler_logger.info(f"Deleted {deleted} old request logs (>30 days)")
+            scheduler_logger.info(f"Deleted {deleted} old request logs (>{retention_days} days)")
     except Exception as e:
         db.rollback()
         scheduler_logger.error(f"Log cleanup error: {e}")
@@ -391,7 +393,7 @@ _SENSITIVE_KEYS = _re.compile(
 
 
 def _identify_user(request: Request):
-    """Identify user from JWT cookie without DB query. Returns (user_type, user_display)."""
+    """Identify user from JWT cookie. Returns (user_type, user_display, user_id)."""
     from common.security import decode_token
 
     token = request.cookies.get("auth_token")
@@ -407,15 +409,15 @@ def _identify_user(request: Request):
                 db.close()
                 if user:
                     if user.is_admin:
-                        return user.admin_role or "admin", mobile
+                        return user.admin_role or "admin", mobile, user.id
                     if user.is_dealer:
-                        return "dealer", mobile
-                    return "customer", mobile
+                        return "dealer", mobile, user.id
+                    return "customer", mobile, user.id
             except Exception:
                 pass
-            return "customer", mobile
+            return "customer", mobile, None
 
-    return "anonymous", None
+    return "anonymous", None, None
 
 
 def _mask_body(raw: bytes, content_type: str) -> str | None:
@@ -464,7 +466,7 @@ async def request_logger(request: Request, call_next):
     response = await call_next(request)
 
     elapsed_ms = int((_time.time() - start) * 1000)
-    user_type, user_display = _identify_user(request)
+    user_type, user_display, uid = _identify_user(request)
 
     # Write log in a separate session (fire-and-forget, don't block response)
     try:
@@ -477,6 +479,7 @@ async def request_logger(request: Request, call_next):
             ip_address=(request.client.host if request.client else None),
             user_agent=(request.headers.get("user-agent") or "")[:500],
             user_type=user_type,
+            user_id=uid,
             user_display=user_display,
             body_preview=body_preview,
             response_time_ms=elapsed_ms,

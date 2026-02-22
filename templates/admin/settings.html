@@ -284,6 +284,17 @@
             </div>
         </div>
 
+        <!-- ===== لاگ درخواست‌ها ===== -->
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-journal-text me-1"></i> لاگ درخواست‌ها</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label">مدت نگهداری لاگ (روز)</label>
+                <input type="text" name="log_retention_days" class="form-control form-control-tm" dir="ltr"
+                       value="{{ settings.get('log_retention_days', {}).value if settings.get('log_retention_days') else '45' }}">
+                <small class="text-muted">لاگ‌های قدیمی‌تر از این تعداد روز به‌صورت خودکار حذف می‌شوند.</small>
+            </div>
+        </div>
+
         <!-- ===== همگام‌سازی پوز راسیس ===== -->
         <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-terminal me-1"></i> دستگاه پوز راسیس</h6>
         <div class="row g-3 mb-4">

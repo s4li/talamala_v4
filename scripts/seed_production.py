@@ -157,6 +157,7 @@ def seed():
             "silver_fee_customer_percent": ("1.5", "کارمزد خرید/فروش نقره — مشتری عادی (%)"),
             "silver_fee_dealer_percent":   ("0.3", "کارمزد خرید/فروش نقره — نماینده (%)"),
             "active_gateway":       ("zibal", "درگاه پرداخت فعال (zibal/sepehr/top/parsian)"),
+            "log_retention_days":   ("45", "مدت نگهداری لاگ درخواست‌ها (روز)"),
         }
 
         for key, (value, desc) in settings_data.items():

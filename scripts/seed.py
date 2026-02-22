@@ -214,6 +214,7 @@ def seed():
             "enabled_gateways":     ("sepehr,top,parsian", "درگاه‌های فعال پرداخت (comma-separated)"),
             "shahkar_enabled":      ("false", "فعال/غیرفعال بودن احراز هویت شاهکار"),
             "rasis_pos_enabled":    ("false", "فعال/غیرفعال بودن همگام‌سازی با دستگاه پوز راسیس"),
+            "log_retention_days":   ("45", "مدت نگهداری لاگ درخواست‌ها (روز)"),
         }
 
         for key, (value, desc) in settings_data.items():
