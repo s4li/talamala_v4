@@ -113,6 +113,7 @@ from modules.ticket.models import Ticket, TicketMessage, TicketAttachment  # noq
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike  # noqa: F401
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment  # noqa: F401
 from modules.pricing.models import Asset  # noqa: F401
+from modules.rasis.models import RasisReceipt  # noqa: F401
 
 # ==========================================
 # Import routers
@@ -144,6 +145,7 @@ from modules.review.routes import router as review_router
 from modules.review.admin_routes import router as review_admin_router
 from modules.dealer_request.routes import router as dealer_request_router
 from modules.dealer_request.admin_routes import router as dealer_request_admin_router
+from modules.rasis.admin_routes import router as rasis_admin_router
 
 
 # ==========================================
@@ -232,6 +234,25 @@ def _rasis_price_sync():
         db.close()
 
 
+def _rasis_receipt_fetch():
+    """Background job: fetch receipts from Rasis POS devices every 10 minutes."""
+    db = SessionLocal()
+    try:
+        from modules.rasis.service import rasis_service
+        from common.templating import get_setting_from_db
+        if get_setting_from_db(db, "rasis_pos_enabled", "false") != "true":
+            return
+        result = rasis_service.process_all_receipts(db)
+        if result.get("receipts_found"):
+            scheduler_logger.info(
+                f"Rasis receipts: {result['receipts_found']} found, {result.get('sales_created', 0)} sales created"
+            )
+    except Exception as e:
+        scheduler_logger.error(f"Rasis receipt fetch error: {e}")
+    finally:
+        db.close()
+
+
 scheduler = BackgroundScheduler()
 
 
@@ -244,8 +265,9 @@ async def lifespan(app):
     scheduler.add_job(_cleanup_old_request_logs, 'interval', hours=6, id='log_cleanup')
     scheduler.add_job(_auto_update_prices, 'interval', seconds=60, id='price_update')
     scheduler.add_job(_rasis_price_sync, 'interval', minutes=5, id='rasis_price_sync')
+    scheduler.add_job(_rasis_receipt_fetch, 'interval', minutes=10, id='rasis_receipt_fetch')
     scheduler.start()
-    scheduler_logger.info("Background scheduler started (orders: 60s, logs: 6h, prices: 60s, rasis: 5m)")
+    scheduler_logger.info("Background scheduler started (orders: 60s, logs: 6h, prices: 60s, rasis: 5m, receipts: 10m)")
     yield
     scheduler.shutdown()
     scheduler_logger.info("Background scheduler stopped")
@@ -498,6 +520,7 @@ app.include_router(review_router)
 app.include_router(review_admin_router)
 app.include_router(dealer_request_router)
 app.include_router(dealer_request_admin_router)
+app.include_router(rasis_admin_router)
 
 
 # ==========================================

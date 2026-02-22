@@ -112,6 +112,9 @@
         <a href="/admin/dealer-requests" class="nav-link {% if active_page == 'dealer_requests' %}active{% endif %}">
             <i class="bi bi-person-plus"></i> درخواست نمایندگی
         </a>
+        <a href="/admin/rasis" class="nav-link {% if active_page == 'rasis' %}active{% endif %}">
+            <i class="bi bi-device-hdd"></i> دستگاه پوز راسیس
+        </a>
         {% endif %}
         {% if user.has_permission('tickets') %}
         <a href="/admin/tickets" class="nav-link {% if active_page == 'tickets' %}active{% endif %}">

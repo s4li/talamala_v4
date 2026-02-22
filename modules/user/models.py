@@ -10,7 +10,7 @@ import secrets
 import string
 
 from sqlalchemy import (
-    Column, Integer, String, Boolean, DateTime, ForeignKey,
+    Column, Integer, BigInteger, String, Boolean, DateTime, ForeignKey,
     Text, Numeric, Index,
 )
 from sqlalchemy.orm import relationship
@@ -73,6 +73,7 @@ class User(Base):
     landline_phone = Column(String(15), nullable=True)
     api_key = Column(String(64), unique=True, nullable=True, index=True)
     rasis_sharepoint = Column(Integer, nullable=True)  # Rasis POS branch sharepoint ID
+    rasis_last_record_version = Column(BigInteger, default=0, nullable=False, server_default="0")  # Last fetched receipt RecordVersion
 
     # === Admin-specific ===
     admin_role = Column(String, nullable=True)           # "admin" | "operator"

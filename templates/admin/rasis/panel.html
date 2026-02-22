@@ -1,0 +1,160 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}مدیریت پوز راسیس{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h4 class="mb-0"><i class="bi bi-device-hdd"></i> مدیریت دستگاه پوز راسیس</h4>
+    <div class="d-flex gap-2 flex-wrap">
+        <form method="post" action="/admin/rasis/fetch-receipts" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-sm btn-outline-info">
+                <i class="bi bi-cloud-download"></i> واکشی فروش
+            </button>
+        </form>
+        <form method="post" action="/admin/rasis/sync-all" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-sm btn-tm-primary">
+                <i class="bi bi-arrow-repeat"></i> همگام‌سازی همه
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if msg %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Dealers Table -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-shop"></i> نمایندگان و وضعیت راسیس</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>نماینده</th>
+                        <th>موبایل</th>
+                        <th>سطح</th>
+                        <th>شرپوینت</th>
+                        <th>شمش‌های موجود</th>
+                        <th>وضعیت</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in dealers %}
+                    <tr>
+                        <td class="fw-bold">{{ d.full_name }}</td>
+                        <td><small class="text-muted" dir="ltr">{{ d.mobile }}</small></td>
+                        <td>{{ d.tier_name or '—' }}</td>
+                        <td>
+                            {% if d.rasis_sharepoint %}
+                                <span class="badge bg-info">{{ d.rasis_sharepoint | persian_number }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ d.bar_count | persian_number }} شمش</td>
+                        <td>
+                            {% if d.rasis_sharepoint %}
+                                <span class="badge bg-success">ثبت‌شده</span>
+                            {% else %}
+                                <span class="badge bg-secondary">ثبت‌نشده</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if d.rasis_sharepoint %}
+                                <form method="post" action="/admin/rasis/{{ d.id }}/sync" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="همگام‌سازی موجودی">
+                                        <i class="bi bi-arrow-repeat"></i> همگام‌سازی
+                                    </button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="/admin/rasis/{{ d.id }}/register" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-success" title="ثبت در راسیس">
+                                        <i class="bi bi-plus-circle"></i> ثبت در راسیس
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not dealers %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">نماینده‌ای یافت نشد.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Receipts -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-receipt"></i> آخرین فروش‌های دریافتی از پوز</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>تاریخ</th>
+                        <th>نماینده</th>
+                        <th>بارکد (سریال)</th>
+                        <th>نام محصول</th>
+                        <th>مبلغ آیتم</th>
+                        <th>خریدار</th>
+                        <th>وضعیت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in recent_receipts %}
+                    <tr>
+                        <td><small>{{ r.factor_tarikh or '—' }}</small></td>
+                        <td>{{ r.dealer.full_name if r.dealer else '—' }}</td>
+                        <td dir="ltr"><code>{{ r.product_cbrc or '—' }}</code></td>
+                        <td>{{ r.product_name or '—' }}</td>
+                        <td>{{ r.item_total | toman if r.item_total else '—' }}</td>
+                        <td>
+                            {% if r.payer_name or r.payer_mobile %}
+                                {{ r.payer_name or '' }}
+                                {% if r.payer_mobile %}<small class="text-muted" dir="ltr">{{ r.payer_mobile }}</small>{% endif %}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.processed %}
+                                <span class="badge bg-success">تطبیق یافته</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">بدون تطبیق</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not recent_receipts %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">فاکتوری از پوز دریافت نشده است.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

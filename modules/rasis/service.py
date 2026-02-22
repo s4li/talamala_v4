@@ -8,6 +8,7 @@ Base URL (test): https://mttestapi.rasisclub.ir
 Auth: GET /api/Token → UniqCode header on all requests (short-lived tokens)
 """
 
+import json
 import logging
 from typing import Optional
 
@@ -475,6 +476,232 @@ class RasisService:
 
         logger.info(f"Rasis sync dealer {dealer.id}: added={added}, errors={errors}, total={len(bars)}")
         return {"added": added, "errors": errors, "total": len(bars)}
+
+    # ------------------------------------------
+    # Receipt Fetching
+    # ------------------------------------------
+
+    def fetch_dealer_receipts(self, db: Session, dealer) -> list:
+        """
+        GET /api/Receipts/GetReceipts — fetch receipts from Rasis for a dealer.
+        Uses dealer.rasis_last_record_version for incremental sync.
+        Returns list of dicts with receipt header + detail items.
+        """
+        if not dealer.rasis_sharepoint:
+            return []
+
+        auth = self._get_token()
+        if not auth:
+            return []
+        user_id, token = auth
+
+        record_version = dealer.rasis_last_record_version or 0
+
+        try:
+            resp = httpx.get(
+                f"{RASIS_API_URL}/api/Receipts/GetReceipts",
+                params={
+                    "sharepoint": dealer.rasis_sharepoint,
+                    "recordVersion": record_version,
+                },
+                headers=self._headers(token),
+                timeout=RASIS_TIMEOUT,
+            )
+            if resp.status_code != 200:
+                logger.error(f"Rasis receipts: HTTP {resp.status_code} for dealer {dealer.id}")
+                return []
+
+            data = resp.json()
+            if not data.get("IsSuccess"):
+                logger.error(f"Rasis receipts failed: {data.get('Messages')}")
+                return []
+
+            receipts_raw = data.get("Data", [])
+            if not receipts_raw:
+                return []
+
+            # Flatten: one entry per receipt detail item
+            items = []
+            for receipt in receipts_raw:
+                header = {
+                    "ReceiptNo": receipt.get("ReceiptNo"),
+                    "RecordVersion": receipt.get("RecordVersion"),
+                    "FactorTarikh": receipt.get("FactorTarikh"),
+                    "TotalAmounts": receipt.get("TotalAmounts"),
+                    "PayCard": receipt.get("PayCard"),
+                    "PayCash": receipt.get("PayCash"),
+                    "PayerMobile": receipt.get("PayerMobile"),
+                    "PayerName": receipt.get("PayerName"),
+                    "BranchSharepoint": receipt.get("BranchSharepoint"),
+                    "ShopName": receipt.get("ShopName"),
+                }
+                details = receipt.get("ReceiptDetail", [])
+                if details:
+                    for detail in details:
+                        items.append({
+                            **header,
+                            "ProductName": detail.get("ProductName"),
+                            "ProductCbrc": detail.get("ProductCbrc"),
+                            "Price": detail.get("Price"),
+                            "TotalPrice": detail.get("TotalPrice"),
+                            "WeightQuantity": detail.get("WeightQuantity"),
+                            "Tedad": detail.get("Tedad"),
+                            "Karmozd": detail.get("Karmozd"),
+                            "_raw": json.dumps(receipt, ensure_ascii=False, default=str),
+                        })
+                else:
+                    # Receipt without detail — store header only
+                    items.append({
+                        **header,
+                        "ProductName": None,
+                        "ProductCbrc": None,
+                        "Price": None,
+                        "TotalPrice": None,
+                        "_raw": json.dumps(receipt, ensure_ascii=False, default=str),
+                    })
+
+            return items
+
+        except httpx.TimeoutException:
+            logger.error(f"Rasis receipts: timeout for dealer {dealer.id}")
+            return []
+        except Exception as e:
+            logger.error(f"Rasis receipts error for dealer {dealer.id}: {e}")
+            return []
+
+    def process_all_receipts(self, db: Session) -> dict:
+        """
+        Fetch receipts from Rasis for all registered dealers and create DealerSale records.
+        Returns summary dict.
+        """
+        from modules.rasis.models import RasisReceipt
+        from modules.inventory.models import Bar, BarStatus
+        from modules.dealer.models import DealerSale
+        from modules.user.models import User
+        from modules.pricing.models import Asset
+        from common.helpers import now_utc
+
+        if not _is_enabled(db) or not _has_credentials():
+            return {"skipped": True}
+
+        dealers = (
+            db.query(User)
+            .filter(
+                User.is_dealer == True,
+                User.is_active == True,
+                User.rasis_sharepoint.isnot(None),
+            )
+            .all()
+        )
+
+        dealers_checked = 0
+        receipts_found = 0
+        sales_created = 0
+
+        for dealer in dealers:
+            dealers_checked += 1
+            items = self.fetch_dealer_receipts(db, dealer)
+            if not items:
+                continue
+
+            max_record_version = dealer.rasis_last_record_version or 0
+
+            for item in items:
+                receipts_found += 1
+                rv = item.get("RecordVersion") or 0
+                if rv > max_record_version:
+                    max_record_version = rv
+
+                product_cbrc = item.get("ProductCbrc")
+
+                # Try to match bar
+                bar = None
+                matched_sale = None
+                if product_cbrc:
+                    bar = db.query(Bar).filter(Bar.serial_code == product_cbrc).first()
+
+                # Check if we already have this receipt item
+                existing = None
+                if item.get("ReceiptNo"):
+                    q = db.query(RasisReceipt).filter(
+                        RasisReceipt.dealer_id == dealer.id,
+                        RasisReceipt.receipt_no == item["ReceiptNo"],
+                    )
+                    if product_cbrc:
+                        q = q.filter(RasisReceipt.product_cbrc == product_cbrc)
+                    existing = q.first()
+
+                if existing:
+                    continue  # Already processed
+
+                # If bar is still ASSIGNED at this dealer, create DealerSale
+                if bar and bar.status == BarStatus.ASSIGNED and bar.dealer_id == dealer.id:
+                    # Get current gold price for applied_gold_price
+                    gold_asset = db.query(Asset).filter(Asset.asset_code == "gold_18k").first()
+                    applied_gold_price = gold_asset.price_per_gram if gold_asset else 0
+
+                    sale_price_raw = item.get("TotalPrice") or item.get("TotalAmounts") or 0
+                    sale_price = int(float(sale_price_raw)) if sale_price_raw else 0
+
+                    sale = DealerSale(
+                        dealer_id=dealer.id,
+                        bar_id=bar.id,
+                        customer_name=item.get("PayerName") or None,
+                        customer_mobile=item.get("PayerMobile") or None,
+                        sale_price=sale_price,
+                        applied_gold_price=applied_gold_price,
+                        description=f"فروش از دستگاه پوز راسیس — فاکتور #{item.get('ReceiptNo', '')}",
+                    )
+                    db.add(sale)
+                    db.flush()
+
+                    bar.status = BarStatus.SOLD
+                    bar.delivered_at = now_utc()
+
+                    # Remove from POS (best-effort)
+                    try:
+                        self.remove_bar_from_pos(db, bar, dealer)
+                    except Exception:
+                        pass
+
+                    matched_sale = sale
+                    sales_created += 1
+
+                # Store receipt record
+                rr = RasisReceipt(
+                    dealer_id=dealer.id,
+                    receipt_no=item.get("ReceiptNo"),
+                    record_version=rv,
+                    factor_tarikh=item.get("FactorTarikh"),
+                    total_amount=int(float(item.get("TotalAmounts") or 0)),
+                    pay_card=int(float(item.get("PayCard") or 0)),
+                    pay_cash=int(float(item.get("PayCash") or 0)),
+                    payer_mobile=item.get("PayerMobile"),
+                    payer_name=item.get("PayerName"),
+                    product_cbrc=product_cbrc,
+                    product_name=item.get("ProductName"),
+                    item_price=int(float(item.get("Price") or 0)),
+                    item_total=int(float(item.get("TotalPrice") or 0)),
+                    bar_id=bar.id if bar else None,
+                    dealer_sale_id=matched_sale.id if matched_sale else None,
+                    raw_data=item.get("_raw"),
+                    processed=matched_sale is not None,
+                )
+                db.add(rr)
+
+            # Update last record version
+            if max_record_version > (dealer.rasis_last_record_version or 0):
+                dealer.rasis_last_record_version = max_record_version
+
+        db.commit()
+        logger.info(
+            f"Rasis receipts: checked={dealers_checked}, found={receipts_found}, sales={sales_created}"
+        )
+        return {
+            "dealers_checked": dealers_checked,
+            "receipts_found": receipts_found,
+            "sales_created": sales_created,
+        }
 
     # ------------------------------------------
     # Helpers

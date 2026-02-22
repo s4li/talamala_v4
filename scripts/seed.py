@@ -59,6 +59,7 @@ from modules.ticket.models import Ticket, TicketMessage, TicketAttachment, Ticke
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment
 from modules.pricing.models import Asset, GOLD_18K, SILVER
+from modules.rasis.models import RasisReceipt  # noqa: F401
 
 
 def generate_serial() -> str:
