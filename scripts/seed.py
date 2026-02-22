@@ -1950,20 +1950,6 @@ def seed():
         # ==========================================
         db.commit()
 
-        # ==========================================
-        # Generate QR Codes for all bars
-        # ==========================================
-        from modules.verification.service import verification_service
-        all_bars = db.query(Bar).all()
-        qr_count = 0
-        for bar_obj in all_bars:
-            try:
-                verification_service.ensure_qr_exists(bar_obj.serial_code)
-                qr_count += 1
-            except Exception:
-                pass
-        print(f"\n  QR codes generated: {qr_count}/{len(all_bars)}")
-
         print("\n" + "=" * 50)
         print("  Seed completed successfully!")
         print("=" * 50)

@@ -4,12 +4,11 @@ Inventory Module - Admin Routes
 Bar management: list, generate, edit, update, bulk actions, image management.
 """
 
-import os
 import urllib.parse
 from typing import List, Optional
 
 from fastapi import APIRouter, Request, Depends, Form, File, UploadFile, HTTPException, Query
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from config.database import get_db
@@ -245,42 +244,22 @@ async def download_bar_qr(
     db: Session = Depends(get_db),
     user=Depends(require_permission("inventory")),
 ):
-    """Download high-res QR code PNG for a bar (for laser printing)."""
+    """Generate high-res QR code PNG on-the-fly for a bar (for laser printing).
+
+    SECURITY: Never saved to disk — generated per-request behind auth.
+    """
     bar = inventory_service.get_by_id(db, bar_id)
     if not bar:
         raise HTTPException(404)
 
     from modules.verification.service import verification_service
-    qr_path = verification_service.ensure_qr_exists(bar.serial_code)
+    png_bytes = verification_service.generate_qr_for_print(bar.serial_code)
 
-    return FileResponse(
-        qr_path,
+    return Response(
+        content=png_bytes,
         media_type="image/png",
-        filename=f"QR_{bar.serial_code}.png",
+        headers={"Content-Disposition": f'inline; filename="QR_{bar.serial_code}.png"'},
     )
-
-
-@router.post("/admin/bars/{bar_id}/qr/regenerate")
-async def regenerate_bar_qr(
-    request: Request,
-    bar_id: int,
-    csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db),
-    user=Depends(require_permission("inventory", level="edit")),
-):
-    """Regenerate QR code for a bar (e.g., after logo change)."""
-    csrf_check(request, csrf_token)
-    bar = inventory_service.get_by_id(db, bar_id)
-    if not bar:
-        raise HTTPException(404)
-
-    from modules.verification.service import verification_service
-    qr_path = verification_service.get_qr_path(bar.serial_code)
-    if os.path.exists(qr_path):
-        os.remove(qr_path)
-    verification_service.generate_qr_for_print(bar.serial_code, save_path=qr_path)
-
-    return RedirectResponse(f"/admin/bars/edit/{bar_id}", status_code=303)
 
 
 # ==========================================

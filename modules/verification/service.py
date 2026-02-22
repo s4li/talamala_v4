@@ -3,6 +3,9 @@ Verification Service - QR Code Generation
 ============================================
 Generate QR codes for gold bars linking to the public verification page.
 Includes high-res QR with logo + serial text for laser printing on packaging.
+
+SECURITY: QR images are generated on-the-fly (never saved to disk).
+Only accessible via authenticated admin endpoint.
 """
 
 import io
@@ -12,9 +15,6 @@ from qrcode.image.pil import PilImage
 from PIL import Image, ImageDraw, ImageFont
 
 from config.settings import BASE_URL
-
-# Path where high-res QR codes are saved
-QR_OUTPUT_DIR = os.path.join("static", "uploads", "qrcodes")
 
 # Custom logo path (user can replace with their own PNG)
 LOGO_PATH = os.path.join("static", "assets", "img", "logo-qr.png")
@@ -45,14 +45,15 @@ class VerificationService:
         buf.seek(0)
         return buf.getvalue()
 
-    def generate_qr_for_print(self, serial_code: str, save_path: str = None) -> bytes:
+    def generate_qr_for_print(self, serial_code: str) -> bytes:
         """Generate high-res QR code with logo + serial text for laser printing.
+
+        Returns PNG bytes (never saved to disk — security by design).
 
         - QR: box_size=20, border=4, ERROR_CORRECT_H (30% tolerance for logo)
         - Logo: brand logo embedded in center (~18% of QR area)
         - Serial text: printed below QR in monospace style
-        - Output: ~800x900px PNG — suitable for laser printing
-        - If save_path provided, also saves to disk
+        - Output: ~980x1060px PNG — suitable for laser printing
         """
         url = f"{BASE_URL}/verify/check?code={serial_code}"
 
@@ -111,19 +112,11 @@ class VerificationService:
 
         draw.text((text_x, text_y), text, fill="black", font=font)
 
-        # Save to bytes
+        # Return as bytes (never save to disk)
         buf = io.BytesIO()
         final_img.save(buf, format="PNG")
         buf.seek(0)
-        png_bytes = buf.getvalue()
-
-        # Save to disk if path provided
-        if save_path:
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            with open(save_path, "wb") as f:
-                f.write(png_bytes)
-
-        return png_bytes
+        return buf.getvalue()
 
     def _get_logo_image(self) -> Image.Image | None:
         """Load brand logo for QR embedding.
@@ -162,7 +155,6 @@ class VerificationService:
 
     def _get_font(self, size: int = 40) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
         """Try to load a good monospace font, fall back to default."""
-        # Common monospace fonts across platforms
         font_candidates = [
             "consola.ttf",          # Windows Consolas
             "cour.ttf",             # Windows Courier New
@@ -181,17 +173,6 @@ class VerificationService:
             return ImageFont.load_default(size=size)
         except TypeError:
             return ImageFont.load_default()
-
-    def get_qr_path(self, serial_code: str) -> str:
-        """Get the expected file path for a bar's QR code."""
-        return os.path.join(QR_OUTPUT_DIR, f"{serial_code}.png")
-
-    def ensure_qr_exists(self, serial_code: str) -> str:
-        """Ensure QR code file exists on disk. Generate if missing. Returns path."""
-        path = self.get_qr_path(serial_code)
-        if not os.path.exists(path):
-            self.generate_qr_for_print(serial_code, save_path=path)
-        return path
 
 
 verification_service = VerificationService()
