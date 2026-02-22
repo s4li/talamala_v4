@@ -22,9 +22,8 @@ static/uploads/*
 .claude/
 templates_v2/
 
-# Private (keep only product images & pricing Excel in git)
-_private/*
-!_private/عکس محصولات/
+# Private
+_private/
 
 # Screenshots (dev only)
 screenshots/
