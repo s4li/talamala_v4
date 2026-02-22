@@ -9,7 +9,7 @@ from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 
 from modules.user.models import User
-from modules.admin.permissions import ALL_PERMISSION_KEYS
+from modules.admin.permissions import ALL_PERMISSION_KEYS, PERMISSION_LEVELS
 
 
 class StaffService:
@@ -40,7 +40,7 @@ class StaffService:
         self, db: Session,
         mobile: str, full_name: str,
         role: str = "operator",
-        permissions: list = None,
+        permissions: dict = None,
     ) -> User:
         # Check if user with this mobile already exists
         existing = db.query(User).filter(User.mobile == mobile).first()
@@ -50,7 +50,7 @@ class StaffService:
             existing.admin_role = role
             existing.first_name = existing.first_name or full_name.split()[0] if full_name else existing.first_name
             existing.last_name = existing.last_name or " ".join(full_name.split()[1:]) if full_name and len(full_name.split()) > 1 else existing.last_name
-            existing.permissions = permissions or []
+            existing.permissions = permissions or {}
             db.flush()
             return existing
 
@@ -66,7 +66,7 @@ class StaffService:
             is_admin=True,
             admin_role=role,
         )
-        user.permissions = permissions or []
+        user.permissions = permissions or {}
         db.add(user)
         db.flush()
         return user
@@ -88,12 +88,15 @@ class StaffService:
         return user
 
     def update_permissions(
-        self, db: Session, staff_id: int, permissions: list,
+        self, db: Session, staff_id: int, permissions: dict,
     ) -> Optional[User]:
         user = self.get_by_id(db, staff_id)
         if not user:
             return None
-        valid = [p for p in permissions if p in ALL_PERMISSION_KEYS]
+        valid = {
+            k: v for k, v in permissions.items()
+            if k in ALL_PERMISSION_KEYS and v in PERMISSION_LEVELS
+        }
         user.permissions = valid
         db.flush()
         return user

@@ -143,8 +143,8 @@ talamala_v4/
   - **Identity**: mobile, first_name, last_name, national_id, birth_date
   - **Customer fields**: customer_type (real/legal), company_name, economic_code, postal_code, address, phone, referral_code
   - **Dealer fields**: tier_id (FK→dealer_tiers), province_id, city_id, district_id, dealer_address, landline_phone, is_warehouse, is_postal_hub, commission_percent, api_key (unique), otp_code, otp_expiry, rasis_sharepoint (Integer, nullable — Rasis POS device mapping)
-  - **Admin fields**: admin_role (admin/operator), operator_permissions (JSON)
-  - Properties: `full_name`, `display_name`, `is_staff` (→ is_admin), `is_profile_complete`, `primary_redirect`, `tier_name`, `type_label`, `type_icon`, `type_color`, `has_permission()`
+  - **Admin fields**: admin_role (admin/operator), _permissions (JSON dict: `{"key": "level", ...}` where level is one of: `view`, `create`, `edit`, `full`)
+  - Properties: `full_name`, `display_name`, `is_staff` (→ is_admin), `is_profile_complete`, `primary_redirect`, `tier_name`, `type_label`, `type_icon`, `type_color`, `has_permission(perm_key, level="view")` — checks hierarchically (view < create < edit < full)
   - Relationship: `bars_at_location` → list of Bar objects at this dealer
 
 ### admin/models.py
@@ -306,6 +306,15 @@ return response
 - `require_staff` — Depends, raises 401 if not `is_admin`
 - `require_super_admin` — Depends, raises 401 if not `admin_role=="admin"`
 - `require_operator_or_admin` — Either admin role
+- `require_permission(*perm_keys, level="view")` — Factory: checks granular permissions at a specific level. `admin_role=="admin"` always passes (super admin bypass). Levels: `view` (GET routes), `create` (POST create), `edit` (POST update), `full` (POST delete/approve/reject)
+
+### Admin Permission System (Hierarchical Levels)
+- Registry: `modules/admin/permissions.py` — 13 permission keys + 4 hierarchical levels
+- Levels (each includes all below): `view` → `create` → `edit` → `full`
+- Storage: JSON dict in `_permissions` column: `{"products": "edit", "orders": "view"}`
+- Route protection: `require_permission("key", level="xxx")` — default level="view" for GET routes
+- Template hiding: `{% if user.has_permission("key", "level") %}` hides action buttons
+- Super admin bypass: `admin_role=="admin"` always has full access
 
 ### Pricing
 `modules/pricing/calculator.py` → `calculate_bar_price()`

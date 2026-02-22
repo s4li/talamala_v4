@@ -62,7 +62,7 @@ async def approve_order(
     order_id: int,
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("orders")),
+    user=Depends(require_permission("orders", level="full")),
 ):
     """Admin approves/finalizes a pending order (marks as Paid, transfers bars)."""
     csrf_check(request, csrf_token)
@@ -81,7 +81,7 @@ async def cancel_order_admin(
     order_id: int,
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("orders")),
+    user=Depends(require_permission("orders", level="full")),
 ):
     """Admin cancels a pending order and releases bars."""
     csrf_check(request, csrf_token)
@@ -106,7 +106,7 @@ async def update_delivery_status(
     postal_tracking_code: str = Form(""),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("orders")),
+    user=Depends(require_permission("orders", level="edit")),
 ):
     """Update delivery status and optionally add postal tracking code."""
     csrf_check(request, csrf_token)
@@ -167,7 +167,7 @@ async def confirm_pickup_delivery(
     delivery_code: str = Form(...),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("orders")),
+    user=Depends(require_permission("orders", level="edit")),
 ):
     """Confirm in-person pickup by verifying the delivery code."""
     csrf_check(request, csrf_token)

@@ -5,9 +5,11 @@
 {% block content %}
 <div class="page-header">
     <h4 class="fw-bold mb-0"><i class="bi bi-fire me-2"></i>بچ / ذوب</h4>
+    {% if user.has_permission("batches", "create") %}
     <button class="btn btn-tm-primary" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-lg me-1"></i> بچ جدید
     </button>
+    {% endif %}
 </div>
 
 <div class="card-tm no-hover">
@@ -45,14 +47,18 @@
                         <td>{{ b.purity or '—' }}</td>
                         <td><small class="text-muted">{{ b.created_at | jdate if b.created_at else '' }}</small></td>
                         <td>
+                            {% if user.has_permission("batches", "edit") %}
                             <a href="/admin/batches/edit/{{ b.id }}" class="btn btn-sm btn-tm-outline me-1">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            {% endif %}
+                            {% if user.has_permission("batches", "full") %}
                             <form method="POST" action="/admin/batches/delete/{{ b.id }}" class="d-inline"
                                   onsubmit="return confirm('حذف بچ {{ b.batch_number }}؟')">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash"></i></button>
                             </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -65,6 +71,7 @@
 </div>
 
 <!-- Add Batch Modal -->
+{% if user.has_permission("batches", "create") %}
 <div class="modal fade" id="addModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -106,4 +113,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

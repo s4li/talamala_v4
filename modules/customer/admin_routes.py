@@ -77,7 +77,7 @@ async def admin_customer_create(
     national_id: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("customers")),
+    user=Depends(require_permission("customers", level="create")),
 ):
     csrf_check(request, csrf_token)
 
@@ -202,7 +202,7 @@ async def admin_customer_update(
     is_active: str = Form("off"),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("customers")),
+    user=Depends(require_permission("customers", level="edit")),
 ):
     csrf_check(request, csrf_token)
 

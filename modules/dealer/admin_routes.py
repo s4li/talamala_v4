@@ -173,7 +173,7 @@ async def dealer_create_submit(
     is_warehouse: str = Form("off"),
     is_postal_hub: str = Form("off"),
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="create")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -277,7 +277,7 @@ async def dealer_edit_submit(
     is_warehouse: str = Form("off"),
     is_postal_hub: str = Form("off"),
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="edit")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -310,7 +310,7 @@ async def generate_api_key(
     dealer_id: int,
     request: Request,
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="full")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -325,7 +325,7 @@ async def revoke_api_key(
     dealer_id: int,
     request: Request,
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="full")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -339,7 +339,7 @@ async def rasis_sync_dealer(
     dealer_id: int,
     request: Request,
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="edit")),
     db: Session = Depends(get_db),
 ):
     """Manual full sync of dealer's inventory with Rasis POS."""
@@ -451,7 +451,7 @@ async def tier_create_submit(
     is_end_customer: str = Form("off"),
     is_active: str = Form("on"),
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="create")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -501,7 +501,7 @@ async def tier_edit_submit(
     is_end_customer: str = Form("off"),
     is_active: str = Form("on"),
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="edit")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -564,7 +564,7 @@ async def tier_wages_save(
     product_id: int,
     request: Request,
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="edit")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -665,7 +665,7 @@ async def admin_add_sub_dealer(
     commission_split_percent: str = Form("20"),
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
-    admin=Depends(require_permission("dealers")),
+    admin=Depends(require_permission("dealers", level="create")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -699,7 +699,7 @@ async def admin_deactivate_sub_dealer(
     request: Request,
     relation_id: int,
     csrf_token: str = Form(""),
-    admin=Depends(require_permission("dealers")),
+    admin=Depends(require_permission("dealers", level="full")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -796,7 +796,7 @@ async def admin_b2b_approve(
     order_id: int,
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="full")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -819,7 +819,7 @@ async def admin_b2b_reject(
     order_id: int,
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="full")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -841,7 +841,7 @@ async def admin_b2b_fulfill(
     request: Request,
     order_id: int,
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="full")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)

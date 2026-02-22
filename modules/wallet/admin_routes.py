@@ -156,7 +156,7 @@ async def admin_wallet_adjust(
     description: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("wallets")),
+    user=Depends(require_permission("wallets", level="full")),
 ):
     csrf_check(request, csrf_token)
 
@@ -273,7 +273,7 @@ async def admin_withdrawal_approve(
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("wallets")),
+    user=Depends(require_permission("wallets", level="full")),
 ):
     csrf_check(request, csrf_token)
     try:
@@ -298,7 +298,7 @@ async def admin_withdrawal_reject(
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("wallets")),
+    user=Depends(require_permission("wallets", level="full")),
 ):
     csrf_check(request, csrf_token)
     try:

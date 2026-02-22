@@ -97,11 +97,13 @@
                         <label class="form-label-tm">افزودن تصاویر</label>
                         <input type="file" name="new_files" class="form-control form-control-tm" multiple accept="image/*">
                     </div>
+                    {% if user.has_permission("inventory", "edit") %}
                     <div class="col-12">
                         <button type="submit" class="btn btn-tm-primary">
                             <i class="bi bi-check-lg me-1"></i> ذخیره تغییرات
                         </button>
                     </div>
+                    {% endif %}
                 </div>
             </form>
         </div>
@@ -177,11 +179,13 @@
                 <div class="col-6">
                     <div class="position-relative">
                         <img src="/{{ img.file_path }}" class="img-thumb-lg w-100" alt="">
+                        {% if user.has_permission("inventory", "edit") %}
                         <form method="POST" action="/admin/bars/delete_image/{{ img.id }}" class="mt-1"
                               onsubmit="return confirm('حذف تصویر؟')">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <button class="btn btn-sm btn-tm-danger w-100"><i class="bi bi-trash"></i></button>
                         </form>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}

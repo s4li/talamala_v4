@@ -11,9 +11,11 @@
             <i class="bi bi-upc-scan me-1"></i> اسکن
         </button>
         <!-- Generate Button -->
+        {% if user.has_permission("inventory", "create") %}
         <button class="btn btn-tm-primary" data-bs-toggle="modal" data-bs-target="#generateModal">
             <i class="bi bi-plus-lg me-1"></i> ایجاد شمش
         </button>
+        {% endif %}
         <!-- Bulk Action Button -->
         <button class="btn btn-tm-outline" data-bs-toggle="modal" data-bs-target="#bulkModal" id="bulkBtn" disabled>
             <i class="bi bi-gear me-1"></i> عملیات گروهی (<span id="selectedCount">0</span>)
@@ -149,9 +151,11 @@
                             {% else %}—{% endif %}
                         </td>
                         <td>
+                            {% if user.has_permission("inventory", "edit") %}
                             <a href="/admin/bars/edit/{{ bar.id }}" class="btn btn-sm btn-tm-outline">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -170,6 +174,7 @@
 {{ pagination(page, total_pages, '/admin/bars', qs) }}
 
 <!-- Generate Modal -->
+{% if user.has_permission("inventory", "create") %}
 <div class="modal fade" id="generateModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
@@ -191,6 +196,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- Bulk Action Modal -->
 <div class="modal fade" id="bulkModal" tabindex="-1">
@@ -262,13 +268,17 @@
                 </div>
             </div>
             <div class="modal-footer d-flex gap-2">
+                {% if user.has_permission("inventory", "full") %}
                 <button class="btn btn-tm-danger" onclick="doBulk('delete')"
                         title="فقط مدیر سیستم">
                     <i class="bi bi-trash me-1"></i> حذف
                 </button>
+                {% endif %}
+                {% if user.has_permission("inventory", "edit") %}
                 <button class="btn btn-tm-primary flex-grow-1" onclick="doBulk('update')">
                     <i class="bi bi-check-lg me-1"></i> اعمال تغییرات
                 </button>
+                {% endif %}
             </div>
         </div>
     </div>

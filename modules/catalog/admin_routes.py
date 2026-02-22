@@ -60,7 +60,7 @@ async def add_product(
     is_active: bool = Form(True),
     files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_permission("products")),
+    db: Session = Depends(get_db), user=Depends(require_permission("products", level="create")),
 ):
     csrf_check(request, csrf_token)
     form = await request.form()
@@ -101,7 +101,7 @@ async def update_product(
     is_active: bool = Form(False),
     new_files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_permission("products")),
+    db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit")),
 ):
     csrf_check(request, csrf_token)
     form = await request.form()
@@ -126,7 +126,7 @@ async def update_product(
 
 @router.post("/admin/products/delete_image/{img_id}")
 async def delete_product_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+                                db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
     csrf_check(request, csrf_token)
     pid = images.delete_image(db, ProductImage, img_id)
     db.commit()
@@ -135,7 +135,7 @@ async def delete_product_image(request: Request, img_id: int, csrf_token: Option
 
 @router.post("/admin/products/set_default/{img_id}")
 async def set_product_default(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                               db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+                               db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
     csrf_check(request, csrf_token)
     pid = images.set_default(db, ProductImage, img_id, "product_id")
     db.commit()
@@ -157,7 +157,7 @@ async def list_designs(request: Request, db: Session = Depends(get_db), user=Dep
 
 @router.post("/admin/designs/add")
 async def add_design(request: Request, name: str = Form(...), files: List[UploadFile] = File(None),
-                      csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+                      csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products", level="create"))):
     csrf_check(request, csrf_token)
     design_service.create(db, name, files)
     db.commit()
@@ -166,7 +166,7 @@ async def add_design(request: Request, name: str = Form(...), files: List[Upload
 
 @router.post("/admin/designs/update/{item_id}")
 async def update_design(request: Request, item_id: int, name: str = Form(...), files: List[UploadFile] = File(None),
-                          csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+                          csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
     csrf_check(request, csrf_token)
     design_service.update(db, item_id, name, files)
     db.commit()
@@ -175,7 +175,7 @@ async def update_design(request: Request, item_id: int, name: str = Form(...), f
 
 @router.post("/admin/designs/delete/{item_id}")
 async def delete_design(request: Request, item_id: int, csrf_token: Optional[str] = Form(None),
-                          db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+                          db: Session = Depends(get_db), user=Depends(require_permission("products", level="full"))):
     csrf_check(request, csrf_token)
     design_service.delete(db, item_id)
     db.commit()
@@ -184,7 +184,7 @@ async def delete_design(request: Request, item_id: int, csrf_token: Optional[str
 
 @router.post("/admin/designs/image/delete/{img_id}")
 async def delete_design_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+                                db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
     csrf_check(request, csrf_token)
     images.delete_image(db, CardDesignImage, img_id)
     db.commit()
@@ -193,7 +193,7 @@ async def delete_design_image(request: Request, img_id: int, csrf_token: Optiona
 
 @router.post("/admin/designs/image/default/{img_id}")
 async def set_default_design_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                     db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+                                     db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
     csrf_check(request, csrf_token)
     images.set_default(db, CardDesignImage, img_id, "design_id")
     db.commit()
@@ -216,7 +216,7 @@ async def list_packages(request: Request, db: Session = Depends(get_db), user=De
 @router.post("/admin/packages/add")
 async def add_package(request: Request, name: str = Form(...), price: str = Form("0"),
                        is_active: str = Form("on"), files: List[UploadFile] = File(None),
-                       csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+                       csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products", level="create"))):
     csrf_check(request, csrf_token)
     price_rial = int(price) * 10 if price.strip().isdigit() else 0
     package_service.create(db, name, price=price_rial, is_active=(is_active == "on"), files=files)
@@ -227,7 +227,7 @@ async def add_package(request: Request, name: str = Form(...), price: str = Form
 @router.post("/admin/packages/update/{item_id}")
 async def update_package(request: Request, item_id: int, name: str = Form(...), price: str = Form("0"),
                            is_active: str = Form(None), files: List[UploadFile] = File(None),
-                           csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+                           csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
     csrf_check(request, csrf_token)
     price_rial = int(price) * 10 if price.strip().isdigit() else 0
     package_service.update(db, item_id, name, price=price_rial, is_active=(is_active == "on"), files=files)
@@ -237,7 +237,7 @@ async def update_package(request: Request, item_id: int, name: str = Form(...), 
 
 @router.post("/admin/packages/delete/{item_id}")
 async def delete_package(request: Request, item_id: int, csrf_token: Optional[str] = Form(None),
-                           db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+                           db: Session = Depends(get_db), user=Depends(require_permission("products", level="full"))):
     csrf_check(request, csrf_token)
     package_service.delete(db, item_id)
     db.commit()
@@ -246,7 +246,7 @@ async def delete_package(request: Request, item_id: int, csrf_token: Optional[st
 
 @router.post("/admin/packages/image/delete/{img_id}")
 async def delete_package_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                 db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+                                 db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
     csrf_check(request, csrf_token)
     images.delete_image(db, PackageTypeImage, img_id)
     db.commit()
@@ -255,7 +255,7 @@ async def delete_package_image(request: Request, img_id: int, csrf_token: Option
 
 @router.post("/admin/packages/image/default/{img_id}")
 async def set_default_package_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                      db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+                                      db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
     csrf_check(request, csrf_token)
     images.set_default(db, PackageTypeImage, img_id, "package_id")
     db.commit()
@@ -280,7 +280,7 @@ async def add_batch(
     request: Request, batch_number: str = Form(...), melt_number: str = Form(None),
     operator: str = Form(None), purity: str = Form(None),
     files: List[UploadFile] = File(None), csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_permission("batches")),
+    db: Session = Depends(get_db), user=Depends(require_permission("batches", level="create")),
 ):
     csrf_check(request, csrf_token)
     try:
@@ -311,7 +311,7 @@ async def update_batch(
     batch_number: str = Form(...), melt_number: str = Form(None),
     operator: str = Form(None), purity: str = Form(None),
     new_files: List[UploadFile] = File(None), csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_permission("batches")),
+    db: Session = Depends(get_db), user=Depends(require_permission("batches", level="edit")),
 ):
     csrf_check(request, csrf_token)
     batch_service.update(db, batch_id, {
@@ -324,7 +324,7 @@ async def update_batch(
 
 @router.post("/admin/batches/delete/{item_id}")
 async def delete_batch(request: Request, item_id: int, csrf_token: Optional[str] = Form(None),
-                         db: Session = Depends(get_db), user=Depends(require_permission("batches"))):
+                         db: Session = Depends(get_db), user=Depends(require_permission("batches", level="full"))):
     csrf_check(request, csrf_token)
     batch_service.delete(db, item_id)
     db.commit()
@@ -333,7 +333,7 @@ async def delete_batch(request: Request, item_id: int, csrf_token: Optional[str]
 
 @router.post("/admin/batches/image/delete/{img_id}")
 async def delete_batch_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                               db: Session = Depends(get_db), user=Depends(require_permission("batches"))):
+                               db: Session = Depends(get_db), user=Depends(require_permission("batches", level="edit"))):
     csrf_check(request, csrf_token)
     bid = images.delete_image(db, BatchImage, img_id)
     db.commit()
@@ -342,7 +342,7 @@ async def delete_batch_image(request: Request, img_id: int, csrf_token: Optional
 
 @router.post("/admin/batches/image/default/{img_id}")
 async def set_batch_default_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                    db: Session = Depends(get_db), user=Depends(require_permission("batches"))):
+                                    db: Session = Depends(get_db), user=Depends(require_permission("batches", level="edit"))):
     csrf_check(request, csrf_token)
     bid = images.set_default(db, BatchImage, img_id, "batch_id")
     db.commit()
@@ -368,7 +368,7 @@ async def add_category(
     name: str = Form(...), slug: str = Form(...),
     sort_order: int = Form(0), is_active: bool = Form(True),
     csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_permission("products")),
+    db: Session = Depends(get_db), user=Depends(require_permission("products", level="create")),
 ):
     csrf_check(request, csrf_token)
     cat = ProductCategory(name=name.strip(), slug=slug.strip().lower(), sort_order=sort_order, is_active=is_active)
@@ -386,7 +386,7 @@ async def edit_category(
     name: str = Form(...), slug: str = Form(...),
     sort_order: int = Form(0), is_active: bool = Form(True),
     csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_permission("products")),
+    db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit")),
 ):
     csrf_check(request, csrf_token)
     cat = db.query(ProductCategory).filter(ProductCategory.id == cat_id).first()
@@ -403,7 +403,7 @@ async def edit_category(
 async def delete_category(
     request: Request, cat_id: int,
     csrf_token: Optional[str] = Form(None),
-    db: Session = Depends(get_db), user=Depends(require_permission("products")),
+    db: Session = Depends(get_db), user=Depends(require_permission("products", level="full")),
 ):
     csrf_check(request, csrf_token)
     cat = db.query(ProductCategory).filter(ProductCategory.id == cat_id).first()

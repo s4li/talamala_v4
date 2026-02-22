@@ -75,14 +75,22 @@
                  style="{% if staff_user and staff_user.role == 'admin' %}opacity:0.4; pointer-events:none;{% endif %}">
                 {% for key, label in permissions_registry.items() %}
                 <div class="col-sm-6">
-                    <div class="form-check form-switch p-2 border rounded d-flex align-items-center"
-                         style="padding-right:3rem !important;">
-                        <input class="form-check-input" type="checkbox" role="switch"
-                               form="staffForm" name="perm_{{ key }}" id="perm_{{ key }}"
-                               {% if staff_user and key in staff_user.permissions %}checked{% endif %}>
-                        <label class="form-check-label me-2 fw-bold small" for="perm_{{ key }}">
+                    <div class="p-2 border rounded d-flex align-items-center justify-content-between"
+                         style="min-height:44px;">
+                        <label class="fw-bold small me-2" for="perm_{{ key }}">
                             {{ label }}
                         </label>
+                        <select class="form-select form-select-sm form-select-tm perm-select"
+                                form="staffForm" name="perm_{{ key }}" id="perm_{{ key }}"
+                                style="width:auto; min-width:110px;">
+                            <option value="">بدون دسترسی</option>
+                            {% for lvl in permission_levels %}
+                            <option value="{{ lvl }}"
+                                {% if staff_user and staff_user.permissions.get(key) == lvl %}selected{% endif %}>
+                                {{ permission_level_labels[lvl] }}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
                 {% endfor %}
@@ -118,17 +126,17 @@
         });
     }
 
-    var boxes = permGrid ? permGrid.querySelectorAll('input[type=checkbox]') : [];
+    var selects = permGrid ? permGrid.querySelectorAll('select.perm-select') : [];
     var selectAll = document.getElementById('selectAll');
     var deselectAll = document.getElementById('deselectAll');
     if(selectAll){
         selectAll.addEventListener('click', function(){
-            boxes.forEach(function(cb){ cb.checked = true; });
+            selects.forEach(function(s){ s.value = 'full'; });
         });
     }
     if(deselectAll){
         deselectAll.addEventListener('click', function(){
-            boxes.forEach(function(cb){ cb.checked = false; });
+            selects.forEach(function(s){ s.value = ''; });
         });
     }
 })();

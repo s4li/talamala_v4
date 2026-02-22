@@ -93,7 +93,7 @@ async def admin_dealer_request_approve(
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="full")),
 ):
     csrf_check(request, csrf_token)
     result = dealer_request_service.approve_request(db, req_id, admin_note)
@@ -115,7 +115,7 @@ async def admin_dealer_request_revision(
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="edit")),
 ):
     csrf_check(request, csrf_token)
     result = dealer_request_service.request_revision(db, req_id, admin_note)
@@ -137,7 +137,7 @@ async def admin_dealer_request_reject(
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="full")),
 ):
     csrf_check(request, csrf_token)
     result = dealer_request_service.reject_request(db, req_id, admin_note)

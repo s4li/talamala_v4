@@ -5,15 +5,18 @@
 {% block content %}
 <div class="page-header">
     <h4 class="fw-bold mb-0"><i class="bi bi-gift me-2"></i>انواع بسته‌بندی</h4>
+    {% if user.has_permission("products", "create") %}
     <button class="btn btn-tm-primary" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-lg me-1"></i> افزودن بسته‌بندی
     </button>
+    {% endif %}
 </div>
 
 <div class="row g-3">
     {% for pkg in packages %}
     <div class="col-md-6 col-lg-4">
         <div class="card-tm no-hover h-100">
+            {% if user.has_permission("products", "edit") %}
             <form method="POST" action="/admin/packages/update/{{ pkg.id }}" enctype="multipart/form-data" class="mb-3">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <div class="input-group">
@@ -39,6 +42,12 @@
                 <input type="file" name="files" class="form-control form-control-tm form-control-sm mt-2" multiple accept="image/*">
                 <button type="submit" class="btn btn-sm btn-tm-primary mt-2 w-100">ذخیره</button>
             </form>
+            {% else %}
+            <div class="mb-3">
+                <div class="fw-bold">{{ pkg.name }}</div>
+                <small class="text-muted">{{ (pkg.price / 10)|int | toman }} تومان</small>
+            </div>
+            {% endif %}
             {% if pkg.images %}
             <div class="d-flex flex-wrap gap-2">
                 {% for img in pkg.images %}
@@ -47,20 +56,25 @@
                     {% if img.is_default %}<span class="default-badge">✓</span>{% endif %}
                     <div class="d-flex gap-1 mt-1">
                         {% if not img.is_default %}
+                        {% if user.has_permission("products", "edit") %}
                         <form method="POST" action="/admin/packages/image/default/{{ img.id }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <button class="btn btn-tm-warning" style="padding:1px 5px;font-size:0.65rem;"><i class="bi bi-star"></i></button>
                         </form>
                         {% endif %}
+                        {% endif %}
+                        {% if user.has_permission("products", "full") %}
                         <form method="POST" action="/admin/packages/image/delete/{{ img.id }}" onsubmit="return confirm('حذف؟')">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <button class="btn btn-tm-danger" style="padding:1px 5px;font-size:0.65rem;"><i class="bi bi-trash"></i></button>
                         </form>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
             </div>
             {% endif %}
+            {% if user.has_permission("products", "full") %}
             <div class="border-top pt-3 mt-3 text-end">
                 <form method="POST" action="/admin/packages/delete/{{ pkg.id }}" class="d-inline"
                       onsubmit="return confirm('آیا از حذف «{{ pkg.name }}» مطمئن هستید؟')">
@@ -68,6 +82,7 @@
                     <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash me-1"></i>حذف</button>
                 </form>
             </div>
+            {% endif %}
         </div>
     </div>
     {% else %}
@@ -76,6 +91,7 @@
 </div>
 
 <!-- Add Modal -->
+{% if user.has_permission("products", "create") %}
 <div class="modal fade" id="addModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -117,4 +133,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

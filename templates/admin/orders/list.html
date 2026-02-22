@@ -261,6 +261,7 @@
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 {% if order.status == 'Pending' %}
+                                {% if user.has_permission("orders", "full") %}
                                 <form method="POST" action="/admin/orders/{{ order.id }}/approve"
                                       onsubmit="return confirm('تأیید سفارش و انتقال مالکیت شمش‌ها؟')">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -272,12 +273,15 @@
                                     <button class="btn btn-sm btn-tm-danger" title="لغو"><i class="bi bi-x-lg"></i></button>
                                 </form>
                                 {% endif %}
+                                {% endif %}
                                 {% if order.status == 'Paid' %}
+                                {% if user.has_permission("orders", "full") %}
                                 <form method="POST" action="/payment/{{ order.id }}/refund"
                                       onsubmit="return confirm('استرداد وجه به کیف پول مشتری و لغو سفارش؟')">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                     <button class="btn btn-sm btn-tm-danger" title="استرداد"><i class="bi bi-arrow-counterclockwise"></i></button>
                                 </form>
+                                {% endif %}
                                 {% endif %}
                             </div>
                         </td>

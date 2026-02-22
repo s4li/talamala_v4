@@ -36,11 +36,13 @@
                         <label class="form-label-tm">افزودن تصاویر جدید</label>
                         <input type="file" name="new_files" class="form-control form-control-tm" multiple accept="image/*">
                     </div>
+                    {% if user.has_permission("batches", "edit") %}
                     <div class="col-12">
                         <button type="submit" class="btn btn-tm-primary">
                             <i class="bi bi-check-lg me-1"></i> ذخیره تغییرات
                         </button>
                     </div>
+                    {% endif %}
                 </div>
             </form>
         </div>
@@ -58,6 +60,7 @@
                     <div class="position-relative">
                         <img src="/{{ img.file_path }}" class="img-thumb-lg w-100" alt="">
                         {% if img.is_default %}<span class="default-badge">پیش‌فرض</span>{% endif %}
+                        {% if user.has_permission("batches", "edit") %}
                         <div class="mt-1 d-flex gap-1">
                             {% if not img.is_default %}
                             <form method="POST" action="/admin/batches/image/default/{{ img.id }}">
@@ -71,6 +74,7 @@
                                 <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash"></i></button>
                             </form>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}

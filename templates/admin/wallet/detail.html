@@ -64,6 +64,7 @@
     </div>
 
     <!-- Manual Adjustment -->
+    {% if user.has_permission("wallets", "full") %}
     <div class="col-12">
         <div class="card-tm no-hover" style="padding-bottom:2.5rem;">
             <div class="border-bottom pb-3 mb-3"><i class="bi bi-gear me-1"></i> عملیات دستی</div>
@@ -99,6 +100,7 @@
             </form>
         </div>
     </div>
+    {% endif %}
 
     <!-- Ledger Entries -->
     <div class="col-12">

@@ -72,7 +72,7 @@ async def update_settings(
     silver_fee_customer_percent: str = Form("1.5"),
     silver_fee_dealer_percent: str = Form("0.3"),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("settings")),
+    user=Depends(require_permission("settings", level="edit")),
 ):
     csrf_check(request, csrf_token)
 
@@ -140,7 +140,7 @@ async def fetch_price_ajax(
     asset_code: str = Form("gold_18k"),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("settings")),
+    user=Depends(require_permission("settings", level="edit")),
 ):
     """AJAX: manually trigger price fetch from external API."""
     csrf_check(request, csrf_token)

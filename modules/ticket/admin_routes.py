@@ -108,7 +108,7 @@ async def admin_ticket_reply(
     body: str = Form(...),
     csrf_token: str = Form(""),
     files: List[UploadFile] = File(None),
-    user=Depends(require_permission("tickets")),
+    user=Depends(require_permission("tickets", level="create")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -144,7 +144,7 @@ async def admin_ticket_internal_note(
     body: str = Form(...),
     csrf_token: str = Form(""),
     files: List[UploadFile] = File(None),
-    user=Depends(require_permission("tickets")),
+    user=Depends(require_permission("tickets", level="create")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -177,7 +177,7 @@ async def admin_ticket_status(
     request: Request,
     new_status: str = Form(...),
     csrf_token: str = Form(""),
-    user=Depends(require_permission("tickets")),
+    user=Depends(require_permission("tickets", level="edit")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -197,7 +197,7 @@ async def admin_ticket_close(
     ticket_id: int,
     request: Request,
     csrf_token: str = Form(""),
-    user=Depends(require_permission("tickets")),
+    user=Depends(require_permission("tickets", level="full")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -218,7 +218,7 @@ async def admin_ticket_category(
     request: Request,
     new_category: str = Form(...),
     csrf_token: str = Form(""),
-    user=Depends(require_permission("tickets")),
+    user=Depends(require_permission("tickets", level="edit")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -239,7 +239,7 @@ async def admin_ticket_assign(
     request: Request,
     staff_id: str = Form(...),
     csrf_token: str = Form(""),
-    user=Depends(require_permission("tickets")),
+    user=Depends(require_permission("tickets", level="edit")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)

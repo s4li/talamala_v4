@@ -5,9 +5,11 @@
 {% block content %}
 <div class="page-header tm-animate-fade-in">
     <h4 class="fw-bold mb-0"><i class="bi bi-clipboard2-check me-2"></i>انبارگردانی</h4>
+    {% if user.has_permission("inventory", "create") %}
     <button class="btn btn-tm-primary" data-bs-toggle="modal" data-bs-target="#startModal">
         <i class="bi bi-plus-lg me-1"></i> شروع انبارگردانی
     </button>
+    {% endif %}
 </div>
 
 {% if error %}<div class="alert-tm-danger py-2">{{ error }}</div>{% endif %}
@@ -75,6 +77,7 @@
 {{ pagination(page, total_pages, '/admin/reconciliation', '&dealer_id=' ~ dealer_filter if dealer_filter else '') }}
 
 <!-- Start Modal -->
+{% if user.has_permission("inventory", "create") %}
 <div class="modal fade" id="startModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
@@ -100,4 +103,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

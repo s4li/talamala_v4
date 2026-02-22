@@ -57,6 +57,7 @@
 <div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-2">
     <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-upc-scan me-1"></i> اسکن شمش</h6>
 
+    {% if user.has_permission("inventory", "edit") %}
     <div class="row g-2 align-items-end">
         <div class="col-md-6">
             <div class="input-group">
@@ -83,9 +84,11 @@
 
     <div id="scanResult" class="mt-2"></div>
     <div id="scanError" class="alert alert-danger py-2 d-none mt-2"></div>
+    {% endif %}
 
     <!-- Actions -->
     <div class="d-flex gap-2 mt-3 pt-3 border-top">
+        {% if user.has_permission("inventory", "full") %}
         <form method="POST" action="/admin/reconciliation/{{ recon.id }}/finalize" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input type="text" name="notes" class="form-control form-control-sm d-inline-block" style="width:250px;"
@@ -100,6 +103,7 @@
                 <i class="bi bi-x-lg me-1"></i> لغو
             </button>
         </form>
+        {% endif %}
     </div>
 </div>
 {% endif %}

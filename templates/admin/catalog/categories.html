@@ -5,9 +5,11 @@
 {% block content %}
 <div class="page-header tm-animate-fade-in">
     <h4 class="fw-bold mb-0"><i class="bi bi-folder me-2"></i>دسته‌بندی محصولات</h4>
+    {% if user.has_permission("products", "create") %}
     <button class="btn btn-tm-primary" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-lg me-1"></i> افزودن دسته‌بندی
     </button>
+    {% endif %}
 </div>
 
 <div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
@@ -42,20 +44,25 @@
                         </td>
                         <td>
                             <div class="d-flex gap-1">
+                                {% if user.has_permission("products", "edit") %}
                                 <button class="btn btn-sm btn-tm-outline" data-bs-toggle="modal"
                                         data-bs-target="#editModal{{ cat.id }}" title="ویرایش">
                                     <i class="bi bi-pencil"></i>
                                 </button>
+                                {% endif %}
+                                {% if user.has_permission("products", "full") %}
                                 <form method="POST" action="/admin/categories/delete/{{ cat.id }}"
                                       onsubmit="return confirm('حذف دسته‌بندی «{{ cat.name }}»؟')">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                     <button class="btn btn-sm btn-tm-danger" title="حذف"><i class="bi bi-trash"></i></button>
                                 </form>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
 
                     <!-- Edit Modal -->
+                    {% if user.has_permission("products", "edit") %}
                     <div class="modal fade" id="editModal{{ cat.id }}" tabindex="-1">
                         <div class="modal-dialog">
                             <div class="modal-content">
@@ -88,6 +95,7 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
                     {% else %}
                     <tr><td colspan="7" class="text-center text-muted py-4">دسته‌بندی‌ای تعریف نشده</td></tr>
                     {% endfor %}
@@ -98,6 +106,7 @@
 </div>
 
 <!-- Add Modal -->
+{% if user.has_permission("products", "create") %}
 <div class="modal fade" id="addModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -129,4 +138,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

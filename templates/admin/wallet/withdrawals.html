@@ -86,6 +86,7 @@
                                 <td class="small text-muted">{{ wr.created_at | jdate if wr.created_at else '—' }}</td>
                                 <td>
                                     {% if wr.status == 'Pending' %}
+                                    {% if user.has_permission("wallets", "full") %}
                                     <div class="d-flex gap-1">
                                         <form method="post" action="/admin/wallets/withdrawals/{{ wr.id }}/approve"
                                               style="display:inline;">
@@ -120,6 +121,7 @@
                                             </button>
                                         </form>
                                     </div>
+                                    {% endif %}
                                     {% elif wr.status == 'Paid' %}
                                     <span class="text-success small"><i class="bi bi-check-circle"></i> پرداخت شده</span>
                                     {% else %}
@@ -181,6 +183,7 @@
                                 <td class="small text-muted">{{ wr.created_at | jdate if wr.created_at else '—' }}</td>
                                 <td>
                                     {% if wr.status == 'Pending' %}
+                                    {% if user.has_permission("wallets", "full") %}
                                     <div class="d-flex gap-1">
                                         <form method="post" action="/admin/wallets/withdrawals/{{ wr.id }}/approve"
                                               style="display:inline;">
@@ -215,6 +218,7 @@
                                             </button>
                                         </form>
                                     </div>
+                                    {% endif %}
                                     {% elif wr.status == 'Paid' %}
                                     <span class="text-success small"><i class="bi bi-check-circle"></i> پرداخت شده</span>
                                     {% else %}

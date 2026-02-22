@@ -122,7 +122,7 @@ async def coupon_create(
     mobiles_text: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("coupons")),
+    user=Depends(require_permission("coupons", level="create")),
 ):
     csrf_check(request, csrf_token)
 
@@ -271,7 +271,7 @@ async def coupon_edit(
     status: str = Form("ACTIVE"),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("coupons")),
+    user=Depends(require_permission("coupons", level="edit")),
 ):
     csrf_check(request, csrf_token)
 
@@ -335,7 +335,7 @@ async def coupon_delete(
     coupon_id: int,
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("coupons")),
+    user=Depends(require_permission("coupons", level="full")),
 ):
     csrf_check(request, csrf_token)
     try:
@@ -357,7 +357,7 @@ async def coupon_toggle(
     coupon_id: int,
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("coupons")),
+    user=Depends(require_permission("coupons", level="edit")),
 ):
     csrf_check(request, csrf_token)
     coupon = coupon_service.get_coupon_by_id(db, coupon_id)
@@ -385,7 +385,7 @@ async def coupon_add_mobiles(
     note: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("coupons")),
+    user=Depends(require_permission("coupons", level="edit")),
 ):
     csrf_check(request, csrf_token)
     count = 0
@@ -412,7 +412,7 @@ async def coupon_remove_mobile(
     mobile_id: int,
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("coupons")),
+    user=Depends(require_permission("coupons", level="edit")),
 ):
     csrf_check(request, csrf_token)
     coupon_service.remove_mobile(db, mobile_id)

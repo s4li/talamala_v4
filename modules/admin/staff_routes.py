@@ -14,7 +14,10 @@ from common.templating import templates
 from common.security import csrf_check, new_csrf_token
 from modules.auth.deps import require_permission
 from modules.admin.staff_service import staff_service
-from modules.admin.permissions import PERMISSION_REGISTRY, ALL_PERMISSION_KEYS
+from modules.admin.permissions import (
+    PERMISSION_REGISTRY, ALL_PERMISSION_KEYS,
+    PERMISSION_LEVELS, PERMISSION_LEVEL_LABELS,
+)
 
 router = APIRouter(prefix="/admin/staff", tags=["admin-staff"])
 
@@ -40,6 +43,8 @@ async def staff_list(
         "csrf_token": csrf,
         "msg": msg,
         "permissions_registry": PERMISSION_REGISTRY,
+        "permission_levels": PERMISSION_LEVELS,
+        "permission_level_labels": PERMISSION_LEVEL_LABELS,
         "active_page": "staff",
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
@@ -62,6 +67,8 @@ async def create_staff_form(
         "user": user,
         "staff_user": None,
         "permissions_registry": PERMISSION_REGISTRY,
+        "permission_levels": PERMISSION_LEVELS,
+        "permission_level_labels": PERMISSION_LEVEL_LABELS,
         "csrf_token": csrf,
         "active_page": "staff",
     })
@@ -77,7 +84,7 @@ async def create_staff(
     role: str = Form("operator"),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("staff")),
+    user=Depends(require_permission("staff", level="create")),
 ):
     csrf_check(request, csrf_token)
 
@@ -89,6 +96,8 @@ async def create_staff(
             "user": user,
             "staff_user": None,
             "permissions_registry": PERMISSION_REGISTRY,
+        "permission_levels": PERMISSION_LEVELS,
+        "permission_level_labels": PERMISSION_LEVEL_LABELS,
             "csrf_token": csrf,
             "error": "این شماره موبایل قبلا ثبت شده است.",
             "active_page": "staff",
@@ -96,9 +105,13 @@ async def create_staff(
         response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
         return response
 
-    # Extract permissions from checkboxes
+    # Extract permissions from dropdowns (dict format)
     form_data = await request.form()
-    perms = [key for key in ALL_PERMISSION_KEYS if form_data.get(f"perm_{key}")]
+    perms = {}
+    for key in ALL_PERMISSION_KEYS:
+        lvl = form_data.get(f"perm_{key}", "")
+        if lvl and lvl in PERMISSION_LEVELS:
+            perms[key] = lvl
 
     staff_service.create_staff(
         db, mobile=mobile.strip(), full_name=full_name.strip(),
@@ -129,6 +142,8 @@ async def edit_staff_form(
         "user": user,
         "staff_user": staff_user,
         "permissions_registry": PERMISSION_REGISTRY,
+        "permission_levels": PERMISSION_LEVELS,
+        "permission_level_labels": PERMISSION_LEVEL_LABELS,
         "csrf_token": csrf,
         "active_page": "staff",
     })
@@ -144,12 +159,16 @@ async def edit_staff(
     role: str = Form("operator"),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("staff")),
+    user=Depends(require_permission("staff", level="edit")),
 ):
     csrf_check(request, csrf_token)
 
     form_data = await request.form()
-    perms = [key for key in ALL_PERMISSION_KEYS if form_data.get(f"perm_{key}")]
+    perms = {}
+    for key in ALL_PERMISSION_KEYS:
+        lvl = form_data.get(f"perm_{key}", "")
+        if lvl and lvl in PERMISSION_LEVELS:
+            perms[key] = lvl
 
     staff_service.update_staff(db, staff_id, full_name=full_name.strip(), role=role)
     staff_service.update_permissions(db, staff_id, perms)

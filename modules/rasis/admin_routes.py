@@ -90,7 +90,7 @@ async def rasis_register_dealer(
     dealer_id: int,
     request: Request,
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="full")),
     db: Session = Depends(get_db),
 ):
     """Register a dealer as Rasis branch."""
@@ -117,7 +117,7 @@ async def rasis_sync_dealer(
     dealer_id: int,
     request: Request,
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="edit")),
     db: Session = Depends(get_db),
 ):
     """Sync dealer's inventory to Rasis POS."""
@@ -144,7 +144,7 @@ async def rasis_sync_dealer(
 async def rasis_sync_all(
     request: Request,
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="edit")),
     db: Session = Depends(get_db),
 ):
     """Sync all registered dealers' inventory to Rasis POS."""
@@ -178,7 +178,7 @@ async def rasis_sync_all(
 async def rasis_fetch_receipts(
     request: Request,
     csrf_token: str = Form(""),
-    user=Depends(require_permission("dealers")),
+    user=Depends(require_permission("dealers", level="edit")),
     db: Session = Depends(get_db),
 ):
     """Manually fetch receipts from Rasis for all dealers."""
