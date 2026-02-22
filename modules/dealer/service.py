@@ -1809,4 +1809,125 @@ class DealerService:
         return items, total
 
 
+    # ------------------------------------------
+    # Remove Dealer Role (with orphan cleanup)
+    # ------------------------------------------
+
+    def remove_dealer_role(self, db: Session, dealer_id: int) -> Dict[str, Any]:
+        """
+        Remove dealer role from a user, handling all orphaned resources first.
+
+        Pre-checks:
+        - Block if ASSIGNED or RESERVED bars exist at dealer location (must be transferred first)
+
+        Cleanup:
+        - Cancel in-progress reconciliation sessions
+        - Cancel pending custodial delivery requests (set dealer_id=NULL)
+        - Deactivate sub-dealer relations (parent or child)
+        - Clear Rasis POS sharepoint
+        - Clear dealer fields: is_dealer, tier_id, api_key
+        """
+        from modules.inventory.models import (
+            ReconciliationSession, ReconciliationStatus,
+            CustodialDeliveryRequest, CustodialDeliveryStatus,
+        )
+
+        dealer = db.query(User).filter(User.id == dealer_id, User.is_dealer == True).first()
+        if not dealer:
+            return {"success": False, "message": "نماینده یافت نشد"}
+
+        # --- Block if bars still at this location (ASSIGNED or RESERVED) ---
+        active_bar_count = (
+            db.query(sa_func.count(Bar.id))
+            .filter(
+                Bar.dealer_id == dealer_id,
+                Bar.status.in_([BarStatus.ASSIGNED, BarStatus.RESERVED]),
+            )
+            .scalar()
+        )
+        if active_bar_count > 0:
+            return {
+                "success": False,
+                "message": f"این نماینده {active_bar_count} شمش فعال (اختصاص/رزرو) در محل خود دارد. "
+                           f"ابتدا شمش‌ها را به نماینده یا انبار دیگری انتقال دهید.",
+            }
+
+        # --- Cancel in-progress reconciliation sessions ---
+        in_progress_sessions = (
+            db.query(ReconciliationSession)
+            .filter(
+                ReconciliationSession.dealer_id == dealer_id,
+                ReconciliationSession.status == ReconciliationStatus.IN_PROGRESS,
+            )
+            .all()
+        )
+        for session in in_progress_sessions:
+            session.status = ReconciliationStatus.CANCELLED
+            session.completed_at = now_utc()
+
+        # --- Cancel pending custodial delivery requests ---
+        pending_deliveries = (
+            db.query(CustodialDeliveryRequest)
+            .filter(
+                CustodialDeliveryRequest.dealer_id == dealer_id,
+                CustodialDeliveryRequest.status == CustodialDeliveryStatus.PENDING,
+            )
+            .all()
+        )
+        for delivery in pending_deliveries:
+            delivery.status = CustodialDeliveryStatus.CANCELLED
+            delivery.cancelled_at = now_utc()
+            delivery.cancel_reason = "حذف نقش نمایندگی"
+
+        # --- Deactivate sub-dealer relations (as parent) ---
+        parent_rels = (
+            db.query(SubDealerRelation)
+            .filter(
+                SubDealerRelation.parent_dealer_id == dealer_id,
+                SubDealerRelation.is_active == True,
+            )
+            .all()
+        )
+        for rel in parent_rels:
+            rel.is_active = False
+            rel.deactivated_at = now_utc()
+
+        # --- Deactivate sub-dealer relations (as child) ---
+        child_rels = (
+            db.query(SubDealerRelation)
+            .filter(
+                SubDealerRelation.child_dealer_id == dealer_id,
+                SubDealerRelation.is_active == True,
+            )
+            .all()
+        )
+        for rel in child_rels:
+            rel.is_active = False
+            rel.deactivated_at = now_utc()
+
+        # --- Clear dealer fields ---
+        dealer.is_dealer = False
+        dealer.tier_id = None
+        dealer.api_key = None
+        dealer.rasis_sharepoint = None
+
+        db.flush()
+
+        # Build summary
+        cleanup_parts = []
+        if in_progress_sessions:
+            cleanup_parts.append(f"{len(in_progress_sessions)} انبارگردانی لغو شد")
+        if pending_deliveries:
+            cleanup_parts.append(f"{len(pending_deliveries)} درخواست تحویل لغو شد")
+        deactivated_rels = len(parent_rels) + len(child_rels)
+        if deactivated_rels:
+            cleanup_parts.append(f"{deactivated_rels} ارتباط زیرمجموعه غیرفعال شد")
+
+        summary = f"نقش نمایندگی {dealer.full_name} حذف شد"
+        if cleanup_parts:
+            summary += " — " + "، ".join(cleanup_parts)
+
+        return {"success": True, "message": summary}
+
+
 dealer_service = DealerService()

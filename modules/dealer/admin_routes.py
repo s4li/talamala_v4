@@ -260,6 +260,7 @@ async def dealer_create_submit(
 async def dealer_edit_form(
     dealer_id: int,
     request: Request,
+    error: str = None,
     user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
@@ -281,7 +282,7 @@ async def dealer_edit_form(
         "tiers": tiers,
         "csrf_token": csrf,
         "active_page": "dealers",
-        "error": None,
+        "error": error,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
@@ -362,13 +363,16 @@ async def dealer_remove_role(
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
-    from modules.user.models import User
-    dealer = db.query(User).filter(User.id == dealer_id, User.is_dealer == True).first()
-    if dealer:
-        dealer.is_dealer = False
-        dealer.tier_id = None
-        dealer.api_key = None
+    result = dealer_service.remove_dealer_role(db, dealer_id)
+    if result["success"]:
         db.commit()
+    else:
+        db.rollback()
+        # Redirect back to edit page with error message
+        return RedirectResponse(
+            f"/admin/dealers/{dealer_id}/edit?error={result['message']}",
+            status_code=302,
+        )
     return RedirectResponse("/admin/dealers", status_code=302)
 
 
