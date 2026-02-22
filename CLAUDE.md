@@ -75,6 +75,8 @@ talamala_v4/
 │   ├── pos/                     # Customer-facing POS API (reserve→confirm/cancel pattern)
 │   ├── review/                  # Product reviews (star rating) + comments/Q&A + likes
 │   ├── rasis/                   # Rasis POS device integration (auto-sync inventory + pricing)
+│   ├── pricing/                 # Asset prices, calculator, staleness guard, price feed
+│   │   └── trade_guard.py       # Per-metal, per-channel trade toggle system (enable/disable buy/sell)
 │   └── ticket/                  # Ticket, TicketMessage, TicketAttachment, categories, internal notes
 ├── templates/
 │   ├── base.html                # HTML skeleton (Bootstrap RTL, Vazirmatn)
@@ -100,7 +102,7 @@ talamala_v4/
 │   ├── admin/
 │   │   ├── base_admin.html      # Admin sidebar layout
 │   │   ├── dashboard.html
-│   │   ├── settings.html        # Asset prices (gold/silver) + tax, shipping config + active gateway + precious metal trade fees (gold + silver)
+│   │   ├── settings.html        # Asset prices (gold/silver) + tax, shipping, trade toggles, precious metal trade fees, log retention
 │   │   ├── catalog/             # products, categories, designs, packages, batches
 │   │   ├── inventory/           # bars, edit_bar
 │   │   ├── reconciliation.html  # Admin reconciliation session list
@@ -326,6 +328,16 @@ return response
 - Background scheduler fetches gold price every N minutes (configurable per asset)
 - Staleness guard: blocks checkout/POS/wallet if price expired (configurable per asset)
 - `calculate_bar_price()` now takes `base_metal_price` + `base_purity` params (generic for any metal)
+
+### Trade Guard (Per-metal, per-channel trade toggles)
+- `modules/pricing/trade_guard.py` → `is_trade_enabled()`, `require_trade_enabled()`, `get_all_trade_status()`
+- Settings pattern: `{metal}_{channel}_enabled` (e.g. `gold_shop_enabled`, `silver_wallet_buy_enabled`)
+- Channels: `shop`, `wallet_buy`, `wallet_sell`, `dealer_pos`, `customer_pos`, `b2b_order`, `buyback`
+- Metals: `gold`, `silver` (from PRECIOUS_METALS registry)
+- Default: all enabled (`"true"`) — admin toggles in Settings page
+- `require_trade_enabled()` raises `ValueError` (same pattern as `require_fresh_price()`)
+- Service-layer checks: wallet buy/sell, checkout, dealer POS, customer POS, B2B orders, buyback
+- UI: admin settings matrix + wallet trade page disabled state
 
 ### Payment Gateway
 - لایه انتزاعی `modules/payment/gateways/` با `BaseGateway` و الگوی registry

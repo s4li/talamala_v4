@@ -1,7 +1,7 @@
 # کاتالوگ قابلیت‌های سیستم طلاملا v4
 
 > این سند تمام ماژول‌ها، قابلیت‌ها، نقش‌های کاربری و فرمول قیمت‌گذاری سیستم TalaMala v4 را شرح می‌دهد.
-> آخرین به‌روزرسانی: فازهای ۱ تا ۱۴، ۲۱ و ۲۲ تکمیل‌شده + قابلیت بازگشت اجرت بازخرید + بهبود سیستم تیکتینگ + صفحات ثابت و فوتر (Static Pages & Footer) + ثبت مالکیت و انتقال شمش (Bar Claim & Gifting + Ownership Transfer) + ساده‌سازی فرمول قیمت‌گذاری + مدیریت کاربران (Customer Management) + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان (Admin POS Sales Report) + سیستم مدیریت دارایی و قیمت‌گذاری خودکار (Asset Price Management + Goldis Auto-fetch) + چند درگاه پرداخت (Multi-Gateway: Zibal/Sepehr/Top/Parsian) + درخواست نمایندگی با بازبینی (Dealer Request with Revision) + پیگیری تحویل فیزیکی شمش و طلای امانی (Bar-level Delivery Tracking & Custodial Gold) + ماژول نظرات و پرسش‌وپاسخ (Review & Comments) + API دستگاه POS مشتری‌محور (Customer-Facing POS API) + یکپارچه‌سازی دستگاه POS راسیس (Rasis POS Integration) + زیرنمایندگان و سفارش عمده B2B (Sub-Dealers & B2B Orders — Phase 21) + انبارگردانی پیشرفته و رهگیری فیزیکی (Advanced Inventory & Physical Tracking — Phase 22) + سیستم دسترسی سلسله‌مراتبی اپراتورها (Hierarchical Permission System + Staff Management).
+> آخرین به‌روزرسانی: فازهای ۱ تا ۱۴، ۲۱ و ۲۲ تکمیل‌شده + قابلیت بازگشت اجرت بازخرید + بهبود سیستم تیکتینگ + صفحات ثابت و فوتر (Static Pages & Footer) + ثبت مالکیت و انتقال شمش (Bar Claim & Gifting + Ownership Transfer) + ساده‌سازی فرمول قیمت‌گذاری + مدیریت کاربران (Customer Management) + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان (Admin POS Sales Report) + سیستم مدیریت دارایی و قیمت‌گذاری خودکار (Asset Price Management + Goldis Auto-fetch) + چند درگاه پرداخت (Multi-Gateway: Zibal/Sepehr/Top/Parsian) + درخواست نمایندگی با بازبینی (Dealer Request with Revision) + پیگیری تحویل فیزیکی شمش و طلای امانی (Bar-level Delivery Tracking & Custodial Gold) + ماژول نظرات و پرسش‌وپاسخ (Review & Comments) + API دستگاه POS مشتری‌محور (Customer-Facing POS API) + یکپارچه‌سازی دستگاه POS راسیس (Rasis POS Integration) + زیرنمایندگان و سفارش عمده B2B (Sub-Dealers & B2B Orders — Phase 21) + انبارگردانی پیشرفته و رهگیری فیزیکی (Advanced Inventory & Physical Tracking — Phase 22) + سیستم دسترسی سلسله‌مراتبی اپراتورها (Hierarchical Permission System + Staff Management) + سطح‌بندی فعال/غیرفعال خرید و فروش (Trade Guard).
 
 ---
 
@@ -37,6 +37,7 @@
 28. [یکپارچه‌سازی دستگاه POS راسیس (Rasis POS Integration)](#28-یکپارچهسازی-دستگاه-pos-راسیس-rasis-pos-integration)
 29. [پنل پیشرفته نماینده — زیرنمایندگان و سفارش عمده (Dealer Portal Enhancement — Phase 21)](#29-پنل-پیشرفته-نماینده--زیرنمایندگان-و-سفارش-عمده-dealer-portal-enhancement--phase-21)
 30. [انبارگردانی پیشرفته و رهگیری فیزیکی (Advanced Inventory & Physical Tracking — Phase 22)](#30-انبارگردانی-پیشرفته-و-رهگیری-فیزیکی-advanced-inventory--physical-tracking--phase-22)
+31. [سطح‌بندی فعال/غیرفعال خرید و فروش — Trade Guard](#31-سطحبندی-فعالغیرفعال-خرید-و-فروش--trade-guard)
 
 ---
 
@@ -865,6 +866,7 @@ async def delete_product(user=Depends(require_permission("products", level="full
 - درصد مالیات
 - هزینه ارسال پستی
 - بیمه ارسال
+- **ماتریس Trade Guard**: فعال/غیرفعال کردن خرید و فروش هر فلز در هر کانال — ۱۴ سوئیچ (۷ کانال × ۲ فلز). جزئیات در [بخش ۳۱](#31-سطحبندی-فعالغیرفعال-خرید-و-فروش--trade-guard).
 
 ### مدیریت ادمین‌ها و اپراتورها (Staff Management)
 
@@ -2105,4 +2107,107 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 
 ---
 
-> این سند بر اساس کد واقعی پروژه TalaMala v4 (فازهای ۱-۱۴، ۲۱ و ۲۲ + بازگشت اجرت بازخرید + بهبود تیکتینگ + صفحات ثابت و فوتر + ثبت مالکیت و انتقال شمش + مدیریت کاربران + ویرایش مشتری توسط ادمین + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان + مدیریت دارایی و قیمت‌گذاری خودکار + چند درگاه پرداخت + درخواست نمایندگی با بازبینی + نظرات و پرسش‌وپاسخ + API دستگاه POS مشتری‌محور + یکپارچه‌سازی دستگاه POS راسیس + زیرنمایندگان و سفارش عمده B2B + انبارگردانی پیشرفته و رهگیری فیزیکی) تهیه شده و هیچ قابلیت فرضی شامل نشده است.
+## 31. سطح‌بندی فعال/غیرفعال خرید و فروش — Trade Guard
+
+### شرح قابلیت
+
+سیستم **Trade Guard** به ادمین امکان می‌دهد خرید و فروش هر فلز گرانبها (طلا، نقره) را به‌تفکیک کانال فروش فعال یا غیرفعال کند. این سیستم ۱۴ سوئیچ مستقل (۷ کانال × ۲ فلز) ارائه می‌دهد که از طریق صفحه تنظیمات ادمین قابل مدیریت هستند.
+
+**ماژول**: `modules/pricing/trade_guard.py`
+
+### کانال‌های فروش (Channels)
+
+| کانال | کلید | توضیح |
+|--------|------|--------|
+| فروشگاه آنلاین | `shop` | خرید شمش از فروشگاه وب |
+| کیف پول — خرید | `wallet_buy` | تبدیل ریال به فلز (خرید از کیف پول) |
+| کیف پول — فروش | `wallet_sell` | تبدیل فلز به ریال (فروش از کیف پول) |
+| پوز نماینده | `dealer_pos` | فروش حضوری توسط نماینده |
+| پوز فروشگاهی (مشتری‌محور) | `customer_pos` | فروش از طریق API دستگاه POS مشتری‌محور |
+| سفارش عمده B2B | `b2b_order` | سفارش عمده نمایندگان |
+| بازخرید | `buyback` | بازخرید شمش توسط نماینده |
+
+### الگوی کلید تنظیمات (SystemSetting)
+
+هر سوئیچ یک رکورد در جدول `system_settings` است با الگوی نام‌گذاری:
+
+```
+{metal}_{channel}_enabled
+```
+
+**مثال‌ها:**
+
+| کلید | فلز | کانال | پیش‌فرض |
+|------|------|--------|---------|
+| `gold_shop_enabled` | طلا | فروشگاه | `true` |
+| `gold_wallet_buy_enabled` | طلا | کیف پول خرید | `true` |
+| `gold_wallet_sell_enabled` | طلا | کیف پول فروش | `true` |
+| `gold_dealer_pos_enabled` | طلا | پوز نماینده | `true` |
+| `gold_customer_pos_enabled` | طلا | پوز فروشگاهی | `true` |
+| `gold_b2b_order_enabled` | طلا | سفارش عمده | `true` |
+| `gold_buyback_enabled` | طلا | بازخرید | `true` |
+| `silver_shop_enabled` | نقره | فروشگاه | `true` |
+| `silver_wallet_buy_enabled` | نقره | کیف پول خرید | `true` |
+| `silver_wallet_sell_enabled` | نقره | کیف پول فروش | `true` |
+| `silver_dealer_pos_enabled` | نقره | پوز نماینده | `true` |
+| `silver_customer_pos_enabled` | نقره | پوز فروشگاهی | `true` |
+| `silver_b2b_order_enabled` | نقره | سفارش عمده | `true` |
+| `silver_buyback_enabled` | نقره | بازخرید | `true` |
+
+> **پیش‌فرض**: در صورت نبود کلید در دیتابیس، تمام کانال‌ها **فعال** (`true`) در نظر گرفته می‌شوند.
+
+### توابع سرویس
+
+| تابع | ورودی | خروجی | توضیح |
+|-------|--------|--------|--------|
+| `is_trade_enabled(db, metal, channel)` | `db: Session`, `metal: str`, `channel: str` | `bool` | بررسی فعال بودن کانال خاص برای فلز خاص |
+| `require_trade_enabled(db, metal, channel)` | `db: Session`, `metal: str`, `channel: str` | — (raises `HTTPException 403`) | بررسی + بلاک در صورت غیرفعال بودن |
+| `get_all_trade_status(db)` | `db: Session` | `dict` | وضعیت تمام ۱۴ سوئیچ (برای نمایش در ماتریس ادمین) |
+
+### اجرا در سطح سرویس (Enforcement Points)
+
+سیستم Trade Guard در نقاط زیر اعمال می‌شود:
+
+| کانال | محل اجرا | رفتار در صورت غیرفعال بودن |
+|--------|----------|---------------------------|
+| `shop` | Checkout (ثبت سفارش) | بلاک با خطای ۴۰۳ |
+| `wallet_buy` | `POST /wallet/{asset_type}/buy` | بلاک با خطای ۴۰۳ |
+| `wallet_sell` | `POST /wallet/{asset_type}/sell` | بلاک با خطای ۴۰۳ |
+| `dealer_pos` | `POST /dealer/pos` + `POST /api/dealer/sale` | بلاک با خطای ۴۰۳ |
+| `customer_pos` | `POST /api/pos/reserve` | بلاک با خطای ۴۰۳ |
+| `b2b_order` | `POST /dealer/b2b-orders/new` | بلاک با خطای ۴۰۳ |
+| `buyback` | `POST /dealer/buyback` | بلاک با خطای ۴۰۳ |
+
+### رابط کاربری ادمین
+
+در صفحه تنظیمات ادمین (`/admin/settings`) یک **ماتریس سوئیچ** نمایش داده می‌شود:
+
+- ردیف‌ها: کانال‌های فروش (۷ کانال)
+- ستون‌ها: فلزات (طلا، نقره)
+- هر سلول: یک toggle switch (فعال/غیرفعال)
+- ذخیره‌سازی همراه با سایر تنظیمات سیستم
+
+### فایل‌های مرتبط
+
+| فایل | توضیح |
+|------|--------|
+| `modules/pricing/trade_guard.py` | سرویس Trade Guard (توابع اصلی) |
+| `modules/admin/routes.py` | صفحه تنظیمات (GET/POST — شامل ماتریس toggle) |
+| `modules/wallet/routes.py` | اعمال guard در خرید/فروش فلز |
+| `modules/cart/routes.py` | اعمال guard در checkout |
+| `modules/dealer/routes.py` | اعمال guard در POS و بازخرید و B2B |
+| `modules/pos/routes.py` | اعمال guard در POS مشتری‌محور |
+| `templates/admin/settings.html` | قالب ماتریس سوئیچ |
+
+### دسترسی
+
+| نقش | دسترسی |
+|------|--------|
+| Super Admin | مشاهده و تغییر تمام سوئیچ‌ها در صفحه تنظیمات |
+| Operator | بسته به سطح دسترسی `settings` |
+| نماینده | بدون دسترسی — فقط در زمان عملیات (POS/بازخرید/B2B) بلاک می‌شود |
+| مشتری | بدون دسترسی — فقط در زمان عملیات (فروشگاه/کیف پول) بلاک می‌شود |
+
+---
+
+> این سند بر اساس کد واقعی پروژه TalaMala v4 (فازهای ۱-۱۴، ۲۱ و ۲۲ + بازگشت اجرت بازخرید + بهبود تیکتینگ + صفحات ثابت و فوتر + ثبت مالکیت و انتقال شمش + مدیریت کاربران + ویرایش مشتری توسط ادمین + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان + مدیریت دارایی و قیمت‌گذاری خودکار + چند درگاه پرداخت + درخواست نمایندگی با بازبینی + نظرات و پرسش‌وپاسخ + API دستگاه POS مشتری‌محور + یکپارچه‌سازی دستگاه POS راسیس + زیرنمایندگان و سفارش عمده B2B + انبارگردانی پیشرفته و رهگیری فیزیکی + سطح‌بندی فعال/غیرفعال خرید و فروش — Trade Guard) تهیه شده و هیچ قابلیت فرضی شامل نشده است.
