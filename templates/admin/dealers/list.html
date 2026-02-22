@@ -56,8 +56,21 @@
     </div>
 </div>
 
+<!-- Filter Tabs -->
+<div class="d-flex gap-2 mb-3 tm-animate-fade-in-up tm-delay-7">
+    <a href="/admin/dealers" class="btn btn-sm {% if not filter_status %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
+        همه ({{ stats.total_dealers }})
+    </a>
+    <a href="/admin/dealers?status=active" class="btn btn-sm {% if filter_status == 'active' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
+        <i class="bi bi-check-circle me-1"></i>فعال ({{ stats.active_dealers }})
+    </a>
+    <a href="/admin/dealers?status=inactive" class="btn btn-sm {% if filter_status == 'inactive' %}btn-tm-primary{% else %}btn-tm-outline{% endif %}">
+        <i class="bi bi-x-circle me-1"></i>غیرفعال ({{ stats.total_dealers - stats.active_dealers }})
+    </a>
+</div>
+
 <!-- Dealer Table -->
-<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-7">
+<div class="card-tm no-hover tm-animate-fade-in-up tm-delay-8">
     <div class="table-responsive">
         <table class="table table-tm mb-0">
             <thead>
@@ -74,7 +87,7 @@
             </thead>
             <tbody>
                 {% for d in dealers %}
-                <tr>
+                <tr{% if not d.is_active %} class="opacity-50"{% endif %}>
                     <td>{{ d.id }}</td>
                     <td class="fw-bold">{{ d.full_name }}</td>
                     <td dir="ltr">{{ d.mobile }}</td>
@@ -89,11 +102,26 @@
                     </td>
                     <td>{{ d.created_at | jdate }}</td>
                     <td>
-                        {% if user.has_permission("dealers", "edit") %}
-                        <a href="/admin/dealers/{{ d.id }}/edit" class="btn btn-sm btn-tm-outline">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                        {% endif %}
+                        <div class="d-flex gap-1">
+                            {% if user.has_permission("dealers", "edit") %}
+                            <a href="/admin/dealers/{{ d.id }}/edit" class="btn btn-sm btn-tm-outline" title="ویرایش">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST" action="/admin/dealers/{{ d.id }}/toggle-active" class="d-inline"
+                                  onsubmit="return confirm('{{ 'غیرفعال' if d.is_active else 'فعال' }} کردن نماینده {{ d.full_name }}؟')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                {% if d.is_active %}
+                                <button type="submit" class="btn btn-sm btn-tm-danger" title="غیرفعال کردن">
+                                    <i class="bi bi-pause-circle"></i>
+                                </button>
+                                {% else %}
+                                <button type="submit" class="btn btn-sm btn-tm-success" title="فعال کردن">
+                                    <i class="bi bi-play-circle"></i>
+                                </button>
+                                {% endif %}
+                            </form>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% else %}
@@ -110,7 +138,7 @@
 
 <!-- Pagination -->
 {% from "components/pagination.html" import pagination %}
-{{ pagination(page, total_pages, '/admin/dealers') }}
+{{ pagination(page, total_pages, '/admin/dealers?status=' + (filter_status or '')) }}
 
 <!-- Link to buyback management -->
 <div class="text-center mt-4">

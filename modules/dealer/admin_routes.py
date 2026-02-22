@@ -81,13 +81,15 @@ async def dealer_sales_admin(
 async def dealer_list(
     request: Request,
     page: int = 1,
+    status: str = "",
     user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
-    dealers, total = dealer_service.list_dealers(db, page=page)
+    dealers, total = dealer_service.list_dealers(db, page=page, status=status)
     total_pages = (total + 29) // 30
     admin_stats = dealer_service.get_admin_stats(db)
 
+    csrf = new_csrf_token()
     response = templates.TemplateResponse("admin/dealers/list.html", {
         "request": request,
         "user": user,
@@ -96,8 +98,11 @@ async def dealer_list(
         "page": page,
         "total_pages": total_pages,
         "stats": admin_stats,
+        "filter_status": status,
+        "csrf_token": csrf,
         "active_page": "dealers",
     })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
 
 
@@ -322,6 +327,26 @@ async def dealer_edit_submit(
     db.commit()
 
     return RedirectResponse("/admin/dealers", status_code=302)
+
+
+# ==========================================
+# Toggle Active/Inactive (quick action from list)
+# ==========================================
+
+@router.post("/{dealer_id}/toggle-active")
+async def dealer_toggle_active(
+    dealer_id: int,
+    request: Request,
+    csrf_token: str = Form(""),
+    user=Depends(require_permission("dealers", level="edit")),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    dealer = dealer_service.get_dealer(db, dealer_id)
+    if dealer:
+        dealer.is_active = not dealer.is_active
+        db.commit()
+    return RedirectResponse(request.headers.get("referer", "/admin/dealers"), status_code=302)
 
 
 # ==========================================

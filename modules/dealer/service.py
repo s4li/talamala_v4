@@ -63,8 +63,13 @@ class DealerService:
         db.flush()
         return True
 
-    def list_dealers(self, db: Session, page: int = 1, per_page: int = 30) -> Tuple[List[User], int]:
-        q = db.query(User).filter(User.is_dealer == True).order_by(User.created_at.desc())
+    def list_dealers(self, db: Session, page: int = 1, per_page: int = 30, status: str = "") -> Tuple[List[User], int]:
+        q = db.query(User).filter(User.is_dealer == True)
+        if status == "active":
+            q = q.filter(User.is_active == True)
+        elif status == "inactive":
+            q = q.filter(User.is_active == False)
+        q = q.order_by(User.created_at.desc())
         total = q.count()
         dealers = q.offset((page - 1) * per_page).limit(per_page).all()
         return dealers, total
