@@ -386,9 +386,11 @@ class WalletService:
         asset_type: str = "gold", fee_percent: float = 2.0,
     ) -> Dict[str, Any]:
         """Buy precious metal: deduct IRR, credit metal account."""
+        from modules.pricing.trade_guard import require_trade_enabled
         metal = PRECIOUS_METALS.get(asset_type)
         if not metal:
             raise ValueError(f"نوع فلز '{asset_type}' شناسایی نشد")
+        require_trade_enabled(db, asset_type, "wallet_buy")
         if amount_irr <= 0:
             raise ValueError("مبلغ باید مثبت باشد")
 
@@ -423,9 +425,11 @@ class WalletService:
         asset_type: str = "gold", fee_percent: float = 2.0,
     ) -> Dict[str, Any]:
         """Sell precious metal: deduct metal account, credit IRR."""
+        from modules.pricing.trade_guard import require_trade_enabled
         metal = PRECIOUS_METALS.get(asset_type)
         if not metal:
             raise ValueError(f"نوع فلز '{asset_type}' شناسایی نشد")
+        require_trade_enabled(db, asset_type, "wallet_sell")
         if metal_mg <= 0:
             raise ValueError(f"مقدار {metal['label']} باید مثبت باشد")
 

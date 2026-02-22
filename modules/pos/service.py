@@ -169,12 +169,17 @@ class PosService:
 
     def reserve_bar(self, db: Session, dealer_id: int, product_id: int) -> Dict[str, Any]:
         """Reserve an available bar for POS payment (2-minute hold)."""
-        # Get product first to check metal-specific staleness
+        # Get product first to check metal-specific staleness + trade toggle
         product = db.query(Product).filter(Product.id == product_id).first()
         if product:
             _, _, metal_info = get_product_pricing(db, product)
             try:
                 require_fresh_price(db, metal_info["pricing_code"])
+            except ValueError as e:
+                return {"success": False, "message": str(e)}
+            try:
+                from modules.pricing.trade_guard import require_trade_enabled
+                require_trade_enabled(db, product.metal_type or "gold", "customer_pos")
             except ValueError as e:
                 return {"success": False, "message": str(e)}
 

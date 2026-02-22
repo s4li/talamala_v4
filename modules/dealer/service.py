@@ -205,10 +205,15 @@ class DealerService:
         metal_type = (product.metal_type if product else "gold") or "gold"
         metal_price, base_purity, metal_info = get_product_pricing(db, product) if product else (0, 750, {})
 
-        # Staleness guard: block sale if metal price is expired
+        # Staleness + trade toggle guard
         if product:
             try:
                 require_fresh_price(db, metal_info["pricing_code"])
+            except ValueError as e:
+                return {"success": False, "message": str(e)}
+            try:
+                from modules.pricing.trade_guard import require_trade_enabled
+                require_trade_enabled(db, metal_type, "dealer_pos")
             except ValueError as e:
                 return {"success": False, "message": str(e)}
 
@@ -403,6 +408,15 @@ class DealerService:
             return {"success": False, "message": "شمش با این سریال یافت نشد"}
         if bar.status != BarStatus.SOLD:
             return {"success": False, "message": "فقط شمش‌های فروخته‌شده قابل بازخرید هستند"}
+
+        # Trade toggle guard
+        product = bar.product
+        bb_metal = (product.metal_type if product else "gold") or "gold"
+        try:
+            from modules.pricing.trade_guard import require_trade_enabled
+            require_trade_enabled(db, bb_metal, "buyback")
+        except ValueError as e:
+            return {"success": False, "message": str(e)}
 
         # Prevent duplicate buyback for same bar
         existing = (
@@ -1370,13 +1384,27 @@ class DealerService:
 
         tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
 
-        # Ensure metal prices are fresh before locking prices
+        # Ensure metal prices are fresh + trade toggle enabled
         from modules.pricing.service import require_fresh_price
+        from modules.pricing.trade_guard import require_trade_enabled
         from modules.pricing.models import GOLD_18K
         try:
             require_fresh_price(db, GOLD_18K)
         except ValueError as e:
             return {"success": False, "message": str(e)}
+
+        # Trade toggle guard: check each product's metal type
+        checked_b2b_metals = set()
+        for it in items_data:
+            prod = db.query(Product).get(it["product_id"])
+            if prod:
+                mt = prod.metal_type or "gold"
+                if mt not in checked_b2b_metals:
+                    try:
+                        require_trade_enabled(db, mt, "b2b_order")
+                    except ValueError as e:
+                        return {"success": False, "message": str(e)}
+                    checked_b2b_metals.add(mt)
 
         # Get dealer's tier wage map
         dealer_wage_map: Dict[int, float] = {}

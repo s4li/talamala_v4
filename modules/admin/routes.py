@@ -29,12 +29,17 @@ async def settings_page(request: Request, db: Session = Depends(get_db), user=De
     assets = db.query(Asset).order_by(Asset.id).all()
     assets_dict = {a.asset_code: a for a in assets}
 
+    # Trade toggle statuses
+    from modules.pricing.trade_guard import get_all_trade_status
+    trade_status = get_all_trade_status(db)
+
     csrf = new_csrf_token()
     response = templates.TemplateResponse("admin/settings.html", {
         "request": request,
         "user": user,
         "settings": settings_dict,
         "assets": assets_dict,
+        "trade_status": trade_status,
         "csrf_token": csrf,
         "active_page": "settings",
     })
@@ -67,6 +72,21 @@ async def update_settings(
     shahkar_enabled: Optional[str] = Form(None),
     rasis_pos_enabled: Optional[str] = Form(None),
     log_retention_days: str = Form("45"),
+    # Trade toggles (14 keys)
+    gold_shop_enabled: Optional[str] = Form(None),
+    gold_wallet_buy_enabled: Optional[str] = Form(None),
+    gold_wallet_sell_enabled: Optional[str] = Form(None),
+    gold_dealer_pos_enabled: Optional[str] = Form(None),
+    gold_customer_pos_enabled: Optional[str] = Form(None),
+    gold_b2b_order_enabled: Optional[str] = Form(None),
+    gold_buyback_enabled: Optional[str] = Form(None),
+    silver_shop_enabled: Optional[str] = Form(None),
+    silver_wallet_buy_enabled: Optional[str] = Form(None),
+    silver_wallet_sell_enabled: Optional[str] = Form(None),
+    silver_dealer_pos_enabled: Optional[str] = Form(None),
+    silver_customer_pos_enabled: Optional[str] = Form(None),
+    silver_b2b_order_enabled: Optional[str] = Form(None),
+    silver_buyback_enabled: Optional[str] = Form(None),
     gold_fee_customer_percent: str = Form("2"),
     gold_fee_dealer_percent: str = Form("0.5"),
     silver_fee_customer_percent: str = Form("1.5"),
@@ -117,6 +137,21 @@ async def update_settings(
         "shahkar_enabled": "true" if shahkar_enabled == "on" else "false",
         "rasis_pos_enabled": "true" if rasis_pos_enabled == "on" else "false",
         "log_retention_days": str(parse_int(log_retention_days) or 45),
+        # Trade toggles
+        "gold_shop_enabled": "true" if gold_shop_enabled == "on" else "false",
+        "gold_wallet_buy_enabled": "true" if gold_wallet_buy_enabled == "on" else "false",
+        "gold_wallet_sell_enabled": "true" if gold_wallet_sell_enabled == "on" else "false",
+        "gold_dealer_pos_enabled": "true" if gold_dealer_pos_enabled == "on" else "false",
+        "gold_customer_pos_enabled": "true" if gold_customer_pos_enabled == "on" else "false",
+        "gold_b2b_order_enabled": "true" if gold_b2b_order_enabled == "on" else "false",
+        "gold_buyback_enabled": "true" if gold_buyback_enabled == "on" else "false",
+        "silver_shop_enabled": "true" if silver_shop_enabled == "on" else "false",
+        "silver_wallet_buy_enabled": "true" if silver_wallet_buy_enabled == "on" else "false",
+        "silver_wallet_sell_enabled": "true" if silver_wallet_sell_enabled == "on" else "false",
+        "silver_dealer_pos_enabled": "true" if silver_dealer_pos_enabled == "on" else "false",
+        "silver_customer_pos_enabled": "true" if silver_customer_pos_enabled == "on" else "false",
+        "silver_b2b_order_enabled": "true" if silver_b2b_order_enabled == "on" else "false",
+        "silver_buyback_enabled": "true" if silver_buyback_enabled == "on" else "false",
         "gold_fee_customer_percent": gold_fee_customer_percent,
         "gold_fee_dealer_percent": gold_fee_dealer_percent,
         "silver_fee_customer_percent": silver_fee_customer_percent,

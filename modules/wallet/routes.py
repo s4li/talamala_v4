@@ -429,10 +429,13 @@ async def wallet_metal_page(
         flash(request, "نوع دارایی شناسایی نشد", "danger")
         return RedirectResponse("/wallet", status_code=302)
 
+    from modules.pricing.trade_guard import is_trade_enabled
     balance = wallet_service.get_balance(db, me.id)
     metal_balance = wallet_service.get_balance(db, me.id, asset_code=metal["asset_code"])
     fee_percent = wallet_service.get_fee_for_user(db, me, asset_type=asset_type)
     rates = wallet_service.get_metal_rates(db, asset_type=asset_type, fee_percent=fee_percent)
+    buy_enabled = is_trade_enabled(db, asset_type, "wallet_buy")
+    sell_enabled = is_trade_enabled(db, asset_type, "wallet_sell")
 
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/wallet_trade.html", {
@@ -446,6 +449,8 @@ async def wallet_metal_page(
         "cart_count": 0,
         "metal": metal,
         "asset_type": asset_type,
+        "buy_enabled": buy_enabled,
+        "sell_enabled": sell_enabled,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response

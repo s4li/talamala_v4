@@ -100,14 +100,17 @@ class OrderService:
         tax_percent_str = self._tax_percent(db)
         reservation_minutes = int(get_setting_from_db(db, "reservation_minutes", "15"))
 
-        # Staleness guard: check ALL unique metals in cart
+        # Staleness + trade toggle guard: check ALL unique metals in cart
         from modules.pricing.service import require_fresh_price
+        from modules.pricing.trade_guard import require_trade_enabled
         checked_metals = set()
         for item in cart.items:
             _, _, m_info = get_product_pricing(db, item.product)
             pc = m_info["pricing_code"]
+            mt = item.product.metal_type or "gold"
             if pc not in checked_metals:
                 require_fresh_price(db, pc)
+                require_trade_enabled(db, mt, "shop")
                 checked_metals.add(pc)
 
         delivery_data = delivery_data or {}

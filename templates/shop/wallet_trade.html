@@ -92,6 +92,12 @@
             <div class="border-bottom pb-3 mb-3 fw-bold">
                 <i class="bi bi-cart-plus me-1 text-success"></i> خرید {{ metal.label }}
             </div>
+            {% if not buy_enabled %}
+                <div class="alert alert-warning text-center mb-0">
+                    <i class="bi bi-lock-fill me-1"></i>
+                    خرید {{ metal.label }} در حال حاضر غیرفعال است
+                </div>
+            {% else %}
                 <form method="post" action="/wallet/{{ asset_type }}/buy">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <div class="mb-3">
@@ -129,6 +135,7 @@
                         <i class="bi {{ metal.icon }} me-1"></i> خرید {{ metal.label }}
                     </button>
                 </form>
+            {% endif %}
         </div>
     </div>
 
@@ -138,6 +145,12 @@
             <div class="border-bottom pb-3 mb-3 fw-bold">
                 <i class="bi bi-cash-coin me-1 text-danger"></i> فروش {{ metal.label }}
             </div>
+            {% if not sell_enabled %}
+                <div class="alert alert-warning text-center mb-0">
+                    <i class="bi bi-lock-fill me-1"></i>
+                    فروش {{ metal.label }} در حال حاضر غیرفعال است
+                </div>
+            {% else %}
                 <form method="post" action="/wallet/{{ asset_type }}/sell">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <div class="mb-3">
@@ -175,6 +188,7 @@
                         <i class="bi bi-cash-stack me-1"></i> فروش {{ metal.label }}
                     </button>
                 </form>
+            {% endif %}
         </div>
     </div>
 
@@ -239,12 +253,15 @@ function formatToman(n) {
 }
 
 // نمایش حداکثر گرم خرید و حداکثر تومان فروش
-document.getElementById('buy-max-grams-display').textContent = MAX_BUY_GRAMS.toFixed(3) + ' ' + METAL_UNIT;
-document.getElementById('sell-max-toman-display').textContent = formatToman(MAX_SELL_TOMAN);
+const buyMaxGramsEl = document.getElementById('buy-max-grams-display');
+if (buyMaxGramsEl) buyMaxGramsEl.textContent = MAX_BUY_GRAMS.toFixed(3) + ' ' + METAL_UNIT;
+const sellMaxTomanEl = document.getElementById('sell-max-toman-display');
+if (sellMaxTomanEl) sellMaxTomanEl.textContent = formatToman(MAX_SELL_TOMAN);
 
 // === خرید ===
 const buyToman = document.getElementById('buy-toman');
 const buyGrams = document.getElementById('buy-grams');
+if (buyToman && buyGrams) {
 const buyTomanWords = document.getElementById('buy-toman-words');
 const buyGramsInfo = document.getElementById('buy-grams-info');
 const buyFeeInfo = document.getElementById('buy-fee-info');
@@ -304,9 +321,12 @@ buyGrams.addEventListener('input', function() {
     buyLock = false;
 });
 
+} // end buy block
+
 // === فروش ===
 const sellGrams = document.getElementById('sell-grams');
 const sellToman = document.getElementById('sell-toman');
+if (sellGrams && sellToman) {
 const sellGramsInfo = document.getElementById('sell-grams-info');
 const sellTomanWords = document.getElementById('sell-toman-words');
 const sellFeeInfo = document.getElementById('sell-fee-info');
@@ -367,20 +387,28 @@ sellToman.addEventListener('input', function() {
     sellLock = false;
 });
 
+} // end sell block
+
 // === پر کردن حداکثر ===
-document.getElementById('buy-max-toman-link').addEventListener('click', function(e) {
-    e.preventDefault();
-    if (MAX_BUY_TOMAN > 0) {
-        buyToman.value = MAX_BUY_TOMAN;
-        buyToman.dispatchEvent(new Event('input'));
-    }
-});
-document.getElementById('sell-max-grams-link').addEventListener('click', function(e) {
-    e.preventDefault();
-    if (MAX_SELL_GRAMS > 0) {
-        sellGrams.value = MAX_SELL_GRAMS.toFixed(3);
-        sellGrams.dispatchEvent(new Event('input'));
-    }
-});
+const buyMaxLink = document.getElementById('buy-max-toman-link');
+if (buyMaxLink) {
+    buyMaxLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (MAX_BUY_TOMAN > 0 && buyToman) {
+            buyToman.value = MAX_BUY_TOMAN;
+            buyToman.dispatchEvent(new Event('input'));
+        }
+    });
+}
+const sellMaxLink = document.getElementById('sell-max-grams-link');
+if (sellMaxLink) {
+    sellMaxLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (MAX_SELL_GRAMS > 0 && sellGrams) {
+            sellGrams.value = MAX_SELL_GRAMS.toFixed(3);
+            sellGrams.dispatchEvent(new Event('input'));
+        }
+    });
+}
 </script>
 {% endblock %}

@@ -157,6 +157,21 @@ def seed():
             "silver_fee_dealer_percent":   ("0.3", "کارمزد خرید/فروش نقره — نماینده (%)"),
             "active_gateway":       ("zibal", "درگاه پرداخت فعال (zibal/sepehr/top/parsian)"),
             "log_retention_days":   ("45", "مدت نگهداری لاگ درخواست‌ها (روز)"),
+            # Trade toggles
+            "gold_shop_enabled":            ("true", "فعال/غیرفعال خرید شمش طلا از فروشگاه"),
+            "gold_wallet_buy_enabled":      ("true", "فعال/غیرفعال خرید طلا از کیف پول"),
+            "gold_wallet_sell_enabled":     ("true", "فعال/غیرفعال فروش طلا از کیف پول"),
+            "gold_dealer_pos_enabled":      ("true", "فعال/غیرفعال فروش شمش طلا از پوز نماینده"),
+            "gold_customer_pos_enabled":    ("true", "فعال/غیرفعال فروش شمش طلا از پوز فروشگاهی"),
+            "gold_b2b_order_enabled":       ("true", "فعال/غیرفعال سفارش عمده طلا"),
+            "gold_buyback_enabled":         ("true", "فعال/غیرفعال بازخرید شمش طلا"),
+            "silver_shop_enabled":          ("true", "فعال/غیرفعال خرید شمش نقره از فروشگاه"),
+            "silver_wallet_buy_enabled":    ("true", "فعال/غیرفعال خرید نقره از کیف پول"),
+            "silver_wallet_sell_enabled":   ("true", "فعال/غیرفعال فروش نقره از کیف پول"),
+            "silver_dealer_pos_enabled":    ("true", "فعال/غیرفعال فروش شمش نقره از پوز نماینده"),
+            "silver_customer_pos_enabled":  ("true", "فعال/غیرفعال فروش شمش نقره از پوز فروشگاهی"),
+            "silver_b2b_order_enabled":     ("true", "فعال/غیرفعال سفارش عمده نقره"),
+            "silver_buyback_enabled":       ("true", "فعال/غیرفعال بازخرید شمش نقره"),
         }
 
         for key, (value, desc) in settings_data.items():
