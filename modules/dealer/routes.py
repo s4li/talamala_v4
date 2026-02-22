@@ -904,10 +904,10 @@ async def dealer_transfers_page(
     dealer=Depends(require_dealer),
     db: Session = Depends(get_db),
 ):
-    """Transfer page: warehouse dealer distributes bars to other dealers."""
+    """Transfer page: dealers with can_distribute=True distribute bars to other dealers."""
     from fastapi import HTTPException, status
-    if not dealer.is_warehouse:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="فقط مراکز پخش دسترسی دارند")
+    if not dealer.can_distribute:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما دسترسی انتقال شمش ندارید")
 
     bars = []
     dealers_list = []
@@ -967,12 +967,12 @@ async def dealer_transfers_submit(
     dealer=Depends(require_dealer),
     db: Session = Depends(get_db),
 ):
-    """Execute bar transfer from warehouse to another dealer."""
+    """Execute bar transfer to another dealer."""
     from fastapi import HTTPException, status
     import urllib.parse
 
-    if not dealer.is_warehouse:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="فقط مراکز پخش دسترسی دارند")
+    if not dealer.can_distribute:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="شما دسترسی انتقال شمش ندارید")
 
     csrf_check(request, csrf_token)
 

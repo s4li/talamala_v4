@@ -64,6 +64,7 @@ class User(Base):
     commission_percent = Column(Numeric(5, 2), default=2.0, nullable=True)
     is_warehouse = Column(Boolean, default=False, server_default="false", nullable=False)
     is_postal_hub = Column(Boolean, default=False, server_default="false", nullable=False)
+    can_distribute = Column(Boolean, default=False, server_default="false", nullable=False)  # Can transfer bars to other dealers
     province_id = Column(Integer, ForeignKey("geo_provinces.id", ondelete="SET NULL"), nullable=True, index=True)
     city_id = Column(Integer, ForeignKey("geo_cities.id", ondelete="SET NULL"), nullable=True, index=True)
     district_id = Column(Integer, ForeignKey("geo_districts.id", ondelete="SET NULL"), nullable=True, index=True)

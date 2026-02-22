@@ -76,6 +76,7 @@ class DealerService:
         district_id: int = None, address: str = "",
         postal_code: str = "", landline_phone: str = "",
         is_warehouse: bool = False, is_postal_hub: bool = False,
+        can_distribute: bool = False,
     ) -> User:
         # Check if user with this mobile already exists
         existing = db.query(User).filter(User.mobile == mobile).first()
@@ -95,6 +96,7 @@ class DealerService:
             existing.landline_phone = landline_phone or None
             existing.is_warehouse = is_warehouse
             existing.is_postal_hub = is_postal_hub
+            existing.can_distribute = can_distribute
             db.flush()
             return existing
 
@@ -114,6 +116,7 @@ class DealerService:
             landline_phone=landline_phone or None,
             is_warehouse=is_warehouse,
             is_postal_hub=is_postal_hub,
+            can_distribute=can_distribute,
         )
         db.add(dealer)
         db.flush()
@@ -127,6 +130,7 @@ class DealerService:
         district_id: int = None, address: str = None,
         postal_code: str = None, landline_phone: str = None,
         is_warehouse: bool = None, is_postal_hub: bool = None,
+        can_distribute: bool = None,
     ) -> Optional[User]:
         dealer = self.get_dealer(db, dealer_id)
         if not dealer:
@@ -155,6 +159,8 @@ class DealerService:
             dealer.is_warehouse = is_warehouse
         if is_postal_hub is not None:
             dealer.is_postal_hub = is_postal_hub
+        if can_distribute is not None:
+            dealer.can_distribute = can_distribute
         db.flush()
         return dealer
 
@@ -1693,16 +1699,16 @@ class DealerService:
         bar_ids: List[int], to_dealer_id: int, description: str = "",
     ) -> Dict[str, Any]:
         """
-        Warehouse dealer transfers selected bars to another dealer.
+        Dealer with can_distribute=True transfers selected bars to another dealer.
         No admin approval needed — direct transfer.
         """
         from modules.inventory.models import DealerTransfer, TransferType
         from modules.inventory.service import inventory_service
 
-        # Validate from-dealer is warehouse
+        # Validate from-dealer has distribution permission
         from_dealer = self.get_dealer(db, from_dealer_id)
-        if not from_dealer or not from_dealer.is_warehouse:
-            return {"success": False, "message": "فقط مراکز پخش امکان انتقال دارند"}
+        if not from_dealer or not from_dealer.can_distribute:
+            return {"success": False, "message": "شما دسترسی انتقال شمش ندارید"}
 
         # Validate to-dealer
         if from_dealer_id == to_dealer_id:

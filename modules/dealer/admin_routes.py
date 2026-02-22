@@ -172,6 +172,7 @@ async def dealer_create_submit(
     landline_phone: str = Form(""),
     is_warehouse: str = Form("off"),
     is_postal_hub: str = Form("off"),
+    can_distribute: str = Form("off"),
     csrf_token: str = Form(""),
     user=Depends(require_permission("dealers", level="create")),
     db: Session = Depends(get_db),
@@ -210,6 +211,7 @@ async def dealer_create_submit(
         landline_phone=landline_phone.strip(),
         is_warehouse=(is_warehouse == "on"),
         is_postal_hub=(is_postal_hub == "on"),
+        can_distribute=(can_distribute == "on"),
     )
     db.commit()
 
@@ -276,6 +278,7 @@ async def dealer_edit_submit(
     is_active: str = Form("off"),
     is_warehouse: str = Form("off"),
     is_postal_hub: str = Form("off"),
+    can_distribute: str = Form("off"),
     csrf_token: str = Form(""),
     user=Depends(require_permission("dealers", level="edit")),
     db: Session = Depends(get_db),
@@ -295,6 +298,7 @@ async def dealer_edit_submit(
         is_active=(is_active == "on"),
         is_warehouse=(is_warehouse == "on"),
         is_postal_hub=(is_postal_hub == "on"),
+        can_distribute=(can_distribute == "on"),
     )
     db.commit()
 

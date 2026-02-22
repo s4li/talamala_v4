@@ -95,7 +95,7 @@
         <a href="/dealer/inventory" class="nav-link {% if active_page == 'inventory' %}active{% endif %}">
             <i class="bi bi-box-seam"></i> موجودی انبار
         </a>
-        {% if dealer.is_warehouse %}
+        {% if dealer.can_distribute %}
         <a href="/dealer/transfers" class="nav-link {% if active_page == 'transfers' %}active{% endif %}">
             <i class="bi bi-arrow-left-right"></i> انتقال به نماینده
         </a>
