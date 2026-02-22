@@ -113,9 +113,9 @@ def seed():
         print("\n[1] Admin Users")
 
         admins_data = [
-            {"mobile": "09120725564", "full_name": "مدیر سیستم", "role": "admin"},
+            {"mobile": "09120725564", "full_name": "شکیبا غلامی", "role": "admin"},
             {"mobile": "09121023589", "full_name": "مدیر سیستم", "role": "admin"},
-            {"mobile": "09123016442", "full_name": "مدیر سیستم", "role": "admin"},
+            {"mobile": "09121058447", "full_name": "سید علی حسینی", "role": "admin"},
         ]
         for admin_data in admins_data:
             existing = db.query(User).filter(User.mobile == admin_data["mobile"]).first()
