@@ -22,8 +22,8 @@ static/uploads/*
 .claude/
 templates_v2/
 
-# Private
-_private/
+# Private (temporarily unignored for server deploy)
+# _private/
 
 # Screenshots (dev only)
 screenshots/
