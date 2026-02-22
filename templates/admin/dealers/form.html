@@ -180,11 +180,25 @@
         </div>
         {% endif %}
 
-        <button type="submit" class="btn-tm-primary btn btn-lg px-5 mt-3">
-            <i class="bi bi-check-circle me-1"></i>
-            {% if dealer %}ذخیره تغییرات{% else %}ایجاد نماینده{% endif %}
-        </button>
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn-tm-primary btn btn-lg px-5">
+                <i class="bi bi-check-circle me-1"></i>
+                {% if dealer %}ذخیره تغییرات{% else %}ایجاد نماینده{% endif %}
+            </button>
+        </div>
     </form>
+
+    {% if dealer and user.has_permission("dealers", "full") %}
+    <hr class="my-4">
+    <form method="POST" action="/admin/dealers/{{ dealer.id }}/remove-role"
+          onsubmit="return confirm('نقش نمایندگی {{ dealer.full_name }} حذف شود؟\nکاربر حذف نمی‌شود، فقط دسترسی نمایندگی برداشته می‌شود.')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-outline-danger">
+            <i class="bi bi-person-x me-1"></i> حذف نقش نمایندگی
+        </button>
+        <small class="text-muted d-block mt-1">کاربر از لیست نمایندگان حذف می‌شود ولی حساب کاربری‌اش باقی می‌ماند.</small>
+    </form>
+    {% endif %}
 </div>
 
 {% if dealer %}

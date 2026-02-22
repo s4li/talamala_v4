@@ -121,6 +121,15 @@
                                 {% endif %}
                             </form>
                             {% endif %}
+                            {% if user.has_permission("dealers", "full") %}
+                            <form method="POST" action="/admin/dealers/{{ d.id }}/remove-role" class="d-inline"
+                                  onsubmit="return confirm('نقش نمایندگی {{ d.full_name }} حذف شود؟ کاربر حذف نمی‌شود فقط دسترسی نمایندگی برداشته می‌شود.')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف نقش نمایندگی">
+                                    <i class="bi bi-person-x"></i>
+                                </button>
+                            </form>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>

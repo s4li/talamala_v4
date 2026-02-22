@@ -350,6 +350,29 @@ async def dealer_toggle_active(
 
 
 # ==========================================
+# Remove Dealer Role (keep user, remove is_dealer flag)
+# ==========================================
+
+@router.post("/{dealer_id}/remove-role")
+async def dealer_remove_role(
+    dealer_id: int,
+    request: Request,
+    csrf_token: str = Form(""),
+    user=Depends(require_permission("dealers", level="full")),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    from modules.user.models import User
+    dealer = db.query(User).filter(User.id == dealer_id, User.is_dealer == True).first()
+    if dealer:
+        dealer.is_dealer = False
+        dealer.tier_id = None
+        dealer.api_key = None
+        db.commit()
+    return RedirectResponse("/admin/dealers", status_code=302)
+
+
+# ==========================================
 # API Key Management (for POS devices)
 # ==========================================
 
