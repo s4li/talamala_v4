@@ -22,7 +22,7 @@ PARSIAN_REDIRECT_URL = "https://pec.shaparak.ir/NewIPG/?token={token}"
 # Lazy-loaded SOAP clients (zeep Client init is slow)
 _sale_client = None
 _confirm_client = None
-
+from zeep import Client
 
 def _get_sale_client():
     global _sale_client
@@ -39,10 +39,19 @@ def _get_confirm_client():
         _confirm_client = Client(PARSIAN_CONFIRM_WSDL)
     return _confirm_client
 
+import requests
+from zeep.transports import Transport
 
 class ParsianGateway(BaseGateway):
     name = "parsian"
     label = "پارسیان"
+
+    def __init__(self):
+        proxy_url = 'socks5h://127.0.0.1:1080'
+        self.proxies = {
+            'http': proxy_url,
+            'https': proxy_url,
+        }
 
     def create_payment(self, req: GatewayPaymentRequest) -> GatewayCreateResult:
         try:
@@ -61,7 +70,7 @@ class ParsianGateway(BaseGateway):
 
             status = result["Status"]
             token = result["Token"]
-            message = result.get("Message", "")
+            message = result["Message"]
 
             if status != 0 or token <= 0:
                 return GatewayCreateResult(
