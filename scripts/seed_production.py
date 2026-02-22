@@ -1078,8 +1078,190 @@ def seed():
         db.close()
 
 
+def backup_bars():
+    """Backup all bars + their owners/dealers before reset.
+    Returns a list of dicts with all bar data, using names/mobiles instead of IDs.
+    """
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        bars = db.query(Bar).all()
+        if not bars:
+            print("  No bars to backup")
+            return []
+
+        backup = []
+        for b in bars:
+            # Resolve product name instead of ID
+            product_name = b.product.name if b.product else None
+            # Resolve user mobiles instead of IDs
+            customer_mobile = b.customer.mobile if b.customer else None
+            dealer_mobile = b.dealer_location.mobile if b.dealer_location else None
+            batch_number = b.batch.batch_number if b.batch else None
+
+            backup.append({
+                "serial_code": b.serial_code,
+                "status": b.status,
+                "product_name": product_name,
+                "customer_mobile": customer_mobile,
+                "dealer_mobile": dealer_mobile,
+                "batch_number": batch_number,
+                "claim_code": b.claim_code,
+                "delivered_at": b.delivered_at.isoformat() if b.delivered_at else None,
+                "created_at": b.created_at.isoformat() if b.created_at else None,
+            })
+
+        # Also backup users that are NOT admins (customers + dealers created on server)
+        users_backup = []
+        all_users = db.query(User).filter(User.is_admin == False).all()
+        for u in all_users:
+            users_backup.append({
+                "mobile": u.mobile,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
+                "national_id": u.national_id,
+                "is_dealer": u.is_dealer,
+                "is_active": u.is_active,
+                "customer_type": u.customer_type,
+                "company_name": u.company_name,
+                "economic_code": u.economic_code,
+                "postal_code": u.postal_code,
+                "address": u.address,
+                "phone": u.phone,
+                "tier_id": u.tier_id,
+                "commission_percent": float(u.commission_percent) if u.commission_percent else None,
+                "is_warehouse": u.is_warehouse,
+                "is_postal_hub": u.is_postal_hub,
+                "province_id": u.province_id,
+                "city_id": u.city_id,
+                "district_id": u.district_id,
+                "dealer_address": u.dealer_address,
+                "dealer_postal_code": u.dealer_postal_code,
+                "landline_phone": u.landline_phone,
+                "api_key": u.api_key,
+                "rasis_sharepoint": u.rasis_sharepoint,
+                "referral_code": u.referral_code,
+            })
+
+        print(f"  Backed up {len(backup)} bars + {len(users_backup)} non-admin users")
+        return {"bars": backup, "users": users_backup}
+    finally:
+        db.close()
+
+
+def restore_bars(backup_data):
+    """Restore backed-up bars + users after reset+seed."""
+    if not backup_data:
+        return
+
+    bars_backup = backup_data.get("bars", [])
+    users_backup = backup_data.get("users", [])
+
+    db = SessionLocal()
+    try:
+        # 1. Restore non-admin users (customers + dealers)
+        restored_users = 0
+        for udata in users_backup:
+            existing = db.query(User).filter(User.mobile == udata["mobile"]).first()
+            if existing:
+                continue  # Already created by seed (e.g. admin users)
+            u = User(
+                mobile=udata["mobile"],
+                first_name=udata["first_name"],
+                last_name=udata["last_name"],
+                national_id=udata["national_id"],
+                is_dealer=udata["is_dealer"],
+                is_active=udata["is_active"],
+                customer_type=udata["customer_type"],
+                company_name=udata["company_name"],
+                economic_code=udata["economic_code"],
+                postal_code=udata["postal_code"],
+                address=udata["address"],
+                phone=udata["phone"],
+                is_warehouse=udata.get("is_warehouse", False),
+                is_postal_hub=udata.get("is_postal_hub", False),
+                dealer_address=udata.get("dealer_address"),
+                dealer_postal_code=udata.get("dealer_postal_code"),
+                landline_phone=udata.get("landline_phone"),
+                api_key=udata.get("api_key"),
+                rasis_sharepoint=udata.get("rasis_sharepoint"),
+                referral_code=udata.get("referral_code"),
+            )
+            # tier_id, province_id, city_id, district_id — restore if they exist
+            if udata.get("tier_id"):
+                u.tier_id = udata["tier_id"]
+            if udata.get("commission_percent"):
+                u.commission_percent = udata["commission_percent"]
+            if udata.get("province_id"):
+                u.province_id = udata["province_id"]
+            if udata.get("city_id"):
+                u.city_id = udata["city_id"]
+            if udata.get("district_id"):
+                u.district_id = udata["district_id"]
+            db.add(u)
+            restored_users += 1
+
+        db.flush()
+        print(f"  Restored {restored_users} non-admin users")
+
+        # Build lookup maps
+        product_name_to_id = {p.name: p.id for p in db.query(Product).all()}
+        user_mobile_to_id = {u.mobile: u.id for u in db.query(User).all()}
+        batch_map = {b.batch_number: b.id for b in db.query(Batch).all()}
+        existing_serials = {row[0] for row in db.query(Bar.serial_code).all()}
+
+        # 2. Restore bars
+        restored_bars = 0
+        skipped = 0
+        for bdata in bars_backup:
+            serial = bdata["serial_code"]
+            if serial in existing_serials:
+                skipped += 1
+                continue  # Already created by seed
+
+            product_id = product_name_to_id.get(bdata["product_name"])
+            customer_id = user_mobile_to_id.get(bdata["customer_mobile"])
+            dealer_id = user_mobile_to_id.get(bdata["dealer_mobile"])
+            batch_id = batch_map.get(bdata["batch_number"])
+
+            delivered_at = None
+            if bdata["delivered_at"]:
+                delivered_at = datetime.fromisoformat(bdata["delivered_at"])
+
+            bar = Bar(
+                serial_code=serial,
+                status=bdata["status"],
+                product_id=product_id,
+                customer_id=customer_id,
+                dealer_id=dealer_id,
+                batch_id=batch_id,
+                claim_code=bdata.get("claim_code"),
+                delivered_at=delivered_at,
+            )
+            db.add(bar)
+            existing_serials.add(serial)
+            restored_bars += 1
+
+        db.flush()
+        db.commit()
+        print(f"  Restored {restored_bars} bars (skipped {skipped} duplicates from seed)")
+    except Exception as e:
+        db.rollback()
+        print(f"  Bar restore failed: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        db.close()
+
+
 def reset_and_seed():
     from sqlalchemy import text
+
+    # Step 1: Backup bars + users before dropping
+    print("\n[BACKUP] Saving bars and users before reset...")
+    backup_data = backup_bars()
+
+    # Step 2: Drop all tables
     with engine.connect() as conn:
         conn.execute(text("DROP TABLE IF EXISTS rasis_receipts CASCADE"))
         conn.execute(text("DROP TABLE IF EXISTS location_transfers CASCADE"))
@@ -1092,13 +1274,20 @@ def reset_and_seed():
         conn.commit()
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    print("All tables recreated")
+    print("All tables recreated\n")
+
+    # Step 3: Seed
     seed()
+
+    # Step 4: Restore backed-up bars + users
+    if backup_data:
+        print("\n[RESTORE] Restoring backed-up bars and users...")
+        restore_bars(backup_data)
 
 
 if __name__ == "__main__":
     if "--reset" in sys.argv:
-        confirm = input("This will DELETE ALL DATA. Type 'yes' to confirm: ")
+        confirm = input("This will RESET and re-seed. Bars will be preserved. Type 'yes' to confirm: ")
         if confirm.strip().lower() == "yes":
             reset_and_seed()
         else:
