@@ -99,15 +99,20 @@
                 {% endif %}
             </a>
             <!-- User (desktop dropdown) -->
-            {% if user and not user.is_staff %}
+            {% if user and (not user.is_staff or user.is_dealer) %}
             <div class="dropdown d-none d-md-block">
                 <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
                     <i class="bi bi-person-circle me-1"></i>
                     {{ user.full_name }}
                 </a>
                 <ul class="dropdown-menu dropdown-menu-tm dropdown-menu-end">
+                    {% if user.is_staff %}
+                    <li><a class="dropdown-item dropdown-item-tm" href="/admin/dashboard"><i class="bi bi-gear me-2"></i>پنل مدیریت</a></li>
+                    {% endif %}
                     {% if user.is_dealer %}
                     <li><a class="dropdown-item dropdown-item-tm" href="/dealer/dashboard"><i class="bi bi-speedometer2 me-2"></i>پنل نمایندگی</a></li>
+                    {% endif %}
+                    {% if user.is_staff or user.is_dealer %}
                     <li><hr class="dropdown-divider"></li>
                     {% endif %}
                     <li><a class="dropdown-item dropdown-item-tm" href="/orders"><i class="bi bi-bag me-2"></i>سفارشات من</a></li>
@@ -143,7 +148,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="بستن"></button>
     </div>
     <div class="offcanvas-body p-0">
-        {% if user and not user.is_staff %}
+        {% if user and (not user.is_staff or user.is_dealer) %}
         <div class="px-3 py-3 border-bottom" style="background:var(--tm-info-900);">
             <div class="fw-bold"><i class="bi bi-person-circle me-1"></i>{{ user.full_name }}</div>
             <small class="text-muted" dir="ltr">{{ user.mobile }}</small>
@@ -173,7 +178,13 @@
                 <i class="bi bi-person-plus me-2 text-muted"></i>دعوت از دوستان
             </a>
             {% endif %}
-            {% if user and not user.is_staff %}
+            {% if user and (not user.is_staff or user.is_dealer) %}
+            {% if user.is_staff %}
+            <hr class="my-1">
+            <a href="/admin/dashboard" class="list-group-item list-group-item-action border-0 py-2 px-3" style="color:var(--tm-primary); font-weight:500;">
+                <i class="bi bi-gear me-2"></i>پنل مدیریت
+            </a>
+            {% endif %}
             {% if user.is_dealer %}
             <hr class="my-1">
             <a href="/dealer/dashboard" class="list-group-item list-group-item-action border-0 py-2 px-3" style="color:var(--tm-primary); font-weight:500;">

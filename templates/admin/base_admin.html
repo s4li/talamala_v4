@@ -36,10 +36,10 @@
 
 <!-- Sidebar -->
 <nav class="admin-sidebar" id="adminSidebar">
-    <div class="sidebar-logo">
+    <a href="/" class="sidebar-logo" style="text-decoration:none;">
         <img src="/static/assets/img/logomark-primary.svg" alt="طلاملا" class="logomark">
         <img src="/static/assets/img/wordmark-primary.svg" alt="طلاملا" class="wordmark">
-    </div>
+    </a>
     <div class="mt-2">
         {% if user.has_permission('dashboard') %}
         <a href="/admin/dashboard" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
@@ -130,6 +130,11 @@
         </a>
         {% endif %}
         <div style="border-top:1px solid var(--tm-border);margin:8px 16px;"></div>
+        {% if user.is_dealer %}
+        <a href="/dealer/dashboard" class="nav-link {% if active_page == 'dealer_panel' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i> پنل نمایندگی
+        </a>
+        {% endif %}
         {% if user.has_permission('staff') %}
         <a href="/admin/staff" class="nav-link {% if active_page == 'staff' %}active{% endif %}">
             <i class="bi bi-person-gear"></i> مدیریت ادمین‌ها
