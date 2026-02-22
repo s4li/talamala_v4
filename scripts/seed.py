@@ -1275,6 +1275,7 @@ def seed():
                 "landline_phone": "02188001234",
                 "is_warehouse": True,
                 "is_postal_hub": True,
+                "can_distribute": True,
             },
             # --- شهرستان ---
             {
@@ -1286,6 +1287,7 @@ def seed():
                 "province_id": geo_esfahan[0], "city_id": geo_esfahan[1],
                 "address": "اصفهان، خیابان چهارباغ، پلاک ۴۵",
                 "landline_phone": "03132001234",
+                "can_distribute": True,
             },
             {
                 "mobile": "09171234567",
@@ -1316,6 +1318,7 @@ def seed():
                 "province_id": geo_tabriz[0], "city_id": geo_tabriz[1],
                 "address": "تبریز، خیابان آزادی، پلاک ۳۳",
                 "landline_phone": "04135001234",
+                "can_distribute": True,
             },
             # --- تهران ---
             {
@@ -1327,6 +1330,7 @@ def seed():
                 "province_id": geo_tehran[0], "city_id": geo_tehran[1],
                 "address": "بلوار میرداماد، برج آرین، طبقه دوم اداری، واحد ۵",
                 "landline_phone": "02145241",
+                "can_distribute": True,
             },
             {
                 "mobile": "09122345678",
@@ -1391,6 +1395,7 @@ def seed():
                     landline_phone=dd.get("landline_phone"),
                     is_warehouse=dd.get("is_warehouse", False),
                     is_postal_hub=dd.get("is_postal_hub", False),
+                    can_distribute=dd.get("can_distribute", False),
                     is_dealer=True,
                 )
                 db.add(dealer)

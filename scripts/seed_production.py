@@ -31,7 +31,6 @@ import shutil
 import random
 import string
 from datetime import datetime, timezone
-import openpyxl
 
 # Fix Windows console encoding for Persian text
 if sys.stdout.encoding != "utf-8":
@@ -1133,6 +1132,7 @@ def backup_bars():
                 "commission_percent": float(u.commission_percent) if u.commission_percent else None,
                 "is_warehouse": u.is_warehouse,
                 "is_postal_hub": u.is_postal_hub,
+                "can_distribute": u.can_distribute,
                 "province_id": u.province_id,
                 "city_id": u.city_id,
                 "district_id": u.district_id,
@@ -1181,6 +1181,7 @@ def restore_bars(backup_data):
                 phone=udata["phone"],
                 is_warehouse=udata.get("is_warehouse", False),
                 is_postal_hub=udata.get("is_postal_hub", False),
+                can_distribute=udata.get("can_distribute", False),
                 dealer_address=udata.get("dealer_address"),
                 dealer_postal_code=udata.get("dealer_postal_code"),
                 landline_phone=udata.get("landline_phone"),
