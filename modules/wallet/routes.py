@@ -317,7 +317,10 @@ async def wallet_topup_sepehr_callback(
 @router.get("/topup/top/callback")
 async def wallet_topup_top_callback(
     request: Request,
-    topup_id: int = 0,
+    token: str | list[str] = Query(None, alias="token"),
+    status: int = Query(None, alias="status"),
+    MerchantOrderId: int = Query(None, alias="MerchantOrderId"),
+    topup_id: int = Query(0),
     db: Session = Depends(get_db),
 ):
     """Top topup callback."""
@@ -325,8 +328,15 @@ async def wallet_topup_top_callback(
     if not topup:
         return RedirectResponse("/wallet", status_code=302)
 
-    params = dict(request.query_params)
-    return _verify_topup(request, db, topup, params, "top")
+    if not token:
+        wallet_service.fail_topup(db, topup.id)
+        db.commit()
+        flash(request, "پارامترهای نامعتبر", "danger")
+        return RedirectResponse("/wallet", status_code=302)
+
+    if isinstance(token, list):
+        token = token[0]
+    return _verify_topup(request, db, topup, {"token": token, "MerchantOrderId": str(topup_id)}, "top")
 
 
 @router.post("/topup/parsian/callback")
