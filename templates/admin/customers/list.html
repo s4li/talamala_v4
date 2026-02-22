@@ -8,9 +8,11 @@
         <h4 class="fw-bold mb-0"><i class="bi bi-people me-2 text-tm-primary"></i>مدیریت کاربران</h4>
         <span class="text-muted">{{ total | persian_number }} کاربر</span>
     </div>
+    {% if user.has_permission("customers", "create") %}
     <button class="btn btn-tm-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createCustomerModal">
         <i class="bi bi-plus-lg me-1"></i>کاربر جدید
     </button>
+    {% endif %}
 </div>
 
 {% if error %}
@@ -127,6 +129,7 @@
 </div>
 
 <!-- Create Customer Modal -->
+{% if user.has_permission("customers", "create") %}
 <div class="modal fade" id="createCustomerModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -165,4 +168,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

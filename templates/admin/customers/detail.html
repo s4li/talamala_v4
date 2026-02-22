@@ -277,11 +277,21 @@
                     </div>
                     <div class="col-6">
                         <label class="form-label small fw-bold mb-1">وضعیت</label>
+                        {% if user.has_permission("customers", "edit") %}
                         <div class="form-check form-switch mt-1">
                             <input class="form-check-input" type="checkbox" name="is_active" id="isActiveSwitch"
                                    {% if customer.is_active %}checked{% endif %}>
                             <label class="form-check-label small" for="isActiveSwitch">فعال</label>
                         </div>
+                        {% else %}
+                        <div class="mt-1">
+                            {% if customer.is_active %}
+                            <span class="badge-tm badge-tm-success">فعال</span>
+                            {% else %}
+                            <span class="badge-tm badge-tm-danger">غیرفعال</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -289,9 +299,11 @@
                     <small class="text-muted">
                         <i class="bi bi-calendar3 me-1"></i>عضویت: {{ customer.created_at | jdate if customer.created_at else '—' }}
                     </small>
+                    {% if user.has_permission("customers", "edit") %}
                     <button type="submit" class="btn btn-sm btn-tm-primary">
                         <i class="bi bi-check-lg me-1"></i> ذخیره تغییرات
                     </button>
+                    {% endif %}
                 </div>
             </form>
         </div>

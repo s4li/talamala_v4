@@ -89,6 +89,7 @@
 
                 <!-- Reply + Internal Note Forms -->
                 {% if ticket.status != 'Closed' %}
+                {% if user.has_permission("tickets", "create") %}
                 <hr>
                 <!-- Staff Reply -->
                 <form method="POST" action="/admin/tickets/{{ ticket.id }}/reply" enctype="multipart/form-data">
@@ -106,7 +107,9 @@
                         <i class="bi bi-send me-1"></i> ارسال پاسخ
                     </button>
                 </form>
+                {% endif %}
 
+                {% if user.has_permission("tickets", "create") %}
                 <hr>
 
                 <!-- Internal Note (staff-only) -->
@@ -129,6 +132,7 @@
                         </button>
                     </form>
                 </div>
+                {% endif %}
                 {% else %}
                 <div class="alert-tm-info py-2 mt-3 mb-0">
                     <i class="bi bi-lock me-1"></i> این تیکت بسته شده است.
@@ -159,7 +163,7 @@
         </div>
 
         <!-- Status Change -->
-        {% if ticket.status != 'Closed' %}
+        {% if ticket.status != 'Closed' and user.has_permission("tickets", "edit") %}
         <div class="card-tm no-hover mb-3">
             <div class="border-bottom pb-3 mb-3 fw-bold small">تغییر وضعیت</div>
                 <form method="POST" action="/admin/tickets/{{ ticket.id }}/status">
@@ -178,6 +182,7 @@
         {% endif %}
 
         <!-- Change Department -->
+        {% if user.has_permission("tickets", "edit") %}
         <div class="card-tm no-hover mb-3">
             <div class="border-bottom pb-3 mb-3 fw-bold small">تغییر دپارتمان</div>
                 <form method="POST" action="/admin/tickets/{{ ticket.id }}/category">
@@ -192,8 +197,10 @@
                     </button>
                 </form>
         </div>
+        {% endif %}
 
         <!-- Assignment -->
+        {% if user.has_permission("tickets", "edit") %}
         <div class="card-tm no-hover mb-3">
             <div class="border-bottom pb-3 mb-3 fw-bold small">اختصاص به</div>
                 <form method="POST" action="/admin/tickets/{{ ticket.id }}/assign">
@@ -211,9 +218,10 @@
                     </button>
                 </form>
         </div>
+        {% endif %}
 
         <!-- Close Ticket -->
-        {% if ticket.status != 'Closed' %}
+        {% if ticket.status != 'Closed' and user.has_permission("tickets", "full") %}
         <div class="card-tm no-hover mb-3 border-start border-4 border-danger">
                 <form method="POST" action="/admin/tickets/{{ ticket.id }}/close"
                       onsubmit="return confirm('آیا از بستن این تیکت مطمئنید؟')">

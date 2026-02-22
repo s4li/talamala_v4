@@ -65,9 +65,11 @@
                     <small class="text-warning d-none" id="goldAutoWarn">
                         <i class="bi bi-exclamation-triangle me-1"></i>با فعال بودن آپدیت خودکار، قیمت دستی بعد از چند دقیقه از گلدیس بازنویسی می‌شود
                     </small>
+                    {% if user.has_permission("settings", "edit") %}
                     <button type="button" class="btn btn-sm btn-tm-outline" id="fetchGoldBtn" onclick="fetchPrice('gold_18k')">
                         <i class="bi bi-arrow-clockwise me-1"></i>بروزرسانی دستی
                     </button>
+                    {% endif %}
                 </div>
                 <small class="text-muted" id="goldLastUpdate">
                     {% if gold and gold.updated_at %}
@@ -309,9 +311,11 @@
             </div>
         </div>
 
+        {% if user.has_permission("settings", "edit") %}
         <button type="submit" class="btn-tm-primary btn btn-lg">
             <i class="bi bi-check-lg me-1"></i> ذخیره تنظیمات
         </button>
+        {% endif %}
     </form>
 </div>
 {% endblock %}

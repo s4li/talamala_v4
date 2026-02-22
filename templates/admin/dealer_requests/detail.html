@@ -96,6 +96,7 @@
     <div class="col-lg-4 tm-animate-fade-in-up tm-delay-1">
         {% if dealer_request.status == 'Pending' %}
         <!-- Approve Form -->
+        {% if user.has_permission("dealers", "full") %}
         <div class="card-tm no-hover mb-3" style="border-right:3px solid var(--tm-success);">
             <div class="fw-bold mb-3"><i class="bi bi-check-circle text-success me-1"></i>تایید درخواست</div>
             <form method="POST" action="/admin/dealer-requests/{{ dealer_request.id }}/approve">
@@ -110,8 +111,10 @@
                 </button>
             </form>
         </div>
+        {% endif %}
 
         <!-- Request Revision Form -->
+        {% if user.has_permission("dealers", "edit") %}
         <div class="card-tm no-hover mb-3" style="border-right:3px solid var(--tm-info);">
             <div class="fw-bold mb-3"><i class="bi bi-pencil-square text-info me-1"></i>درخواست اصلاح</div>
             <form method="POST" action="/admin/dealer-requests/{{ dealer_request.id }}/revision">
@@ -126,8 +129,10 @@
                 </button>
             </form>
         </div>
+        {% endif %}
 
         <!-- Reject Form -->
+        {% if user.has_permission("dealers", "full") %}
         <div class="card-tm no-hover" style="border-right:3px solid var(--tm-danger);">
             <div class="fw-bold mb-3"><i class="bi bi-x-circle text-danger me-1"></i>رد درخواست</div>
             <form method="POST" action="/admin/dealer-requests/{{ dealer_request.id }}/reject">
@@ -142,6 +147,7 @@
                 </button>
             </form>
         </div>
+        {% endif %}
 
         {% else %}
         <!-- Already decided -->

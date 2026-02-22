@@ -8,10 +8,12 @@
         <i class="bi bi-shop text-tm-primary"></i>
         مدیریت نمایندگان
     </h4>
+    {% if user.has_permission("dealers", "create") %}
     <a href="/admin/dealers/create" class="btn btn-tm-primary">
         <i class="bi bi-plus-circle me-1"></i>
         نماینده جدید
     </a>
+    {% endif %}
 </div>
 
 <!-- Stats -->
@@ -87,9 +89,11 @@
                     </td>
                     <td>{{ d.created_at | jdate }}</td>
                     <td>
+                        {% if user.has_permission("dealers", "edit") %}
                         <a href="/admin/dealers/{{ d.id }}/edit" class="btn btn-sm btn-tm-outline">
                             <i class="bi bi-pencil"></i>
                         </a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% else %}
