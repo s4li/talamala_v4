@@ -1081,6 +1081,7 @@ def seed():
 def reset_and_seed():
     from sqlalchemy import text
     with engine.connect() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS rasis_receipts CASCADE"))
         conn.execute(text("DROP TABLE IF EXISTS location_transfers CASCADE"))
         conn.execute(text("DROP TABLE IF EXISTS package_images CASCADE"))
         conn.execute(text("DROP TABLE IF EXISTS design_images CASCADE"))

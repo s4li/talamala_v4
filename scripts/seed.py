@@ -2027,6 +2027,8 @@ def reset_and_seed():
     """Drop all tables and recreate + seed."""
     from sqlalchemy import text
     with engine.connect() as conn:
+        # Drop tables with external FK constraints not tracked by SQLAlchemy
+        conn.execute(text("DROP TABLE IF EXISTS rasis_receipts CASCADE"))
         # Drop legacy/renamed tables that may have FK constraints
         conn.execute(text("DROP TABLE IF EXISTS location_transfers CASCADE"))
         conn.execute(text("DROP TABLE IF EXISTS package_images CASCADE"))
