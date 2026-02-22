@@ -68,7 +68,7 @@ talamala_v4/
 │   │   └── routes.py            # Wallet routes incl. generic /{asset_type} buy/sell for precious metals
 │   ├── coupon/                  # DISCOUNT/CASHBACK coupons, admin CRUD
 │   ├── customer/                # Profile, CustomerAddress, GeoProvince/City/District
-│   ├── verification/            # QR/serial code authenticity check
+│   ├── verification/            # QR/serial code authenticity check + QR generation (web display + high-res print)
 │   ├── dealer/                  # DealerTier, DealerSale, BuybackRequest, SubDealerRelation, B2BOrder, B2BOrderItem, POS, admin mgmt, REST API
 │   │   └── auth_deps.py         # Shared API Key auth dependency (used by dealer + pos)
 │   ├── dealer_request/          # DealerRequest, attachments, admin review (approve/revision/reject)
@@ -130,7 +130,9 @@ talamala_v4/
 ├── static/
 │   ├── js/scanner.js            # TmScanner barcode/QR wrapper
 │   ├── vendor/html5-qrcode/     # Scanner library
-│   └── uploads/                 # Uploaded images
+│   ├── uploads/                 # Uploaded images
+│   │   └── qrcodes/             # Auto-generated QR code PNGs per bar ({serial_code}.png)
+│   └── ...
 ├── .env.example
 └── requirements.txt
 ```
@@ -174,6 +176,7 @@ talamala_v4/
 - **Bar**: id, serial_code (unique), product_id, batch_id, dealer_id (FK→users), customer_id (FK→users), claim_code (unique, nullable — for POS/gift), status (RAW/ASSIGNED/RESERVED/SOLD), reserved_customer_id, reserved_until, delivered_at (nullable — NULL = custodial/"امانی", set = physically delivered)
   - Relationship: `dealer_location` → User (physical location), `customer` → User (owner)
   - Custodial gold ("طلای امانی") = bars with `status == SOLD` and `delivered_at IS NULL`
+  - QR codes: auto-generated as PNG to `static/uploads/qrcodes/{serial_code}.png` when bars are created
 - **BarImage**: id, bar_id, file_path
 - **OwnershipHistory**: id, bar_id, previous_owner_id, new_owner_id, transfer_date, description
 - **DealerTransfer**: id, bar_id, from_dealer_id, to_dealer_id, transferred_by, transferred_at, description (table: dealer_location_transfers)
@@ -338,6 +341,13 @@ return response
 - `require_trade_enabled()` raises `ValueError` (same pattern as `require_fresh_price()`)
 - Service-layer checks: wallet buy/sell, checkout, dealer POS, customer POS, B2B orders, buyback
 - UI: admin settings matrix + wallet trade page disabled state
+
+### Verification & QR Generation
+- `modules/verification/service.py` provides two QR generation modes:
+  - `generate_qr_bytes(data)` — lightweight QR for web display (inline base64)
+  - `generate_qr_for_print(serial_code)` — high-res PNG with embedded brand logo + serial text overlay (for laser engraving/printing on bars)
+- Print QR files saved to `static/uploads/qrcodes/{serial_code}.png`
+- Admin routes: download (`GET /admin/bars/{bar_id}/qr`) and regenerate (`POST /admin/bars/{bar_id}/qr/regenerate`)
 
 ### Payment Gateway
 - لایه انتزاعی `modules/payment/gateways/` با `BaseGateway` و الگوی registry
@@ -765,6 +775,8 @@ total     = raw_metal + wage + tax
 - `POST /admin/dealers/b2b-orders/{id}/reject` — Reject B2B order
 - `POST /admin/dealers/b2b-orders/{id}/fulfill` — Fulfill (assign bars from warehouse)
 - `/admin/dealers/buybacks` — Buyback approval/rejection
+- `GET /admin/bars/{bar_id}/qr` — Download high-res QR code PNG (for laser printing)
+- `POST /admin/bars/{bar_id}/qr/regenerate` — Regenerate QR code
 - `GET /api/admin/bars/lookup?serial=X` — Bar lookup JSON (scanner)
 - `GET /admin/reconciliation` — Reconciliation session list
 - `POST /admin/reconciliation/start` — Start session

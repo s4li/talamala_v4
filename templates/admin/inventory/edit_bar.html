@@ -216,6 +216,32 @@
                 {% endif %}
             </table>
         </div>
+
+        <!-- QR Code -->
+        <div class="card-tm no-hover mt-3">
+            <div class="border-bottom pb-3 mb-3">
+                <i class="bi bi-qr-code me-1"></i> کیوآرکد اصالت‌سنجی
+            </div>
+            <div class="text-center">
+                <img src="/admin/bars/{{ bar.id }}/qr" class="img-fluid border rounded"
+                     style="max-width: 280px;" alt="QR {{ bar.serial_code }}">
+                <div class="mt-3 d-flex gap-2 justify-content-center flex-wrap">
+                    <a href="/admin/bars/{{ bar.id }}/qr" download="QR_{{ bar.serial_code }}.png"
+                       class="btn btn-tm-outline btn-sm">
+                        <i class="bi bi-download me-1"></i> دانلود QR
+                    </a>
+                    {% if user.has_permission("inventory", "edit") %}
+                    <form method="POST" action="/admin/bars/{{ bar.id }}/qr/regenerate" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                title="بازسازی QR (مثلاً بعد از تغییر لوگو)">
+                            <i class="bi bi-arrow-clockwise me-1"></i> بازسازی
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

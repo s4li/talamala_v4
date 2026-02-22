@@ -84,7 +84,7 @@ class InventoryService:
     # ==========================================
 
     def generate_bars(self, db: Session, count: int) -> int:
-        """Generate N new raw bars with unique serial codes. Returns count created."""
+        """Generate N new raw bars with unique serial codes + QR images. Returns count created."""
         created = 0
         for _ in range(count):
             for attempt in range(5):
@@ -92,6 +92,8 @@ class InventoryService:
                     bar = Bar(serial_code=generate_serial(), status=BarStatus.RAW)
                     db.add(bar)
                     db.commit()
+                    # Generate QR code file for laser printing
+                    self._generate_qr_for_bar(bar.serial_code)
                     created += 1
                     break
                 except IntegrityError:
@@ -99,6 +101,30 @@ class InventoryService:
                     if attempt == 4:
                         raise
         return created
+
+    def _generate_qr_for_bar(self, serial_code: str):
+        """Generate and save high-res QR code PNG to static/uploads/qrcodes/."""
+        try:
+            from modules.verification.service import verification_service
+            verification_service.ensure_qr_exists(serial_code)
+        except Exception:
+            pass  # Never block bar creation if QR generation fails
+
+    def regenerate_all_qr_codes(self, db: Session) -> int:
+        """Regenerate QR codes for all existing bars. Returns count."""
+        import os
+        from modules.verification.service import verification_service, QR_OUTPUT_DIR
+        os.makedirs(QR_OUTPUT_DIR, exist_ok=True)
+        bars = db.query(Bar).all()
+        count = 0
+        for bar in bars:
+            path = verification_service.get_qr_path(bar.serial_code)
+            # Force regenerate (delete existing first)
+            if os.path.exists(path):
+                os.remove(path)
+            verification_service.generate_qr_for_print(bar.serial_code, save_path=path)
+            count += 1
+        return count
 
     # ==========================================
     # Update

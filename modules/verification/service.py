@@ -2,19 +2,31 @@
 Verification Service - QR Code Generation
 ============================================
 Generate QR codes for gold bars linking to the public verification page.
+Includes high-res QR with logo + serial text for laser printing on packaging.
 """
 
 import io
+import os
 import qrcode
 from qrcode.image.pil import PilImage
+from PIL import Image, ImageDraw, ImageFont
 
 from config.settings import BASE_URL
+
+# Path where high-res QR codes are saved
+QR_OUTPUT_DIR = os.path.join("static", "uploads", "qrcodes")
+
+# Custom logo path (user can replace with their own PNG)
+LOGO_PATH = os.path.join("static", "assets", "img", "logo-qr.png")
+
+# Brand color from SVG logomark
+BRAND_COLOR = "#9E0042"
 
 
 class VerificationService:
 
     def generate_qr_bytes(self, serial_code: str) -> bytes:
-        """Generate QR code PNG bytes for a bar's verification URL."""
+        """Generate QR code PNG bytes for a bar's verification URL (web display)."""
         url = f"{BASE_URL}/verify/check?code={serial_code}"
 
         qr = qrcode.QRCode(
@@ -32,6 +44,154 @@ class VerificationService:
         img.save(buf, format="PNG")
         buf.seek(0)
         return buf.getvalue()
+
+    def generate_qr_for_print(self, serial_code: str, save_path: str = None) -> bytes:
+        """Generate high-res QR code with logo + serial text for laser printing.
+
+        - QR: box_size=20, border=4, ERROR_CORRECT_H (30% tolerance for logo)
+        - Logo: brand logo embedded in center (~18% of QR area)
+        - Serial text: printed below QR in monospace style
+        - Output: ~800x900px PNG — suitable for laser printing
+        - If save_path provided, also saves to disk
+        """
+        url = f"{BASE_URL}/verify/check?code={serial_code}"
+
+        # Generate QR with high error correction (needed for center logo)
+        qr = qrcode.QRCode(
+            version=None,  # auto-fit
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=20,
+            border=4,
+        )
+        qr.add_data(url)
+        qr.make(fit=True)
+
+        # Create QR image — pure black on white for best laser printing
+        qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
+        qr_w, qr_h = qr_img.size
+
+        # Embed logo in center
+        logo = self._get_logo_image()
+        if logo:
+            # Logo should be ~18% of QR width
+            logo_max = int(qr_w * 0.18)
+            logo.thumbnail((logo_max, logo_max), Image.LANCZOS)
+            logo_w, logo_h = logo.size
+
+            # White padding around logo (prevents QR interference)
+            pad = 8
+            bg = Image.new("RGBA", (logo_w + pad * 2, logo_h + pad * 2), "white")
+            bg.paste(logo, (pad, pad), logo if logo.mode == "RGBA" else None)
+
+            # Paste centered
+            pos_x = (qr_w - bg.width) // 2
+            pos_y = (qr_h - bg.height) // 2
+            qr_img.paste(bg, (pos_x, pos_y), bg)
+
+        # Convert to RGB for final output
+        qr_rgb = Image.new("RGB", qr_img.size, "white")
+        qr_rgb.paste(qr_img, mask=qr_img.split()[3])
+
+        # Add serial text below QR
+        text_height = 80
+        final_img = Image.new("RGB", (qr_w, qr_h + text_height), "white")
+        final_img.paste(qr_rgb, (0, 0))
+
+        draw = ImageDraw.Draw(final_img)
+
+        # Try to load a large font for the serial text
+        font = self._get_font(size=40)
+        text = serial_code
+
+        # Get text bounding box for centering
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_w = bbox[2] - bbox[0]
+        text_x = (qr_w - text_w) // 2
+        text_y = qr_h + (text_height - (bbox[3] - bbox[1])) // 2
+
+        draw.text((text_x, text_y), text, fill="black", font=font)
+
+        # Save to bytes
+        buf = io.BytesIO()
+        final_img.save(buf, format="PNG")
+        buf.seek(0)
+        png_bytes = buf.getvalue()
+
+        # Save to disk if path provided
+        if save_path:
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            with open(save_path, "wb") as f:
+                f.write(png_bytes)
+
+        return png_bytes
+
+    def _get_logo_image(self) -> Image.Image | None:
+        """Load brand logo for QR embedding.
+
+        Priority:
+        1. Custom PNG at static/assets/img/logo-qr.png
+        2. Auto-generated circle logo with brand color
+        """
+        if os.path.exists(LOGO_PATH):
+            try:
+                return Image.open(LOGO_PATH).convert("RGBA")
+            except Exception:
+                pass
+
+        # Fallback: generate a simple brand circle logo
+        return self._generate_fallback_logo()
+
+    def _generate_fallback_logo(self) -> Image.Image:
+        """Create a simple circular brand logo with TM initials."""
+        size = 120
+        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        # Draw filled circle with brand color
+        draw.ellipse([4, 4, size - 4, size - 4], fill=BRAND_COLOR)
+
+        # Draw "TM" text in center (white)
+        font = self._get_font(size=38)
+        text = "TM"
+        bbox = draw.textbbox((0, 0), text, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        draw.text(((size - tw) // 2, (size - th) // 2 - 4), text, fill="white", font=font)
+
+        return img
+
+    def _get_font(self, size: int = 40) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+        """Try to load a good monospace font, fall back to default."""
+        # Common monospace fonts across platforms
+        font_candidates = [
+            "consola.ttf",          # Windows Consolas
+            "cour.ttf",             # Windows Courier New
+            "arial.ttf",            # Windows Arial (fallback)
+            "DejaVuSansMono.ttf",   # Linux
+            "Courier New.ttf",      # macOS
+        ]
+        for font_name in font_candidates:
+            try:
+                return ImageFont.truetype(font_name, size)
+            except (OSError, IOError):
+                continue
+
+        # Absolute fallback
+        try:
+            return ImageFont.load_default(size=size)
+        except TypeError:
+            return ImageFont.load_default()
+
+    def get_qr_path(self, serial_code: str) -> str:
+        """Get the expected file path for a bar's QR code."""
+        return os.path.join(QR_OUTPUT_DIR, f"{serial_code}.png")
+
+    def ensure_qr_exists(self, serial_code: str) -> str:
+        """Ensure QR code file exists on disk. Generate if missing. Returns path."""
+        path = self.get_qr_path(serial_code)
+        if not os.path.exists(path):
+            self.generate_qr_for_print(serial_code, save_path=path)
+        return path
 
 
 verification_service = VerificationService()
