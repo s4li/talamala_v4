@@ -309,6 +309,13 @@ async def delete_product(user=Depends(require_permission("products", level="full
 
 #### DealerTransfer (تاریخچه جابه‌جایی)
 - ثبت هر انتقال شمش بین نمایندگان (from_dealer_id, to_dealer_id — هر دو FK → users)
+- انواع انتقال: `TransferType` enum شامل: MANUAL, B2B_FULFILLMENT, ADMIN_TRANSFER, RECONCILIATION, CUSTODIAL_DELIVERY, RETURN, WAREHOUSE_DISTRIBUTION
+
+#### توزیع از مرکز پخش (Warehouse Distribution)
+- نمایندگان `is_warehouse=True` می‌توانند از پنل خود شمش‌ها را به نمایندگان دیگر انتقال دهند
+- مسیر: `/dealer/transfers` (فقط برای مراکز پخش)
+- انتقال مستقیم بدون نیاز به تأیید ادمین
+- تاریخچه انتقالات ارسالی و دریافتی
 
 ### آدرس‌های ادمین
 | متد | مسیر | توضیح |
@@ -2092,6 +2099,9 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 | GET | `/dealer/deliveries` | لیست درخواست‌های تحویل امانی برای این نماینده |
 | GET | `/dealer/deliveries/{req_id}` | جزئیات درخواست تحویل امانی |
 | POST | `/dealer/deliveries/{req_id}/confirm` | تایید تحویل با OTP + سریال‌کد |
+| GET | `/dealer/transfers` | صفحه انتقال شمش به نماینده (فقط مراکز پخش) |
+| POST | `/dealer/transfers` | اجرای انتقال شمش‌های انتخاب‌شده |
+| GET | `/dealer/transfers?tab=history` | تاریخچه انتقالات ارسالی و دریافتی |
 
 ### آدرس‌ها (مشتری)
 

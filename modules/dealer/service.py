@@ -1684,4 +1684,91 @@ class DealerService:
         return {"success": True, "message": f"سفارش #{order.id} لغو شد{refund_msg}"}
 
 
+    # ------------------------------------------
+    # Warehouse Distribution (Transfer to Dealer)
+    # ------------------------------------------
+
+    def transfer_bars_to_dealer(
+        self, db: Session, from_dealer_id: int,
+        bar_ids: List[int], to_dealer_id: int, description: str = "",
+    ) -> Dict[str, Any]:
+        """
+        Warehouse dealer transfers selected bars to another dealer.
+        No admin approval needed — direct transfer.
+        """
+        from modules.inventory.models import DealerTransfer, TransferType
+        from modules.inventory.service import inventory_service
+
+        # Validate from-dealer is warehouse
+        from_dealer = self.get_dealer(db, from_dealer_id)
+        if not from_dealer or not from_dealer.is_warehouse:
+            return {"success": False, "message": "فقط مراکز پخش امکان انتقال دارند"}
+
+        # Validate to-dealer
+        if from_dealer_id == to_dealer_id:
+            return {"success": False, "message": "مبدا و مقصد نمی‌توانند یکی باشند"}
+        to_dealer = self.get_dealer(db, to_dealer_id)
+        if not to_dealer or not to_dealer.is_active:
+            return {"success": False, "message": "نماینده مقصد نامعتبر یا غیرفعال است"}
+
+        if not bar_ids:
+            return {"success": False, "message": "هیچ شمشی انتخاب نشده است"}
+
+        # Validate all bars belong to this dealer and are ASSIGNED
+        bars = (
+            db.query(Bar)
+            .filter(
+                Bar.id.in_(bar_ids),
+                Bar.dealer_id == from_dealer_id,
+                Bar.status == BarStatus.ASSIGNED,
+            )
+            .all()
+        )
+        if len(bars) != len(bar_ids):
+            return {
+                "success": False,
+                "message": f"برخی شمش‌ها نامعتبر هستند (انتخاب: {len(bar_ids)}، معتبر: {len(bars)})",
+            }
+
+        # Transfer each bar
+        for bar in bars:
+            inventory_service.transfer_bar_to_dealer(
+                db,
+                bar_id=bar.id,
+                to_dealer_id=to_dealer_id,
+                transferred_by=from_dealer.full_name,
+                description=description or f"توزیع به {to_dealer.full_name}",
+                transfer_type=TransferType.WAREHOUSE_DISTRIBUTION,
+            )
+
+        db.flush()
+        return {
+            "success": True,
+            "message": f"{len(bars)} شمش به {to_dealer.full_name} منتقل شد",
+            "count": len(bars),
+        }
+
+    def get_transfer_history(
+        self, db: Session, dealer_id: int,
+        page: int = 1, per_page: int = 30,
+    ) -> Tuple[List, int]:
+        """Get transfer history for a dealer (both sent and received)."""
+        from modules.inventory.models import DealerTransfer
+
+        q = db.query(DealerTransfer).filter(
+            or_(
+                DealerTransfer.from_dealer_id == dealer_id,
+                DealerTransfer.to_dealer_id == dealer_id,
+            )
+        )
+        total = q.count()
+        items = (
+            q.order_by(DealerTransfer.transferred_at.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+        return items, total
+
+
 dealer_service = DealerService()

@@ -1,0 +1,270 @@
+{% extends "dealer/base_dealer.html" %}
+
+{% block title %}انتقال به نماینده - طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
+    <h4 class="mb-0 fw-bold">
+        <i class="bi bi-arrow-left-right text-tm-primary"></i>
+        انتقال به نماینده
+    </h4>
+</div>
+
+<!-- Flash Messages -->
+{% if msg %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle me-1"></i> {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle me-1"></i> {{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if tab != 'history' %}active{% endif %}" href="/dealer/transfers">
+            <i class="bi bi-arrow-left-right me-1"></i> انتقال جدید
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'history' %}active{% endif %}" href="/dealer/transfers?tab=history">
+            <i class="bi bi-clock-history me-1"></i> تاریخچه
+        </a>
+    </li>
+</ul>
+
+{% if tab == 'history' %}
+<!-- ==================== HISTORY TAB ==================== -->
+<div class="card-tm no-hover tm-animate-fade-in-up">
+    <div class="table-responsive">
+        <table class="table table-tm mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>تاریخ</th>
+                    <th>سریال</th>
+                    <th>محصول</th>
+                    <th>جهت</th>
+                    <th>مبدا / مقصد</th>
+                    <th>نوع</th>
+                    <th>توضیحات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in transfers %}
+                <tr>
+                    <td>{{ loop.index + (page - 1) * 30 }}</td>
+                    <td class="small text-nowrap">{{ t.transferred_at | jdate }}</td>
+                    <td><span class="font-monospace" dir="ltr">{{ t.bar.serial_code if t.bar else '—' }}</span></td>
+                    <td>{{ t.bar.product.name if t.bar and t.bar.product else '—' }}</td>
+                    <td>
+                        {% if t.from_dealer_id == dealer.id %}
+                        <span class="badge bg-warning text-dark">ارسال</span>
+                        {% else %}
+                        <span class="badge bg-success">دریافت</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if t.from_dealer_id == dealer.id %}
+                            {{ t.to_dealer.full_name if t.to_dealer else '—' }}
+                        {% else %}
+                            {{ t.from_dealer.full_name if t.from_dealer else '—' }}
+                        {% endif %}
+                    </td>
+                    <td><span class="badge bg-{{ t.transfer_type_color }}">{{ t.transfer_type_label }}</span></td>
+                    <td class="small text-muted">{{ t.description or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox" style="font-size:2rem;"></i>
+                        <div class="mt-2">تاریخچه‌ای وجود ندارد</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% set qs = '&tab=history' %}
+{% from "components/pagination.html" import pagination %}
+{{ pagination(page, total_pages, '/dealer/transfers', qs) }}
+
+{% else %}
+<!-- ==================== TRANSFER TAB ==================== -->
+<form method="POST" action="/dealer/transfers" id="transferForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <!-- Target Dealer + Description -->
+    <div class="card-tm no-hover mb-4 tm-animate-fade-in-up">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label-tm fw-bold">نماینده مقصد <span class="text-danger">*</span></label>
+                <select name="to_dealer_id" class="form-select form-select-tm" required>
+                    <option value="">-- انتخاب نماینده --</option>
+                    {% for d in dealers_list %}
+                    <option value="{{ d.id }}">
+                        {{ d.full_name }}
+                        {% if d.city %} — {{ d.city.name }}{% endif %}
+                        {% if d.tier %} ({{ d.tier.name }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label-tm fw-bold">توضیحات (اختیاری)</label>
+                <input type="text" name="description" class="form-control form-control-tm" placeholder="مثلاً: ارسال با پست پیشتاز">
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="card-tm no-hover mb-3 tm-animate-fade-in-up">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label text-muted small">فیلتر نوع فلز</label>
+                <select id="metalFilter" class="form-select form-select-sm form-select-tm" onchange="applyFilter()">
+                    <option value="">همه</option>
+                    <option value="gold" {% if metal_type == 'gold' %}selected{% endif %}>طلا</option>
+                    <option value="silver" {% if metal_type == 'silver' %}selected{% endif %}>نقره</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <span class="badge-tm badge-tm-info" id="selectedCount">۰ شمش انتخاب شده</span>
+            </div>
+            <div class="col-md-4 text-start">
+                <button type="submit" class="btn btn-tm-primary w-100" id="submitBtn" disabled>
+                    <i class="bi bi-arrow-left-right me-1"></i>
+                    انتقال شمش‌های انتخاب‌شده
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bars Table -->
+    <div class="card-tm no-hover tm-animate-fade-in-up">
+        <div class="table-responsive">
+            <table class="table table-tm mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:40px;">
+                            <input type="checkbox" id="selectAll" class="form-check-input" onchange="toggleAll(this)">
+                        </th>
+                        <th>#</th>
+                        <th>سریال</th>
+                        <th>محصول</th>
+                        <th>وزن (گرم)</th>
+                        <th>عیار</th>
+                        <th>فلز</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bar in bars %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" name="bar_ids" value="{{ bar.id }}" class="form-check-input bar-check" onchange="updateCount()">
+                        </td>
+                        <td>{{ loop.index }}</td>
+                        <td><span class="font-monospace" dir="ltr">{{ bar.serial_code }}</span></td>
+                        <td>{{ bar.product.name if bar.product else '—' }}</td>
+                        <td>{{ bar.product.weight if bar.product else '—' }}</td>
+                        <td>{{ bar.product.purity | int if bar.product else '—' }}</td>
+                        <td>
+                            {% set mt = bar.product.metal_type if bar.product else 'gold' %}
+                            {% if mt == 'silver' %}
+                            <span class="badge bg-secondary">نقره</span>
+                            {% else %}
+                            <span class="badge" style="background:#fbbf24;color:#000;">طلا</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size:2rem;"></i>
+                            <div class="mt-2">شمش آماده‌ای برای انتقال وجود ندارد</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if bars %}
+    <div class="text-muted small mt-2">
+        <i class="bi bi-info-circle me-1"></i>
+        {{ bars | length }} شمش آماده انتقال (وضعیت: تخصیص‌یافته)
+    </div>
+    {% endif %}
+</form>
+{% endif %}
+{% endblock %}
+
+{% block page_js %}
+<script>
+function applyFilter() {
+    var mt = document.getElementById('metalFilter').value;
+    var url = '/dealer/transfers';
+    if (mt) url += '?metal_type=' + mt;
+    window.location.href = url;
+}
+
+function toggleAll(master) {
+    var checks = document.querySelectorAll('.bar-check');
+    checks.forEach(function(cb) { cb.checked = master.checked; });
+    updateCount();
+}
+
+function updateCount() {
+    var checks = document.querySelectorAll('.bar-check:checked');
+    var count = checks.length;
+    var badge = document.getElementById('selectedCount');
+    var btn = document.getElementById('submitBtn');
+
+    // Persian number
+    var persianDigits = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+    var pCount = String(count).replace(/\d/g, function(d) { return persianDigits[parseInt(d)]; });
+    badge.textContent = pCount + ' شمش انتخاب شده';
+
+    btn.disabled = count === 0;
+
+    // Update select-all checkbox
+    var all = document.querySelectorAll('.bar-check');
+    var selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.checked = all.length > 0 && checks.length === all.length;
+        selectAll.indeterminate = checks.length > 0 && checks.length < all.length;
+    }
+}
+
+// Confirm before submit
+document.getElementById('transferForm')?.addEventListener('submit', function(e) {
+    var count = document.querySelectorAll('.bar-check:checked').length;
+    var dealer = document.querySelector('select[name="to_dealer_id"]');
+    var dealerName = dealer.options[dealer.selectedIndex]?.text || '';
+
+    if (count === 0) {
+        e.preventDefault();
+        alert('لطفاً حداقل یک شمش انتخاب کنید');
+        return;
+    }
+    if (!dealer.value) {
+        e.preventDefault();
+        alert('لطفاً نماینده مقصد را انتخاب کنید');
+        return;
+    }
+
+    if (!confirm('آیا از انتقال ' + count + ' شمش به ' + dealerName.trim() + ' اطمینان دارید؟')) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

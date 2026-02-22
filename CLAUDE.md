@@ -181,7 +181,7 @@ talamala_v4/
 - **OwnershipHistory**: id, bar_id, previous_owner_id, new_owner_id, transfer_date, description
 - **DealerTransfer**: id, bar_id, from_dealer_id, to_dealer_id, transferred_by, transferred_at, description (table: dealer_location_transfers)
 - **BarTransfer**: id, bar_id, from_customer_id, to_mobile, otp_hash, otp_expiry, status (Pending/Completed/Cancelled/Expired), created_at
-- **TransferType** (enum): MANUAL, B2B_FULFILLMENT, ADMIN_TRANSFER, RECONCILIATION, CUSTODIAL_DELIVERY, RETURN
+- **TransferType** (enum): MANUAL, B2B_FULFILLMENT, ADMIN_TRANSFER, RECONCILIATION, CUSTODIAL_DELIVERY, RETURN, WAREHOUSE_DISTRIBUTION
 - **ReconciliationSession**: id, dealer_id (FK→users), initiated_by, status (InProgress/Completed/Cancelled), total_expected, total_scanned, total_matched, total_missing, total_unexpected, notes, started_at, completed_at
 - **ReconciliationItem**: id, session_id (FK→reconciliation_sessions, CASCADE), bar_id (FK→bars, SET NULL), serial_code, item_status (Matched/Missing/Unexpected), scanned_at, expected_status, expected_product
 - **CustodialDeliveryStatus** (enum): PENDING, COMPLETED, CANCELLED, EXPIRED
@@ -722,6 +722,9 @@ total     = raw_metal + wage + tax
 - `GET /dealer/deliveries` — Custodial delivery requests
 - `GET /dealer/deliveries/{id}` — Delivery detail
 - `POST /dealer/deliveries/{id}/confirm` — Confirm delivery (OTP + serial)
+- `GET /dealer/transfers` — Warehouse distribution page (transfer bars to dealers, is_warehouse only)
+- `POST /dealer/transfers` — Execute bar transfer to another dealer
+- `GET /dealer/transfers?tab=history` — Transfer history (sent + received)
 
 ### Dealer POS REST API (JSON, API Key auth via X-API-Key header)
 - `GET /api/dealer/info` — Dealer identity / health check

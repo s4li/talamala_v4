@@ -40,6 +40,7 @@ class TransferType(str, enum.Enum):
     RECONCILIATION = "Reconciliation"         # تعدیل انبارگردانی
     CUSTODIAL_DELIVERY = "CustodialDelivery"  # تحویل امانی به مشتری
     RETURN = "Return"                         # بازگشت به انبار
+    WAREHOUSE_DISTRIBUTION = "WarehouseDistribution"  # توزیع از مرکز پخش به نماینده
 
 
 # ==========================================
@@ -179,6 +180,7 @@ class DealerTransfer(Base):
             TransferType.RECONCILIATION: "تعدیل انبارگردانی",
             TransferType.CUSTODIAL_DELIVERY: "تحویل امانی",
             TransferType.RETURN: "بازگشت به انبار",
+            TransferType.WAREHOUSE_DISTRIBUTION: "توزیع مرکز پخش",
         }
         return labels.get(self.transfer_type, str(self.transfer_type))
 
@@ -191,6 +193,7 @@ class DealerTransfer(Base):
             TransferType.RECONCILIATION: "warning",
             TransferType.CUSTODIAL_DELIVERY: "success",
             TransferType.RETURN: "danger",
+            TransferType.WAREHOUSE_DISTRIBUTION: "primary",
         }
         return colors.get(self.transfer_type, "secondary")
 

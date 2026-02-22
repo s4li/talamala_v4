@@ -20,6 +20,7 @@ from modules.wallet.models import AssetCode
 from modules.pricing.calculator import calculate_bar_price
 from modules.pricing.service import get_end_customer_wage, get_dealer_margin, get_price_value, get_product_pricing, is_price_fresh
 from modules.pricing.models import GOLD_18K
+from modules.user.models import User
 from modules.inventory.models import Bar, BarStatus
 from modules.dealer.models import DealerSale, BuybackRequest, BuybackStatus
 
@@ -886,3 +887,108 @@ async def dealer_delivery_confirm(
         import urllib.parse
         error = urllib.parse.quote(str(e))
         return RedirectResponse(f"/dealer/deliveries/{req_id}?error={error}", status_code=303)
+
+
+# ==========================================
+# Warehouse Distribution (Transfer to Dealer)
+# ==========================================
+
+@router.get("/transfers", response_class=HTMLResponse)
+async def dealer_transfers_page(
+    request: Request,
+    tab: str = "transfer",
+    metal_type: str = "",
+    page: int = 1,
+    msg: str = "",
+    error: str = "",
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    """Transfer page: warehouse dealer distributes bars to other dealers."""
+    from fastapi import HTTPException, status
+    if not dealer.is_warehouse:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="فقط مراکز پخش دسترسی دارند")
+
+    bars = []
+    dealers_list = []
+    transfers = []
+    total_transfers = 0
+    total_pages = 1
+
+    if tab == "history":
+        transfers, total_transfers = dealer_service.get_transfer_history(db, dealer.id, page=page)
+        total_pages = (total_transfers + 29) // 30
+    else:
+        # Get available bars for transfer (ASSIGNED only)
+        q = db.query(Bar).filter(Bar.dealer_id == dealer.id, Bar.status == BarStatus.ASSIGNED)
+        if metal_type:
+            from modules.catalog.models import Product
+            q = q.join(Product, Bar.product_id == Product.id).filter(Product.metal_type == metal_type)
+        bars = q.order_by(Bar.serial_code).all()
+
+        # Get active dealers (exclude self)
+        dealers_list = (
+            db.query(User).filter(
+                User.is_dealer == True,
+                User.is_active == True,
+                User.id != dealer.id,
+            )
+            .order_by(User.first_name, User.last_name)
+            .all()
+        )
+
+    csrf = new_csrf_token()
+    response = templates.TemplateResponse("dealer/transfers.html", {
+        "request": request,
+        "dealer": dealer,
+        "tab": tab,
+        "bars": bars,
+        "dealers_list": dealers_list,
+        "transfers": transfers,
+        "total_transfers": total_transfers,
+        "page": page,
+        "total_pages": total_pages,
+        "metal_type": metal_type,
+        "msg": msg,
+        "error": error,
+        "csrf_token": csrf,
+        "active_page": "transfers",
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/transfers")
+async def dealer_transfers_submit(
+    request: Request,
+    to_dealer_id: int = Form(...),
+    description: str = Form(""),
+    csrf_token: str = Form(""),
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    """Execute bar transfer from warehouse to another dealer."""
+    from fastapi import HTTPException, status
+    import urllib.parse
+
+    if not dealer.is_warehouse:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="فقط مراکز پخش دسترسی دارند")
+
+    csrf_check(request, csrf_token)
+
+    # Extract bar_ids from form (multiple checkboxes)
+    form_data = await request.form()
+    bar_ids = [int(v) for v in form_data.getlist("bar_ids")]
+
+    result = dealer_service.transfer_bars_to_dealer(
+        db, dealer.id, bar_ids, to_dealer_id, description,
+    )
+
+    if result["success"]:
+        db.commit()
+        msg = urllib.parse.quote(result["message"])
+        return RedirectResponse(f"/dealer/transfers?msg={msg}", status_code=303)
+    else:
+        db.rollback()
+        error = urllib.parse.quote(result["message"])
+        return RedirectResponse(f"/dealer/transfers?error={error}", status_code=303)
