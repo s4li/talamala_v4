@@ -43,7 +43,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.database import SessionLocal, Base, engine
 from modules.user.models import User
-from modules.admin.models import SystemSetting
+from modules.admin.models import SystemSetting, RequestLog
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress
 from modules.catalog.models import (
     ProductCategory, ProductCategoryLink, Product, ProductImage, CardDesign, CardDesignImage,
@@ -64,6 +64,7 @@ from modules.ticket.models import Ticket, TicketMessage, TicketAttachment, Ticke
 from modules.review.models import Review, ReviewImage, ProductComment, CommentImage, CommentLike
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment
 from modules.pricing.models import Asset, GOLD_18K, SILVER
+from modules.rasis.models import RasisReceipt
 
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

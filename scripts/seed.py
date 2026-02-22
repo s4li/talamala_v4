@@ -38,7 +38,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.database import SessionLocal, Base, engine
 from modules.user.models import User
-from modules.admin.models import SystemSetting
+from modules.admin.models import SystemSetting, RequestLog
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress
 from modules.catalog.models import (
     ProductCategory, ProductCategoryLink, Product, ProductImage, CardDesign, CardDesignImage,
