@@ -105,7 +105,7 @@ class DeliveryService:
                 "name": dealer.full_name,
                 "province": dealer.province_name,
                 "city": dealer.city_name,
-                "address": dealer.address or "",
+                "address": dealer.dealer_address or dealer.address or "",
                 "phone": dealer.landline_phone or "",
                 "type": dealer.type_label,
                 "type_label": dealer.type_label,

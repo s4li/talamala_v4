@@ -309,9 +309,11 @@
 {% block shop_js %}
 <script>
 (function(){
-    const totalPrice = {{ total_price }};
-    const shippingCost = {{ postal_info.shipping_cost }};
-    const insuranceCost = {{ postal_info.insurance_cost }};
+    const totalPrice = {{ total_price|default(0) }};
+    const shippingCost = {{ postal_info.shipping_cost|default(0) }};
+    const insuranceCost = {{ postal_info.insurance_cost|default(0) }};
+
+    const jsonHeaders = {headers: {'Accept': 'application/json'}, credentials: 'same-origin'};
 
     let selectedMethod = '';
     let selectedLocationId = null;
@@ -337,8 +339,8 @@
         btn.textContent = '...';
 
         try {
-            const resp = await fetch(`/api/coupon/check?code=${encodeURIComponent(code)}`);
-            if (resp.status === 401) { window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname); return; }
+            const resp = await fetch(`/api/coupon/check?code=${encodeURIComponent(code)}`, jsonHeaders);
+            if (resp.status === 401 || resp.redirected) { window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname); return; }
             const data = await resp.json();
 
             if (data.valid) {
@@ -425,37 +427,59 @@
     // ==============================
     // Province / City / Location AJAX
     // ==============================
+    async function fetchLocations(params) {
+        const url = '/api/delivery/locations?' + new URLSearchParams(params).toString();
+        const resp = await fetch(url, jsonHeaders);
+        if (resp.status === 401 || resp.redirected) {
+            window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
+            return null;
+        }
+        if (!resp.ok) {
+            console.error('Delivery API error:', resp.status, resp.statusText);
+            return null;
+        }
+        return await resp.json();
+    }
+
     window.onProvinceChange = async function() {
         const province = document.getElementById('provinceSelect').value;
         const citySelect = document.getElementById('citySelect');
+        const noLoc = document.getElementById('noLocations');
 
         if (!province) {
             citySelect.innerHTML = '<option value="">ابتدا استان را انتخاب کنید</option>';
             citySelect.disabled = true;
             document.getElementById('locationsList').innerHTML = '';
+            noLoc.classList.add('d-none');
             return;
         }
 
         // Show loading
         document.getElementById('locationsLoading').classList.remove('d-none');
-        document.getElementById('noLocations').classList.add('d-none');
+        noLoc.classList.add('d-none');
 
         try {
-            const resp = await fetch(`/api/delivery/locations?province=${encodeURIComponent(province)}`);
-            if (resp.status === 401) { window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname); return; }
-            const data = await resp.json();
+            const data = await fetchLocations({province});
+            if (!data) {
+                noLoc.innerHTML = '<i class="bi bi-exclamation-triangle text-danger me-1"></i><span class="text-danger">خطا در دریافت اطلاعات. لطفاً صفحه را رفرش کنید.</span>';
+                noLoc.classList.remove('d-none');
+                document.getElementById('locationsLoading').classList.add('d-none');
+                return;
+            }
 
             // Fill cities
             citySelect.innerHTML = '<option value="">همه شهرها</option>';
-            data.cities.forEach(c => {
+            (data.cities || []).forEach(c => {
                 citySelect.innerHTML += `<option value="${c}">${c}</option>`;
             });
             citySelect.disabled = false;
 
             // Show locations
-            renderLocations(data.locations);
+            renderLocations(data.locations || []);
         } catch(e) {
-            console.error(e);
+            console.error('onProvinceChange error:', e);
+            noLoc.innerHTML = '<i class="bi bi-exclamation-triangle text-danger me-1"></i><span class="text-danger">خطا در دریافت اطلاعات. لطفاً صفحه را رفرش کنید.</span>';
+            noLoc.classList.remove('d-none');
         }
 
         document.getElementById('locationsLoading').classList.add('d-none');
@@ -468,14 +492,12 @@
         document.getElementById('locationsLoading').classList.remove('d-none');
 
         try {
-            let url = `/api/delivery/locations?province=${encodeURIComponent(province)}`;
-            if (city) url += `&city=${encodeURIComponent(city)}`;
-            const resp = await fetch(url);
-            if (resp.status === 401) { window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname); return; }
-            const data = await resp.json();
-            renderLocations(data.locations);
+            const params = {province};
+            if (city) params.city = city;
+            const data = await fetchLocations(params);
+            if (data) renderLocations(data.locations || []);
         } catch(e) {
-            console.error(e);
+            console.error('onCityChange error:', e);
         }
 
         document.getElementById('locationsLoading').classList.add('d-none');
@@ -500,7 +522,7 @@
             return `
                 <div class="col-md-6">
                     <div class="location-card ${hasStock ? '' : 'no-stock'} ${selectedLocationId == loc.id ? 'selected' : ''}"
-                         ${hasStock ? `onclick="selectLocation(${loc.id})"` : ''}>
+                         ${hasStock ? `onclick="selectLocation(${loc.id}, this)"` : ''}>
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <div class="fw-bold"><i class="bi bi-shop me-1"></i>${loc.name}</div>
@@ -517,13 +539,13 @@
         }).join('');
     }
 
-    window.selectLocation = function(id) {
+    window.selectLocation = function(id, el) {
         selectedLocationId = id;
         document.getElementById('pickupLocationInput').value = id;
 
         // Toggle selected class
-        document.querySelectorAll('.location-card').forEach(el => el.classList.remove('selected'));
-        event.currentTarget.classList.add('selected');
+        document.querySelectorAll('.location-card').forEach(c => c.classList.remove('selected'));
+        if (el) el.classList.add('selected');
 
         updateSubmitButton();
     };
