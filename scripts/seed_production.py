@@ -76,21 +76,38 @@ def ensure_tables():
 
 
 def ensure_schema_updates():
-    """Add missing columns to existing tables (create_all won't do this)."""
+    """Add missing columns to existing tables (create_all won't do this).
+    Called BEFORE backup_bars() to ensure old DBs can be queried by new model code.
+    """
     from sqlalchemy import text, inspect
     print("[0.5] Checking schema updates...")
 
     insp = inspect(engine)
+    table_names = insp.get_table_names()
     updates = 0
 
     # --- products: description ---
-    if "products" in insp.get_table_names():
+    if "products" in table_names:
         prod_cols = {c["name"] for c in insp.get_columns("products")}
         with engine.begin() as conn:
             if "description" not in prod_cols:
                 conn.execute(text("ALTER TABLE products ADD COLUMN description TEXT"))
                 print("  + products.description added")
                 updates += 1
+
+    # --- users: new columns that may be missing on old DBs ---
+    if "users" in table_names:
+        user_cols = {c["name"] for c in insp.get_columns("users")}
+        new_user_cols = {
+            "can_distribute": "BOOLEAN NOT NULL DEFAULT false",
+            "rasis_last_record_version": "BIGINT",
+        }
+        with engine.begin() as conn:
+            for col_name, col_def in new_user_cols.items():
+                if col_name not in user_cols:
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}"))
+                    print(f"  + users.{col_name} added")
+                    updates += 1
 
     if updates == 0:
         print("  = schema up to date")
@@ -1282,6 +1299,9 @@ def restore_bars(backup_data):
 
 def reset_and_seed():
     from sqlalchemy import text
+
+    # Step 0: Add missing columns so backup query works on old DBs
+    ensure_schema_updates()
 
     # Step 1: Backup bars + users before dropping
     print("\n[BACKUP] Saving bars and users before reset...")
