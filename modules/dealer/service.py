@@ -77,7 +77,14 @@ class DealerService:
         postal_code: str = "", landline_phone: str = "",
         is_warehouse: bool = False, is_postal_hub: bool = False,
         can_distribute: bool = False,
-    ) -> User:
+    ) -> Dict[str, Any]:
+        # Validate national_id uniqueness (if provided)
+        nid = national_id.strip() if national_id else ""
+        if nid:
+            dup = db.query(User).filter(User.national_id == nid, User.mobile != mobile).first()
+            if dup:
+                return {"success": False, "message": f"کد ملی {nid} قبلاً برای کاربر دیگری ({dup.mobile}) ثبت شده است."}
+
         # Check if user with this mobile already exists
         existing = db.query(User).filter(User.mobile == mobile).first()
         if existing:
@@ -86,7 +93,7 @@ class DealerService:
             name_parts = full_name.split(" ", 1) if full_name else ["", ""]
             existing.first_name = existing.first_name or name_parts[0]
             existing.last_name = existing.last_name or (name_parts[1] if len(name_parts) > 1 else "")
-            existing.national_id = existing.national_id or national_id or None
+            existing.national_id = existing.national_id or nid or None
             existing.tier_id = tier_id
             existing.province_id = province_id
             existing.city_id = city_id
@@ -98,14 +105,14 @@ class DealerService:
             existing.is_postal_hub = is_postal_hub
             existing.can_distribute = can_distribute
             db.flush()
-            return existing
+            return {"success": True, "dealer": existing}
 
         name_parts = full_name.split(" ", 1) if full_name else ["", ""]
         dealer = User(
             mobile=mobile,
             first_name=name_parts[0],
             last_name=name_parts[1] if len(name_parts) > 1 else "",
-            national_id=national_id or None,
+            national_id=nid or None,
             is_dealer=True,
             tier_id=tier_id,
             province_id=province_id,
@@ -120,7 +127,7 @@ class DealerService:
         )
         db.add(dealer)
         db.flush()
-        return dealer
+        return {"success": True, "dealer": dealer}
 
     def update_dealer(
         self, db: Session, dealer_id: int,

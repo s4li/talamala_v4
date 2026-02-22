@@ -199,7 +199,7 @@ async def dealer_create_submit(
         response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
         return response
 
-    dealer = dealer_service.create_dealer(
+    result = dealer_service.create_dealer(
         db, mobile.strip(), full_name.strip(),
         national_id=national_id.strip(),
         tier_id=_parse_int(tier_id),
@@ -213,6 +213,25 @@ async def dealer_create_submit(
         is_postal_hub=(is_postal_hub == "on"),
         can_distribute=(can_distribute == "on"),
     )
+    if not result["success"]:
+        provinces, tiers = _load_form_context(db)
+        csrf = new_csrf_token()
+        response = templates.TemplateResponse("admin/dealers/form.html", {
+            "request": request,
+            "user": user,
+            "dealer": None,
+            "provinces": provinces,
+            "cities": [],
+            "districts": [],
+            "tiers": tiers,
+            "csrf_token": csrf,
+            "active_page": "dealers",
+            "error": result["message"],
+        })
+        response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+        return response
+
+    dealer = result["dealer"]
     db.commit()
 
     # Rasis POS: auto-register dealer as branch
