@@ -498,7 +498,6 @@ def seed():
         product_types = [
             {
                 "folder": "شمش طلا با بسته بندی",
-                "excel_sheet": "شمش طلاملا",
                 "slug": "gold-talamala",
                 "category_slug": "gold-talamala",
                 "name_prefix": "شمش طلا طلاملا",
@@ -507,7 +506,6 @@ def seed():
             },
             {
                 "folder": "شمش طلا بدون بسته بندی",
-                "excel_sheet": "شمش سرمایه ای",
                 "slug": "gold-investment",
                 "category_slug": "gold-investment",
                 "name_prefix": "شمش طلا سرمایه‌ای",
@@ -516,7 +514,6 @@ def seed():
             },
             {
                 "folder": "شمش نقره با بسته بندی",
-                "excel_sheet": "شمش نقره طلاملا",
                 "slug": "silver-talamala",
                 "category_slug": "silver-talamala",
                 "name_prefix": "شمش نقره طلاملا",
@@ -525,7 +522,6 @@ def seed():
             },
             {
                 "folder": "شمش نقره بدون بسته بندی",
-                "excel_sheet": "شمش سرمایه ای نقره",
                 "slug": "silver-investment",
                 "category_slug": "silver-investment",
                 "name_prefix": "شمش نقره سرمایه‌ای",
@@ -562,35 +558,63 @@ def seed():
                 return f"{int(weight_grams)}g"
             return f"{weight_grams}g"
 
-        # Read wage data from Excel
-        EXCEL_PATH = os.path.join(IMG_SRC_BASE, "سطوح قیمت گذاری طلا ونقره.xlsx")
-        wage_data = {}
-
-        if os.path.exists(EXCEL_PATH):
-            wb = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
-            for ptype in product_types:
-                sheet_name = ptype["excel_sheet"]
-                if sheet_name not in wb.sheetnames:
-                    print(f"  ! Excel sheet '{sheet_name}' not found")
-                    continue
-                ws = wb[sheet_name]
-                slug_wages = {}
-                for row in ws.iter_rows(min_row=3, max_col=5, values_only=True):
-                    weight_val, t1, t2, t3, t4 = row
-                    if weight_val is None or t4 is None:
-                        continue
-                    w = round(float(weight_val), 2)
-                    slug_wages[w] = [
-                        round(float(t1 or 0) * 100, 2),
-                        round(float(t2 or 0) * 100, 2),
-                        round(float(t3 or 0) * 100, 2),
-                        round(float(t4 or 0) * 100, 2),
-                    ]
-                wage_data[ptype["slug"]] = slug_wages
-            wb.close()
-            print(f"  Wage data loaded from Excel ({len(wage_data)} types)")
-        else:
-            print(f"  ! Excel file not found: {EXCEL_PATH}")
+        # Wage data per tier [distributor, wholesaler, store, end_customer] (percent × 100)
+        # Source: سطوح قیمت گذاری طلا ونقره.xlsx — embedded to remove Excel dependency
+        wage_data = {
+            "gold-talamala": {
+                0.1: [14.0, 17.0, 18.5, 42.0],
+                0.2: [7.0, 8.4, 9.2, 25.0],
+                0.5: [5.0, 6.3, 6.5, 16.0],
+                1.0: [3.8, 5.1, 5.3, 13.0],
+                2.5: [2.8, 4.1, 4.3, 11.0],
+                5.0: [2.4, 3.7, 3.9, 9.0],
+                10.0: [1.3, 2.1, 2.3, 8.7],
+                20.0: [1.0, 1.8, 2.0, 5.8],
+                31.1: [0.6, 1.3, 1.5, 5.6],
+                50.0: [0.4, 0.6, 0.9, 4.8],
+                100.0: [0.2, 0.4, 0.7, 3.8],
+            },
+            "gold-investment": {
+                0.1: [3.5, 5.0, 7.0, 11.0],
+                0.2: [3.5, 5.0, 7.0, 11.0],
+                0.5: [2.0, 2.8, 4.0, 7.0],
+                1.0: [1.5, 2.3, 3.0, 6.0],
+                2.5: [1.5, 2.3, 3.0, 6.0],
+                5.0: [1.3, 1.7, 2.5, 4.5],
+                10.0: [1.0, 1.5, 2.1, 4.0],
+                20.0: [1.0, 1.2, 1.9, 3.5],
+                31.1: [0.6, 1.2, 1.7, 3.0],
+                50.0: [0.4, 0.8, 1.0, 2.5],
+                100.0: [0.2, 0.6, 0.8, 1.5],
+            },
+            "silver-talamala": {
+                0.1: [56.0, 68.0, 74.0, 168.0],
+                0.2: [28.0, 33.6, 36.8, 100.0],
+                0.5: [20.0, 25.2, 26.0, 64.0],
+                1.0: [15.2, 20.4, 21.2, 52.0],
+                2.5: [11.2, 16.4, 17.2, 44.0],
+                5.0: [9.6, 14.8, 15.6, 36.0],
+                10.0: [5.2, 8.4, 9.2, 34.8],
+                20.0: [4.0, 7.2, 8.0, 23.2],
+                31.1: [2.4, 5.2, 6.0, 22.4],
+                50.0: [1.5, 2.4, 3.6, 19.2],
+                100.0: [0.8, 1.6, 2.8, 15.2],
+            },
+            "silver-investment": {
+                0.1: [42.0, 51.0, 55.5, 126.0],
+                0.2: [21.0, 25.2, 27.6, 75.0],
+                0.5: [15.0, 18.9, 19.5, 48.0],
+                1.0: [11.4, 15.3, 15.9, 39.0],
+                2.5: [8.4, 12.3, 12.9, 33.0],
+                5.0: [7.2, 11.1, 11.7, 27.0],
+                10.0: [3.9, 6.3, 6.9, 26.1],
+                20.0: [3.0, 5.4, 6.0, 17.4],
+                31.1: [2.4, 3.9, 4.5, 16.8],
+                50.0: [1.6, 1.8, 2.7, 14.4],
+                100.0: [0.8, 1.2, 2.1, 11.4],
+            },
+        }
+        print(f"  Wage data: {len(wage_data)} types (embedded)")
 
         print(f"\n[5] Products ({len(weights_def)} weights x {len(product_types)} types)")
 
