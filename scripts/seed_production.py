@@ -126,7 +126,6 @@ def seed():
                     first_name=parts[0] if parts else "",
                     last_name=" ".join(parts[1:]) if len(parts) > 1 else "",
                     is_admin=True,
-                    is_customer=True,
                     admin_role=admin_data["role"],
                 ))
                 print(f"  + admin: {admin_data['mobile']}")
@@ -923,7 +922,6 @@ def seed():
                         last_name=cdata["last_name"],
                         national_id=cdata["national_id"],
                         mobile=mobile,
-                        is_customer=True,
                         is_active=True,
                     )
                     db.add(c)
@@ -1037,7 +1035,7 @@ def seed():
 
         print("\n--- Summary ---")
         print(f"  Admin users:    {db.query(User).filter(User.is_admin == True).count()}")
-        print(f"  Customers:      {db.query(User).filter(User.is_customer == True).count()}")
+        print(f"  Customers:      {db.query(User).filter(User.is_dealer == False, User.is_admin == False).count()}")
         print(f"  Settings:       {db.query(SystemSetting).count()}")
         print(f"  Products:       {db.query(Product).count()}")
         print(f"  Categories:     {db.query(ProductCategory).count()}")

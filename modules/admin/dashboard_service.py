@@ -59,7 +59,7 @@ class DashboardService:
         reserved_bars = db.query(Bar).filter(Bar.status == BarStatus.RESERVED).count()
 
         # Customers
-        total_customers = db.query(User).filter(User.is_customer == True).count()
+        total_customers = db.query(User).filter(User.is_dealer == False, User.is_admin == False).count()
 
         # Products
         total_products = db.query(Product).filter(Product.is_active == True).count()

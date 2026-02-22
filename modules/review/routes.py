@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from config.database import get_db
 from common.security import csrf_check
-from modules.auth.deps import require_customer
+from modules.auth.deps import require_login
 from modules.review.service import review_service
 from modules.review.models import CommentSenderType
 
@@ -34,7 +34,7 @@ async def submit_review(
     body: str = Form(""),
     csrf_token: str = Form(""),
     files: List[UploadFile] = File(None),
-    me=Depends(require_customer),
+    me=Depends(require_login),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -65,7 +65,7 @@ async def add_product_comment(
     parent_id: str = Form(""),
     csrf_token: str = Form(""),
     files: List[UploadFile] = File(None),
-    me=Depends(require_customer),
+    me=Depends(require_login),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
@@ -99,7 +99,7 @@ async def add_product_comment(
 async def toggle_comment_like(
     request: Request,
     comment_id: int,
-    me=Depends(require_customer),
+    me=Depends(require_login),
     db: Session = Depends(get_db),
 ):
     # CSRF check via header (AJAX call sends X-CSRF-Token header)

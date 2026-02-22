@@ -262,7 +262,7 @@ async def verify_otp(
         if not next_url:
             from modules.user.models import User
             user = db.query(User).filter(User.mobile == mobile.strip()).first()
-            if user and user.is_customer and not user.is_dealer and not user.is_admin and not user.is_profile_complete:
+            if user and not user.is_dealer and not user.is_admin and not user.is_profile_complete:
                 redirect_url = "/profile"
 
         response = RedirectResponse(redirect_url, status_code=302)

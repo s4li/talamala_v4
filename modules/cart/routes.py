@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
-from modules.auth.deps import require_customer, get_current_active_user
+from modules.auth.deps import require_login, get_current_active_user
 from modules.cart.service import cart_service
 from modules.order.service import order_service
 from modules.pricing.service import is_price_fresh
@@ -33,7 +33,7 @@ async def view_cart(
     msg: str = None,
     error: str = None,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     items, total_price = cart_service.get_cart_items_with_pricing(db, me.id)
 
@@ -71,7 +71,7 @@ async def update_cart_form(
     package_type_id: str = Form(""),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     pkg_id = int(package_type_id) if package_type_id.strip().isdigit() else None
@@ -96,7 +96,7 @@ async def api_update_cart(
     data: Dict[str, Any],
     request: Request,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_token = request.headers.get("X-CSRF-Token")
     csrf_check(request, csrf_token)
@@ -134,7 +134,7 @@ async def set_cart_package(
     package_type_id: str = Form(""),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     pkg_id = int(package_type_id) if package_type_id.strip().isdigit() else None
@@ -152,7 +152,7 @@ async def set_cart_package(
 async def checkout_page(
     request: Request,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     from modules.order.delivery_service import delivery_service
     from common.templating import get_setting_from_db
@@ -216,7 +216,7 @@ async def api_delivery_locations(
     province: str = None,
     city: str = None,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     from modules.order.delivery_service import delivery_service
 
@@ -259,7 +259,7 @@ async def checkout(
     commitment: str = Form(None),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     from common.templating import get_setting_from_db
@@ -335,7 +335,7 @@ async def checkout(
 async def my_orders(
     request: Request,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     orders = order_service.get_customer_orders(db, me.id)
     cart_map, cart_count = cart_service.get_cart_map(db, me.id)
@@ -423,7 +423,7 @@ async def cancel_order(
     order_id: int,
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     order = order_service.get_order_by_id(db, order_id)

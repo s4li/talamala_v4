@@ -14,7 +14,7 @@ from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
 from common.sms import sms_sender
-from modules.auth.deps import require_customer
+from modules.auth.deps import require_login
 from modules.cart.service import cart_service
 from modules.ownership.service import ownership_service
 
@@ -31,7 +31,7 @@ async def my_bars(
     msg: str = None,
     error: str = None,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     bars = ownership_service.get_customer_bars(db, me.id)
     cart_map, cart_count = cart_service.get_cart_map(db, me.id)
@@ -61,7 +61,7 @@ async def claim_bar_page(
     msg: str = None,
     error: str = None,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     cart_map, cart_count = cart_service.get_cart_map(db, me.id)
 
@@ -86,7 +86,7 @@ async def claim_bar_submit(
     claim_code: str = Form(...),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
 
@@ -113,7 +113,7 @@ async def transfer_page(
     bar_id: int,
     error: str = None,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     from modules.inventory.models import Bar, BarStatus
     bar = db.query(Bar).filter(Bar.id == bar_id, Bar.customer_id == me.id, Bar.status == BarStatus.SOLD).first()
@@ -148,7 +148,7 @@ async def transfer_send_otp(
     to_mobile: str = Form(...),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
 
@@ -204,7 +204,7 @@ async def transfer_confirm(
     otp_code: str = Form(...),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
 
@@ -258,7 +258,7 @@ async def delivery_request_page(
     msg: str = None,
     error: str = None,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     from modules.inventory.models import Bar, BarStatus, CustodialDeliveryRequest, CustodialDeliveryStatus
     from modules.customer.address_models import GeoProvince
@@ -302,7 +302,7 @@ async def delivery_request_submit(
     dealer_id: int = Form(...),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     try:
@@ -325,7 +325,7 @@ async def delivery_send_otp(
     req_id: int,
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     try:
@@ -357,7 +357,7 @@ async def delivery_cancel(
     req_id: int,
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     try:

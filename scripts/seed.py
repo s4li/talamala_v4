@@ -127,7 +127,6 @@ def seed():
                     last_name=data["last_name"],
                     admin_role=data["admin_role"],
                     is_admin=True,
-                    is_customer=True,  # admins can also shop
                 )
                 db.add(user_obj)
                 print(f"  + {data['admin_role']}: {data['mobile']} ({data['first_name']} {data['last_name']})")
@@ -143,7 +142,7 @@ def seed():
         db.flush()
         op_user = db.query(User).filter(User.mobile == "09121111111").first()
         if op_user:
-            op_user.permissions = ["dashboard", "orders", "inventory", "tickets", "customers"]
+            op_user.permissions = {"dashboard": "view", "orders": "edit", "inventory": "view", "tickets": "create", "customers": "edit"}
             print(f"  ~ operator permissions set: {op_user.permissions}")
 
         # ==========================================
@@ -181,11 +180,9 @@ def seed():
         for data in customers_data:
             existing = db.query(User).filter(User.mobile == data["mobile"]).first()
             if not existing:
-                db.add(User(**data, is_customer=True))
+                db.add(User(**data))
                 print(f"  + {data['first_name']} {data['last_name']}: {data['mobile']}")
             else:
-                if not existing.is_customer:
-                    existing.is_customer = True
                 print(f"  = exists: {data['mobile']}")
 
         db.flush()
@@ -1380,7 +1377,6 @@ def seed():
                     is_warehouse=dd.get("is_warehouse", False),
                     is_postal_hub=dd.get("is_postal_hub", False),
                     is_dealer=True,
-                    is_customer=True,  # dealers can also shop
                 )
                 db.add(dealer)
                 db.flush()
@@ -1946,7 +1942,7 @@ def seed():
         print("\n--- Summary ---")
         print(f"  Total Users:    {db.query(User).count()}")
         print(f"    Admins:       {db.query(User).filter(User.is_admin == True).count()}")
-        print(f"    Customers:    {db.query(User).filter(User.is_customer == True).count()}")
+        print(f"    Customers:    {db.query(User).filter(User.is_dealer == False, User.is_admin == False).count()}")
         print(f"    Dealers:      {db.query(User).filter(User.is_dealer == True).count()}")
         print(f"  Settings:       {db.query(SystemSetting).count()}")
         print(f"  Products:       {db.query(Product).count()}")

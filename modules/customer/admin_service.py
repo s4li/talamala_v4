@@ -27,7 +27,7 @@ class CustomerAdminService:
         search: str = None,
         status: str = None,
     ) -> Tuple[List[User], int]:
-        q = db.query(User).filter(User.is_customer == True)
+        q = db.query(User).filter(User.is_dealer == False, User.is_admin == False)
         if search:
             term = f"%{search}%"
             q = q.filter(
@@ -56,16 +56,16 @@ class CustomerAdminService:
         now = now_utc()
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-        total = db.query(sa_func.count(User.id)).filter(User.is_customer == True).scalar() or 0
+        total = db.query(sa_func.count(User.id)).filter(User.is_dealer == False, User.is_admin == False).scalar() or 0
         active = (
             db.query(sa_func.count(User.id))
-            .filter(User.is_customer == True, User.is_active == True)
+            .filter(User.is_dealer == False, User.is_admin == False, User.is_active == True)
             .scalar()
             or 0
         )
         today_registered = (
             db.query(sa_func.count(User.id))
-            .filter(User.is_customer == True, User.created_at >= today_start)
+            .filter(User.is_dealer == False, User.is_admin == False, User.created_at >= today_start)
             .scalar()
             or 0
         )
@@ -219,7 +219,6 @@ class CustomerAdminService:
             first_name=first_name.strip() or None,
             last_name=last_name.strip() or None,
             national_id=national_id or mobile,
-            is_customer=True,
             is_active=True,
         )
         db.add(customer)

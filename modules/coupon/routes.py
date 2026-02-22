@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from config.database import get_db
-from modules.auth.deps import require_customer
+from modules.auth.deps import require_login
 from modules.coupon.service import coupon_service
 from modules.cart.service import cart_service
 
@@ -21,7 +21,7 @@ async def check_coupon(
     request: Request,
     code: str = Query(""),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     """AJAX: Validate coupon code against current cart."""
     if not code.strip():

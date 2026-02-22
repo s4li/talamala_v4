@@ -77,7 +77,7 @@ async def list_bars(
         product_filter=product_id or "",
         dealer_filter=dealer_id or "",
         all_products=db.query(Product).all(),
-        all_customers=db.query(User).filter(User.is_customer == True).all(),
+        all_customers=db.query(User).filter(User.is_dealer == False, User.is_admin == False).all(),
         all_batches=db.query(Batch).all(),
         all_dealers=all_dealers,
         all_provinces=all_provinces,
@@ -100,7 +100,7 @@ async def generate_bars(
     count: int = Form(...),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("inventory")),
+    user=Depends(require_permission("inventory", level="create")),
 ):
     csrf_check(request, csrf_token)
     count = min(count, 500)  # Safety limit
@@ -128,7 +128,7 @@ async def edit_bar_form(
         bar=bar,
         products=db.query(Product).all(),
         batches=db.query(Batch).all(),
-        customers=db.query(User).filter(User.is_customer == True).all(),
+        customers=db.query(User).filter(User.is_dealer == False, User.is_admin == False).all(),
         dealers=db.query(User).filter(User.is_dealer == True, User.is_active == True).order_by(User.first_name, User.last_name).all(),
         provinces=db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all(),
         bar_statuses=BarStatus,
@@ -150,7 +150,7 @@ async def update_bar(
     new_files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("inventory")),
+    user=Depends(require_permission("inventory", level="edit")),
 ):
     csrf_check(request, csrf_token)
     inventory_service.update_bar(db, bar_id, {
@@ -180,7 +180,7 @@ async def bulk_action(
     target_dealer_id: str = Form(None),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("inventory")),
+    user=Depends(require_permission("inventory", level="full")),
 ):
     csrf_check(request, csrf_token)
 
@@ -224,7 +224,7 @@ async def delete_bar_image(
     request: Request, img_id: int,
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("inventory")),
+    user=Depends(require_permission("inventory", level="edit")),
 ):
     csrf_check(request, csrf_token)
     bar_id = inventory_service.delete_image(db, img_id)
@@ -300,7 +300,7 @@ async def reconciliation_start(
     dealer_id: int = Form(...),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("inventory")),
+    user=Depends(require_permission("inventory", level="create")),
 ):
     csrf_check(request, csrf_token)
     try:
@@ -336,7 +336,7 @@ async def reconciliation_scan(
     serial: str = Form(...),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("inventory")),
+    user=Depends(require_permission("inventory", level="edit")),
 ):
     csrf_check(request, csrf_token)
     recon = inventory_service.get_reconciliation_session(db, session_id)
@@ -355,7 +355,7 @@ async def reconciliation_finalize(
     notes: str = Form(None),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("inventory")),
+    user=Depends(require_permission("inventory", level="full")),
 ):
     csrf_check(request, csrf_token)
     try:
@@ -375,7 +375,7 @@ async def reconciliation_cancel(
     session_id: int,
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("inventory")),
+    user=Depends(require_permission("inventory", level="full")),
 ):
     csrf_check(request, csrf_token)
     try:

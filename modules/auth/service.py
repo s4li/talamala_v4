@@ -63,7 +63,6 @@ class AuthService:
                 first_name=first_name or "کاربر",
                 last_name=last_name or "مهمان",
                 national_id=national_id,
-                is_customer=True,
                 referred_by=referred_by,
             )
 

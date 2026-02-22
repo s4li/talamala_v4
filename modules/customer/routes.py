@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
-from modules.auth.deps import require_customer
+from modules.auth.deps import require_login
 from modules.user.models import User
 from modules.customer.address_models import CustomerAddress, GeoProvince, GeoCity, GeoDistrict
 
@@ -32,7 +32,7 @@ async def profile_page(
     error: str = None,
     return_to: str = None,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     from common.templating import get_setting_from_db
     shahkar_enabled = get_setting_from_db(db, "shahkar_enabled", "false") == "true"
@@ -68,7 +68,7 @@ async def profile_update(
     csrf_token: str = Form(""),
     return_to: str = Query(None),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     """Update profile fields (identity fields editable until Shahkar verification)."""
     csrf_check(request, csrf_token)
@@ -134,7 +134,7 @@ async def verify_shahkar_route(
     request: Request,
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     """Call Shahkar API to verify customer's mobile + national_id."""
     csrf_check(request, csrf_token)
@@ -173,7 +173,7 @@ async def address_list(
     msg: str = None,
     next: str = None,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     addresses = db.query(CustomerAddress).filter(
         CustomerAddress.user_id == me.id
@@ -211,7 +211,7 @@ async def address_add(
     csrf_token: str = Form(""),
     next_url: str = Form(""),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
 
@@ -250,7 +250,7 @@ async def address_delete(
     addr_id: int,
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     addr = db.query(CustomerAddress).filter(
@@ -269,7 +269,7 @@ async def address_set_default(
     addr_id: int,
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     db.query(CustomerAddress).filter(CustomerAddress.user_id == me.id).update({"is_default": False})
@@ -325,7 +325,7 @@ async def api_geo_dealers(
 async def invite_page(
     request: Request,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     from modules.user.models import generate_referral_code
     from config.settings import BASE_URL

@@ -80,7 +80,7 @@ def _static_page_ctx(request: Request, db: Session):
 
     user = get_current_active_user(request, db)
     cart_count = 0
-    if user and user.is_customer:
+    if user:
         _, cart_count = cart_service.get_cart_map(db, user.id)
     gold_price = None
     try:

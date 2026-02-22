@@ -2,7 +2,7 @@
 User Module - Unified User Model
 ===================================
 Single users table replacing customers, dealers, and system_users.
-A user can have multiple roles simultaneously (is_customer, is_dealer, is_admin).
+Every user is implicitly a customer. Additional roles: is_dealer, is_admin.
 """
 
 import json
@@ -44,7 +44,6 @@ class User(Base):
     otp_expiry = Column(DateTime(timezone=True), nullable=True)
 
     # === Role Flags ===
-    is_customer = Column(Boolean, default=False, server_default="false", nullable=False, index=True)
     is_dealer = Column(Boolean, default=False, server_default="false", nullable=False, index=True)
     is_admin = Column(Boolean, default=False, server_default="false", nullable=False, index=True)
     is_active = Column(Boolean, default=True, server_default="true", nullable=False, index=True)
@@ -106,7 +105,7 @@ class User(Base):
     @property
     def display_name(self) -> str:
         """For invoices: company name for legal, full_name for real, dealer name, etc."""
-        if self.is_customer and self.customer_type == "legal" and self.company_name:
+        if self.customer_type == "legal" and self.company_name:
             return self.company_name
         return self.full_name
 
@@ -143,27 +142,36 @@ class User(Base):
         return self.admin_role or ""
 
     @property
-    def permissions(self) -> list:
+    def permissions(self) -> dict:
+        """Return permissions dict: {"key": "level", ...}."""
         if not self._permissions:
-            return []
+            return {}
         try:
-            return json.loads(self._permissions)
+            raw = json.loads(self._permissions)
         except (json.JSONDecodeError, TypeError):
-            return []
+            return {}
+        return raw if isinstance(raw, dict) else {}
 
     @permissions.setter
-    def permissions(self, value: list):
+    def permissions(self, value: dict):
+        """Store permissions dict as JSON string."""
         self._permissions = json.dumps(value) if value else None
 
     @property
     def permissions_count(self) -> int:
         return len(self.permissions)
 
-    def has_permission(self, perm_key: str) -> bool:
-        """Check permission. admin_role=='admin' always returns True (super admin bypass)."""
+    def has_permission(self, perm_key: str, level: str = "view") -> bool:
+        """Check permission at a specific level.
+        admin_role=='admin' always returns True (super admin bypass).
+        """
         if self.admin_role == "admin":
             return True
-        return perm_key in self.permissions
+        from modules.admin.permissions import has_level
+        granted = self.permissions.get(perm_key)
+        if not granted:
+            return False
+        return has_level(granted, level)
 
     @property
     def role_label(self) -> str:
@@ -240,8 +248,6 @@ class User(Base):
     def roles(self) -> list:
         """Returns list of active role strings."""
         r = []
-        if self.is_customer:
-            r.append("customer")
         if self.is_dealer:
             r.append("dealer")
         if self.is_admin:

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from common.templating import templates
 from common.security import new_csrf_token, csrf_check
-from modules.auth.deps import require_customer
+from modules.auth.deps import require_login
 from modules.customer.address_models import GeoProvince
 from modules.dealer_request.service import dealer_request_service
 from modules.dealer_request.models import DealerRequestStatus
@@ -32,7 +32,7 @@ async def dealer_request_form(
     error: str = None,
     edit: str = None,
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     # Check if customer already has an active (PENDING/APPROVED/REVISION_NEEDED) request
     active = dealer_request_service.get_active_request(db, me.id)
@@ -98,7 +98,7 @@ async def dealer_request_submit(
     csrf_token: str = Form(""),
     files: List[UploadFile] = File(None),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     from common.helpers import validate_iranian_mobile

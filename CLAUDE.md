@@ -30,7 +30,7 @@
 - **Stack**: FastAPI + Jinja2 Templates + PostgreSQL + SQLAlchemy + Alembic
 - **UI**: فارسی (RTL) با Bootstrap 5 RTL + Vazirmatn font + Bootstrap Icons
 - **Auth**: OTP-based (SMS) + single JWT cookie (`auth_token`) for all user types
-- **User Model**: Unified `users` table with role flags (`is_customer`, `is_dealer`, `is_admin`)
+- **User Model**: Unified `users` table — every user is implicitly a customer; additional role flags: `is_dealer`, `is_admin`
 - **Payment**: کیف پول + چند درگاه (Zibal, Sepehr, Top, Parsian) با لایه abstraction + انتخاب درگاه فعال از تنظیمات ادمین
 - **Pricing**: فرمول ساده قیمت شمش: طلای خام + اجرت + مالیات (روی اجرت)
 
@@ -55,7 +55,7 @@ talamala_v4/
 ├── modules/
 │   ├── user/                    # Unified User model (customers + dealers + admins in one table)
 │   ├── admin/                   # SystemSetting, RequestLog, admin settings page, staff service
-│   ├── auth/                    # Login (OTP), JWT, deps (require_customer etc.)
+│   ├── auth/                    # Login (OTP), JWT, deps (require_login, require_dealer, require_staff etc.)
 │   ├── catalog/                 # Product, ProductCategory, CardDesign, PackageType, Batch
 │   ├── inventory/               # Bar, BarImage, OwnershipHistory, DealerTransfer, TransferType, ReconciliationSession, ReconciliationItem, CustodialDeliveryRequest
 │   ├── shop/                    # Public storefront (product list + detail)
@@ -139,7 +139,7 @@ talamala_v4/
 
 ### user/models.py (Unified User Model)
 - **User**: id, mobile (unique), first_name, last_name, national_id, birth_date, is_active, created_at
-  - **Role flags**: `is_customer` (bool), `is_dealer` (bool), `is_admin` (bool) — a user can have multiple roles
+  - **Role flags**: `is_dealer` (bool), `is_admin` (bool) — every user is implicitly a customer; additional roles are opt-in
   - **Identity**: mobile, first_name, last_name, national_id, birth_date
   - **Customer fields**: customer_type (real/legal), company_name, economic_code, postal_code, address, phone, referral_code
   - **Dealer fields**: tier_id (FK→dealer_tiers), province_id, city_id, district_id, dealer_address, landline_phone, is_warehouse, is_postal_hub, commission_percent, api_key (unique), otp_code, otp_expiry, rasis_sharepoint (Integer, nullable — Rasis POS device mapping)
@@ -301,8 +301,7 @@ return response
 
 ### Auth Dependencies (modules/auth/deps.py)
 - `get_current_active_user(request, db)` — Returns User or None (single `auth_token` cookie)
-- `require_login` — Depends, raises 401 if not logged in (any role — used by unified wallet)
-- `require_customer` — Depends, raises 401 if not `is_customer`
+- `require_login` — Depends, raises 401 if not logged in (any role — used for all customer-facing + wallet routes)
 - `require_dealer` — Depends, raises 401 if not `is_dealer`
 - `require_staff` — Depends, raises 401 if not `is_admin`
 - `require_super_admin` — Depends, raises 401 if not `admin_role=="admin"`

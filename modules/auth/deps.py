@@ -50,13 +50,6 @@ def require_staff(user=Depends(get_current_active_user)):
     return user
 
 
-def require_customer(user=Depends(get_current_active_user)):
-    """Only allow customer users. Raises 401 if not authenticated or not a customer."""
-    if not user or not user.is_customer:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="login_required")
-    return user
-
-
 def require_operator_or_admin(user=Depends(get_current_active_user)):
     """Allow both Admins and Operators. Raises 403 otherwise."""
     if not user or not user.is_admin:
@@ -82,14 +75,23 @@ def require_super_admin(user=Depends(get_current_active_user)):
     return user
 
 
-def require_permission(*perm_keys: str):
+def require_permission(*perm_keys: str, level: str = "view"):
     """
-    Factory: returns a dependency that checks granular permissions.
+    Factory: returns a dependency that checks granular permissions at a specific level.
     admin_role=='admin' always passes (super admin bypass).
 
-    Usage: user=Depends(require_permission("orders"))
+    Levels (hierarchical — each includes all below):
+      view   → read-only (list, detail)
+      create → view + create new entities
+      edit   → create + modify existing entities
+      full   → edit + delete + approve/reject + sensitive actions
+
+    Usage:
+      user=Depends(require_permission("orders"))                 # default: view
+      user=Depends(require_permission("orders", level="edit"))   # edit level
+      user=Depends(require_permission("orders", "wallets", level="view"))  # multi-key
     """
-    from modules.admin.permissions import PERMISSION_REGISTRY
+    from modules.admin.permissions import PERMISSION_REGISTRY, PERMISSION_LEVEL_LABELS
 
     def dependency(user=Depends(get_current_active_user)):
         if not user or not user.is_admin:
@@ -100,11 +102,12 @@ def require_permission(*perm_keys: str):
             return user
 
         for key in perm_keys:
-            if not user.has_permission(key):
-                label = PERMISSION_REGISTRY.get(key, key)
+            if not user.has_permission(key, level):
+                section_label = PERMISSION_REGISTRY.get(key, key)
+                level_label = PERMISSION_LEVEL_LABELS.get(level, level)
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"شما دسترسی به بخش «{label}» ندارید",
+                    detail=f"شما دسترسی «{level_label}» به بخش «{section_label}» ندارید",
                 )
         return user
 

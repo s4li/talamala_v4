@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from config.database import get_db
 from common.security import csrf_check, new_csrf_token
-from modules.auth.deps import require_customer, require_permission
+from modules.auth.deps import require_login, require_permission
 from modules.payment.service import payment_service
 
 router = APIRouter(prefix="/payment", tags=["payment"])
@@ -27,7 +27,7 @@ async def pay_wallet(
     order_id: int,
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     result = payment_service.pay_from_wallet(db, order_id, me.id)
@@ -53,7 +53,7 @@ async def pay_gateway(
     csrf_token: str = Form(""),
     gateway: str = Form(""),
     db: Session = Depends(get_db),
-    me=Depends(require_customer),
+    me=Depends(require_login),
 ):
     """Redirect to the customer-selected gateway."""
     csrf_check(request, csrf_token)
@@ -251,7 +251,7 @@ async def refund_order(
     admin_note: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    user=Depends(require_permission("orders")),
+    user=Depends(require_permission("orders", level="full")),
 ):
     csrf_check(request, csrf_token)
     result = payment_service.refund_order(db, order_id, admin_note)
