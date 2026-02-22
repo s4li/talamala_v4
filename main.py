@@ -264,7 +264,7 @@ async def lifespan(app):
     Base.metadata.create_all(bind=engine)
 
     scheduler.add_job(_cleanup_expired_orders, 'interval', seconds=60, id='expired_orders')
-    scheduler.add_job(_cleanup_old_request_logs, 'interval', hours=6, id='log_cleanup')
+    scheduler.add_job(_cleanup_old_request_logs, 'interval', hours=24, id='log_cleanup')
     scheduler.add_job(_auto_update_prices, 'interval', seconds=60, id='price_update')
     scheduler.add_job(_rasis_price_sync, 'interval', minutes=5, id='rasis_price_sync')
     scheduler.add_job(_rasis_receipt_fetch, 'interval', minutes=10, id='rasis_receipt_fetch')
