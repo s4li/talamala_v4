@@ -13,7 +13,8 @@ Endpoints:
   GET  /api/pos/receipt/{sale_id}   - Receipt data for printing
 """
 
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -21,9 +22,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from config.database import get_db
+from config.settings import OTP_EXPIRE_MINUTES
+from common.security import generate_otp, hash_otp, check_otp_rate_limit, check_otp_verify_rate_limit
+from common.sms import sms_sender
 from modules.user.models import User
 from modules.dealer.auth_deps import get_dealer_by_api_key
+from modules.dealer.service import dealer_service
 from modules.pos.service import pos_service
+from common.helpers import now_utc
 
 
 router = APIRouter(prefix="/api/pos", tags=["pos-api"])
@@ -48,6 +54,120 @@ class ConfirmRequest(BaseModel):
 
 class CancelRequest(BaseModel):
     bar_id: int = Field(..., gt=0)
+
+
+class ActivationRequest(BaseModel):
+    mobile: str = Field(..., min_length=11, max_length=11)
+
+
+class ActivationVerify(BaseModel):
+    mobile: str = Field(..., min_length=11, max_length=11)
+    otp_code: str = Field(..., min_length=4, max_length=4)
+
+
+# ==========================================
+# POST /api/pos/request-activation (no auth)
+# ==========================================
+
+@router.post("/request-activation")
+async def pos_request_activation(
+    body: ActivationRequest,
+    db: Session = Depends(get_db),
+):
+    """Send OTP to dealer's personal phone for POS device activation."""
+    mobile = body.mobile.strip()
+
+    # Validate Iranian mobile format
+    if not re.match(r"^09\d{9}$", mobile):
+        raise HTTPException(400, {"success": False, "error": "شماره موبایل نامعتبر"})
+
+    # Find active dealer by mobile
+    dealer = db.query(User).filter(
+        User.mobile == mobile,
+        User.is_dealer == True,
+        User.is_active == True,
+    ).first()
+    if not dealer:
+        raise HTTPException(404, {"success": False, "error": "نمایندگی با این شماره یافت نشد"})
+
+    # Rate limit
+    if not check_otp_rate_limit(mobile):
+        raise HTTPException(429, {"success": False, "error": "درخواست زیاد! چند دقیقه صبر کنید."})
+
+    # Generate & store OTP
+    otp_raw = generate_otp()
+    dealer.otp_code = hash_otp(mobile, otp_raw)
+    dealer.otp_expiry = now_utc() + timedelta(minutes=OTP_EXPIRE_MINUTES)
+    db.commit()
+
+    # Send SMS
+    display_name = dealer.first_name or "نمایندگی"
+    sms_sender.send_otp_lookup(
+        receptor=mobile,
+        token=display_name,
+        token2=otp_raw,
+        template_name="OTP",
+    )
+
+    return {
+        "success": True,
+        "message": "کد تایید ارسال شد",
+        "dealer_name": f"{dealer.first_name or ''} {dealer.last_name or ''}".strip() or "نمایندگی",
+    }
+
+
+# ==========================================
+# POST /api/pos/verify-activation (no auth)
+# ==========================================
+
+@router.post("/verify-activation")
+async def pos_verify_activation(
+    body: ActivationVerify,
+    db: Session = Depends(get_db),
+):
+    """Verify OTP and return API key for POS device activation."""
+    mobile = body.mobile.strip()
+    code = body.otp_code.strip()
+
+    # Brute-force protection
+    if not check_otp_verify_rate_limit(mobile):
+        raise HTTPException(429, {"success": False, "error": "تعداد تلاش بیش از حد مجاز! چند دقیقه صبر کنید."})
+
+    # Find dealer
+    dealer = db.query(User).filter(
+        User.mobile == mobile,
+        User.is_dealer == True,
+        User.is_active == True,
+    ).first()
+    if not dealer:
+        raise HTTPException(404, {"success": False, "error": "نمایندگی یافت نشد"})
+
+    # Verify OTP
+    if not dealer.otp_code or not dealer.otp_expiry:
+        raise HTTPException(400, {"success": False, "error": "ابتدا درخواست کد تایید بدهید"})
+
+    if dealer.otp_expiry < now_utc():
+        raise HTTPException(400, {"success": False, "error": "کد تایید منقضی شده. دوباره درخواست بدهید."})
+
+    if dealer.otp_code != hash_otp(mobile, code):
+        raise HTTPException(400, {"success": False, "error": "کد تایید اشتباه است"})
+
+    # OTP valid — clear it
+    dealer.otp_code = None
+    dealer.otp_expiry = None
+
+    # Ensure dealer has an API key
+    if not dealer.api_key:
+        dealer_service.generate_api_key(db, dealer.id)
+
+    db.commit()
+
+    return {
+        "success": True,
+        "api_key": dealer.api_key,
+        "dealer_name": f"{dealer.first_name or ''} {dealer.last_name or ''}".strip() or "نمایندگی",
+        "dealer_id": dealer.id,
+    }
 
 
 # ==========================================
