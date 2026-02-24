@@ -184,7 +184,7 @@ class SmsSender:
             }
             payload = {
                 "lineNumber": int(SMSIR_LINE_NUMBER),
-                "messageTexts": [message],
+                "messageText": message,
                 "mobiles": [receptor],
             }
 
