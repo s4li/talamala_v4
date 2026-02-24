@@ -62,7 +62,7 @@ class VerificationService:
             version=None,  # auto-fit
             error_correction=qrcode.constants.ERROR_CORRECT_H,
             box_size=20,
-            border=1,
+            border=0,
         )
         qr.add_data(url)
         qr.make(fit=True)
