@@ -94,14 +94,14 @@ class VerificationService:
         qr_rgb.paste(qr_img, mask=qr_img.split()[3])
 
         # Add serial text below QR
-        text_height = 80
+        text_height = 110
         final_img = Image.new("RGB", (qr_w, qr_h + text_height), "white")
         final_img.paste(qr_rgb, (0, 0))
 
         draw = ImageDraw.Draw(final_img)
 
         # Try to load a large font for the serial text
-        font = self._get_font(size=40)
+        font = self._get_font(size=55)
         text = serial_code
 
         # Get text bounding box for centering
