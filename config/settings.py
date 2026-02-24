@@ -49,9 +49,15 @@ CSRF_ENABLED = os.getenv("CSRF_ENABLED", "true").lower() == "true"
 
 
 # ==========================================
-# 📱 SMS (Kavenegar)
+# 📱 SMS Providers
 # ==========================================
+# Kavenegar
 SMS_API_KEY = os.getenv("SMS_API_KEY", "")
+
+# sms.ir (default provider)
+SMSIR_API_KEY = os.getenv("SMSIR_API_KEY", "")
+SMSIR_LINE_NUMBER = os.getenv("SMSIR_LINE_NUMBER", "")
+SMSIR_TEMPLATE_ID = os.getenv("SMSIR_TEMPLATE_ID", "")  # optional: if empty, uses bulk send
 
 
 # ==========================================

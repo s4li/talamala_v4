@@ -334,6 +334,38 @@
             </div>
         </div>
 
+        <!-- ===== سرویس پیامکی ===== -->
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-chat-dots me-1"></i> سرویس پیامکی</h6>
+        {% set current_sms = settings.get('sms_provider').value if settings.get('sms_provider') else 'smsir' %}
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label class="form-label-tm mb-2">سرویس‌دهنده فعال</label>
+                <div class="d-flex flex-column gap-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="sms_provider" value="smsir" id="sms_smsir"
+                               {{ 'checked' if current_sms == 'smsir' else '' }}>
+                        <label class="form-check-label" for="sms_smsir">
+                            <strong>sms.ir</strong> <span class="badge bg-success ms-1">پیش‌فرض</span>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="sms_provider" value="kavenegar" id="sms_kavenegar"
+                               {{ 'checked' if current_sms == 'kavenegar' else '' }}>
+                        <label class="form-check-label" for="sms_kavenegar">
+                            <strong>کاوه‌نگار (Kavenegar)</strong>
+                        </label>
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-2">کلیدهای API از طریق متغیرهای محیطی <code>SMSIR_API_KEY</code> و <code>SMS_API_KEY</code> تنظیم می‌شوند.</small>
+                <div class="mt-2">
+                    <button type="button" class="btn btn-sm btn-tm-outline" id="btnCheckSmsCredit" onclick="checkSmsCredit()">
+                        <i class="bi bi-wallet2 me-1"></i>بررسی اعتبار sms.ir
+                    </button>
+                    <span id="smsCreditResult" class="ms-2 small"></span>
+                </div>
+            </div>
+        </div>
+
         <!-- ===== همگام‌سازی پوز راسیس ===== -->
         <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-terminal me-1"></i> دستگاه پوز راسیس</h6>
         <div class="row g-3 mb-4">
@@ -418,6 +450,37 @@ function fetchPrice(assetCode) {
             }
         })
         .catch(() => alert('خطا در ارتباط با سرور'))
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        });
+}
+
+// SMS credit check (AJAX)
+function checkSmsCredit() {
+    const btn = document.getElementById('btnCheckSmsCredit');
+    const resultEl = document.getElementById('smsCreditResult');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>...';
+    resultEl.textContent = '';
+
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    const formData = new FormData();
+    formData.append('csrf_token', csrfToken);
+
+    fetch('/admin/settings/check-sms-credit', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                resultEl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>اعتبار: ' + Number(data.credit).toLocaleString('fa-IR') + ' ریال</span>';
+            } else {
+                resultEl.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>' + (data.error || 'خطا') + '</span>';
+            }
+        })
+        .catch(() => {
+            resultEl.innerHTML = '<span class="text-danger">خطا در ارتباط</span>';
+        })
         .finally(() => {
             btn.disabled = false;
             btn.innerHTML = origHtml;

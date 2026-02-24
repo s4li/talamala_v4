@@ -71,6 +71,7 @@ async def update_settings(
     enabled_gateways: List[str] = Form(["sepehr"]),
     shahkar_enabled: Optional[str] = Form(None),
     rasis_pos_enabled: Optional[str] = Form(None),
+    sms_provider: str = Form("smsir"),
     log_retention_days: str = Form("45"),
     # Trade toggles (14 keys)
     gold_shop_enabled: Optional[str] = Form(None),
@@ -136,6 +137,7 @@ async def update_settings(
         "enabled_gateways": ",".join(enabled_gateways) if enabled_gateways else "sepehr",
         "shahkar_enabled": "true" if shahkar_enabled == "on" else "false",
         "rasis_pos_enabled": "true" if rasis_pos_enabled == "on" else "false",
+        "sms_provider": sms_provider if sms_provider in ("smsir", "kavenegar") else "smsir",
         "log_retention_days": str(parse_int(log_retention_days) or 45),
         # Trade toggles
         "gold_shop_enabled": "true" if gold_shop_enabled == "on" else "false",
@@ -206,6 +208,20 @@ async def fetch_price_ajax(
         })
     except Exception as e:
         return JSONResponse({"success": False, "error": f"خطا در دریافت قیمت: {str(e)}"})
+
+
+@router.post("/admin/settings/check-sms-credit")
+async def check_sms_credit(
+    request: Request,
+    csrf_token: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("settings")),
+):
+    """AJAX: check sms.ir account credit."""
+    csrf_check(request, csrf_token)
+    from common.sms import sms_sender
+    result = sms_sender.check_smsir_credit()
+    return JSONResponse(result)
 
 
 # ==========================================
