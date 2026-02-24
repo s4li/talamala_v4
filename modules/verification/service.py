@@ -50,10 +50,10 @@ class VerificationService:
 
         Returns PNG bytes (never saved to disk — security by design).
 
-        - QR: box_size=20, border=4, ERROR_CORRECT_H (30% tolerance for logo)
+        - QR: box_size=20, border=0, ERROR_CORRECT_H (30% tolerance for logo)
         - Logo: brand logo embedded in center (~18% of QR area)
-        - Serial text: printed below QR in monospace style
-        - Output: ~980x1060px PNG — suitable for laser printing
+        - Serial text: auto-sized to fill QR width, printed below QR
+        - QR flush to top/left/right edges (no whitespace)
         """
         url = f"{BASE_URL}/verify/check?code={serial_code}"
 
@@ -93,29 +93,36 @@ class VerificationService:
         qr_rgb = Image.new("RGB", qr_img.size, "white")
         qr_rgb.paste(qr_img, mask=qr_img.split()[3])
 
-        # Crop any remaining white borders (top/left/right only)
+        # Crop ALL white borders so QR is flush on every side
         bbox = qr_rgb.getbbox()
         if bbox:
-            # Crop left/top/right tight, keep bottom as-is
-            qr_rgb = qr_rgb.crop((bbox[0], bbox[1], bbox[2], qr_rgb.height))
+            qr_rgb = qr_rgb.crop(bbox)
         qr_w, qr_h = qr_rgb.size
 
-        # Add serial text below QR
-        text_height = 130
+        # Calculate font size so serial text fills the full QR width
+        text = serial_code
+        ref_size = 60
+        ref_font = self._get_font(size=ref_size)
+        temp_draw = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+        ref_bbox = temp_draw.textbbox((0, 0), text, font=ref_font)
+        ref_text_w = ref_bbox[2] - ref_bbox[0]
+        target_font_size = max(20, int(ref_size * qr_w / ref_text_w))
+        font = self._get_font(size=target_font_size)
+
+        # Measure actual text dimensions
+        text_bbox = temp_draw.textbbox((0, 0), text, font=font)
+        actual_text_h = text_bbox[3] - text_bbox[1]
+        text_height = actual_text_h + 30
+
+        # Build final image: QR flush to edges + serial text below
         final_img = Image.new("RGB", (qr_w, qr_h + text_height), "white")
         final_img.paste(qr_rgb, (0, 0))
 
         draw = ImageDraw.Draw(final_img)
-
-        # Try to load a large font for the serial text
-        font = self._get_font(size=65)
-        text = serial_code
-
-        # Get text bounding box for centering
-        bbox = draw.textbbox((0, 0), text, font=font)
-        text_w = bbox[2] - bbox[0]
+        text_bbox = draw.textbbox((0, 0), text, font=font)
+        text_w = text_bbox[2] - text_bbox[0]
         text_x = (qr_w - text_w) // 2
-        text_y = qr_h + (text_height - (bbox[3] - bbox[1])) // 2
+        text_y = qr_h + (text_height - actual_text_h) // 4
 
         draw.text((text_x, text_y), text, fill="black", font=font)
 
