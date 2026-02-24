@@ -69,11 +69,11 @@ class VerificationService:
 
         # Create QR image — pure black on white for best laser printing
         qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
-        qr_w, qr_h = qr_img.size
 
         # Embed logo in center
         logo = self._get_logo_image()
         if logo:
+            qr_w, qr_h = qr_img.size
             # Logo should be ~18% of QR width
             logo_max = int(qr_w * 0.18)
             logo.thumbnail((logo_max, logo_max), Image.LANCZOS)
@@ -92,6 +92,13 @@ class VerificationService:
         # Convert to RGB for final output
         qr_rgb = Image.new("RGB", qr_img.size, "white")
         qr_rgb.paste(qr_img, mask=qr_img.split()[3])
+
+        # Crop any remaining white borders (top/left/right only)
+        bbox = qr_rgb.getbbox()
+        if bbox:
+            # Crop left/top/right tight, keep bottom as-is
+            qr_rgb = qr_rgb.crop((bbox[0], bbox[1], bbox[2], qr_rgb.height))
+        qr_w, qr_h = qr_rgb.size
 
         # Add serial text below QR
         text_height = 130
