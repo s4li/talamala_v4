@@ -95,7 +95,7 @@ async def pos_request_activation(
         raise HTTPException(429, {"success": False, "error": "درخواست زیاد! چند دقیقه صبر کنید."})
 
     # Generate & store OTP
-    otp_raw = generate_otp()
+    otp_raw = generate_otp(length=4)
     dealer.otp_code = hash_otp(mobile, otp_raw)
     dealer.otp_expiry = now_utc() + timedelta(minutes=OTP_EXPIRE_MINUTES)
     db.commit()
