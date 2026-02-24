@@ -62,7 +62,7 @@ class VerificationService:
             version=None,  # auto-fit
             error_correction=qrcode.constants.ERROR_CORRECT_H,
             box_size=20,
-            border=4,
+            border=1,
         )
         qr.add_data(url)
         qr.make(fit=True)
@@ -94,14 +94,14 @@ class VerificationService:
         qr_rgb.paste(qr_img, mask=qr_img.split()[3])
 
         # Add serial text below QR
-        text_height = 110
+        text_height = 130
         final_img = Image.new("RGB", (qr_w, qr_h + text_height), "white")
         final_img.paste(qr_rgb, (0, 0))
 
         draw = ImageDraw.Draw(final_img)
 
         # Try to load a large font for the serial text
-        font = self._get_font(size=55)
+        font = self._get_font(size=65)
         text = serial_code
 
         # Get text bounding box for centering
