@@ -102,12 +102,15 @@ async def pos_request_activation(
 
     # Send SMS
     display_name = dealer.first_name or "نمایندگی"
-    sms_sender.send_otp_lookup(
+    sms_sent = sms_sender.send_otp_lookup(
         receptor=mobile,
         token=display_name,
         token2=otp_raw,
         template_name="OTP",
     )
+
+    if not sms_sent:
+        raise HTTPException(502, {"success": False, "error": "خطا در ارسال پیامک. لطفا دقایقی بعد تلاش کنید."})
 
     return {
         "success": True,
