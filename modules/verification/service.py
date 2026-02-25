@@ -173,7 +173,12 @@ class VerificationService:
             "consola.ttf",          # Windows Consolas
             "cour.ttf",             # Windows Courier New
             "arial.ttf",            # Windows Arial (fallback)
-            "DejaVuSansMono.ttf",   # Linux
+            "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeMono.ttf",
+            "/usr/share/fonts/TTF/DejaVuSansMono.ttf",       # Arch
+            "DejaVuSansMono.ttf",   # Linux (short name)
             "Courier New.ttf",      # macOS
         ]
         for font_name in font_candidates:
