@@ -134,10 +134,11 @@ class VerificationService:
         return buf.getvalue()
 
     def generate_qr_svg_for_print(self, serial_code: str) -> bytes:
-        """Generate vector SVG QR code with logo + serial text — ideal for LightBurn / laser.
+        """Generate vector SVG QR code + serial text — clean for LightBurn / laser.
 
         Returns SVG bytes (never saved to disk).
-        Pure vector output: infinite resolution, perfect for laser engraving.
+        No background rects — only black fill paths + text.
+        Logo area is cut out of QR matrix (ERROR_CORRECT_H recovers it).
         """
         url = f"{BASE_URL}/verify/check?code={serial_code}"
 
@@ -153,44 +154,36 @@ class VerificationService:
         matrix = qr.get_matrix()
         n = len(matrix)
 
+        # Logo cutout area (center ~18% — modules here are skipped, not masked)
+        logo_ratio = 0.20
+        cut_size = n * logo_ratio
+        cut_x1 = (n - cut_size) / 2
+        cut_y1 = (n - cut_size) / 2
+        cut_x2 = cut_x1 + cut_size
+        cut_y2 = cut_y1 + cut_size
+
         # Dimensions: QR is n×n units, text area below
         text_h = n * 0.14
         gap = n * 0.02
         total_h = n + gap + text_h
 
-        # Build SVG path for all black modules (single compact path)
+        # Build SVG path — skip modules inside logo cutout area
         path_d = ""
         for y, row in enumerate(matrix):
             for x, cell in enumerate(row):
                 if cell:
+                    if cut_x1 <= x < cut_x2 and cut_y1 <= y < cut_y2:
+                        continue
                     path_d += f"M{x},{y}h1v1h-1z"
 
-        # Build SVG
+        # Build SVG — NO background rect, just black path + text
         svg = [
-            f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
+            f'<svg xmlns="http://www.w3.org/2000/svg"'
             f' viewBox="0 0 {n} {total_h:.2f}" width="{n * 20}" height="{int(total_h * 20)}">',
-            f'<rect width="{n}" height="{total_h:.2f}" fill="white"/>',
             f'<path d="{path_d}" fill="black"/>',
         ]
 
-        # Embed logo in center
-        logo_b64 = self._get_logo_base64()
-        if logo_b64:
-            logo_size = n * 0.18
-            pad = logo_size * 0.08
-            cx = (n - logo_size) / 2
-            cy = (n - logo_size) / 2
-            svg.append(
-                f'<rect x="{cx - pad:.2f}" y="{cy - pad:.2f}" '
-                f'width="{logo_size + pad * 2:.2f}" height="{logo_size + pad * 2:.2f}" '
-                f'fill="white" rx="{pad:.2f}"/>'
-            )
-            svg.append(
-                f'<image href="data:image/png;base64,{logo_b64}" '
-                f'x="{cx:.2f}" y="{cy:.2f}" width="{logo_size:.2f}" height="{logo_size:.2f}"/>'
-            )
-
-        # Serial text — vector text, no font dependency issues
+        # Serial text — vector text
         font_size = n / len(serial_code) * 1.55
         text_y = n + gap + text_h * 0.75
         svg.append(
