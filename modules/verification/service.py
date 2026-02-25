@@ -154,16 +154,26 @@ class VerificationService:
         matrix = qr.get_matrix()
         n = len(matrix)
 
+        # Logo cutout area (center ~20% — modules here are skipped, not masked)
+        logo_ratio = 0.20
+        cut_size = n * logo_ratio
+        cut_x1 = (n - cut_size) / 2
+        cut_y1 = (n - cut_size) / 2
+        cut_x2 = cut_x1 + cut_size
+        cut_y2 = cut_y1 + cut_size
+
         # Dimensions: QR is n×n units, text area below
         text_h = n * 0.14
-        gap = n * 0.05
+        gap = n * 0.02
         total_h = n + gap + text_h
 
-        # Build SVG path for ALL black modules (no logo cutout = max accuracy)
+        # Build SVG path — skip modules inside logo cutout area
         path_d = ""
         for y, row in enumerate(matrix):
             for x, cell in enumerate(row):
                 if cell:
+                    if cut_x1 <= x < cut_x2 and cut_y1 <= y < cut_y2:
+                        continue
                     path_d += f"M{x},{y}h1v1h-1z"
 
         # Build SVG — NO background rect, just black path + text
