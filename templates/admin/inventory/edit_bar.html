@@ -225,10 +225,14 @@
             <div class="text-center" style="margin: -1.25rem -1.25rem 0 -1.25rem;">
                 <img src="/admin/bars/{{ bar.id }}/qr" class="img-fluid rounded-top w-100"
                      alt="QR {{ bar.serial_code }}">
-                <div class="mt-3">
+                <div class="mt-3 d-flex justify-content-center gap-2">
+                    <a href="/admin/bars/{{ bar.id }}/qr.svg" download="QR_{{ bar.serial_code }}.svg"
+                       class="btn btn-tm-outline btn-sm">
+                        <i class="bi bi-download me-1"></i> دانلود SVG (لیزر)
+                    </a>
                     <a href="/admin/bars/{{ bar.id }}/qr" download="QR_{{ bar.serial_code }}.png"
                        class="btn btn-tm-outline btn-sm">
-                        <i class="bi bi-download me-1"></i> دانلود QR (چاپ لیزری)
+                        <i class="bi bi-download me-1"></i> دانلود PNG
                     </a>
                 </div>
             </div>

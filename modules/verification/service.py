@@ -10,6 +10,7 @@ Only accessible via authenticated admin endpoint.
 
 import io
 import os
+import base64
 import qrcode
 from qrcode.image.pil import PilImage
 from PIL import Image, ImageDraw, ImageFont
@@ -131,6 +132,85 @@ class VerificationService:
         final_img.save(buf, format="PNG")
         buf.seek(0)
         return buf.getvalue()
+
+    def generate_qr_svg_for_print(self, serial_code: str) -> bytes:
+        """Generate vector SVG QR code with logo + serial text — ideal for LightBurn / laser.
+
+        Returns SVG bytes (never saved to disk).
+        Pure vector output: infinite resolution, perfect for laser engraving.
+        """
+        url = f"{BASE_URL}/verify/check?code={serial_code}"
+
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=1,
+            border=0,
+        )
+        qr.add_data(url)
+        qr.make(fit=True)
+
+        matrix = qr.get_matrix()
+        n = len(matrix)
+
+        # Dimensions: QR is n×n units, text area below
+        text_h = n * 0.14
+        gap = n * 0.02
+        total_h = n + gap + text_h
+
+        # Build SVG path for all black modules (single compact path)
+        path_d = ""
+        for y, row in enumerate(matrix):
+            for x, cell in enumerate(row):
+                if cell:
+                    path_d += f"M{x},{y}h1v1h-1z"
+
+        # Build SVG
+        svg = [
+            f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
+            f' viewBox="0 0 {n} {total_h:.2f}" width="{n * 20}" height="{int(total_h * 20)}">',
+            f'<rect width="{n}" height="{total_h:.2f}" fill="white"/>',
+            f'<path d="{path_d}" fill="black"/>',
+        ]
+
+        # Embed logo in center
+        logo_b64 = self._get_logo_base64()
+        if logo_b64:
+            logo_size = n * 0.18
+            pad = logo_size * 0.08
+            cx = (n - logo_size) / 2
+            cy = (n - logo_size) / 2
+            svg.append(
+                f'<rect x="{cx - pad:.2f}" y="{cy - pad:.2f}" '
+                f'width="{logo_size + pad * 2:.2f}" height="{logo_size + pad * 2:.2f}" '
+                f'fill="white" rx="{pad:.2f}"/>'
+            )
+            svg.append(
+                f'<image href="data:image/png;base64,{logo_b64}" '
+                f'x="{cx:.2f}" y="{cy:.2f}" width="{logo_size:.2f}" height="{logo_size:.2f}"/>'
+            )
+
+        # Serial text — vector text, no font dependency issues
+        font_size = n / len(serial_code) * 1.55
+        text_y = n + gap + text_h * 0.75
+        svg.append(
+            f'<text x="{n / 2}" y="{text_y:.2f}" text-anchor="middle" '
+            f'font-family="Consolas, \'DejaVu Sans Mono\', monospace" '
+            f'font-size="{font_size:.2f}" font-weight="bold" fill="black">'
+            f'{serial_code}</text>'
+        )
+
+        svg.append('</svg>')
+        return '\n'.join(svg).encode('utf-8')
+
+    def _get_logo_base64(self) -> str | None:
+        """Return brand logo as base64 string for SVG embedding."""
+        logo = self._get_logo_image()
+        if not logo:
+            return None
+        buf = io.BytesIO()
+        logo.save(buf, format="PNG")
+        return base64.b64encode(buf.getvalue()).decode('ascii')
 
     def _get_logo_image(self) -> Image.Image | None:
         """Load brand logo for QR embedding.

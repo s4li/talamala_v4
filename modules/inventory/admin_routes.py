@@ -244,7 +244,7 @@ async def download_bar_qr(
     db: Session = Depends(get_db),
     user=Depends(require_permission("inventory")),
 ):
-    """Generate high-res QR code PNG on-the-fly for a bar (for laser printing).
+    """Generate high-res QR code PNG on-the-fly for a bar (web display).
 
     SECURITY: Never saved to disk — generated per-request behind auth.
     """
@@ -259,6 +259,30 @@ async def download_bar_qr(
         content=png_bytes,
         media_type="image/png",
         headers={"Content-Disposition": f'inline; filename="QR_{bar.serial_code}.png"'},
+    )
+
+
+@router.get("/admin/bars/{bar_id}/qr.svg")
+async def download_bar_qr_svg(
+    bar_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("inventory")),
+):
+    """Generate vector SVG QR code for laser engraving (LightBurn compatible).
+
+    SECURITY: Never saved to disk — generated per-request behind auth.
+    """
+    bar = inventory_service.get_by_id(db, bar_id)
+    if not bar:
+        raise HTTPException(404)
+
+    from modules.verification.service import verification_service
+    svg_bytes = verification_service.generate_qr_svg_for_print(bar.serial_code)
+
+    return Response(
+        content=svg_bytes,
+        media_type="image/svg+xml",
+        headers={"Content-Disposition": f'attachment; filename="QR_{bar.serial_code}.svg"'},
     )
 
 
