@@ -164,7 +164,7 @@ class VerificationService:
 
         # Dimensions: QR is n×n units, text area below
         text_h = n * 0.14
-        gap = n * 0.02
+        gap = n * 0.05
         total_h = n + gap + text_h
 
         # Build SVG path — skip modules inside logo cutout area
