@@ -101,7 +101,7 @@ async def qr_code_image(serial_code: str, db: Session = Depends(get_db)):
     return Response(
         content=png_bytes,
         media_type="image/png",
-        headers={"Cache-Control": "public, max-age=86400"},
+        headers={"Cache-Control": "no-cache"},
     )
 
 
