@@ -170,16 +170,19 @@ class VerificationService:
     def _get_font(self, size: int = 40) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
         """Try to load a good monospace font, fall back to default."""
         font_candidates = [
-            "consola.ttf",          # Windows Consolas
-            "cour.ttf",             # Windows Courier New
-            "arial.ttf",            # Windows Arial (fallback)
+            "consolab.ttf",         # Windows Consolas Bold
+            "courbd.ttf",           # Windows Courier New Bold
+            "arialbd.ttf",          # Windows Arial Bold (fallback)
+            "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf",
+            "/usr/share/fonts/TTF/DejaVuSansMono-Bold.ttf",  # Arch
+            "DejaVuSansMono-Bold.ttf",  # Linux (short name)
+            # Regular fallbacks if no bold found
+            "consola.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-            "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
-            "/usr/share/fonts/truetype/freefont/FreeMono.ttf",
-            "/usr/share/fonts/TTF/DejaVuSansMono.ttf",       # Arch
-            "DejaVuSansMono.ttf",   # Linux (short name)
-            "Courier New.ttf",      # macOS
+            "DejaVuSansMono.ttf",
         ]
         for font_name in font_candidates:
             try:
