@@ -911,6 +911,12 @@ CSRF_ENABLED=true
 5. systemctl restart talamala  (یا هر روش ری‌استارت سرویس)
 ```
 
+### وابستگی‌های سرور (Debian):
+```bash
+# فونت DejaVu برای تولید QR کد با متن سریال بولد و هم‌عرض QR
+sudo apt install fonts-dejavu-core -y
+```
+
 ---
 
 ## 16. قانون کامیت و پوش (AUTO COMMIT & PUSH)
