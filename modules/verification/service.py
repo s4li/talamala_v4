@@ -112,7 +112,7 @@ class VerificationService:
         # Measure actual text dimensions
         text_bbox = temp_draw.textbbox((0, 0), text, font=font)
         actual_text_h = text_bbox[3] - text_bbox[1]
-        text_height = actual_text_h + 30
+        text_height = actual_text_h + 50
 
         # Build final image: QR flush to edges + serial text below
         final_img = Image.new("RGB", (qr_w, qr_h + text_height), "white")
@@ -122,7 +122,7 @@ class VerificationService:
         text_bbox = draw.textbbox((0, 0), text, font=font)
         text_w = text_bbox[2] - text_bbox[0]
         text_x = (qr_w - text_w) // 2
-        text_y = qr_h + (text_height - actual_text_h) // 4
+        text_y = qr_h + 5
 
         draw.text((text_x, text_y), text, fill="black", font=font)
 
