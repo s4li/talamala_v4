@@ -200,9 +200,28 @@
             <table class="table table-tm table-borderless table-sm mb-0">
                 <tr><td class="text-muted">شناسه</td><td class="fw-bold">{{ bar.id }}</td></tr>
                 <tr><td class="text-muted">سریال</td><td><code class="fw-bold text-dark">{{ bar.serial_code }}</code></td></tr>
-                {% if bar.claim_code %}
-                <tr><td class="text-muted">کد ثبت مالکیت</td><td><code class="fw-bold" style="color:var(--tm-primary);">{{ bar.claim_code }}</code></td></tr>
-                {% endif %}
+                <tr>
+                    <td class="text-muted">کد ثبت مالکیت</td>
+                    <td>
+                        {% if bar.claim_code %}
+                        <code class="fw-bold" style="color:var(--tm-primary);font-size:1.1em;">{{ bar.claim_code }}</code>
+                        <button class="btn btn-sm p-0 ms-2 text-muted" onclick="navigator.clipboard.writeText('{{ bar.claim_code }}');this.innerHTML='<i class=\'bi bi-check-lg text-success\'></i>'" title="کپی">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                        {% else %}
+                        <span class="text-muted small">ندارد</span>
+                        {% endif %}
+                        {% if user.has_permission("inventory", "edit") %}
+                        <form method="POST" action="/admin/bars/{{ bar.id }}/generate-claim-code" class="d-inline ms-2"
+                              {% if bar.claim_code %}onsubmit="return confirm('کد فعلی جایگزین می‌شود. مطمئنید؟')"{% endif %}>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button class="btn btn-sm btn-tm-outline py-0 px-2">
+                                <i class="bi bi-key me-1"></i>{{ 'کد جدید' if bar.claim_code else 'ایجاد کد' }}
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
                 <tr><td class="text-muted">تاریخ ایجاد</td><td>{{ bar.created_at | jdate if bar.created_at else '' }}</td></tr>
                 {% if bar.dealer_location %}
                 <tr><td class="text-muted">نمایندگی فعلی</td><td>

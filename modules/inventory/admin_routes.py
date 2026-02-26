@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
-from common.helpers import safe_int
+from common.helpers import safe_int, generate_unique_claim_code
 from modules.auth.deps import require_permission
 from modules.inventory.models import BarStatus
 from modules.inventory.service import inventory_service
@@ -260,6 +260,26 @@ async def download_bar_qr(
         media_type="image/png",
         headers={"Content-Disposition": f'inline; filename="QR_{bar.serial_code}.png"'},
     )
+
+
+# ==========================================
+# 🔑 Generate Claim Code
+# ==========================================
+
+@router.post("/admin/bars/{bar_id}/generate-claim-code")
+async def generate_claim_code_route(
+    request: Request, bar_id: int,
+    csrf_token: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("inventory", level="edit")),
+):
+    csrf_check(request, csrf_token)
+    bar = inventory_service.get_by_id(db, bar_id)
+    if not bar:
+        raise HTTPException(404)
+    bar.claim_code = generate_unique_claim_code(db)
+    db.commit()
+    return RedirectResponse(f"/admin/bars/edit/{bar_id}", status_code=303)
 
 
 # ==========================================
