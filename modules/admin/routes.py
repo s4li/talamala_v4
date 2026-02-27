@@ -192,6 +192,9 @@ async def fetch_price_ajax(
         if asset_code == GOLD_18K:
             from modules.pricing.feed_service import fetch_gold_price_goldis
             new_price = fetch_gold_price_goldis()
+        elif asset_code == SILVER:
+            from modules.pricing.feed_service import fetch_silver_price_goldis
+            new_price = fetch_silver_price_goldis()
         else:
             return JSONResponse({"success": False, "error": "منبع قیمت برای این دارایی تعریف نشده"})
 
