@@ -878,6 +878,23 @@ async def admin_b2b_approve(
     result = dealer_service.approve_b2b_order(db, order_id, user.id, admin_note)
 
     if result["success"]:
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            from modules.dealer.models import B2BOrder
+            b2b = db.query(B2BOrder).filter(B2BOrder.id == order_id).first()
+            if b2b:
+                notification_service.send(
+                    db, b2b.dealer_id,
+                    notification_type=NotificationType.B2B_ORDER,
+                    title=f"سفارش عمده #{order_id} تأیید شد",
+                    body=f"سفارش عمده #{order_id} توسط مدیریت تأیید شد. لطفاً نسبت به پرداخت اقدام کنید.",
+                    link=f"/dealer/b2b-orders/{order_id}",
+                    sms_text=f"طلاملا: سفارش عمده #{order_id} تأیید شد. talamala.com/dealer/b2b-orders/{order_id}",
+                    reference_type="b2b_approved", reference_id=str(order_id),
+                )
+        except Exception:
+            pass
         db.commit()
     else:
         db.rollback()
@@ -901,6 +918,23 @@ async def admin_b2b_reject(
     result = dealer_service.reject_b2b_order(db, order_id, user.id, admin_note)
 
     if result["success"]:
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            from modules.dealer.models import B2BOrder
+            b2b = db.query(B2BOrder).filter(B2BOrder.id == order_id).first()
+            if b2b:
+                notification_service.send(
+                    db, b2b.dealer_id,
+                    notification_type=NotificationType.B2B_ORDER,
+                    title=f"سفارش عمده #{order_id} رد شد",
+                    body=f"سفارش عمده #{order_id} توسط مدیریت رد شد." + (f" توضیح: {admin_note}" if admin_note else ""),
+                    link=f"/dealer/b2b-orders/{order_id}",
+                    sms_text=f"طلاملا: سفارش عمده #{order_id} رد شد. talamala.com/dealer/b2b-orders/{order_id}",
+                    reference_type="b2b_rejected", reference_id=str(order_id),
+                )
+        except Exception:
+            pass
         db.commit()
     else:
         db.rollback()
@@ -923,6 +957,23 @@ async def admin_b2b_fulfill(
     result = dealer_service.fulfill_b2b_order(db, order_id, user.id)
 
     if result["success"]:
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            from modules.dealer.models import B2BOrder
+            b2b = db.query(B2BOrder).filter(B2BOrder.id == order_id).first()
+            if b2b:
+                notification_service.send(
+                    db, b2b.dealer_id,
+                    notification_type=NotificationType.B2B_ORDER,
+                    title=f"سفارش عمده #{order_id} تحویل شد",
+                    body=f"شمش‌های سفارش عمده #{order_id} به موجودی شما اضافه شدند.",
+                    link=f"/dealer/b2b-orders/{order_id}",
+                    sms_text=f"طلاملا: سفارش عمده #{order_id} تحویل شد. شمش‌ها به موجودی شما اضافه شدند.",
+                    reference_type="b2b_fulfilled", reference_id=str(order_id),
+                )
+        except Exception:
+            pass
         db.commit()
     else:
         db.rollback()

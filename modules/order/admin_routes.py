@@ -155,6 +155,30 @@ async def update_delivery_status(
             except Exception as e:
                 logger.error(f"Cashback settlement failed for order #{order.id}: {e}")
 
+    try:
+        from modules.notification.service import notification_service
+        from modules.notification.models import NotificationType
+        delivery_labels = {
+            "Preparing": "در حال آماده‌سازی",
+            "Shipped": "ارسال شده",
+            "Delivered": "تحویل داده شده",
+        }
+        label = delivery_labels.get(delivery_status, delivery_status)
+        sms = f"طلاملا: سفارش #{order_id} — {label}"
+        if postal_tracking_code:
+            sms += f" کد رهگیری: {postal_tracking_code}"
+        notification_service.send(
+            db, order.customer_id,
+            notification_type=NotificationType.ORDER_DELIVERY,
+            title=f"بروزرسانی ارسال سفارش #{order_id}",
+            body=f"وضعیت تحویل سفارش #{order_id}: {label}",
+            link=f"/orders/{order_id}",
+            sms_text=sms,
+            reference_type="delivery", reference_id=f"{order_id}:{delivery_status}",
+        )
+    except Exception:
+        pass
+
     db.commit()
     msg = urllib.parse.quote("وضعیت تحویل بروزرسانی شد.")
     return RedirectResponse(f"/orders/{order_id}?msg={msg}", status_code=303)

@@ -115,6 +115,10 @@
         <a href="/wallet" class="nav-link {% if active_page == 'wallet' %}active{% endif %}">
             <i class="bi bi-wallet2"></i> کیف پول
         </a>
+        <a href="/notifications" class="nav-link {% if active_page == 'my_notifications' %}active{% endif %}">
+            <i class="bi bi-bell"></i> اعلان‌ها
+            {% if notification_count %}<span class="badge bg-danger rounded-pill ms-1" style="font-size:0.6rem;">{{ notification_count }}</span>{% endif %}
+        </a>
         <a href="/tickets" class="nav-link {% if active_page == 'tickets' %}active{% endif %}">
             <i class="bi bi-headset"></i> پشتیبانی
         </a>

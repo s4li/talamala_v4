@@ -1,0 +1,91 @@
+{% extends "admin/base_admin.html" %}
+
+{% block page_css %}
+<style>
+    .target-radio { cursor: pointer; }
+    .target-radio input:checked + .card-tm { border-color: var(--tm-primary); background: rgba(107,0,45,0.03); }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h5 class="mb-0"><i class="bi bi-megaphone me-2"></i>ارسال اعلان</h5>
+</div>
+
+{% if msg == 'sent' %}
+<div class="alert-tm-success py-2 mb-3">
+    <i class="bi bi-check-circle me-1"></i>
+    اعلان با موفقیت برای {{ count | persian_number }} نفر ارسال شد.
+</div>
+{% endif %}
+
+<div class="card-tm p-4">
+    <form method="post" action="/admin/notifications/send">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <!-- Target -->
+        <div class="mb-4">
+            <label class="form-label fw-bold">مخاطب</label>
+            <div class="d-flex flex-wrap gap-3">
+                <label class="target-radio">
+                    <input type="radio" name="target_type" value="user" class="d-none" checked
+                           onchange="document.getElementById('mobileInput').style.display='block'">
+                    <div class="card-tm px-3 py-2">
+                        <i class="bi bi-person me-1"></i>یک کاربر خاص
+                    </div>
+                </label>
+                <label class="target-radio">
+                    <input type="radio" name="target_type" value="all_customers" class="d-none"
+                           onchange="document.getElementById('mobileInput').style.display='none'">
+                    <div class="card-tm px-3 py-2">
+                        <i class="bi bi-people me-1"></i>همه مشتریان
+                    </div>
+                </label>
+                <label class="target-radio">
+                    <input type="radio" name="target_type" value="all_dealers" class="d-none"
+                           onchange="document.getElementById('mobileInput').style.display='none'">
+                    <div class="card-tm px-3 py-2">
+                        <i class="bi bi-shop me-1"></i>همه نمایندگان
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Mobile (for single user) -->
+        <div class="mb-4" id="mobileInput">
+            <label class="form-label">شماره موبایل</label>
+            <input type="text" name="target_mobile" class="form-control" dir="ltr"
+                   placeholder="09xxxxxxxxx" style="max-width:280px;">
+        </div>
+
+        <!-- Title -->
+        <div class="mb-3">
+            <label class="form-label fw-bold">عنوان اعلان</label>
+            <input type="text" name="title" class="form-control" required
+                   placeholder="مثال: اطلاعیه مهم" maxlength="300">
+        </div>
+
+        <!-- Body -->
+        <div class="mb-3">
+            <label class="form-label fw-bold">متن اعلان</label>
+            <textarea name="body" class="form-control" rows="4" required
+                      placeholder="متن اعلان..."></textarea>
+        </div>
+
+        <!-- Send SMS checkbox -->
+        <div class="mb-4">
+            <div class="form-check">
+                <input type="checkbox" name="send_sms" value="1" class="form-check-input" id="chkSms">
+                <label class="form-check-label" for="chkSms">
+                    <i class="bi bi-chat-text me-1"></i>
+                    همزمان پیامک هم ارسال شود
+                </label>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-tm-primary btn">
+            <i class="bi bi-send me-1"></i>ارسال اعلان
+        </button>
+    </form>
+</div>
+{% endblock %}

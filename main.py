@@ -114,6 +114,7 @@ from modules.review.models import Review, ReviewImage, ProductComment, CommentIm
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment  # noqa: F401
 from modules.pricing.models import Asset  # noqa: F401
 from modules.rasis.models import RasisReceipt  # noqa: F401
+from modules.notification.models import Notification, NotificationPreference  # noqa: F401
 
 # ==========================================
 # Import routers
@@ -146,6 +147,8 @@ from modules.review.admin_routes import router as review_admin_router
 from modules.dealer_request.routes import router as dealer_request_router
 from modules.dealer_request.admin_routes import router as dealer_request_admin_router
 from modules.rasis.admin_routes import router as rasis_admin_router
+from modules.notification.routes import router as notification_router
+from modules.notification.admin_routes import router as notification_admin_router
 
 
 # ==========================================
@@ -528,6 +531,8 @@ app.include_router(review_admin_router)
 app.include_router(dealer_request_router)
 app.include_router(dealer_request_admin_router)
 app.include_router(rasis_admin_router)
+app.include_router(notification_router)
+app.include_router(notification_admin_router)
 
 
 # ==========================================

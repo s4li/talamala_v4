@@ -39,6 +39,7 @@
 30. [انبارگردانی پیشرفته و رهگیری فیزیکی (Advanced Inventory & Physical Tracking — Phase 22)](#30-انبارگردانی-پیشرفته-و-رهگیری-فیزیکی-advanced-inventory--physical-tracking--phase-22)
 31. [سطح‌بندی فعال/غیرفعال خرید و فروش — Trade Guard](#31-سطحبندی-فعالغیرفعال-خرید-و-فروش--trade-guard)
 32. [تولید QR Code برای شمش‌ها (QR Code Generation for Bars)](#32-تولید-qr-code-برای-شمشها-qr-code-generation-for-bars)
+33. [سیستم اعلان‌ها (Notifications)](#33-سیستم-اعلانها-notifications)
 
 ---
 
@@ -2277,4 +2278,49 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 
 ---
 
-> این سند بر اساس کد واقعی پروژه TalaMala v4 (فازهای ۱-۱۴، ۲۱ و ۲۲ + بازگشت اجرت بازخرید + بهبود تیکتینگ + صفحات ثابت و فوتر + ثبت مالکیت و انتقال شمش + مدیریت کاربران + ویرایش مشتری توسط ادمین + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان + مدیریت دارایی و قیمت‌گذاری خودکار + چند درگاه پرداخت + درخواست نمایندگی با بازبینی + نظرات و پرسش‌وپاسخ + API دستگاه POS مشتری‌محور + یکپارچه‌سازی دستگاه POS راسیس + زیرنمایندگان و سفارش عمده B2B + انبارگردانی پیشرفته و رهگیری فیزیکی + سطح‌بندی فعال/غیرفعال خرید و فروش — Trade Guard + تولید QR Code برای شمش‌ها) تهیه شده و هیچ قابلیت فرضی شامل نشده است.
+## 33. سیستم اعلان‌ها (Notifications)
+
+**مسیر فایل‌ها**: `modules/notification/`
+
+### مدل‌ها
+
+- **Notification**: id, user_id, notification_type (16 نوع), title, body, link, is_read, channel, reference_type, reference_id, metadata_json (JSONB), created_at
+- **NotificationPreference**: id, user_id, notification_type, sms_enabled, in_app_enabled, email_enabled — UniqueConstraint(user_id, notification_type)
+- **NotificationType** (enum): ORDER_STATUS, ORDER_DELIVERY, PAYMENT_SUCCESS, PAYMENT_FAILED, WALLET_TOPUP, WALLET_WITHDRAW, WALLET_TRADE, OWNERSHIP_TRANSFER, CUSTODIAL_DELIVERY, TICKET_UPDATE, DEALER_SALE, DEALER_BUYBACK, B2B_ORDER, DEALER_REQUEST, REVIEW_REPLY, SYSTEM
+
+### معماری
+
+- **دو‌لایه**: رکورد DB همگام (flush در تراکنش فعلی) + ارسال SMS غیرهمگام (BackgroundTasks)
+- **هرگز** عملیات بیزینسی (پرداخت/سفارش/...) را بلاک یا fail نمی‌کند (try/except pass)
+- Badge زنگوله: `notification_count` از route پاس داده می‌شود (مثل cart_count — بدون Jinja global)
+- AJAX polling هر ۶۰ ثانیه: `GET /notifications/api/unread-count`
+
+### آدرس‌ها
+
+| متد | مسیر | دسترسی | توضیح |
+|------|-------|--------|--------|
+| GET | `/notifications` | لاگین | مرکز اعلان‌ها (صفحه‌بندی) |
+| POST | `/notifications/{id}/read` | لاگین | AJAX خواندن تکی (CSRF header) |
+| POST | `/notifications/read-all` | لاگین | AJAX خواندن همه (CSRF header) |
+| GET | `/notifications/api/unread-count` | لاگین | AJAX شمارنده badge |
+| GET | `/notifications/settings` | لاگین | تنظیمات اعلان |
+| POST | `/notifications/settings` | لاگین | ذخیره تنظیمات |
+| GET | `/admin/notifications/send` | notifications:create | فرم ارسال اعلان |
+| POST | `/admin/notifications/send` | notifications:create | ارسال اعلان گروهی |
+
+### نقاط اتصال بیزینسی (13 hook)
+
+پرداخت موفق (کیف پول + درگاه)، لغو سفارش، تغییر وضعیت ارسال، شارژ کیف پول، تأیید/رد برداشت، خرید/فروش فلز، فروش POS نماینده، بازخرید، تأیید/رد/تحویل سفارش B2B، تأیید/اصلاح/رد درخواست نمایندگی، پاسخ تیکت، انتقال مالکیت، تحویل امانی
+
+### دسترسی
+
+| نقش | دسترسی |
+|------|--------|
+| Super Admin | ارسال اعلان گروهی + مشاهده اعلان‌های خود |
+| Operator | بسته به سطح دسترسی `notifications` (create برای ارسال) |
+| نماینده | مشاهده اعلان‌ها + تنظیمات + badge در sidebar |
+| مشتری | مشاهده اعلان‌ها + تنظیمات + badge در navbar |
+
+---
+
+> این سند بر اساس کد واقعی پروژه TalaMala v4 (فازهای ۱-۱۴، ۱۷، ۲۱ و ۲۲ + بازگشت اجرت بازخرید + بهبود تیکتینگ + صفحات ثابت و فوتر + ثبت مالکیت و انتقال شمش + مدیریت کاربران + ویرایش مشتری توسط ادمین + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان + مدیریت دارایی و قیمت‌گذاری خودکار + چند درگاه پرداخت + درخواست نمایندگی با بازبینی + نظرات و پرسش‌وپاسخ + API دستگاه POS مشتری‌محور + یکپارچه‌سازی دستگاه POS راسیس + زیرنمایندگان و سفارش عمده B2B + انبارگردانی پیشرفته و رهگیری فیزیکی + سطح‌بندی فعال/غیرفعال خرید و فروش — Trade Guard + تولید QR Code برای شمش‌ها + سیستم اعلان‌ها) تهیه شده و هیچ قابلیت فرضی شامل نشده است.

@@ -61,12 +61,31 @@ class TicketService:
         db.flush()
 
     def _send_notification(self, ticket: Ticket, sender_type: str):
-        """Send SMS notification to the other party (non-blocking)."""
+        """Send SMS + in-app notification to the other party (non-blocking)."""
         try:
             if sender_type == SenderType.STAFF:
                 # Notify ticket owner (customer or dealer)
                 if ticket.user:
                     notify_ticket_update(ticket.user.mobile, ticket.id, "new_reply")
+                    try:
+                        from modules.notification.service import notification_service
+                        from modules.notification.models import NotificationType
+                        from config.database import SessionLocal
+                        _db = SessionLocal()
+                        try:
+                            notification_service.send(
+                                _db, ticket.user_id,
+                                notification_type=NotificationType.TICKET_UPDATE,
+                                title=f"پاسخ جدید تیکت #{ticket.id}",
+                                body=f"پشتیبانی به تیکت «{ticket.subject}» پاسخ داد.",
+                                link=f"/tickets/{ticket.id}",
+                                reference_type="ticket_reply", reference_id=str(ticket.id),
+                            )
+                            _db.commit()
+                        finally:
+                            _db.close()
+                    except Exception:
+                        pass
             elif sender_type in (SenderType.CUSTOMER, SenderType.DEALER):
                 # Notify assigned staff (if any)
                 if ticket.assigned_staff and getattr(ticket.assigned_staff, "mobile", None):

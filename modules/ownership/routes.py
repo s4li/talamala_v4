@@ -210,6 +210,29 @@ async def transfer_confirm(
 
     try:
         bar = ownership_service.confirm_transfer(db, transfer_id, me.id, otp_code)
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            notification_service.send(
+                db, me.id,
+                notification_type=NotificationType.OWNERSHIP_TRANSFER,
+                title=f"انتقال شمش {bar.serial_code}",
+                body=f"شمش {bar.serial_code} با موفقیت منتقل شد.",
+                link="/my-bars",
+                reference_type="transfer_sent", reference_id=str(transfer_id),
+            )
+            if bar.customer_id and bar.customer_id != me.id:
+                notification_service.send(
+                    db, bar.customer_id,
+                    notification_type=NotificationType.OWNERSHIP_TRANSFER,
+                    title=f"دریافت شمش {bar.serial_code}",
+                    body=f"شمش {bar.serial_code} به شما منتقل شد.",
+                    link="/my-bars",
+                    sms_text=f"طلاملا: شمش {bar.serial_code} به شما منتقل شد. talamala.com/my-bars",
+                    reference_type="transfer_received", reference_id=str(transfer_id),
+                )
+        except Exception:
+            pass
         db.commit()
 
         import urllib.parse

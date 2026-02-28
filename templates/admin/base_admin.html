@@ -124,6 +124,15 @@
         <a href="/admin/reviews" class="nav-link {% if active_page == 'reviews' %}active{% endif %}">
             <i class="bi bi-chat-dots"></i> نظرات و دیدگاه‌ها
         </a>
+        {% if user.has_permission('notifications') %}
+        <a href="/admin/notifications/send" class="nav-link {% if active_page == 'notifications' %}active{% endif %}">
+            <i class="bi bi-megaphone"></i> ارسال اعلان
+        </a>
+        {% endif %}
+        <a href="/notifications" class="nav-link {% if active_page == 'my_notifications' %}active{% endif %}">
+            <i class="bi bi-bell"></i> اعلان‌های من
+            {% if notification_count %}<span class="badge bg-danger rounded-pill ms-1" style="font-size:0.6rem;">{{ notification_count }}</span>{% endif %}
+        </a>
         {% if user.has_permission('logs') %}
         <a href="/admin/logs" class="nav-link {% if active_page == 'logs' %}active{% endif %}">
             <i class="bi bi-journal-text"></i> لاگ درخواست‌ها

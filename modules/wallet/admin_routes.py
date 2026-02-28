@@ -277,7 +277,21 @@ async def admin_withdrawal_approve(
 ):
     csrf_check(request, csrf_token)
     try:
-        wallet_service.approve_withdrawal(db, wr_id, admin_note)
+        wr = wallet_service.approve_withdrawal(db, wr_id, admin_note)
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            notification_service.send(
+                db, wr.user_id,
+                notification_type=NotificationType.WALLET_WITHDRAW,
+                title=f"درخواست برداشت #{wr_id} تأیید شد",
+                body=f"درخواست برداشت شما به مبلغ {wr.amount_irr // 10:,} تومان تأیید و به حساب بانکی واریز شد.",
+                link="/wallet/withdraw",
+                sms_text=f"طلاملا: درخواست برداشت #{wr_id} تأیید شد. مبلغ {wr.amount_irr // 10:,} تومان به حساب بانکی واریز می‌شود.",
+                reference_type="withdrawal_approved", reference_id=str(wr_id),
+            )
+        except Exception:
+            pass
         db.commit()
         return RedirectResponse(
             f"/admin/wallets/withdrawals/list?msg=درخواست+%23{wr_id}+تأیید+شد",
@@ -302,7 +316,21 @@ async def admin_withdrawal_reject(
 ):
     csrf_check(request, csrf_token)
     try:
-        wallet_service.reject_withdrawal(db, wr_id, admin_note)
+        wr = wallet_service.reject_withdrawal(db, wr_id, admin_note)
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            notification_service.send(
+                db, wr.user_id,
+                notification_type=NotificationType.WALLET_WITHDRAW,
+                title=f"درخواست برداشت #{wr_id} رد شد",
+                body=f"درخواست برداشت شما به مبلغ {wr.amount_irr // 10:,} تومان رد شد و مبلغ بلوکه‌شده آزاد گردید.",
+                link="/wallet/withdraw",
+                sms_text=f"طلاملا: درخواست برداشت #{wr_id} رد شد. مبلغ {wr.amount_irr // 10:,} تومان آزاد شد.",
+                reference_type="withdrawal_rejected", reference_id=str(wr_id),
+            )
+        except Exception:
+            pass
         db.commit()
         return RedirectResponse(
             f"/admin/wallets/withdrawals/list?msg=درخواست+%23{wr_id}+رد+شد+و+مبلغ+آزاد+گردید",

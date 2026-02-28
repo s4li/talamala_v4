@@ -77,7 +77,8 @@ talamala_v4/
 │   ├── rasis/                   # Rasis POS device integration (auto-sync inventory + pricing)
 │   ├── pricing/                 # Asset prices, calculator, staleness guard, price feed
 │   │   └── trade_guard.py       # Per-metal, per-channel trade toggle system (enable/disable buy/sell)
-│   └── ticket/                  # Ticket, TicketMessage, TicketAttachment, categories, internal notes
+│   ├── ticket/                  # Ticket, TicketMessage, TicketAttachment, categories, internal notes
+│   └── notification/            # Notification, NotificationPreference, in-app + SMS dispatcher
 ├── templates/
 │   ├── base.html                # HTML skeleton (Bootstrap RTL, Vazirmatn)
 │   ├── auth/login.html
@@ -98,7 +99,9 @@ talamala_v4/
 │   │   ├── tickets.html         # Customer ticket list
 │   │   ├── custodial_delivery.html # Customer custodial delivery request page
 │   │   ├── ticket_new.html      # Customer create ticket
-│   │   └── ticket_detail.html   # Customer ticket conversation
+│   │   ├── ticket_detail.html   # Customer ticket conversation
+│   │   ├── notifications.html   # Notification center (list + mark read)
+│   │   └── notification_settings.html # Notification preferences per type
 │   ├── admin/
 │   │   ├── base_admin.html      # Admin sidebar layout
 │   │   ├── dashboard.html
@@ -112,6 +115,7 @@ talamala_v4/
 │   │   ├── coupon/              # list, form, detail
 │   │   ├── tickets/             # admin ticket list + detail
 │   │   ├── reviews/             # admin review + comment list + detail
+│   │   ├── notifications/       # admin broadcast notification send
 │   │   └── logs/                # request audit log list
 │   ├── dealer/
 │   │   ├── base_dealer.html     # Dealer sidebar layout
@@ -262,6 +266,15 @@ talamala_v4/
   - Properties: `full_name`, `status_label`, `status_color`, `gender_label`, `province_name`, `city_name`
   - Relationships: user, province, city, attachments
 - **DealerRequestAttachment**: id, dealer_request_id (FK, CASCADE), file_path, original_filename, created_at
+
+### notification/models.py
+- **NotificationType** (str enum, 16 types): ORDER_STATUS, ORDER_DELIVERY, PAYMENT_SUCCESS, PAYMENT_FAILED, WALLET_TOPUP, WALLET_WITHDRAW, WALLET_TRADE, OWNERSHIP_TRANSFER, CUSTODIAL_DELIVERY, TICKET_UPDATE, DEALER_SALE, DEALER_BUYBACK, B2B_ORDER, DEALER_REQUEST, REVIEW_REPLY, SYSTEM
+- **NotificationChannel** (str enum): SMS, IN_APP, EMAIL
+- **Notification**: id, user_id (FK→users CASCADE), notification_type (String 50), title (String 300), body (Text), link (String 500, nullable), is_read (Boolean default False), channel (String 20), reference_type (String 100, nullable), reference_id (String 100, nullable), metadata_json (JSONB, nullable), created_at (DateTime tz)
+  - Indexes: (user_id, is_read), (user_id, created_at), (reference_type, reference_id)
+  - Properties: `type_label`, `type_icon`, `type_color`
+- **NotificationPreference**: id, user_id (FK→users CASCADE), notification_type (String 50), sms_enabled (Bool default True), in_app_enabled (Bool default True), email_enabled (Bool default False)
+  - UniqueConstraint: (user_id, notification_type)
 
 ---
 
@@ -422,6 +435,7 @@ STATIC_VERSION = "1.1"  # ← عدد را افزایش بده
 | 16 | Reviews & Comments (star rating, Q&A, likes) | ✅ |
 | 21 | Dealer B2B Dashboard (inventory, analytics, sub-dealer, B2B orders) | ✅ |
 | 22 | Advanced Inventory & Physical Tracking (scanner, reconciliation, custodial delivery, transfer audit) | ✅ |
+| 17 | Notifications (SMS transactional + In-app center + preferences + admin broadcast) | ✅ |
 
 ---
 
@@ -429,12 +443,6 @@ STATIC_VERSION = "1.1"  # ← عدد را افزایش بده
 
 > **اصل راهبردی**: تمام فازها حول محور «شمش فیزیکی + شبکه نمایندگان» طراحی شده‌اند.
 > فیچرهای صرافی/ترید (DCA، داشبورد PNL، طلای دیجیتال کسری) عمداً حذف شده‌اند.
-
-### 📌 Phase 17: Notifications (بحرانی)
-- SMS تراکنشی (Kavenegar production): lifecycle سفارش، کیف پول، انتقال مالکیت، تیکت، بازخرید
-- مرکز اعلان داخلی (In-app): مدل Notification + صفحه اعلان‌ها + badge خوانده‌نشده
-- Email: تأییدیه سفارش (فاکتور HTML)، خلاصه ماهانه، خوش‌آمدگویی
-- تنظیمات اعلان مشتری (انتخاب کانال به تفکیک رویداد)
 
 ### 📌 Phase 18: Shahkar + Security Hardening (الزامی)
 - احراز هویت شاهکار (تطبیق موبایل + کد ملی) → full_name, national_id → readonly
@@ -749,6 +757,14 @@ total     = raw_metal + wage + tax
 - `POST /my-bars/{bar_id}/delivery/{req_id}/send-otp` — Send OTP
 - `POST /my-bars/{bar_id}/delivery/{req_id}/cancel` — Cancel request
 
+### Notifications
+- `GET /notifications` — Notification center (paginated list)
+- `POST /notifications/{id}/read` — AJAX mark single as read (CSRF via header)
+- `POST /notifications/read-all` — AJAX mark all as read (CSRF via header)
+- `GET /notifications/api/unread-count` — AJAX badge polling (GET, no CSRF)
+- `GET /notifications/settings` — Notification preferences page
+- `POST /notifications/settings` — Save preferences
+
 ### Admin
 - `/admin/dashboard|products|categories|designs|packages|batches`
 - `/admin/bars|orders|settings`
@@ -791,6 +807,8 @@ total     = raw_metal + wage + tax
 - `POST /admin/tickets/{id}/status` — Change status (sends notification)
 - `POST /admin/tickets/{id}/close` — Close ticket
 - `POST /admin/tickets/{id}/assign` — Assign to staff
+- `GET /admin/notifications/send` — Broadcast notification form
+- `POST /admin/notifications/send` — Send notification (single user / all customers / all dealers)
 
 ### Reviews & Comments (Customer)
 - `POST /reviews/submit` — Submit review (from order detail page, with images)

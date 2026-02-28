@@ -215,6 +215,22 @@ def _verify_topup(request: Request, db: Session, topup: WalletTopup, params: dic
 
     if result.success:
         wallet_service.confirm_topup(db, topup.id, ref_number=result.ref_number)
+
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            notification_service.send(
+                db, topup.user_id,
+                notification_type=NotificationType.WALLET_TOPUP,
+                title="شارژ کیف پول",
+                body=f"کیف پول شما {topup.amount_irr // 10:,} تومان شارژ شد.",
+                link="/wallet",
+                sms_text=f"طلاملا: شارژ کیف پول {topup.amount_irr // 10:,} تومان انجام شد.",
+                reference_type="topup", reference_id=str(topup.id),
+            )
+        except Exception:
+            pass
+
         db.commit()
         amount_toman = topup.amount_irr // 10
         flash(request, f"کیف پول با موفقیت شارژ شد ({amount_toman:,} تومان)", "success")
@@ -487,6 +503,21 @@ async def wallet_metal_buy(
 
     try:
         result = wallet_service.buy_metal(db, me.id, amount_irr, asset_type=asset_type, fee_percent=fee_percent)
+
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            notification_service.send(
+                db, me.id,
+                notification_type=NotificationType.WALLET_TRADE,
+                title=f"خرید {metal['label']}",
+                body=f"خرید {result['metal_mg'] / 1000:.3f} گرم {metal['label']} انجام شد.",
+                link=f"/wallet/{asset_type}",
+                reference_type="metal_buy", reference_id=f"{me.id}:{asset_type}",
+            )
+        except Exception:
+            pass
+
         db.commit()
         mg = result["metal_mg"]
         flash(request, f"خرید {mg / 1000:.3f} گرم {metal['label']} با موفقیت انجام شد", "success")
@@ -520,6 +551,21 @@ async def wallet_metal_sell(
         if mg <= 0:
             raise ValueError(f"مقدار {metal['label']} باید بیشتر از صفر باشد")
         result = wallet_service.sell_metal(db, me.id, mg, asset_type=asset_type, fee_percent=fee_percent)
+
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            notification_service.send(
+                db, me.id,
+                notification_type=NotificationType.WALLET_TRADE,
+                title=f"فروش {metal['label']}",
+                body=f"فروش {mg / 1000:.3f} گرم {metal['label']} — {result['amount_irr'] // 10:,} تومان واریز شد.",
+                link=f"/wallet/{asset_type}",
+                reference_type="metal_sell", reference_id=f"{me.id}:{asset_type}",
+            )
+        except Exception:
+            pass
+
         db.commit()
         rial = result["amount_irr"]
         flash(request, f"فروش {mg / 1000:.3f} گرم {metal['label']} — {rial // 10:,} تومان واریز شد", "success")

@@ -98,6 +98,23 @@ async def admin_dealer_request_approve(
     csrf_check(request, csrf_token)
     result = dealer_request_service.approve_request(db, req_id, admin_note)
     if result["success"]:
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            from modules.dealer_request.models import DealerRequest
+            dr = db.query(DealerRequest).filter(DealerRequest.id == req_id).first()
+            if dr:
+                notification_service.send(
+                    db, dr.user_id,
+                    notification_type=NotificationType.DEALER_REQUEST,
+                    title="درخواست نمایندگی تأیید شد",
+                    body="درخواست نمایندگی شما تأیید شد. به پنل نمایندگی خوش آمدید!",
+                    link="/dealer/dashboard",
+                    sms_text="طلاملا: درخواست نمایندگی شما تأیید شد! talamala.com/dealer/dashboard",
+                    reference_type="dealer_request_approved", reference_id=str(req_id),
+                )
+        except Exception:
+            pass
         db.commit()
     else:
         db.rollback()
@@ -120,6 +137,23 @@ async def admin_dealer_request_revision(
     csrf_check(request, csrf_token)
     result = dealer_request_service.request_revision(db, req_id, admin_note)
     if result["success"]:
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            from modules.dealer_request.models import DealerRequest
+            dr = db.query(DealerRequest).filter(DealerRequest.id == req_id).first()
+            if dr:
+                notification_service.send(
+                    db, dr.user_id,
+                    notification_type=NotificationType.DEALER_REQUEST,
+                    title="درخواست نمایندگی نیاز به اصلاح دارد",
+                    body="درخواست نمایندگی شما نیاز به اصلاح دارد. لطفاً اطلاعات را بررسی و مجدداً ارسال کنید." + (f" توضیح: {admin_note}" if admin_note else ""),
+                    link="/dealer-request?edit=1",
+                    sms_text="طلاملا: درخواست نمایندگی شما نیاز به اصلاح دارد. talamala.com/dealer-request?edit=1",
+                    reference_type="dealer_request_revision", reference_id=str(req_id),
+                )
+        except Exception:
+            pass
         db.commit()
     else:
         db.rollback()
@@ -142,6 +176,23 @@ async def admin_dealer_request_reject(
     csrf_check(request, csrf_token)
     result = dealer_request_service.reject_request(db, req_id, admin_note)
     if result["success"]:
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            from modules.dealer_request.models import DealerRequest
+            dr = db.query(DealerRequest).filter(DealerRequest.id == req_id).first()
+            if dr:
+                notification_service.send(
+                    db, dr.user_id,
+                    notification_type=NotificationType.DEALER_REQUEST,
+                    title="درخواست نمایندگی رد شد",
+                    body="متأسفانه درخواست نمایندگی شما رد شد." + (f" توضیح: {admin_note}" if admin_note else ""),
+                    link="/dealer-request",
+                    sms_text="طلاملا: درخواست نمایندگی شما رد شد.",
+                    reference_type="dealer_request_rejected", reference_id=str(req_id),
+                )
+        except Exception:
+            pass
         db.commit()
     else:
         db.rollback()

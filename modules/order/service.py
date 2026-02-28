@@ -396,6 +396,22 @@ class OrderService:
             old_value=OrderStatus.PENDING, new_value=OrderStatus.CANCELLED,
             changed_by=changed_by, description=reason or "لغو سفارش",
         )
+
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            notification_service.send(
+                db, order.customer_id,
+                notification_type=NotificationType.ORDER_STATUS,
+                title=f"لغو سفارش #{order.id}",
+                body=f"سفارش #{order.id} لغو شد. {reason or ''}".strip(),
+                link=f"/orders/{order.id}",
+                sms_text=f"طلاملا: سفارش #{order.id} لغو شد.",
+                reference_type="order_cancel", reference_id=str(order.id),
+            )
+        except Exception:
+            pass
+
         db.flush()
         return order
 

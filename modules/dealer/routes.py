@@ -171,6 +171,20 @@ async def pos_submit(
     )
 
     if result["success"]:
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            notification_service.send(
+                db, dealer.id,
+                notification_type=NotificationType.DEALER_SALE,
+                title="فروش POS ثبت شد",
+                body=f"فروش شمش به {customer_name or 'مشتری'} با مبلغ {sale_price:,} تومان ثبت شد.",
+                link="/dealer/sales",
+                sms_text=f"طلاملا: فروش POS به مبلغ {sale_price:,} تومان ثبت شد.",
+                reference_type="dealer_sale", reference_id=str(result.get("sale_id", "")),
+            )
+        except Exception:
+            pass
         db.commit()
     else:
         db.rollback()
@@ -250,6 +264,19 @@ async def buyback_submit(
     )
 
     if result["success"]:
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            notification_service.send(
+                db, dealer.id,
+                notification_type=NotificationType.DEALER_BUYBACK,
+                title="بازخرید ثبت شد",
+                body=f"بازخرید شمش {serial_code} به مبلغ {buyback_price:,} تومان ثبت شد.",
+                link="/dealer/buybacks",
+                reference_type="buyback", reference_id=str(result.get("buyback_id", "")),
+            )
+        except Exception:
+            pass
         db.commit()
     else:
         db.rollback()
@@ -878,6 +905,23 @@ async def dealer_delivery_confirm(
     from modules.ownership.service import ownership_service
     try:
         ownership_service.confirm_delivery(db, req_id, dealer.id, otp_code, serial_code)
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            from modules.inventory.models import CustodialDeliveryRequest
+            cdr = db.query(CustodialDeliveryRequest).filter(CustodialDeliveryRequest.id == req_id).first()
+            if cdr:
+                notification_service.send(
+                    db, cdr.customer_id,
+                    notification_type=NotificationType.CUSTODIAL_DELIVERY,
+                    title="تحویل امانی انجام شد",
+                    body=f"شمش امانی شما با موفقیت تحویل داده شد.",
+                    link="/my-bars",
+                    sms_text=f"طلاملا: شمش امانی شما تحویل داده شد. talamala.com/my-bars",
+                    reference_type="custodial_delivery", reference_id=str(req_id),
+                )
+        except Exception:
+            pass
         db.commit()
         import urllib.parse
         msg = urllib.parse.quote("تحویل با موفقیت ثبت شد")

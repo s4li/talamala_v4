@@ -64,6 +64,7 @@ from modules.review.models import Review, ReviewImage, ProductComment, CommentIm
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment
 from modules.pricing.models import Asset, GOLD_18K, SILVER
 from modules.rasis.models import RasisReceipt
+from modules.notification.models import Notification, NotificationPreference
 
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

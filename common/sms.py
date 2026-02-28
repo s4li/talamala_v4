@@ -206,6 +206,74 @@ class SmsSender:
             return False
 
     # ------------------------------------------
+    # Plain text (transactional notifications)
+    # ------------------------------------------
+
+    def send_plain_text(self, receptor: str, message: str) -> bool:
+        """
+        Send plain-text transactional SMS (notifications, alerts).
+        Uses active provider's bulk/direct API (not template-based).
+        """
+        print(f"\n{'='*40}")
+        print(f"[SMS] NOTIFICATION (DEBUG)")
+        print(f"[SMS] To: {receptor}")
+        print(f"[SMS] Text: {message}")
+        print(f"{'='*40}\n")
+
+        provider = _get_active_provider()
+
+        if provider == "kavenegar":
+            return self._send_kavenegar_direct(receptor, message)
+        else:
+            return self._send_smsir_bulk_text(receptor, message)
+
+    def _send_kavenegar_direct(self, receptor: str, message: str) -> bool:
+        """Send plain text via Kavenegar Send API."""
+        if not SMS_API_KEY:
+            logger.warning("SMS skipped: no Kavenegar API key")
+            return False
+        try:
+            url = f"https://api.kavenegar.com/v1/{SMS_API_KEY}/sms/send.json"
+            params = {"receptor": receptor, "message": message}
+            response = requests.get(url, params=params, timeout=5, verify=False)
+            if response.status_code == 200:
+                logger.info(f"Kavenegar direct SMS sent to {receptor}")
+                return True
+            logger.error(f"Kavenegar direct error: {response.status_code}")
+            return False
+        except Exception as e:
+            logger.error(f"Kavenegar direct failed: {e}")
+            return False
+
+    def _send_smsir_bulk_text(self, receptor: str, message: str) -> bool:
+        """Send plain text via sms.ir Bulk API."""
+        if not SMSIR_API_KEY:
+            logger.warning("SMS skipped: no sms.ir API key")
+            return False
+        try:
+            url = "https://api.sms.ir/v1/send/bulk"
+            headers = {
+                "Content-Type": "application/json",
+                "Accept": "text/plain",
+                "X-API-KEY": SMSIR_API_KEY,
+            }
+            payload = {
+                "lineNumber": int(SMSIR_LINE_NUMBER),
+                "messageText": message,
+                "mobiles": [receptor],
+            }
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            data = response.json()
+            if response.status_code == 200 and data.get("status") == 1:
+                logger.info(f"sms.ir bulk text sent to {receptor}")
+                return True
+            logger.error(f"sms.ir bulk text error: {response.status_code} - {response.text}")
+            return False
+        except Exception as e:
+            logger.error(f"sms.ir bulk text failed: {e}")
+            return False
+
+    # ------------------------------------------
     # Credit check (for admin diagnostics)
     # ------------------------------------------
 

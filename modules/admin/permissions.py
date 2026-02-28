@@ -35,6 +35,7 @@ PERMISSION_REGISTRY = {
     "coupons":    "کوپن‌ها",
     "dealers":    "نمایندگان",
     "tickets":    "تیکت‌های پشتیبانی",
+    "notifications": "اعلان‌ها",
     "logs":       "لاگ درخواست‌ها",
     "settings":   "تنظیمات سیستم",
     "staff":      "مدیریت ادمین‌ها",

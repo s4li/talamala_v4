@@ -99,6 +99,22 @@ class PaymentService:
             return {"success": False, "message": "خطا در نهایی‌سازی سفارش"}
 
         logger.info(f"Order #{order_id} paid from wallet by customer #{customer_id}")
+
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            notification_service.send(
+                db, customer_id,
+                notification_type=NotificationType.PAYMENT_SUCCESS,
+                title=f"پرداخت سفارش #{order_id}",
+                body=f"سفارش #{order_id} با موفقیت از کیف پول پرداخت شد.",
+                link=f"/orders/{order_id}",
+                sms_text=f"طلاملا: سفارش #{order_id} پرداخت شد. talamala.com/orders/{order_id}",
+                reference_type="order_paid", reference_id=str(order_id),
+            )
+        except Exception:
+            pass
+
         return {
             "success": True,
             "message": f"سفارش #{order_id} با موفقیت از کیف پول پرداخت شد",
@@ -177,6 +193,20 @@ class PaymentService:
 
             finalized = order_service.finalize_order(db, order_id)
             if finalized:
+                try:
+                    from modules.notification.service import notification_service
+                    from modules.notification.models import NotificationType
+                    notification_service.send(
+                        db, order.customer_id,
+                        notification_type=NotificationType.PAYMENT_SUCCESS,
+                        title=f"پرداخت سفارش #{order_id}",
+                        body=f"سفارش #{order_id} با موفقیت پرداخت شد. مرجع: {result.ref_number}",
+                        link=f"/orders/{order_id}",
+                        sms_text=f"طلاملا: سفارش #{order_id} پرداخت شد. talamala.com/orders/{order_id}",
+                        reference_type="order_paid", reference_id=str(order_id),
+                    )
+                except Exception:
+                    pass
                 return {"success": True, "message": f"پرداخت موفق! مرجع: {result.ref_number}"}
             return {"success": False, "message": "خطا در نهایی‌سازی سفارش"}
         else:

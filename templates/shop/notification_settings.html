@@ -1,0 +1,83 @@
+{% extends "shop/base_shop.html" %}
+
+{% block shop_css %}
+<style>
+    .pref-table th { font-size: 0.82rem; font-weight: 500; }
+    .pref-table td { vertical-align: middle; }
+    .pref-type-label { font-size: 0.85rem; }
+</style>
+{% endblock %}
+
+{% block shop_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <h5 class="mb-0"><i class="bi bi-gear me-2"></i>تنظیمات اعلان‌ها</h5>
+            <a href="/notifications" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-right me-1"></i>بازگشت
+            </a>
+        </div>
+
+        {% if msg == 'saved' %}
+        <div class="alert-tm-success py-2 mb-3">
+            <i class="bi bi-check-circle me-1"></i>
+            تنظیمات اعلان با موفقیت ذخیره شد.
+        </div>
+        {% endif %}
+
+        <div class="card-tm p-4">
+            <form method="post" action="/notifications/settings">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <p class="text-muted text-body-sm mb-4">
+                    برای هر نوع اعلان، کانال‌های دریافت را مشخص کنید.
+                    غیرفعال کردن یک کانال باعث عدم ارسال اعلان از آن طریق می‌شود.
+                </p>
+
+                <div class="table-responsive">
+                    <table class="table table-sm pref-table mb-0">
+                        <thead>
+                            <tr>
+                                <th style="min-width:180px;">نوع اعلان</th>
+                                <th class="text-center" style="width:80px;">
+                                    <i class="bi bi-chat-text me-1"></i>پیامک
+                                </th>
+                                <th class="text-center" style="width:80px;">
+                                    <i class="bi bi-bell me-1"></i>داخلی
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for nt in notification_types %}
+                            <tr>
+                                <td class="pref-type-label">{{ type_labels[nt] }}</td>
+                                <td class="text-center">
+                                    <div class="form-check d-inline-block">
+                                        <input type="checkbox" class="form-check-input"
+                                               name="sms_{{ nt.value }}"
+                                               {% if preferences[nt.value].sms %}checked{% endif %}>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="form-check d-inline-block">
+                                        <input type="checkbox" class="form-check-input"
+                                               name="inapp_{{ nt.value }}"
+                                               {% if preferences[nt.value].in_app %}checked{% endif %}>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-end">
+                    <button type="submit" class="btn-tm-primary btn">
+                        <i class="bi bi-check-lg me-1"></i>ذخیره تنظیمات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
