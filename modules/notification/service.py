@@ -6,6 +6,7 @@ Respects per-user preferences. SMS is sent via BackgroundTasks to avoid blocking
 """
 
 import logging
+import threading
 from typing import Optional, Tuple, List, Dict
 
 from sqlalchemy.orm import Session
@@ -90,9 +91,13 @@ class NotificationService:
 
             if mobile:
                 if background_tasks is not None:
+                    # Preferred: FastAPI BackgroundTasks (runs after response)
                     background_tasks.add_task(self._send_sms, mobile, sms_text)
                 else:
-                    self._send_sms(mobile, sms_text)
+                    # Fallback: fire-and-forget thread (never blocks caller)
+                    threading.Thread(
+                        target=self._send_sms, args=(mobile, sms_text), daemon=True
+                    ).start()
 
         # 4. Email stub (log only — no SMTP configured)
         if prefs["email"]:
