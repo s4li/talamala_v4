@@ -261,17 +261,17 @@ def seed():
                 "price_per_gram": 52_000_000,
                 "stale_after_minutes": 15,
                 "auto_update": True,
-                "update_interval_minutes": 5,
-                "source_url": "https://goldis.ir/price/api/v1/price/assets/gold18k/final-prices",
+                "update_interval_minutes": 1,
+                "source_url": "https://products.goldis.ir/api/v3/prices",
             },
             {
                 "asset_code": SILVER,
                 "asset_label": "نقره خالص",
                 "price_per_gram": 550_000,
-                "stale_after_minutes": 30,
-                "auto_update": False,
-                "update_interval_minutes": 30,
-                "source_url": None,
+                "stale_after_minutes": 15,
+                "auto_update": True,
+                "update_interval_minutes": 1,
+                "source_url": "https://products.goldis.ir/api/v3/prices",
             },
         ]
         for data in asset_seed:
