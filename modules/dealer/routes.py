@@ -273,6 +273,7 @@ async def buyback_submit(
                 title="بازخرید ثبت شد",
                 body=f"بازخرید شمش {serial_code} به مبلغ {buyback_price:,} تومان ثبت شد.",
                 link="/dealer/buybacks",
+                sms_text=f"طلاملا: بازخرید شمش {serial_code} به مبلغ {buyback_price:,} تومان ثبت شد.",
                 reference_type="buyback", reference_id=str(result.get("buyback_id", "")),
             )
         except Exception:

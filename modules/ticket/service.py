@@ -18,7 +18,8 @@ from modules.ticket.models import (
 from modules.user.models import User
 from common.helpers import now_utc
 from common.upload import save_upload_file
-from common.notifications import notify_ticket_update
+from modules.notification.service import notification_service
+from modules.notification.models import NotificationType
 
 logger = logging.getLogger("talamala.ticket")
 
@@ -63,33 +64,36 @@ class TicketService:
     def _send_notification(self, ticket: Ticket, sender_type: str):
         """Send SMS + in-app notification to the other party (non-blocking)."""
         try:
-            if sender_type == SenderType.STAFF:
-                # Notify ticket owner (customer or dealer)
-                if ticket.user:
-                    notify_ticket_update(ticket.user.mobile, ticket.id, "new_reply")
-                    try:
-                        from modules.notification.service import notification_service
-                        from modules.notification.models import NotificationType
-                        from config.database import SessionLocal
-                        _db = SessionLocal()
-                        try:
-                            notification_service.send(
-                                _db, ticket.user_id,
-                                notification_type=NotificationType.TICKET_UPDATE,
-                                title=f"پاسخ جدید تیکت #{ticket.id}",
-                                body=f"پشتیبانی به تیکت «{ticket.subject}» پاسخ داد.",
-                                link=f"/tickets/{ticket.id}",
-                                reference_type="ticket_reply", reference_id=str(ticket.id),
-                            )
-                            _db.commit()
-                        finally:
-                            _db.close()
-                    except Exception:
-                        pass
-            elif sender_type in (SenderType.CUSTOMER, SenderType.DEALER):
-                # Notify assigned staff (if any)
-                if ticket.assigned_staff and getattr(ticket.assigned_staff, "mobile", None):
-                    notify_ticket_update(ticket.assigned_staff.mobile, ticket.id, "new_reply")
+            from config.database import SessionLocal
+            _db = SessionLocal()
+            try:
+                if sender_type == SenderType.STAFF:
+                    # Notify ticket owner (customer or dealer)
+                    if ticket.user:
+                        notification_service.send(
+                            _db, ticket.user_id,
+                            notification_type=NotificationType.TICKET_UPDATE,
+                            title=f"پاسخ جدید تیکت #{ticket.id}",
+                            body=f"پشتیبانی به تیکت «{ticket.subject}» پاسخ داد.",
+                            link=f"/tickets/{ticket.id}",
+                            sms_text=f"طلاملا: پاسخ جدید تیکت #{ticket.id}. talamala.com/tickets/{ticket.id}",
+                            reference_type="ticket_reply", reference_id=str(ticket.id),
+                        )
+                elif sender_type in (SenderType.CUSTOMER, SenderType.DEALER):
+                    # Notify assigned staff (if any)
+                    if ticket.assigned_staff:
+                        notification_service.send(
+                            _db, ticket.assigned_to,
+                            notification_type=NotificationType.TICKET_UPDATE,
+                            title=f"پاسخ جدید تیکت #{ticket.id}",
+                            body=f"کاربر به تیکت «{ticket.subject}» پاسخ داد.",
+                            link=f"/admin/tickets/{ticket.id}",
+                            sms_text=f"طلاملا: پاسخ جدید تیکت #{ticket.id}",
+                            reference_type="ticket_reply_staff", reference_id=str(ticket.id),
+                        )
+                _db.commit()
+            finally:
+                _db.close()
         except Exception as e:
             logger.error(f"Notification error: {e}")
 
@@ -328,7 +332,15 @@ class TicketService:
         # Notify ticket owner of status change
         try:
             if ticket.user:
-                notify_ticket_update(ticket.user.mobile, ticket.id, "status_changed")
+                notification_service.send(
+                    db, ticket.user_id,
+                    notification_type=NotificationType.TICKET_UPDATE,
+                    title=f"تغییر وضعیت تیکت #{ticket.id}",
+                    body=f"وضعیت تیکت «{ticket.subject}» تغییر کرد.",
+                    link=f"/tickets/{ticket.id}",
+                    sms_text=f"طلاملا: وضعیت تیکت #{ticket.id} تغییر کرد. talamala.com/tickets/{ticket.id}",
+                    reference_type="ticket_status", reference_id=str(ticket.id),
+                )
         except Exception as e:
             logger.error(f"Notification error on status change for ticket #{ticket_id}: {e}")
 
@@ -409,7 +421,15 @@ class TicketService:
         # Notify ticket owner
         try:
             if ticket.user:
-                notify_ticket_update(ticket.user.mobile, ticket.id, "status_changed")
+                notification_service.send(
+                    db, ticket.user_id,
+                    notification_type=NotificationType.TICKET_UPDATE,
+                    title=f"انتقال تیکت #{ticket.id}",
+                    body=f"تیکت «{ticket.subject}» به دپارتمان «{new_label}» منتقل شد.",
+                    link=f"/tickets/{ticket.id}",
+                    sms_text=f"طلاملا: تیکت #{ticket.id} به دپارتمان جدید منتقل شد.",
+                    reference_type="ticket_category", reference_id=str(ticket.id),
+                )
         except Exception as e:
             logger.error(f"Notification error on category change for ticket #{ticket_id}: {e}")
 

@@ -144,6 +144,22 @@ async def admin_reply_comment(
     )
 
     if result["success"]:
+        # Notify comment author
+        if comment.user_id:
+            try:
+                from modules.notification.service import notification_service
+                from modules.notification.models import NotificationType
+                notification_service.send(
+                    db, comment.user_id,
+                    notification_type=NotificationType.REVIEW_REPLY,
+                    title="پاسخ به نظر شما",
+                    body=f"پشتیبانی به نظر شما پاسخ داد.",
+                    link=f"/product/{comment.product_id}",
+                    sms_text=f"طلاملا: پشتیبانی به نظر شما پاسخ داد. talamala.com/product/{comment.product_id}",
+                    reference_type="comment_reply", reference_id=str(comment_id),
+                )
+            except Exception:
+                pass
         db.commit()
         return RedirectResponse(f"/admin/reviews/comment/{comment_id}?msg=پاسخ+ثبت+شد", status_code=302)
 
@@ -168,6 +184,23 @@ async def admin_reply_review(
 
     result = review_service.admin_reply_review(db, review_id, body)
     if result["success"]:
+        # Notify review author
+        review = review_service.get_review(db, review_id)
+        if review and review.user_id:
+            try:
+                from modules.notification.service import notification_service
+                from modules.notification.models import NotificationType
+                notification_service.send(
+                    db, review.user_id,
+                    notification_type=NotificationType.REVIEW_REPLY,
+                    title="پاسخ به نقد شما",
+                    body=f"پشتیبانی به نقد شما پاسخ داد.",
+                    link=f"/product/{review.product_id}",
+                    sms_text=f"طلاملا: پشتیبانی به نقد شما پاسخ داد. talamala.com/product/{review.product_id}",
+                    reference_type="review_reply", reference_id=str(review_id),
+                )
+            except Exception:
+                pass
         db.commit()
         return RedirectResponse(f"/admin/reviews/review/{review_id}?msg=پاسخ+ثبت+شد", status_code=302)
 

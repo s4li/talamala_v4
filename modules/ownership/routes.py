@@ -219,6 +219,7 @@ async def transfer_confirm(
                 title=f"انتقال شمش {bar.serial_code}",
                 body=f"شمش {bar.serial_code} با موفقیت منتقل شد.",
                 link="/my-bars",
+                sms_text=f"طلاملا: شمش {bar.serial_code} با موفقیت منتقل شد.",
                 reference_type="transfer_sent", reference_id=str(transfer_id),
             )
             if bar.customer_id and bar.customer_id != me.id:

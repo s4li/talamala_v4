@@ -236,6 +236,19 @@ def _verify_topup(request: Request, db: Session, topup: WalletTopup, params: dic
         flash(request, f"کیف پول با موفقیت شارژ شد ({amount_toman:,} تومان)", "success")
     else:
         wallet_service.fail_topup(db, topup.id)
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+            notification_service.send(
+                db, topup.user_id,
+                notification_type=NotificationType.PAYMENT_FAILED,
+                title="شارژ کیف پول ناموفق",
+                body=f"شارژ کیف پول به مبلغ {topup.amount_irr // 10:,} تومان ناموفق بود.",
+                link="/wallet",
+                reference_type="topup_failed", reference_id=str(topup.id),
+            )
+        except Exception:
+            pass
         db.commit()
         flash(request, f"تراکنش ناموفق — {result.error_message}", "danger")
 
@@ -513,6 +526,7 @@ async def wallet_metal_buy(
                 title=f"خرید {metal['label']}",
                 body=f"خرید {result['metal_mg'] / 1000:.3f} گرم {metal['label']} انجام شد.",
                 link=f"/wallet/{asset_type}",
+                sms_text=f"طلاملا: خرید {result['metal_mg'] / 1000:.3f} گرم {metal['label']} انجام شد.",
                 reference_type="metal_buy", reference_id=f"{me.id}:{asset_type}",
             )
         except Exception:
@@ -561,6 +575,7 @@ async def wallet_metal_sell(
                 title=f"فروش {metal['label']}",
                 body=f"فروش {mg / 1000:.3f} گرم {metal['label']} — {result['amount_irr'] // 10:,} تومان واریز شد.",
                 link=f"/wallet/{asset_type}",
+                sms_text=f"طلاملا: فروش {mg / 1000:.3f} گرم {metal['label']} — {result['amount_irr'] // 10:,} تومان واریز شد.",
                 reference_type="metal_sell", reference_id=f"{me.id}:{asset_type}",
             )
         except Exception:

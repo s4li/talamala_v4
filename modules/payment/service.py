@@ -210,6 +210,19 @@ class PaymentService:
                 return {"success": True, "message": f"پرداخت موفق! مرجع: {result.ref_number}"}
             return {"success": False, "message": "خطا در نهایی‌سازی سفارش"}
         else:
+            try:
+                from modules.notification.service import notification_service
+                from modules.notification.models import NotificationType
+                notification_service.send(
+                    db, order.customer_id,
+                    notification_type=NotificationType.PAYMENT_FAILED,
+                    title=f"پرداخت ناموفق سفارش #{order_id}",
+                    body=f"پرداخت سفارش #{order_id} ناموفق بود. {result.error_message}",
+                    link=f"/orders/{order_id}",
+                    reference_type="order_payment_failed", reference_id=str(order_id),
+                )
+            except Exception:
+                pass
             return {"success": False, "message": result.error_message}
 
     # ==========================================
