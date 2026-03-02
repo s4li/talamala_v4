@@ -204,9 +204,14 @@ def main():
 
         print(f"\n{'='*60}")
         print(f"  Result: {sent}/16 notifications sent successfully")
-        print(f"  Check console output above for SMS debug messages")
-        print(f"  Check DB: SELECT * FROM notifications WHERE user_id={user.id} ORDER BY id DESC LIMIT 16;")
+        print(f"  Waiting for SMS threads to complete...")
         print(f"{'='*60}\n")
+
+        # Wait for all SMS daemon threads to finish
+        import time
+        time.sleep(15)
+
+        print(f"  Done! Check DB: SELECT * FROM notifications WHERE user_id={user.id} ORDER BY id DESC LIMIT 16;")
 
     finally:
         db.close()
