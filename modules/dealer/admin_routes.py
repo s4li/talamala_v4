@@ -892,6 +892,7 @@ async def admin_b2b_approve(
                     link=f"/dealer/b2b-orders/{order_id}",
                     sms_text=f"طلاملا: سفارش عمده #{order_id} تأیید شد. talamala.com/dealer/b2b-orders/{order_id}",
                     reference_type="b2b_approved", reference_id=str(order_id),
+                    admin_alert_text=f"[هشدار] سفارش عمده #{order_id} تأیید شد",
                 )
         except Exception:
             pass

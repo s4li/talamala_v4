@@ -332,6 +332,44 @@
             </div>
         </div>
 
+        <!-- ===== هشدار پیامکی مدیر ===== -->
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-bell me-1"></i> هشدار پیامکی مدیر</h6>
+        {% set alert_enabled = settings.get('admin_alert_enabled') and settings.get('admin_alert_enabled').value == 'true' %}
+        {% set alert_mobiles = settings.get('admin_alert_mobiles').value if settings.get('admin_alert_mobiles') else '' %}
+        {% set alert_types_str = settings.get('admin_alert_types').value if settings.get('admin_alert_types') else '' %}
+        {% set alert_types_list = alert_types_str.split(',') if alert_types_str else [] %}
+        <div class="card-tm no-hover mb-4" style="background:var(--tm-info-900);border:1px solid var(--tm-border);">
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" name="admin_alert_enabled" id="adminAlertEnabled"
+                       {{ 'checked' if alert_enabled else '' }}>
+                <label class="form-check-label fw-bold" for="adminAlertEnabled">فعال‌سازی هشدار پیامکی</label>
+            </div>
+            <small class="text-muted d-block mb-3">با فعال‌سازی، هنگام وقوع رویدادهای انتخاب‌شده، پیامک هشدار به شماره‌های زیر ارسال می‌شود.</small>
+
+            <div class="mb-3">
+                <label class="form-label-tm">شماره‌های موبایل (با کاما جدا کنید)</label>
+                <textarea name="admin_alert_mobiles" class="form-control form-control-tm" rows="2" dir="ltr"
+                          placeholder="09121234567, 09131234567">{{ alert_mobiles }}</textarea>
+                <small class="text-muted">هر شماره‌ای (حتی غیرعضو) قابل وارد کردن است.</small>
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label-tm mb-2">نوع رویدادها</label>
+                <div class="row g-2">
+                    {% for type_val, type_label in notification_types.items() %}
+                    <div class="col-md-4 col-sm-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="admin_alert_types"
+                                   value="{{ type_val }}" id="alert_{{ type_val }}"
+                                   {{ 'checked' if type_val in alert_types_list else '' }}>
+                            <label class="form-check-label" for="alert_{{ type_val }}">{{ type_label }}</label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
         <!-- ===== لاگ درخواست‌ها ===== -->
         <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-journal-text me-1"></i> لاگ درخواست‌ها</h6>
         <div class="row g-3 mb-4">

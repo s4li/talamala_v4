@@ -29,6 +29,24 @@ logger = logging.getLogger("talamala.payment")
 DEFAULT_GATEWAYS = "sepehr,top,parsian"
 
 
+def _build_order_admin_alert(db: Session, order) -> str:
+    """Build admin alert text from order items: weight + metal type per item."""
+    from modules.order.models import OrderItem
+    from modules.catalog.models import Product
+
+    items = db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
+    parts = []
+    for item in items:
+        product = db.query(Product).filter(Product.id == item.product_id).first()
+        if product:
+            metal_label = "طلا" if product.metal_type == "gold" else "نقره"
+            parts.append(f"{product.weight}g {metal_label}")
+
+    if parts:
+        return "[هشدار] فروش شمش " + " + ".join(parts)
+    return f"[هشدار] فروش سفارش #{order.id}"
+
+
 class PaymentService:
 
     # ==========================================
@@ -103,6 +121,10 @@ class PaymentService:
         try:
             from modules.notification.service import notification_service
             from modules.notification.models import NotificationType
+
+            # Build admin alert text with weight info
+            admin_text = _build_order_admin_alert(db, order)
+
             notification_service.send(
                 db, customer_id,
                 notification_type=NotificationType.PAYMENT_SUCCESS,
@@ -111,6 +133,7 @@ class PaymentService:
                 link=f"/orders/{order_id}",
                 sms_text=f"طلاملا: سفارش #{order_id} پرداخت شد. talamala.com/orders/{order_id}",
                 reference_type="order_paid", reference_id=str(order_id),
+                admin_alert_text=admin_text,
             )
         except Exception:
             pass
@@ -196,6 +219,9 @@ class PaymentService:
                 try:
                     from modules.notification.service import notification_service
                     from modules.notification.models import NotificationType
+
+                    admin_text = _build_order_admin_alert(db, order)
+
                     notification_service.send(
                         db, order.customer_id,
                         notification_type=NotificationType.PAYMENT_SUCCESS,
@@ -204,6 +230,7 @@ class PaymentService:
                         link=f"/orders/{order_id}",
                         sms_text=f"طلاملا: سفارش #{order_id} پرداخت شد. talamala.com/orders/{order_id}",
                         reference_type="order_paid", reference_id=str(order_id),
+                        admin_alert_text=admin_text,
                     )
                 except Exception:
                     pass

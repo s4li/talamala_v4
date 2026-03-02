@@ -3,6 +3,7 @@ TalaMala v4 - Notification Service
 =====================================
 Central dispatcher for all notifications: in-app + SMS (async) + email (stub).
 Respects per-user preferences. SMS is sent via BackgroundTasks to avoid blocking.
+Includes admin SMS alert dispatch for critical events.
 """
 
 import logging
@@ -40,6 +41,7 @@ class NotificationService:
         reference_id: str = None,
         metadata: dict = None,
         background_tasks=None,
+        admin_alert_text: str = None,
     ) -> Optional[Notification]:
         """
         Central dispatcher. Creates in-app notification (sync) and sends SMS (async).
@@ -57,6 +59,7 @@ class NotificationService:
             reference_id: For dedup ("123")
             metadata: Extra JSON data
             background_tasks: FastAPI BackgroundTasks (SMS runs async if provided)
+            admin_alert_text: SMS text for admin alerts (no links). Falls back to title.
 
         Returns:
             Notification object or None
@@ -102,6 +105,9 @@ class NotificationService:
         # 4. Email stub (log only — no SMTP configured)
         if prefs["email"]:
             logger.info(f"[EMAIL STUB] To user #{user_id}: {title}")
+
+        # 5. Admin SMS alerts (fire-and-forget daemon thread with own DB session)
+        self._maybe_send_admin_alerts(notification_type, admin_alert_text or title)
 
         return notif
 
@@ -217,6 +223,69 @@ class NotificationService:
         ).update({"is_read": True})
         db.flush()
         return count
+
+    # ------------------------------------------------------------------
+    # Admin SMS Alerts (fire-and-forget, own DB session)
+    # ------------------------------------------------------------------
+
+    def _maybe_send_admin_alerts(self, notification_type: str, alert_text: str):
+        """Spawn a daemon thread to send admin SMS alerts if enabled for this type."""
+        threading.Thread(
+            target=self._dispatch_admin_alerts,
+            args=(notification_type, alert_text),
+            daemon=True,
+        ).start()
+
+    def _dispatch_admin_alerts(self, notification_type: str, alert_text: str):
+        """Read admin alert settings from DB and send SMS to configured mobiles.
+
+        Runs in a separate thread with its own DB session to avoid blocking
+        the main request and to prevent connection pool exhaustion.
+        """
+        from config.database import SessionLocal
+        db = SessionLocal()
+        try:
+            from modules.admin.models import SystemSetting
+
+            enabled = db.query(SystemSetting).filter(
+                SystemSetting.key == "admin_alert_enabled"
+            ).first()
+            if not enabled or enabled.value != "true":
+                return
+
+            types_setting = db.query(SystemSetting).filter(
+                SystemSetting.key == "admin_alert_types"
+            ).first()
+            allowed_types = []
+            if types_setting and types_setting.value:
+                allowed_types = [t.strip() for t in types_setting.value.split(",") if t.strip()]
+
+            # Resolve enum value for comparison
+            nt_val = notification_type.value if hasattr(notification_type, "value") else str(notification_type)
+            if nt_val not in allowed_types:
+                return
+
+            mobiles_setting = db.query(SystemSetting).filter(
+                SystemSetting.key == "admin_alert_mobiles"
+            ).first()
+            if not mobiles_setting or not mobiles_setting.value:
+                return
+
+            mobiles = [m.strip() for m in mobiles_setting.value.split(",") if m.strip()]
+            if not mobiles:
+                return
+
+            from common.sms import sms_sender
+            for mobile in mobiles:
+                try:
+                    sms_sender.send_plain_text(mobile, alert_text)
+                except Exception as e:
+                    logger.error(f"Admin alert SMS failed to {mobile}: {e}")
+
+        except Exception as e:
+            logger.error(f"Admin alert dispatch error: {e}")
+        finally:
+            db.close()
 
     # ------------------------------------------------------------------
     # SMS Helper (runs in BackgroundTasks)

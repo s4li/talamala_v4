@@ -520,14 +520,19 @@ async def wallet_metal_buy(
         try:
             from modules.notification.service import notification_service
             from modules.notification.models import NotificationType
+
+            mg = result["metal_mg"]
+            admin_text = f"[هشدار] خرید {mg / 1000:.3f}g {metal['label']} (کیف پول)"
+
             notification_service.send(
                 db, me.id,
                 notification_type=NotificationType.WALLET_TRADE,
                 title=f"خرید {metal['label']}",
-                body=f"خرید {result['metal_mg'] / 1000:.3f} گرم {metal['label']} انجام شد.",
+                body=f"خرید {mg / 1000:.3f} گرم {metal['label']} انجام شد.",
                 link=f"/wallet/{asset_type}",
-                sms_text=f"طلاملا: خرید {result['metal_mg'] / 1000:.3f} گرم {metal['label']} انجام شد.",
+                sms_text=f"طلاملا: خرید {mg / 1000:.3f} گرم {metal['label']} انجام شد.",
                 reference_type="metal_buy", reference_id=f"{me.id}:{asset_type}",
+                admin_alert_text=admin_text,
             )
         except Exception:
             pass
@@ -569,6 +574,9 @@ async def wallet_metal_sell(
         try:
             from modules.notification.service import notification_service
             from modules.notification.models import NotificationType
+
+            admin_text = f"[هشدار] فروش {mg / 1000:.3f}g {metal['label']} (کیف پول)"
+
             notification_service.send(
                 db, me.id,
                 notification_type=NotificationType.WALLET_TRADE,
@@ -577,6 +585,7 @@ async def wallet_metal_sell(
                 link=f"/wallet/{asset_type}",
                 sms_text=f"طلاملا: فروش {mg / 1000:.3f} گرم {metal['label']} — {result['amount_irr'] // 10:,} تومان واریز شد.",
                 reference_type="metal_sell", reference_id=f"{me.id}:{asset_type}",
+                admin_alert_text=admin_text,
             )
         except Exception:
             pass

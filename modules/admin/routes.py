@@ -16,6 +16,7 @@ from modules.auth.deps import require_permission
 from modules.admin.models import SystemSetting, RequestLog
 from modules.pricing.models import Asset, GOLD_18K, SILVER
 from modules.pricing.service import update_asset_price
+from modules.notification.models import NOTIFICATION_TYPE_LABELS
 
 router = APIRouter(tags=["admin-settings"])
 
@@ -40,6 +41,7 @@ async def settings_page(request: Request, db: Session = Depends(get_db), user=De
         "settings": settings_dict,
         "assets": assets_dict,
         "trade_status": trade_status,
+        "notification_types": NOTIFICATION_TYPE_LABELS,
         "csrf_token": csrf,
         "active_page": "settings",
     })
@@ -93,6 +95,10 @@ async def update_settings(
     silver_fee_customer_percent: str = Form("1.5"),
     silver_fee_dealer_percent: str = Form("0.3"),
     shop_closed_message: str = Form(""),
+    # Admin SMS alerts
+    admin_alert_enabled: Optional[str] = Form(None),
+    admin_alert_mobiles: str = Form(""),
+    admin_alert_types: List[str] = Form([]),
     db: Session = Depends(get_db),
     user=Depends(require_permission("settings", level="edit")),
 ):
@@ -160,6 +166,10 @@ async def update_settings(
         "silver_fee_customer_percent": silver_fee_customer_percent,
         "silver_fee_dealer_percent": silver_fee_dealer_percent,
         "shop_closed_message": shop_closed_message.strip() if shop_closed_message else "",
+        # Admin SMS alerts
+        "admin_alert_enabled": "true" if admin_alert_enabled == "on" else "false",
+        "admin_alert_mobiles": admin_alert_mobiles.strip() if admin_alert_mobiles else "",
+        "admin_alert_types": ",".join(admin_alert_types) if admin_alert_types else "",
     }
 
     for key, value in updates.items():

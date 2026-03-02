@@ -289,6 +289,7 @@ async def admin_withdrawal_approve(
                 link="/wallet/withdraw",
                 sms_text=f"طلاملا: درخواست برداشت #{wr_id} تأیید شد. مبلغ {wr.amount_irr // 10:,} تومان به حساب بانکی واریز می‌شود.",
                 reference_type="withdrawal_approved", reference_id=str(wr_id),
+                admin_alert_text=f"[هشدار] درخواست برداشت {wr.amount_irr // 10:,} تومان",
             )
         except Exception:
             pass

@@ -174,6 +174,14 @@ async def pos_submit(
         try:
             from modules.notification.service import notification_service
             from modules.notification.models import NotificationType
+
+            # Build admin alert with weight
+            bar = db.query(Bar).filter(Bar.id == bar_id).first()
+            admin_text = None
+            if bar and bar.product:
+                metal_label = "طلا" if bar.product.metal_type == "gold" else "نقره"
+                admin_text = f"[هشدار] فروش POS شمش {bar.product.weight}g {metal_label}"
+
             notification_service.send(
                 db, dealer.id,
                 notification_type=NotificationType.DEALER_SALE,
@@ -182,6 +190,7 @@ async def pos_submit(
                 link="/dealer/sales",
                 sms_text=f"طلاملا: فروش POS به مبلغ {sale_price:,} تومان ثبت شد.",
                 reference_type="dealer_sale", reference_id=str(result.get("sale_id", "")),
+                admin_alert_text=admin_text,
             )
         except Exception:
             pass
@@ -267,6 +276,14 @@ async def buyback_submit(
         try:
             from modules.notification.service import notification_service
             from modules.notification.models import NotificationType
+
+            # Build admin alert with weight
+            bar = db.query(Bar).filter(Bar.serial_code == serial_code.strip().upper()).first()
+            admin_text = None
+            if bar and bar.product:
+                metal_label = "طلا" if bar.product.metal_type == "gold" else "نقره"
+                admin_text = f"[هشدار] بازخرید شمش {bar.product.weight}g {metal_label}"
+
             notification_service.send(
                 db, dealer.id,
                 notification_type=NotificationType.DEALER_BUYBACK,
@@ -275,6 +292,7 @@ async def buyback_submit(
                 link="/dealer/buybacks",
                 sms_text=f"طلاملا: بازخرید شمش {serial_code} به مبلغ {buyback_price:,} تومان ثبت شد.",
                 reference_type="buyback", reference_id=str(result.get("buyback_id", "")),
+                admin_alert_text=admin_text,
             )
         except Exception:
             pass

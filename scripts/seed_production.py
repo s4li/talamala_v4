@@ -190,6 +190,10 @@ def seed():
             "silver_customer_pos_enabled":  ("true", "فعال/غیرفعال فروش شمش نقره از پوز فروشگاهی"),
             "silver_b2b_order_enabled":     ("true", "فعال/غیرفعال سفارش عمده نقره"),
             "silver_buyback_enabled":       ("true", "فعال/غیرفعال بازخرید شمش نقره"),
+            # Admin SMS alerts
+            "admin_alert_enabled":  ("false", "Enable/disable admin SMS alerts"),
+            "admin_alert_mobiles":  ("", "Comma-separated mobile numbers for admin alerts"),
+            "admin_alert_types":    ("PAYMENT_SUCCESS,DEALER_SALE,WALLET_TRADE,B2B_ORDER,DEALER_BUYBACK,WALLET_WITHDRAW", "Notification types that trigger admin SMS alerts"),
         }
 
         for key, (value, desc) in settings_data.items():
