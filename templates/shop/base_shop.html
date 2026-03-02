@@ -248,7 +248,7 @@
     {% if shop_disabled %}
     <div class="alert-tm-danger py-2 mb-3">
         <i class="bi bi-lock me-1"></i>
-        {{ shop_closed_message|default('به دلیل نوسانات شدید بازار، فروشگاه موقتاً غیرفعال است. از صبر و شکیبایی شما سپاسگزاریم.') }}
+        {{ shop_closed_message or 'به دلیل نوسانات شدید بازار، فروشگاه موقتاً غیرفعال است. از صبر و شکیبایی شما سپاسگزاریم.' }}
     </div>
     {% endif %}
     {% block shop_content %}{% endblock %}
