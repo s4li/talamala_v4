@@ -17,6 +17,8 @@ from modules.cart.service import cart_service
 from modules.pricing.service import is_price_fresh, get_product_pricing
 from modules.pricing.models import GOLD_18K
 from modules.pricing.calculator import calculate_bar_price
+from modules.pricing.trade_guard import is_trade_enabled
+from common.templating import get_setting_from_db
 
 router = APIRouter(tags=["shop"])
 
@@ -60,6 +62,11 @@ async def home_page(
 
     cart_map, cart_count = _get_cart_info(db, user)
 
+    shop_gold_enabled = is_trade_enabled(db, "gold", "shop")
+    shop_silver_enabled = is_trade_enabled(db, "silver", "shop")
+    shop_disabled = not shop_gold_enabled and not shop_silver_enabled
+    shop_closed_message = get_setting_from_db(db, "shop_closed_message", "")
+
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/home.html", {
         "request": request,
@@ -67,6 +74,10 @@ async def home_page(
         "user": user,
         "gold_price": gold_price_rial,
         "price_stale": not is_price_fresh(db, GOLD_18K),
+        "shop_disabled": shop_disabled,
+        "shop_closed_message": shop_closed_message,
+        "shop_gold_enabled": shop_gold_enabled,
+        "shop_silver_enabled": shop_silver_enabled,
         "cart_map": cart_map,
         "cart_count": cart_count,
         "current_sort": sort,
@@ -135,6 +146,13 @@ async def product_detail(
             all_comment_ids.append(r.id)
     comment_likes = review_service.get_comment_likes_map(db, all_comment_ids, customer_id)
 
+    shop_gold_enabled = is_trade_enabled(db, "gold", "shop")
+    shop_silver_enabled = is_trade_enabled(db, "silver", "shop")
+    metal = product.metal_type or "gold"
+    product_trade_enabled = shop_gold_enabled if metal == "gold" else shop_silver_enabled
+    shop_disabled = not product_trade_enabled
+    shop_closed_message = get_setting_from_db(db, "shop_closed_message", "")
+
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/product_detail.html", {
         "request": request,
@@ -142,6 +160,10 @@ async def product_detail(
         "user": user,
         "gold_price": gold_price,
         "price_stale": not is_price_fresh(db, GOLD_18K),
+        "shop_disabled": shop_disabled,
+        "shop_closed_message": shop_closed_message,
+        "shop_gold_enabled": shop_gold_enabled,
+        "shop_silver_enabled": shop_silver_enabled,
         "invoice": invoice,
         "buyback_amount": buyback_amount,
         "tax_percent": tax_percent,

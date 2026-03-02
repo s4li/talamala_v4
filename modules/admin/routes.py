@@ -92,6 +92,7 @@ async def update_settings(
     gold_fee_dealer_percent: str = Form("0.5"),
     silver_fee_customer_percent: str = Form("1.5"),
     silver_fee_dealer_percent: str = Form("0.3"),
+    shop_closed_message: str = Form(""),
     db: Session = Depends(get_db),
     user=Depends(require_permission("settings", level="edit")),
 ):
@@ -158,6 +159,7 @@ async def update_settings(
         "gold_fee_dealer_percent": gold_fee_dealer_percent,
         "silver_fee_customer_percent": silver_fee_customer_percent,
         "silver_fee_dealer_percent": silver_fee_dealer_percent,
+        "shop_closed_message": shop_closed_message.strip() if shop_closed_message else "",
     }
 
     for key, value in updates.items():

@@ -292,10 +292,20 @@
                 </label>
             </div>
 
+            {% if has_disabled_items %}
+            <div class="alert-tm-warning py-2 mt-3 small">
+                <i class="bi bi-lock me-1"></i>
+                برخی محصولات سفارش شما در حال حاضر غیرفعال هستند. لطفاً به سبد خرید برگردید.
+            </div>
+            <button type="button" class="btn btn-tm-primary w-100 mt-2 py-2" disabled>
+                <i class="bi bi-lock me-1"></i> ثبت سفارش غیرممکن
+            </button>
+            {% else %}
             <button type="submit" class="btn btn-tm-primary w-100 mt-3 py-2" id="submitBtn" disabled>
                 <span class="submit-text"><i class="bi bi-lock me-1"></i> ثبت سفارش و پرداخت</span>
                 <span class="submit-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span> در حال ثبت...</span>
             </button>
+            {% endif %}
 
             <a href="/cart" class="btn btn-sm btn-tm-outline w-100 mt-2">
                 <i class="bi bi-arrow-right me-1"></i> بازگشت به سبد خرید

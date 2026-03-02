@@ -19,6 +19,8 @@ from modules.cart.service import cart_service
 from modules.order.service import order_service
 from modules.pricing.service import is_price_fresh
 from modules.pricing.models import GOLD_18K
+from modules.pricing.trade_guard import is_trade_enabled, require_trade_enabled
+from common.templating import get_setting_from_db
 
 router = APIRouter(tags=["cart"])
 
@@ -41,6 +43,15 @@ async def view_cart(
     from modules.catalog.models import PackageType
     packages = db.query(PackageType).filter(PackageType.is_active == True).order_by(PackageType.id).all()
 
+    shop_gold_enabled = is_trade_enabled(db, "gold", "shop")
+    shop_silver_enabled = is_trade_enabled(db, "silver", "shop")
+    shop_closed_message = get_setting_from_db(db, "shop_closed_message", "")
+    # Check if any item in cart has a disabled metal
+    has_disabled_items = any(
+        not (shop_gold_enabled if (it["product"].metal_type or "gold") == "gold" else shop_silver_enabled)
+        for it in items
+    )
+
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/cart.html", {
         "request": request,
@@ -50,6 +61,11 @@ async def view_cart(
         "cart_count": sum(it["quantity"] for it in items),
         "gold_price": cart_service._gold_price(db),
         "price_stale": not is_price_fresh(db, GOLD_18K),
+        "shop_disabled": not shop_gold_enabled and not shop_silver_enabled,
+        "shop_closed_message": shop_closed_message,
+        "shop_gold_enabled": shop_gold_enabled,
+        "shop_silver_enabled": shop_silver_enabled,
+        "has_disabled_items": has_disabled_items,
         "packages": packages,
         "csrf_token": csrf,
         "msg": msg,
@@ -74,6 +90,20 @@ async def update_cart_form(
     me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
+    referer = request.headers.get("referer", "/")
+
+    # Trade guard check (only for add/increase, not remove)
+    if action != "remove":
+        from modules.catalog.models import Product
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if product:
+            try:
+                require_trade_enabled(db, product.metal_type or "gold", "shop")
+            except ValueError as e:
+                from common.security import flash
+                flash(request, str(e), "danger")
+                return RedirectResponse(referer, status_code=303)
+
     pkg_id = int(package_type_id) if package_type_id.strip().isdigit() else None
     if action == "remove":
         cart_service.update_item(db, me.id, product_id, -9999)
@@ -82,8 +112,6 @@ async def update_cart_form(
         cart_service.update_item(db, me.id, product_id, change, package_type_id=pkg_id)
     db.commit()
 
-    # Redirect back to referrer page
-    referer = request.headers.get("referer", "/")
     return RedirectResponse(referer, status_code=303)
 
 
@@ -106,6 +134,17 @@ async def api_update_cart(
         change = int(data.get("change"))
     except (TypeError, ValueError):
         return JSONResponse({"status": "error", "message": "پارامترهای نامعتبر"}, status_code=400)
+
+    # Trade guard check (only for adding, not removing)
+    if change > 0:
+        from modules.catalog.models import Product
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if product:
+            try:
+                require_trade_enabled(db, product.metal_type or "gold", "shop")
+            except ValueError as e:
+                return JSONResponse({"status": "error", "message": str(e)}, status_code=403)
+
     pkg_id = data.get("package_type_id")
     if pkg_id is not None:
         try:
@@ -187,6 +226,14 @@ async def checkout_page(
         CustomerAddress.user_id == me.id
     ).order_by(CustomerAddress.is_default.desc(), CustomerAddress.id.desc()).all()
 
+    shop_gold_enabled = is_trade_enabled(db, "gold", "shop")
+    shop_silver_enabled = is_trade_enabled(db, "silver", "shop")
+    shop_closed_message = get_setting_from_db(db, "shop_closed_message", "")
+    has_disabled_items = any(
+        not (shop_gold_enabled if (it["product"].metal_type or "gold") == "gold" else shop_silver_enabled)
+        for it in items
+    )
+
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/checkout.html", {
         "request": request,
@@ -200,6 +247,9 @@ async def checkout_page(
         "customer_addresses": customer_addresses,
         "gold_price": cart_service._gold_price(db),
         "price_stale": not is_price_fresh(db, GOLD_18K),
+        "shop_disabled": not shop_gold_enabled and not shop_silver_enabled,
+        "shop_closed_message": shop_closed_message,
+        "has_disabled_items": has_disabled_items,
         "csrf_token": csrf,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")

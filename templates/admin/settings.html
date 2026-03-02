@@ -323,6 +323,15 @@
             <small class="text-muted d-block mt-1">هر کانال را می‌توانید به‌صورت مستقل برای هر فلز فعال یا غیرفعال کنید.</small>
         </div>
 
+        <div class="row g-3 mb-4">
+            <div class="col-md-8">
+                <label class="form-label">پیام تعطیلی فروشگاه</label>
+                <textarea name="shop_closed_message" class="form-control form-control-tm" rows="2"
+                          placeholder="به دلیل نوسانات شدید بازار، فروشگاه موقتاً غیرفعال است. از صبر و شکیبایی شما سپاسگزاریم.">{{ settings.get('shop_closed_message', {}).value if settings.get('shop_closed_message') else '' }}</textarea>
+                <small class="text-muted">این پیام هنگام غیرفعال بودن فروشگاه به مشتریان نمایش داده می‌شود. در صورت خالی بودن، پیام پیش‌فرض نمایش داده می‌شود.</small>
+            </div>
+        </div>
+
         <!-- ===== لاگ درخواست‌ها ===== -->
         <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-journal-text me-1"></i> لاگ درخواست‌ها</h6>
         <div class="row g-3 mb-4">

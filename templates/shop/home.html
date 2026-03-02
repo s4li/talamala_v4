@@ -96,7 +96,9 @@
 
             <!-- Footer -->
             <div class="product-card-footer" id="cart-footer-{{ p.id }}">
-                {% if p.inventory > 0 and gold_price %}
+                {% set metal = p.metal_type|default('gold') %}
+                {% set metal_enabled = shop_gold_enabled if metal == 'gold' else shop_silver_enabled %}
+                {% if p.inventory > 0 and gold_price and metal_enabled %}
                     {% set in_cart = cart_map.get(p.id, 0) %}
                     {% if in_cart %}
                     <div class="d-flex align-items-center justify-content-between">
@@ -111,6 +113,10 @@
                         <span class="d-lg-none">سبد خرید</span>
                     </button>
                     {% endif %}
+                {% elif p.inventory > 0 and gold_price and not metal_enabled %}
+                <button class="btn btn-sm btn-tm-outline w-100" disabled>
+                    <i class="bi bi-lock me-1"></i>خرید غیرفعال
+                </button>
                 {% else %}
                 <button class="btn btn-sm btn-tm-outline w-100" disabled>ناموجود</button>
                 {% endif %}

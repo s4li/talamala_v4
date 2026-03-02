@@ -288,9 +288,19 @@
                     </div>
                 </div>
 
+                {% if has_disabled_items %}
+                <div class="alert-tm-warning py-2 mt-3 small">
+                    <i class="bi bi-lock me-1"></i>
+                    برخی محصولات سبد خرید شما در حال حاضر غیرفعال هستند. برای تکمیل خرید، آن‌ها را از سبد حذف کنید یا منتظر فعال‌سازی مجدد بمانید.
+                </div>
+                <button class="btn btn-tm-primary w-100 mt-2 py-2" disabled>
+                    <i class="bi bi-lock me-1"></i> اقدام به پرداخت
+                </button>
+                {% else %}
                 <a href="/checkout" class="btn btn-tm-primary w-100 mt-4 py-2">
                     <i class="bi bi-bag-check me-1"></i> اقدام به پرداخت
                 </a>
+                {% endif %}
 
                 <a href="/" class="btn btn-sm btn-tm-outline w-100 mt-2">
                     <i class="bi bi-arrow-right me-1"></i> ادامه خرید
