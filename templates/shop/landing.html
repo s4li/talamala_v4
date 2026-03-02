@@ -43,18 +43,23 @@
 }
 
 /* ─── Steps ─── */
+.steps-wrapper { position: relative; }
+.steps-line {
+    position: absolute;
+    top: 28px;
+    height: 2px;
+    background: rgba(107,0,45,0.2);
+    z-index: 0;
+}
+.step-card { position: relative; z-index: 1; }
 .step-number {
     width: 56px; height: 56px; border-radius: 50%;
     background: var(--tm-primary, #6B002D);
     color: #fff; font-size: 1.4rem; font-weight: 800;
     display: flex; align-items: center; justify-content: center;
     margin: 0 auto 0.75rem;
-}
-.step-connector {
-    position: absolute;
-    top: 28px; left: -50%; right: 50%;
-    height: 2px;
-    background: linear-gradient(to left, var(--tm-primary, #6B002D), rgba(107,0,45,0.2));
+    border: 4px solid #EAE4DE;
+    box-shadow: 0 0 0 2px rgba(107,0,45,0.15);
 }
 
 /* ─── USP icon ─── */
@@ -91,7 +96,7 @@
     .landing-hero { padding: 2.5rem 0 2rem; }
     .landing-hero h1 { font-size: 1.4rem; line-height: 2.2rem; }
     .landing-hero .lead { font-size: 0.88rem; }
-    .step-connector { display: none; }
+    .steps-line { display: none; }
     .landing-stat-value { font-size: 1.5rem; }
 }
 </style>
@@ -115,11 +120,12 @@
                     و شبکه نمایندگان سراسری
                 </p>
                 <div class="d-flex gap-3 flex-wrap">
-                    <a href="/" class="btn btn-lg btn-tm-primary px-4">
+                    <a href="/" class="btn btn-lg px-4"
+                       style="background:#D4A843; color:#fff; font-weight:700; border:none;">
                         <i class="bi bi-bag-fill me-1"></i> مشاهده فروشگاه
                     </a>
                     <a href="/verify" class="btn btn-lg px-4"
-                       style="border:1px solid rgba(255,255,255,0.4); color:#fff; background:rgba(255,255,255,0.08);">
+                       style="border:2px solid #fff; color:#fff; background:transparent; font-weight:600;">
                         <i class="bi bi-qr-code-scan me-1"></i> استعلام اصالت
                     </a>
                 </div>
@@ -235,29 +241,30 @@
 <section class="py-5 landing-full" style="background: var(--tm-secondary, #EAE4DE);">
     <div class="container">
         <div class="text-center mb-4 tm-reveal">
-            <h2 class="fw-bold">خرید شمش در <span class="text-tm-primary">۳ مرحله</span></h2>
-            <p class="text-muted">ساده، سریع و مطمئن</p>
+            <h2 class="fw-bold" style="color:#262626;">خرید شمش در <span style="color:#6B002D;">۳ مرحله</span></h2>
+            <p style="color:#555;">ساده، سریع و مطمئن</p>
         </div>
-        <div class="row g-4 justify-content-center">
-            <div class="col-md-4 text-center position-relative tm-reveal tm-delay-1">
-                <div class="step-number">۱</div>
-                <i class="bi bi-search fs-1 d-block mb-2 text-tm-primary"></i>
-                <h6 class="fw-bold">انتخاب محصول</h6>
-                <p class="text-muted small mb-0">شمش دلخواهتان را از فروشگاه انتخاب کنید</p>
-            </div>
-            <div class="col-md-4 text-center position-relative tm-reveal tm-delay-3">
-                <div class="d-none d-md-block step-connector"></div>
-                <div class="step-number">۲</div>
-                <i class="bi bi-credit-card fs-1 d-block mb-2 text-tm-primary"></i>
-                <h6 class="fw-bold">پرداخت امن</h6>
-                <p class="text-muted small mb-0">از طریق کیف پول یا درگاه بانکی پرداخت کنید</p>
-            </div>
-            <div class="col-md-4 text-center position-relative tm-reveal tm-delay-5">
-                <div class="d-none d-md-block step-connector"></div>
-                <div class="step-number">۳</div>
-                <i class="bi bi-box-seam fs-1 d-block mb-2 text-tm-primary"></i>
-                <h6 class="fw-bold">دریافت شمش</h6>
-                <p class="text-muted small mb-0">تحویل حضوری از نمایندگی یا ارسال پستی بیمه‌شده</p>
+        <div class="steps-wrapper">
+            <div class="steps-line d-none d-md-block" id="stepsLine"></div>
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-4 text-center step-card tm-reveal tm-delay-1">
+                    <div class="step-number" id="step1">۱</div>
+                    <i class="bi bi-search fs-1 d-block mb-2" style="color:#6B002D;"></i>
+                    <h6 class="fw-bold" style="color:#262626;">انتخاب محصول</h6>
+                    <p class="small mb-0" style="color:#555;">شمش دلخواهتان را از فروشگاه انتخاب کنید</p>
+                </div>
+                <div class="col-md-4 text-center step-card tm-reveal tm-delay-3">
+                    <div class="step-number" id="step2">۲</div>
+                    <i class="bi bi-credit-card fs-1 d-block mb-2" style="color:#6B002D;"></i>
+                    <h6 class="fw-bold" style="color:#262626;">پرداخت امن</h6>
+                    <p class="small mb-0" style="color:#555;">از طریق کیف پول یا درگاه بانکی پرداخت کنید</p>
+                </div>
+                <div class="col-md-4 text-center step-card tm-reveal tm-delay-5">
+                    <div class="step-number" id="step3">۳</div>
+                    <i class="bi bi-box-seam fs-1 d-block mb-2" style="color:#6B002D;"></i>
+                    <h6 class="fw-bold" style="color:#262626;">دریافت شمش</h6>
+                    <p class="small mb-0" style="color:#555;">تحویل حضوری از نمایندگی یا ارسال پستی بیمه‌شده</p>
+                </div>
             </div>
         </div>
     </div>
@@ -354,10 +361,10 @@
 <section class="landing-full dealer-section tm-reveal">
     <div class="container">
         <div class="text-center mb-4">
-            <h2 class="fw-bold">
+            <h2 class="fw-bold" style="color:#fff;">
                 شبکه نمایندگان <span style="color:#D4A843;">سراسری</span>
             </h2>
-            <p style="opacity:0.75;">
+            <p style="color:rgba(255,255,255,0.8);">
                 {{ total_dealers | persian_number }} نماینده فعال در سراسر کشور
             </p>
         </div>
@@ -368,8 +375,8 @@
             <div class="col-6 col-md-3 tm-reveal tm-delay-{{ loop.index }}">
                 <div class="dealer-province-card text-center p-3">
                     <i class="bi bi-geo-alt fs-4 mb-2 d-block" style="color:#D4A843;"></i>
-                    <strong class="d-block">{{ province_name }}</strong>
-                    <small style="opacity:0.7;">{{ count | persian_number }} نماینده</small>
+                    <strong class="d-block" style="color:#fff;">{{ province_name }}</strong>
+                    <small style="color:rgba(255,255,255,0.7);">{{ count | persian_number }} نماینده</small>
                 </div>
             </div>
             {% endfor %}
@@ -385,4 +392,29 @@
     </div>
 </section>
 
-{% endblock %}
+{% endblock shop_content %}
+
+{% block extra_js %}
+<script>
+// Position the steps connector line precisely between step circles
+function positionStepsLine() {
+    var s1 = document.getElementById('step1');
+    var s3 = document.getElementById('step3');
+    var line = document.getElementById('stepsLine');
+    var wrapper = document.querySelector('.steps-wrapper');
+    if (!s1 || !s3 || !line || !wrapper) return;
+    var wr = wrapper.getBoundingClientRect();
+    var r1 = s1.getBoundingClientRect();
+    var r3 = s3.getBoundingClientRect();
+    var c1 = r1.left + r1.width / 2 - wr.left;
+    var c3 = r3.left + r3.width / 2 - wr.left;
+    var startX = Math.min(c1, c3);
+    var endX = Math.max(c1, c3);
+    line.style.left = startX + 'px';
+    line.style.width = (endX - startX) + 'px';
+    line.style.right = 'auto';
+}
+window.addEventListener('load', positionStepsLine);
+window.addEventListener('resize', positionStepsLine);
+</script>
+{% endblock extra_js %}

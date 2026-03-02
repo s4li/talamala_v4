@@ -611,9 +611,14 @@ async def landing_page(request: Request, db: Session = Depends(get_db)):
     except Exception:
         pass
 
-    products, _, _, _ = shop_service.list_products_with_pricing(
-        db, sort="newest", page=1, per_page=4,
+    # Featured: 2 vacuum-packed (cat 1) + 2 investment (cat 2), mixed weights
+    products_vacuum, _, _, _ = shop_service.list_products_with_pricing(
+        db, sort="weight_asc", category_id=1, page=1, per_page=2,
     )
+    products_invest, _, _, _ = shop_service.list_products_with_pricing(
+        db, sort="weight_desc", category_id=2, page=1, per_page=2,
+    )
+    products = list(products_vacuum) + list(products_invest)
 
     categories = db.query(ProductCategory).filter(
         ProductCategory.is_active == True
