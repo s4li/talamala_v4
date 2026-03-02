@@ -1,0 +1,388 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}طلاملا — شمش طلا و نقره با ضمانت اصالت{% endblock %}
+
+{% block shop_css %}
+<style>
+/* ─── Hero ─── */
+.landing-hero {
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    width: 100vw;
+    background: linear-gradient(135deg, #4a001e 0%, var(--tm-primary, #6B002D) 50%, #8a0040 100%);
+    color: #fff;
+    padding: 4rem 0 3.5rem;
+    position: relative;
+    overflow: hidden;
+    margin-top: -1.5rem;
+}
+.landing-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        -45deg, transparent, transparent 40px,
+        rgba(212,168,67,0.04) 40px, rgba(212,168,67,0.04) 80px
+    );
+    z-index: 1;
+}
+.landing-hero .container { position: relative; z-index: 2; }
+.hero-price-card {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    transition: transform 0.3s ease;
+}
+.hero-price-card:hover { transform: translateY(-4px); }
+
+/* ─── Full-width section breakout ─── */
+.landing-full {
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    width: 100vw;
+}
+
+/* ─── Steps ─── */
+.step-number {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--tm-primary, #6B002D);
+    color: #fff; font-size: 1.4rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 0.75rem;
+}
+.step-connector {
+    position: absolute;
+    top: 28px; left: -50%; right: 50%;
+    height: 2px;
+    background: linear-gradient(to left, var(--tm-primary, #6B002D), rgba(107,0,45,0.2));
+}
+
+/* ─── USP icon ─── */
+.usp-icon {
+    width: 60px; height: 60px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; margin-bottom: 0.75rem;
+}
+
+/* ─── Dealer section ─── */
+.dealer-section {
+    background: linear-gradient(135deg, #4a001e, var(--tm-primary, #6B002D));
+    color: #fff;
+    padding: 3.5rem 0;
+}
+.dealer-province-card {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+}
+
+/* ─── Stats ─── */
+.landing-stat { text-align: center; }
+.landing-stat-value {
+    font-size: 2rem; font-weight: 800;
+    color: var(--tm-primary, #6B002D);
+    line-height: 1.2;
+}
+.landing-stat-label { font-size: 0.85rem; color: #737373; margin-top: 4px; }
+
+/* ─── Responsive ─── */
+@media (max-width: 767px) {
+    .landing-hero { padding: 2.5rem 0 2rem; }
+    .landing-hero h1 { font-size: 1.4rem; line-height: 2.2rem; }
+    .landing-hero .lead { font-size: 0.88rem; }
+    .step-connector { display: none; }
+    .landing-stat-value { font-size: 1.5rem; }
+}
+</style>
+{% endblock %}
+
+{% block shop_content %}
+
+{# ══════════════════════════════════════════
+   Section 1: Hero + Live Prices
+   ══════════════════════════════════════════ #}
+<section class="landing-hero tm-reveal">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-7 mb-4 mb-lg-0">
+                <h1 class="display-5 fw-bold mb-3" style="line-height:1.6;">
+                    شمش طلای <span style="color:#D4A843;">اصل</span>،<br>
+                    با ضمانت اصالت
+                </h1>
+                <p class="lead mb-4" style="color:rgba(255,255,255,0.8); line-height:1.9;">
+                    خرید آنلاین شمش طلا و نقره با گواهی اصالت، ارسال امن
+                    و شبکه نمایندگان سراسری
+                </p>
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="/" class="btn btn-lg btn-tm-primary px-4">
+                        <i class="bi bi-bag-fill me-1"></i> مشاهده فروشگاه
+                    </a>
+                    <a href="/verify" class="btn btn-lg px-4"
+                       style="border:1px solid rgba(255,255,255,0.4); color:#fff; background:rgba(255,255,255,0.08);">
+                        <i class="bi bi-qr-code-scan me-1"></i> استعلام اصالت
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="row g-3">
+                    {% if gold_price %}
+                    <div class="col-6">
+                        <div class="hero-price-card text-center p-3 tm-animate-fade-in-up tm-delay-2">
+                            <i class="bi bi-gem fs-3 mb-2 d-block" style="color:#D4A843;"></i>
+                            <small class="d-block mb-1" style="opacity:0.7;">طلای ۱۸ عیار (گرم)</small>
+                            <strong class="fs-5">{{ gold_price | toman }}</strong>
+                            <small class="d-block" style="opacity:0.6;">تومان</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if silver_price %}
+                    <div class="col-6">
+                        <div class="hero-price-card text-center p-3 tm-animate-fade-in-up tm-delay-4">
+                            <i class="bi bi-diamond fs-3 mb-2 d-block" style="color:#C0C0C0;"></i>
+                            <small class="d-block mb-1" style="opacity:0.7;">نقره (گرم)</small>
+                            <strong class="fs-5">{{ silver_price | toman }}</strong>
+                            <small class="d-block" style="opacity:0.6;">تومان</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+{# ══════════════════════════════════════════
+   Section 2: Stats (Social Proof)
+   ══════════════════════════════════════════ #}
+<section class="py-4 tm-reveal">
+    <div class="row g-4 text-center">
+        <div class="col-4">
+            <div class="landing-stat">
+                <div class="landing-stat-value">{{ total_sold | persian_number }}</div>
+                <div class="landing-stat-label">شمش فروخته‌شده</div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="landing-stat">
+                <div class="landing-stat-value">{{ total_dealers | persian_number }}</div>
+                <div class="landing-stat-label">نمایندگی فعال</div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="landing-stat">
+                <div class="landing-stat-value">{{ total_products | persian_number }}</div>
+                <div class="landing-stat-label">محصول متنوع</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+{# ══════════════════════════════════════════
+   Section 3: Why TalaMala (USPs)
+   ══════════════════════════════════════════ #}
+<section class="py-5">
+    <div class="text-center mb-4 tm-reveal">
+        <h2 class="fw-bold">چرا <span class="text-tm-primary">طلاملا</span>؟</h2>
+        <p class="text-muted">دلایلی که خرید از طلاملا را متفاوت می‌کند</p>
+    </div>
+    <div class="row g-4">
+        <div class="col-6 col-lg-3 tm-reveal tm-delay-1">
+            <div class="card-tm h-100 p-3 text-center tm-hover-lift">
+                <div class="usp-icon mx-auto" style="background:rgba(107,0,45,0.08); color:var(--tm-primary, #6B002D);">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <h6 class="fw-bold mb-2">اصالت تضمینی</h6>
+                <p class="text-muted small mb-0">هر شمش دارای سریال منحصربه‌فرد و QR Code اصالت‌سنجی</p>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3 tm-reveal tm-delay-2">
+            <div class="card-tm h-100 p-3 text-center tm-hover-lift">
+                <div class="usp-icon mx-auto" style="background:rgba(212,168,67,0.1); color:#D4A843;">
+                    <i class="bi bi-shop-window"></i>
+                </div>
+                <h6 class="fw-bold mb-2">شبکه نمایندگان</h6>
+                <p class="text-muted small mb-0">شبکه نمایندگان معتبر در سراسر کشور برای تحویل حضوری</p>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3 tm-reveal tm-delay-3">
+            <div class="card-tm h-100 p-3 text-center tm-hover-lift">
+                <div class="usp-icon mx-auto" style="background:rgba(54,201,152,0.1); color:#36C998;">
+                    <i class="bi bi-truck"></i>
+                </div>
+                <h6 class="fw-bold mb-2">ارسال امن</h6>
+                <p class="text-muted small mb-0">بسته‌بندی امن و بیمه‌شده با امکان ارسال پستی یا تحویل حضوری</p>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3 tm-reveal tm-delay-4">
+            <div class="card-tm h-100 p-3 text-center tm-hover-lift">
+                <div class="usp-icon mx-auto" style="background:rgba(107,0,45,0.08); color:var(--tm-primary, #6B002D);">
+                    <i class="bi bi-graph-down-arrow"></i>
+                </div>
+                <h6 class="fw-bold mb-2">قیمت رقابتی</h6>
+                <p class="text-muted small mb-0">قیمت‌گذاری شفاف و لحظه‌ای بر اساس نرخ روز طلا</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+{# ══════════════════════════════════════════
+   Section 4: How to Buy (3 Steps)
+   ══════════════════════════════════════════ #}
+<section class="py-5 landing-full" style="background: var(--tm-secondary, #EAE4DE);">
+    <div class="container">
+        <div class="text-center mb-4 tm-reveal">
+            <h2 class="fw-bold">خرید شمش در <span class="text-tm-primary">۳ مرحله</span></h2>
+            <p class="text-muted">ساده، سریع و مطمئن</p>
+        </div>
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-4 text-center position-relative tm-reveal tm-delay-1">
+                <div class="step-number">۱</div>
+                <i class="bi bi-search fs-1 d-block mb-2 text-tm-primary"></i>
+                <h6 class="fw-bold">انتخاب محصول</h6>
+                <p class="text-muted small mb-0">شمش دلخواهتان را از فروشگاه انتخاب کنید</p>
+            </div>
+            <div class="col-md-4 text-center position-relative tm-reveal tm-delay-3">
+                <div class="d-none d-md-block step-connector"></div>
+                <div class="step-number">۲</div>
+                <i class="bi bi-credit-card fs-1 d-block mb-2 text-tm-primary"></i>
+                <h6 class="fw-bold">پرداخت امن</h6>
+                <p class="text-muted small mb-0">از طریق کیف پول یا درگاه بانکی پرداخت کنید</p>
+            </div>
+            <div class="col-md-4 text-center position-relative tm-reveal tm-delay-5">
+                <div class="d-none d-md-block step-connector"></div>
+                <div class="step-number">۳</div>
+                <i class="bi bi-box-seam fs-1 d-block mb-2 text-tm-primary"></i>
+                <h6 class="fw-bold">دریافت شمش</h6>
+                <p class="text-muted small mb-0">تحویل حضوری از نمایندگی یا ارسال پستی بیمه‌شده</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+{# ══════════════════════════════════════════
+   Section 5: Featured Products
+   ══════════════════════════════════════════ #}
+{% if products %}
+<section class="py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4 tm-reveal">
+        <h2 class="fw-bold mb-0">محصولات <span class="text-tm-primary">منتخب</span></h2>
+        <a href="/" class="btn btn-sm btn-tm-outline">
+            مشاهده همه <i class="bi bi-chevron-left ms-1"></i>
+        </a>
+    </div>
+    <div class="row g-3">
+        {% for p in products %}
+        <div class="col-6 col-md-3 tm-reveal tm-delay-{{ loop.index }}">
+            <div class="card-tm product-card h-100">
+                <a href="/product/{{ p.id }}" class="product-card-img">
+                    {% if p.default_image %}
+                    <img src="/{{ p.default_image }}" alt="{{ p.name }}" loading="lazy">
+                    {% else %}
+                    <div class="product-card-placeholder">
+                        <i class="bi bi-image" style="font-size:3rem;"></i>
+                    </div>
+                    {% endif %}
+                </a>
+                <div class="product-card-body">
+                    <h6 class="fw-bold mb-1" style="font-size:0.85rem;">
+                        <a href="/product/{{ p.id }}" class="text-decoration-none text-dark">{{ p.name }}</a>
+                    </h6>
+                    <div class="text-muted small mb-2" style="font-size:0.75rem;">
+                        {{ p.weight }} گرم | عیار {{ p.purity|purity }}
+                    </div>
+                    {% if p.final_price %}
+                    <div class="price-tag">
+                        {{ p.final_price | toman }}
+                        <small class="text-muted fw-normal" style="font-size:0.7rem;">تومان</small>
+                    </div>
+                    {% else %}
+                    <div class="text-muted small">قیمت: —</div>
+                    {% endif %}
+                    <div class="mt-auto pt-2">
+                        {% if p.inventory > 0 %}
+                        <span class="badge-tm badge-tm-secondary stock-badge"><span class="tm-stock-dot in-stock"></span> {{ p.inventory }} موجود</span>
+                        {% else %}
+                        <span class="badge-tm badge-tm-info stock-badge"><span class="tm-stock-dot out-of-stock"></span> ناموجود</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="product-card-footer">
+                    <a href="/product/{{ p.id }}" class="btn btn-sm btn-tm-primary w-100">
+                        <i class="bi bi-eye me-1"></i> مشاهده محصول
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+
+{# ══════════════════════════════════════════
+   Section 6: Categories
+   ══════════════════════════════════════════ #}
+{% if categories %}
+<section class="pb-5">
+    <div class="text-center mb-4 tm-reveal">
+        <h2 class="fw-bold">دسته‌بندی <span class="text-tm-primary">محصولات</span></h2>
+    </div>
+    <div class="row g-3 justify-content-center">
+        {% for cat in categories %}
+        <div class="col-6 col-md-3 tm-reveal tm-delay-{{ loop.index }}">
+            <a href="/?category={{ cat.id }}" class="text-decoration-none">
+                <div class="card-tm text-center p-4 tm-hover-lift">
+                    <i class="bi bi-grid-3x3-gap fs-2 text-tm-primary mb-2 d-block"></i>
+                    <h6 class="fw-bold mb-0 text-dark">{{ cat.name }}</h6>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+
+{# ══════════════════════════════════════════
+   Section 7: Dealer Network
+   ══════════════════════════════════════════ #}
+<section class="landing-full dealer-section tm-reveal">
+    <div class="container">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold">
+                شبکه نمایندگان <span style="color:#D4A843;">سراسری</span>
+            </h2>
+            <p style="opacity:0.75;">
+                {{ total_dealers | persian_number }} نماینده فعال در سراسر کشور
+            </p>
+        </div>
+
+        {% if dealer_by_province %}
+        <div class="row g-3 justify-content-center mb-4">
+            {% for province_name, count in dealer_by_province %}
+            <div class="col-6 col-md-3 tm-reveal tm-delay-{{ loop.index }}">
+                <div class="dealer-province-card text-center p-3">
+                    <i class="bi bi-geo-alt fs-4 mb-2 d-block" style="color:#D4A843;"></i>
+                    <strong class="d-block">{{ province_name }}</strong>
+                    <small style="opacity:0.7;">{{ count | persian_number }} نماینده</small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="text-center">
+            <a href="/dealer-request" class="btn btn-lg px-4"
+               style="background:#D4A843; color:#4a001e; font-weight:700;">
+                <i class="bi bi-shop-window me-1"></i> درخواست نمایندگی
+            </a>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

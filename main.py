@@ -590,6 +590,69 @@ async def terms_page(request: Request, db: Session = Depends(get_db)):
     return response
 
 
+@app.get("/landing", response_class=HTMLResponse)
+async def landing_page(request: Request, db: Session = Depends(get_db)):
+    from modules.pricing.service import get_price_value
+    from modules.shop.service import shop_service
+    from modules.catalog.models import ProductCategory
+    from modules.inventory.models import Bar, BarStatus
+    from modules.notification.service import notification_service
+    from sqlalchemy import func
+
+    user, cart_count, gold_price, csrf = _static_page_ctx(request, db)
+
+    notification_count = 0
+    if user:
+        notification_count = notification_service.get_unread_count(db, user.id)
+
+    silver_price = None
+    try:
+        silver_price = get_price_value(db, "silver")
+    except Exception:
+        pass
+
+    products, _, _, _ = shop_service.list_products_with_pricing(
+        db, sort="newest", page=1, per_page=4,
+    )
+
+    categories = db.query(ProductCategory).filter(
+        ProductCategory.is_active == True
+    ).order_by(ProductCategory.sort_order).all()
+
+    total_dealers = db.query(User).filter(
+        User.is_dealer == True, User.is_active == True
+    ).count()
+
+    dealer_by_province = db.query(
+        GeoProvince.name, func.count(User.id)
+    ).join(User, User.province_id == GeoProvince.id).filter(
+        User.is_dealer == True, User.is_active == True,
+    ).group_by(GeoProvince.name).order_by(
+        func.count(User.id).desc()
+    ).limit(8).all()
+
+    total_sold = db.query(Bar).filter(Bar.status == BarStatus.SOLD).count()
+    total_products = db.query(Product).filter(Product.is_active == True).count()
+
+    response = templates.TemplateResponse("shop/landing.html", {
+        "request": request,
+        "user": user,
+        "cart_count": cart_count,
+        "notification_count": notification_count,
+        "gold_price": gold_price,
+        "silver_price": silver_price,
+        "products": products,
+        "categories": categories,
+        "total_dealers": total_dealers,
+        "dealer_by_province": dealer_by_province,
+        "total_sold": total_sold,
+        "total_products": total_products,
+        "csrf_token": csrf,
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
 # ==========================================
 # Admin Dashboard (comprehensive stats)
 # ==========================================
