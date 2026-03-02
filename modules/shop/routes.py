@@ -64,7 +64,7 @@ async def home_page(
 
     shop_gold_enabled = is_trade_enabled(db, "gold", "shop")
     shop_silver_enabled = is_trade_enabled(db, "silver", "shop")
-    shop_disabled = not shop_gold_enabled and not shop_silver_enabled
+    shop_disabled = not shop_gold_enabled or not shop_silver_enabled
     shop_closed_message = get_setting_from_db(db, "shop_closed_message", "")
 
     csrf = new_csrf_token()
