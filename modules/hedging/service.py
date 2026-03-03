@@ -312,9 +312,9 @@ class HedgingService:
             "total_out_mg": total_out,
             "total_in_mg": total_in,
             "total_hedged_mg": total_hedged,
-            "total_out_grams": total_out / 1000.0,
-            "total_in_grams": total_in / 1000.0,
-            "total_hedged_grams": total_hedged / 1000.0,
+            "total_out_grams": float(total_out) / 1000.0,
+            "total_in_grams": float(total_in) / 1000.0,
+            "total_hedged_grams": float(total_hedged) / 1000.0,
             "entries_today": entries_today,
             "entries_week": entries_week,
         }
