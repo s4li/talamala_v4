@@ -53,7 +53,11 @@ class HedgingService:
         Returns PositionLedger entry, or None if idempotency key already exists.
         Caller must commit.
         """
-        if amount_mg <= 0:
+        # ADJUST carries signed delta (can be negative for downward corrections)
+        if direction == PositionDirection.ADJUST:
+            if amount_mg == 0:
+                return None
+        elif amount_mg <= 0:
             return None
 
         # Generate idempotency key if not provided

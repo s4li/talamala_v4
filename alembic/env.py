@@ -28,7 +28,10 @@ from modules.catalog.models import (  # noqa: F401
     ProductCategory, ProductCategoryLink, Product, ProductImage, CardDesign, CardDesignImage,
     PackageType, PackageTypeImage, Batch, BatchImage, ProductTierWage,
 )
-from modules.inventory.models import Bar, BarImage, OwnershipHistory, DealerTransfer, BarTransfer  # noqa: F401
+from modules.inventory.models import (  # noqa: F401
+    Bar, BarImage, OwnershipHistory, DealerTransfer, BarTransfer,
+    ReconciliationSession, ReconciliationItem, CustodialDeliveryRequest,
+)
 from modules.cart.models import Cart, CartItem  # noqa: F401
 from modules.order.models import Order, OrderItem, OrderStatusLog  # noqa: F401
 from modules.wallet.models import Account, LedgerEntry, WalletTopup, WithdrawalRequest  # noqa: F401
@@ -39,6 +42,12 @@ from modules.review.models import Review, ReviewImage, ProductComment, CommentIm
 from modules.dealer_request.models import DealerRequest, DealerRequestAttachment  # noqa: F401
 from modules.pricing.models import Asset  # noqa: F401
 from modules.hedging.models import MetalPosition, PositionLedger  # noqa: F401
+from modules.rasis.models import RasisReceipt  # noqa: F401
+from modules.notification.models import Notification, NotificationPreference  # noqa: F401
+from modules.blog.models import (  # noqa: F401
+    ArticleCategory, ArticleTag, ArticleTagLink,
+    Article, ArticleImage, ArticleComment,
+)
 
 # Alembic Config
 config = context.config

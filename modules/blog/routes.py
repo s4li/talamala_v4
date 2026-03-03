@@ -15,18 +15,22 @@ from common.security import new_csrf_token, csrf_check
 from modules.auth.deps import get_current_active_user, require_login
 from modules.blog.service import blog_service
 from modules.cart.service import cart_service
+from modules.notification.service import notification_service
 
 router = APIRouter(tags=["blog"])
 
 
 def _blog_context(request, db, user):
-    """Build shared context for blog pages (cart count for navbar)."""
+    """Build shared context for blog pages (cart count + notification badge for navbar)."""
     cart_count = 0
+    notification_count = 0
     if user:
         _, cart_count = cart_service.get_cart_map(db, user.id)
+        notification_count = notification_service.get_unread_count(db, user.id)
     return {
         "user": user,
         "cart_count": cart_count,
+        "notification_count": notification_count,
     }
 
 
