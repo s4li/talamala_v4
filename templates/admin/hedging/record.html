@@ -1,0 +1,91 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "hedging" %}
+{% block title %}ثبت معامله بازار - پنل مدیریت{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">
+        <i class="bi bi-plus-circle me-2"></i>ثبت معامله بازار
+    </h4>
+    <a href="/admin/hedging" class="btn btn-sm btn-tm-outline">
+        <i class="bi bi-arrow-right me-1"></i>بازگشت
+    </a>
+</div>
+
+{% if msg %}<div class="alert-tm-success py-2 mb-3">{{ msg }}</div>{% endif %}
+{% if error %}<div class="alert-tm-danger py-2 mb-3">{{ error }}</div>{% endif %}
+
+<!-- Current Positions -->
+<div class="row g-3 mb-4">
+    {% for metal_key, metal_data in positions.items() %}
+    <div class="col-md-6">
+        <div class="card-tm no-hover p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-bold">{{ metal_data.metal_label }}</span>
+                <span class="badge bg-{{ metal_data.status_color }}">
+                    {{ '{:,.1f}'.format(metal_data.balance_grams) }} گرم — {{ metal_data.status_label }}
+                </span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Record Form -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card-tm no-hover">
+            <h6 class="fw-bold mb-3 pb-3" style="border-bottom: 1px solid var(--tm-border);">
+                <i class="bi bi-pencil-square me-1"></i>ثبت خرید یا فروش در بازار فیزیکی
+            </h6>
+
+            <form method="POST" action="/admin/hedging/record">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">نوع فلز</label>
+                        <select name="metal_type" class="form-select form-control-tm" required>
+                            <option value="gold">طلا</option>
+                            <option value="silver">نقره</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">جهت معامله</label>
+                        <select name="hedge_direction" class="form-select form-control-tm" required>
+                            <option value="buy">خرید از بازار (افزایش بالانس)</option>
+                            <option value="sell">فروش در بازار (کاهش بالانس)</option>
+                        </select>
+                        <small class="text-muted">اگر بالانس منفی است، باید «خرید» انتخاب کنید.</small>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">مقدار (گرم)</label>
+                        <input type="text" name="amount_grams" class="form-control form-control-tm" dir="ltr"
+                               placeholder="مثلاً ۱۰۰۰" required>
+                        <small class="text-muted">اعشار مجاز است — مثلاً 1.5 برای یک و نیم گرم</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">قیمت هر گرم (تومان) <span class="text-muted">— اختیاری</span></label>
+                        <input type="text" name="price_per_gram" class="form-control form-control-tm" dir="ltr"
+                               placeholder="مثلاً ۵,۵۰۰,۰۰۰">
+                        <small class="text-muted">قیمتی که در بازار معامله کردید (برای ثبت در سوابق)</small>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">توضیحات <span class="text-muted">— اختیاری</span></label>
+                    <textarea name="description" class="form-control form-control-tm" rows="2"
+                              placeholder="مثلاً: خرید از بازار ناصرخسرو"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-tm-primary">
+                    <i class="bi bi-check-lg me-1"></i>ثبت معامله
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

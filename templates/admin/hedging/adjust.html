@@ -1,0 +1,84 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "hedging" %}
+{% block title %}تنظیم بالانس - پنل مدیریت{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">
+        <i class="bi bi-sliders me-2"></i>تنظیم بالانس اولیه
+    </h4>
+    <a href="/admin/hedging" class="btn btn-sm btn-tm-outline">
+        <i class="bi bi-arrow-right me-1"></i>بازگشت
+    </a>
+</div>
+
+{% if msg %}<div class="alert-tm-success py-2 mb-3">{{ msg }}</div>{% endif %}
+{% if error %}<div class="alert-tm-danger py-2 mb-3">{{ error }}</div>{% endif %}
+
+<!-- Current Positions -->
+<div class="row g-3 mb-4">
+    {% for metal_key, metal_data in positions.items() %}
+    <div class="col-md-6">
+        <div class="card-tm no-hover p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-bold">{{ metal_data.metal_label }}</span>
+                <span class="badge bg-{{ metal_data.status_color }}">
+                    {{ '{:,.1f}'.format(metal_data.balance_grams) }} گرم — {{ metal_data.status_label }}
+                </span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Adjust Form -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card-tm no-hover">
+            <h6 class="fw-bold mb-3 pb-3" style="border-bottom: 1px solid var(--tm-border);">
+                <i class="bi bi-pencil me-1"></i>تنظیم مستقیم بالانس
+            </h6>
+
+            <div class="alert-tm-warning py-2 mb-3">
+                <i class="bi bi-info-circle me-1"></i>
+                از این فرم فقط برای تنظیم بالانس اولیه یا تصحیح دستی استفاده کنید.
+                تغییرات عادی (سفارش، فروش، بازخرید) به‌صورت خودکار ثبت می‌شوند.
+            </div>
+
+            <form method="POST" action="/admin/hedging/adjust">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">نوع فلز</label>
+                        <select name="metal_type" class="form-select form-control-tm" required>
+                            <option value="gold">طلا</option>
+                            <option value="silver">نقره</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">بالانس مقصد (گرم)</label>
+                        <input type="text" name="target_balance_grams" class="form-control form-control-tm" dir="ltr"
+                               placeholder="مثلاً -500 یا 100" required>
+                        <small class="text-muted">
+                            عدد منفی = کمبود (نیاز به خرید) |
+                            عدد مثبت = مازاد (نیاز به فروش) |
+                            صفر = پوشش کامل
+                        </small>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">توضیحات <span class="text-muted">— اختیاری</span></label>
+                    <textarea name="description" class="form-control form-control-tm" rows="2"
+                              placeholder="مثلاً: تنظیم بالانس اولیه سیستم"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-tm-primary">
+                    <i class="bi bi-check-lg me-1"></i>اعمال تغییر
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

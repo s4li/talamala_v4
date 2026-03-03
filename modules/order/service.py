@@ -343,6 +343,23 @@ class OrderService:
         # Process referral reward on first purchase (not registration)
         self._process_referral_reward_on_first_purchase(db, order.customer_id)
 
+        # Hedging: record OUT position for each sold bar
+        try:
+            from modules.hedging.service import hedging_service
+            for oi in order.items:
+                if oi.bar_id and oi.applied_weight:
+                    from modules.catalog.models import Product
+                    prod = db.query(Product).filter(Product.id == oi.product_id).first()
+                    metal = (prod.metal_type if prod else None) or "gold"
+                    weight_mg = int(float(oi.applied_weight) * 1000)
+                    hedging_service.record_out(
+                        db, metal, weight_mg,
+                        source_type="order", source_id=str(order.id),
+                        description=f"Order #{order.id}",
+                    )
+        except Exception:
+            pass  # Never block order finalization
+
         db.flush()
         return order
 

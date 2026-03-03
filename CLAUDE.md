@@ -66,6 +66,7 @@ talamala_v4/
 │   ├── wallet/                  # Double-entry ledger, topup, withdraw, admin, PRECIOUS_METALS registry
 │   │   ├── models.py            # Account, LedgerEntry, WalletTopup, WithdrawalRequest + PRECIOUS_METALS metadata
 │   │   └── routes.py            # Wallet routes incl. generic /{asset_type} buy/sell for precious metals
+│   ├── hedging/               # Position management: net metal exposure tracking, hedge recording, threshold alerts
 │   ├── coupon/                  # DISCOUNT/CASHBACK coupons, admin CRUD
 │   ├── customer/                # Profile, CustomerAddress, GeoProvince/City/District
 │   ├── verification/            # QR/serial code authenticity check + on-the-fly QR generation (never saved to disk)
@@ -78,7 +79,8 @@ talamala_v4/
 │   ├── pricing/                 # Asset prices, calculator, staleness guard, price feed
 │   │   └── trade_guard.py       # Per-metal, per-channel trade toggle system (enable/disable buy/sell)
 │   ├── ticket/                  # Ticket, TicketMessage, TicketAttachment, categories, internal notes
-│   └── notification/            # Notification, NotificationPreference, in-app + SMS dispatcher
+│   ├── notification/            # Notification, NotificationPreference, in-app + SMS dispatcher
+│   └── blog/                    # Article, ArticleCategory, ArticleTag, comments, SEO sitemap
 ├── templates/
 │   ├── base.html                # HTML skeleton (Bootstrap RTL, Vazirmatn)
 │   ├── auth/login.html
@@ -101,7 +103,8 @@ talamala_v4/
 │   │   ├── ticket_new.html      # Customer create ticket
 │   │   ├── ticket_detail.html   # Customer ticket conversation
 │   │   ├── notifications.html   # Notification center (list + mark read)
-│   │   └── notification_settings.html # Notification preferences per type
+│   │   ├── notification_settings.html # Notification preferences per type
+│   │   └── blog/                # Public blog: list (grid) + detail (SEO)
 │   ├── admin/
 │   │   ├── base_admin.html      # Admin sidebar layout
 │   │   ├── dashboard.html
@@ -116,6 +119,7 @@ talamala_v4/
 │   │   ├── tickets/             # admin ticket list + detail
 │   │   ├── reviews/             # admin review + comment list + detail
 │   │   ├── notifications/       # admin broadcast notification send
+│   │   ├── blog/                # article list, form (TinyMCE), categories, comments
 │   │   └── logs/                # request audit log list
 │   ├── dealer/
 │   │   ├── base_dealer.html     # Dealer sidebar layout
@@ -134,6 +138,7 @@ talamala_v4/
 ├── static/
 │   ├── js/scanner.js            # TmScanner barcode/QR wrapper
 │   ├── vendor/html5-qrcode/     # Scanner library
+│   ├── vendor/tinymce/          # Self-hosted TinyMCE 7.x (NO CDN) + langs/fa.js
 │   └── uploads/                 # Uploaded images
 ├── .env.example
 └── requirements.txt
@@ -276,6 +281,29 @@ talamala_v4/
 - **NotificationPreference**: id, user_id (FK→users CASCADE), notification_type (String 50), sms_enabled (Bool default True), in_app_enabled (Bool default True), email_enabled (Bool default False)
   - UniqueConstraint: (user_id, notification_type)
 
+### blog/models.py
+- **ArticleStatus** (str enum): Draft, Published, Archived
+- **ArticleCategory**: id, name (unique), slug (unique), description, sort_order, is_active
+  - Property: `published_count`
+- **ArticleTag**: id, name (unique), slug (unique)
+- **ArticleTagLink**: id, article_id (FK CASCADE), tag_id (FK CASCADE), UniqueConstraint(article_id, tag_id)
+- **Article**: id, title, slug (unique), excerpt (Text), body (Text/HTML), cover_image, category_id (FK→article_categories SET NULL), author_id (FK→users SET NULL), status (ArticleStatus), meta_title, meta_description, view_count, is_featured, published_at, created_at, updated_at
+  - Indexes: `(status, published_at)`, `(category_id)`, `(author_id)`
+  - Properties: `status_label`, `status_color`, `tags` (list), `tag_ids`, `author_name`, `comment_count` (approved only), `seo_title`, `seo_description`
+  - Relationships: category, author, tag_links, images, comments
+- **ArticleImage**: id, article_id (FK CASCADE), file_path, created_at
+- **ArticleComment**: id, article_id (FK CASCADE), user_id (FK→users SET NULL), body (Text), is_approved (default False), created_at
+  - Indexes: `(article_id)`, `(article_id, is_approved)`
+  - Property: `user_name`
+
+### hedging/models.py
+- **PositionDirection** (str enum): OUT, IN, HEDGE, ADJUST
+- **MetalPosition**: id, metal_type (unique), balance_mg (BigInteger, signed: negative=short, positive=long), updated_at
+  - Properties: `balance_grams`, `status` (short/long/hedged), `status_label`, `status_color`, `metal_label`
+- **PositionLedger**: id, metal_type, direction (PositionDirection), amount_mg (positive), balance_after_mg (signed), source_type, source_id, description, metal_price_per_gram (nullable), recorded_by (FK→users), idempotency_key (unique), created_at
+  - Properties: `direction_label`, `direction_color`, `source_label`, `amount_grams`, `balance_after_grams`, `metal_label`
+  - Indexes: (metal_type, created_at), (source_type, source_id)
+
 ---
 
 ## 4. اصول و قراردادهای کدنویسی
@@ -391,6 +419,17 @@ STATIC_VERSION = "1.1"  # ← عدد را افزایش بده
 - فایل‌های تأثیرپذیر: `base.html`، `public/verify.html`، `admin/dashboard.html`
 - **چک‌لیست**: آیا فایلی در `static/css/` یا `static/vendor/` یا `static/js/` تغییر کرد؟ → `STATIC_VERSION` را بامپ کن
 
+### ⚠️ Localization Rule — بدون وابستگی به CDN/اینترنت
+> **قانون بدون استثنا**: تمام وابستگی‌های فرانت‌اند (JS library, CSS, فونت, ادیتور) باید **لوکالیزه** باشند — فایل‌ها در `static/vendor/` قرار بگیرند و هیچ CDN یا لینک خارجی استفاده نشود.
+> پروژه ممکن است در محیطی بدون دسترسی اینترنتی بین‌المللی اجرا شود.
+> اگر مجبور شدی از فناوری/کتابخانه‌ای استفاده کنی که وابستگی به سرویس اینترنتی خارجی دارد، **حتماً به کاربر اطلاع بده**.
+
+مثال‌ها:
+- ✅ `static/vendor/tinymce/` — self-hosted TinyMCE
+- ✅ `static/vendor/html5-qrcode/` — self-hosted scanner
+- ❌ `cdn.jsdelivr.net/...` — ممنوع
+- ❌ `fonts.googleapis.com/...` — ممنوع (فونت لوکال در `static/` هست)
+
 ---
 
 ## 5. 🐛 باگ‌های شناخته‌شده
@@ -436,6 +475,8 @@ STATIC_VERSION = "1.1"  # ← عدد را افزایش بده
 | 21 | Dealer B2B Dashboard (inventory, analytics, sub-dealer, B2B orders) | ✅ |
 | 22 | Advanced Inventory & Physical Tracking (scanner, reconciliation, custodial delivery, transfer audit) | ✅ |
 | 17 | Notifications (SMS transactional + In-app center + preferences + admin broadcast) | ✅ |
+| 17.5 | Position Management / Hedging (exposure tracking, hedge recording, threshold alerts) | ✅ |
+| 23 | Blog & SEO (articles, categories, tags, TinyMCE, comments, OG/JSON-LD, sitemap) | ✅ |
 
 ---
 
@@ -466,10 +507,10 @@ STATIC_VERSION = "1.1"  # ← عدد را افزایش بده
 - سفارش عمده نمایندگان (B2B Orders): ثبت سفارش عمده از پنل نماینده + تأیید ادمین
 - اعلان‌های اختصاصی نماینده (موجودی کم، محصول جدید، تغییر قیمت)
 
-### 📌 Phase 23: SEO + Content (متوسط)
-- بلاگ/مجله آموزشی: ماژول Article + آموزش محصول فیزیکی (نه تحلیل بازار)
-- SEO فنی: JSON-LD Product schema، Clean URL/slug، XML sitemap، FAQ schema
-- ابزارهای تعاملی: ماشین‌حساب قیمت شمش، راهنمای انتخاب شمش
+### 📌 Phase 23: SEO + Content — ✅ تکمیل شده (بلاگ + Sitemap + SEO)
+- ~~بلاگ/مجله آموزشی~~ ✅
+- ~~SEO فنی: JSON-LD Article schema, OG tags, canonical URL, XML sitemap~~ ✅
+- ابزارهای تعاملی: ماشین‌حساب قیمت شمش، راهنمای انتخاب شمش (باقیمانده)
 
 ### 📌 Phase 24: Advanced Analytics + PDF (متوسط-پایین)
 - گزارش ادمین: عملکرد نمایندگان، فروش محصول/دسته/دوره، مشتریان ارزشمند (LTV)، conversion funnel
@@ -832,8 +873,42 @@ total     = raw_metal + wage + tax
 - `POST /admin/reviews/comment/{id}/delete` — Delete comment
 - `POST /admin/reviews/review/{id}/delete` — Delete review
 
+### Admin Hedging
+- `GET /admin/hedging` — Hedging dashboard (positions, summary, chart, recent entries)
+- `GET /admin/hedging/ledger` — Full ledger with filters (metal, source, direction) + pagination
+- `GET/POST /admin/hedging/record` — Record hedge trade (buy/sell from market)
+- `GET/POST /admin/hedging/adjust` — Set initial balance / manual adjustment
+- `GET /admin/hedging/api/position` — JSON API: current positions (AJAX refresh)
+
 ### Request Audit Log
 - `GET /admin/logs` — لاگ درخواست‌ها با فیلتر (متد، وضعیت، مسیر، نوع کاربر، IP)
+
+### Blog (Public)
+- `GET /blog` — Article list (pagination, category/tag filter, search)
+- `GET /blog/{slug}` — Article detail + SEO meta + atomic view_count++ + approved comments
+- `GET /blog/category/{slug}` — Redirect → `/blog?category=slug`
+- `GET /blog/tag/{slug}` — Redirect → `/blog?tag=slug`
+- `POST /blog/{slug}/comment` — Submit comment (require_login + CSRF)
+- `GET /sitemap.xml` — Dynamic XML sitemap (articles + categories)
+
+### Admin Blog
+- `GET /admin/blog` — Article list (filter: status, category, search)
+- `GET /admin/blog/new` — Create article form (TinyMCE editor)
+- `POST /admin/blog/new` — Submit new article
+- `GET /admin/blog/{id}` — Edit article form
+- `POST /admin/blog/{id}/edit` — Update article
+- `POST /admin/blog/{id}/delete` — Delete article
+- `POST /admin/blog/{id}/toggle-publish` — Toggle Draft↔Published
+- `GET /admin/blog/categories` — Category + Tag management
+- `POST /admin/blog/categories/new` — Create category
+- `POST /admin/blog/categories/{id}/edit` — Update category
+- `POST /admin/blog/categories/{id}/delete` — Delete category
+- `POST /admin/blog/tags/new` — Create tag
+- `POST /admin/blog/tags/{id}/delete` — Delete tag
+- `GET /admin/blog/comments` — Comment moderation (tabs: pending/approved)
+- `POST /admin/blog/comments/{id}/approve` — Approve comment
+- `POST /admin/blog/comments/{id}/reject` — Reject (delete) comment
+- `POST /admin/blog/upload-image` — AJAX TinyMCE image upload (CSRF via X-CSRF-Token header)
 
 ---
 

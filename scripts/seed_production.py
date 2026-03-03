@@ -65,6 +65,11 @@ from modules.dealer_request.models import DealerRequest, DealerRequestAttachment
 from modules.pricing.models import Asset, GOLD_18K, SILVER
 from modules.rasis.models import RasisReceipt
 from modules.notification.models import Notification, NotificationPreference
+from modules.blog.models import (
+    ArticleCategory, ArticleTag, ArticleTagLink,
+    Article, ArticleImage, ArticleComment,
+)
+from modules.hedging.models import MetalPosition, PositionLedger  # noqa: F401
 
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -1086,6 +1091,36 @@ def seed():
             print(f"    {weight}g: {count} × 2 = {count * 2}")
 
         # ==========================================
+        # 10. Blog Categories & Tags
+        # ==========================================
+        print("\n[10] Blog Categories & Tags")
+
+        blog_categories = [
+            ("آموزش سرمایه‌گذاری", "investment-education", "آموزش‌های سرمایه‌گذاری در طلا و نقره", 1),
+            ("شناخت محصول", "product-knowledge", "معرفی و شناخت انواع شمش طلا و نقره", 2),
+            ("اخبار بازار", "market-news", "اخبار و تحلیل بازار طلا و نقره", 3),
+            ("راهنمای خرید", "buying-guide", "راهنمای انتخاب و خرید شمش طلا", 4),
+        ]
+        for name, slug, desc, sort in blog_categories:
+            if not db.query(ArticleCategory).filter(ArticleCategory.slug == slug).first():
+                db.add(ArticleCategory(name=name, slug=slug, description=desc, sort_order=sort, is_active=True))
+                print(f"  + Blog category: {name}")
+        db.flush()
+
+        blog_tags = [
+            ("طلا", "gold"),
+            ("نقره", "silver"),
+            ("شمش", "bullion"),
+            ("سرمایه‌گذاری", "investment"),
+            ("آموزش", "education"),
+        ]
+        for name, slug in blog_tags:
+            if not db.query(ArticleTag).filter(ArticleTag.slug == slug).first():
+                db.add(ArticleTag(name=name, slug=slug))
+                print(f"  + Blog tag: {name}")
+        db.flush()
+
+        # ==========================================
         # Commit
         # ==========================================
         db.commit()
@@ -1109,6 +1144,8 @@ def seed():
         print(f"  Dealer Tiers:   {db.query(DealerTier).count()}")
         print(f"  Tier Wages:     {db.query(ProductTierWage).count()}")
         print(f"  Dealers:        {db.query(User).filter(User.is_dealer == True).count()}")
+        print(f"  Blog Cats:      {db.query(ArticleCategory).count()}")
+        print(f"  Blog Tags:      {db.query(ArticleTag).count()}")
 
         print(f"\n--- Admins ---")
         for au in db.query(User).filter(User.is_admin == True).all():

@@ -36,7 +36,9 @@ PERMISSION_REGISTRY = {
     "dealers":    "نمایندگان",
     "tickets":    "تیکت‌های پشتیبانی",
     "notifications": "اعلان‌ها",
+    "blog":          "مجله و مقالات",
     "logs":       "لاگ درخواست‌ها",
+    "hedging":    "پوشش ریسک (هجینگ)",
     "settings":   "تنظیمات سیستم",
     "staff":      "مدیریت ادمین‌ها",
 }

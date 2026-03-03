@@ -409,6 +409,19 @@ class DealerService:
                     asset_code=asset_code,
                 )
 
+        # Hedging: record OUT position for dealer POS sale
+        try:
+            from modules.hedging.service import hedging_service
+            if product and product.weight:
+                weight_mg = int(float(product.weight) * 1000)
+                hedging_service.record_out(
+                    db, metal_type, weight_mg,
+                    source_type="pos_sale", source_id=str(sale.id),
+                    description=f"Dealer POS sale #{sale.id} — {bar.serial_code}",
+                )
+        except Exception:
+            pass  # Never block dealer sale
+
         return {
             "success": True,
             "message": f"فروش شمش {bar.serial_code} ثبت شد",
@@ -566,6 +579,19 @@ class DealerService:
             new_owner_id=owner_id,
             description=f"بازخرید توسط نماینده {dealer.full_name} — مبلغ {total_deposit // 10:,} تومان به کیف پول واریز شد",
         ))
+
+        # Hedging: record IN position for buyback (metal returned to company)
+        try:
+            from modules.hedging.service import hedging_service
+            if product and product.weight:
+                weight_mg = int(float(product.weight) * 1000)
+                hedging_service.record_in(
+                    db, bb_metal, weight_mg,
+                    source_type="buyback", source_id=str(buyback.id),
+                    description=f"Buyback #{buyback.id} — {bar.serial_code}",
+                )
+        except Exception:
+            pass  # Never block buyback
 
         db.flush()
 

@@ -412,6 +412,19 @@ class PosService:
                     asset_code=asset_code,
                 )
 
+        # Hedging: record OUT position for customer POS sale
+        try:
+            from modules.hedging.service import hedging_service
+            if product and product.weight:
+                weight_mg = int(float(product.weight) * 1000)
+                hedging_service.record_out(
+                    db, metal_type, weight_mg,
+                    source_type="pos_sale", source_id=str(sale.id),
+                    description=f"Customer POS sale #{sale.id} — {bar.serial_code}",
+                )
+        except Exception:
+            pass  # Never block POS sale
+
         return {
             "success": True,
             "sale": {

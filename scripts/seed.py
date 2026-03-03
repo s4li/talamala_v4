@@ -60,6 +60,11 @@ from modules.dealer_request.models import DealerRequest, DealerRequestAttachment
 from modules.pricing.models import Asset, GOLD_18K, SILVER
 from modules.rasis.models import RasisReceipt  # noqa: F401
 from modules.notification.models import Notification, NotificationPreference  # noqa: F401
+from modules.blog.models import (  # noqa: F401
+    ArticleCategory, ArticleTag, ArticleTagLink,
+    Article, ArticleImage, ArticleComment,
+)
+from modules.hedging.models import MetalPosition, PositionLedger  # noqa: F401
 
 
 def generate_serial() -> str:
@@ -1989,6 +1994,48 @@ def seed():
             db.flush()
         else:
             print(f"  = {existing_reviews} reviews exist, skipping")
+
+        # ==========================================
+        # Blog Categories & Tags
+        # ==========================================
+        print("\n[14/14] Blog Categories & Tags")
+
+        blog_categories = [
+            {"name": "\u0622\u0645\u0648\u0632\u0634 \u0633\u0631\u0645\u0627\u06cc\u0647\u200c\u06af\u0630\u0627\u0631\u06cc", "slug": "investment-education",
+             "description": "\u0622\u0645\u0648\u0632\u0634\u200c\u0647\u0627\u06cc \u0633\u0631\u0645\u0627\u06cc\u0647\u200c\u06af\u0630\u0627\u0631\u06cc \u062f\u0631 \u0637\u0644\u0627 \u0648 \u0641\u0644\u0632\u0627\u062a \u06af\u0631\u0627\u0646\u0628\u0647\u0627", "sort_order": 1},
+            {"name": "\u0634\u0646\u0627\u062e\u062a \u0645\u062d\u0635\u0648\u0644", "slug": "product-knowledge",
+             "description": "\u0645\u0639\u0631\u0641\u06cc \u0648 \u0634\u0646\u0627\u062e\u062a \u0627\u0646\u0648\u0627\u0639 \u0634\u0645\u0634 \u0648 \u0645\u062d\u0635\u0648\u0644\u0627\u062a \u0637\u0644\u0627\u0645\u0644\u0627", "sort_order": 2},
+            {"name": "\u0627\u062e\u0628\u0627\u0631 \u0628\u0627\u0632\u0627\u0631", "slug": "market-news",
+             "description": "\u0627\u062e\u0628\u0627\u0631 \u0648 \u062a\u062d\u0644\u06cc\u0644 \u0628\u0627\u0632\u0627\u0631 \u0637\u0644\u0627 \u0648 \u0646\u0642\u0631\u0647", "sort_order": 3},
+            {"name": "\u0631\u0627\u0647\u0646\u0645\u0627\u06cc \u062e\u0631\u06cc\u062f", "slug": "buying-guide",
+             "description": "\u0631\u0627\u0647\u0646\u0645\u0627\u06cc \u0627\u0646\u062a\u062e\u0627\u0628 \u0648 \u062e\u0631\u06cc\u062f \u0634\u0645\u0634 \u0637\u0644\u0627", "sort_order": 4},
+        ]
+
+        for data in blog_categories:
+            existing = db.query(ArticleCategory).filter(
+                ArticleCategory.slug == data["slug"]).first()
+            if not existing:
+                db.add(ArticleCategory(**data))
+                print(f"  + {data['name']}")
+            else:
+                print(f"  = exists: {data['slug']}")
+
+        blog_tags = [
+            {"name": "\u0637\u0644\u0627", "slug": "gold"},
+            {"name": "\u0646\u0642\u0631\u0647", "slug": "silver"},
+            {"name": "\u0634\u0645\u0634", "slug": "bullion"},
+            {"name": "\u0633\u0631\u0645\u0627\u06cc\u0647\u200c\u06af\u0630\u0627\u0631\u06cc", "slug": "investment"},
+            {"name": "\u0622\u0645\u0648\u0632\u0634", "slug": "education"},
+        ]
+
+        for data in blog_tags:
+            existing = db.query(ArticleTag).filter(
+                ArticleTag.slug == data["slug"]).first()
+            if not existing:
+                db.add(ArticleTag(**data))
+                print(f"  + tag: {data['name']}")
+
+        db.flush()
 
         # ==========================================
         # Commit

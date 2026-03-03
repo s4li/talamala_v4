@@ -1,0 +1,134 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "hedging" %}
+{% block title %}دفتر کل هجینگ - پنل مدیریت{% endblock %}
+
+{% block page_css %}
+<style>
+    .ledger-row td { font-size: 0.85rem; vertical-align: middle; }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">
+        <i class="bi bi-journal-text me-2"></i>دفتر کل هجینگ
+    </h4>
+    <a href="/admin/hedging" class="btn btn-sm btn-tm-outline">
+        <i class="bi bi-arrow-right me-1"></i>بازگشت به داشبورد
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card-tm no-hover mb-3">
+    <form method="GET" class="row g-2 align-items-end">
+        <div class="col-auto">
+            <label class="form-label small mb-1">فلز</label>
+            <select name="metal" class="form-select form-select-sm">
+                <option value="">همه</option>
+                <option value="gold" {{ 'selected' if current_metal == 'gold' }}>طلا</option>
+                <option value="silver" {{ 'selected' if current_metal == 'silver' }}>نقره</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <label class="form-label small mb-1">جهت</label>
+            <select name="direction" class="form-select form-select-sm">
+                <option value="">همه</option>
+                <option value="OUT" {{ 'selected' if current_direction == 'OUT' }}>خروج</option>
+                <option value="IN" {{ 'selected' if current_direction == 'IN' }}>ورود</option>
+                <option value="HEDGE" {{ 'selected' if current_direction == 'HEDGE' }}>هج</option>
+                <option value="ADJUST" {{ 'selected' if current_direction == 'ADJUST' }}>تعدیل</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <label class="form-label small mb-1">منبع</label>
+            <select name="source" class="form-select form-select-sm">
+                <option value="">همه</option>
+                <option value="order" {{ 'selected' if current_source == 'order' }}>سفارش</option>
+                <option value="pos_sale" {{ 'selected' if current_source == 'pos_sale' }}>پوز</option>
+                <option value="wallet_buy" {{ 'selected' if current_source == 'wallet_buy' }}>خرید کیف پول</option>
+                <option value="wallet_sell" {{ 'selected' if current_source == 'wallet_sell' }}>فروش کیف پول</option>
+                <option value="buyback" {{ 'selected' if current_source == 'buyback' }}>بازخرید</option>
+                <option value="hedge" {{ 'selected' if current_source == 'hedge' }}>معامله بازار</option>
+                <option value="admin_adjust" {{ 'selected' if current_source == 'admin_adjust' }}>تعدیل</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-tm-primary">
+                <i class="bi bi-funnel me-1"></i>فیلتر
+            </button>
+            <a href="/admin/hedging/ledger" class="btn btn-sm btn-tm-outline ms-1">پاک‌سازی</a>
+        </div>
+    </form>
+</div>
+
+<!-- Table -->
+{% if entries %}
+<div class="card-tm no-hover">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>تاریخ</th>
+                    <th>فلز</th>
+                    <th>جهت</th>
+                    <th>منبع</th>
+                    <th>مقدار</th>
+                    <th>بالانس بعد</th>
+                    <th>قیمت هر گرم</th>
+                    <th>ثبت‌کننده</th>
+                    <th>توضیحات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in entries %}
+                <tr class="ledger-row">
+                    <td class="text-muted">{{ e.id }}</td>
+                    <td class="text-nowrap">{{ e.created_at | jdate }}</td>
+                    <td><span class="badge bg-{{ 'warning' if e.metal_type == 'gold' else 'secondary' }}">{{ e.metal_label }}</span></td>
+                    <td><span class="badge bg-{{ e.direction_color }}">{{ e.direction_label }}</span></td>
+                    <td><span class="badge bg-light text-dark border">{{ e.source_label }}</span></td>
+                    <td class="fw-bold">{{ '{:,.3f}'.format(e.amount_grams) }}g</td>
+                    <td class="text-{{ 'danger' if e.balance_after_mg < 0 else ('success' if e.balance_after_mg > 0 else 'muted') }}">
+                        {{ '{:,.3f}'.format(e.balance_after_grams) }}g
+                    </td>
+                    <td>
+                        {% if e.metal_price_per_gram %}
+                        {{ e.metal_price_per_gram | toman }} ت
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>
+                        {% if e.recorder %}{{ e.recorder.full_name }}{% else %}-{% endif %}
+                    </td>
+                    <td class="text-muted small" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ e.description or '' }}">
+                        {{ e.description or '-' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<nav class="mt-3">
+    <ul class="pagination pagination-sm justify-content-center">
+        {% for p in range(1, total_pages + 1) %}
+        <li class="page-item {% if p == page %}active{% endif %}">
+            <a class="page-link" href="?metal={{ current_metal }}&source={{ current_source }}&direction={{ current_direction }}&page={{ p }}">{{ p }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="text-center py-5 text-muted">
+    <i class="bi bi-inbox" style="font-size:3rem;"></i>
+    <div class="mt-2">هیچ رکوردی یافت نشد</div>
+</div>
+{% endif %}
+
+<div class="text-muted small mt-2">مجموع: {{ total }} رکورد</div>
+{% endblock %}

@@ -40,6 +40,7 @@
 31. [سطح‌بندی فعال/غیرفعال خرید و فروش — Trade Guard](#31-سطحبندی-فعالغیرفعال-خرید-و-فروش--trade-guard)
 32. [تولید QR Code برای شمش‌ها (QR Code Generation for Bars)](#32-تولید-qr-code-برای-شمشها-qr-code-generation-for-bars)
 33. [سیستم اعلان‌ها (Notifications)](#33-سیستم-اعلانها-notifications)
+34. [پوشش ریسک — هجینگ (Position Management / Hedging)](#34-پوشش-ریسک--هجینگ-position-management--hedging)
 
 ---
 
@@ -2323,4 +2324,65 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 
 ---
 
-> این سند بر اساس کد واقعی پروژه TalaMala v4 (فازهای ۱-۱۴، ۱۷، ۲۱ و ۲۲ + بازگشت اجرت بازخرید + بهبود تیکتینگ + صفحات ثابت و فوتر + ثبت مالکیت و انتقال شمش + مدیریت کاربران + ویرایش مشتری توسط ادمین + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان + مدیریت دارایی و قیمت‌گذاری خودکار + چند درگاه پرداخت + درخواست نمایندگی با بازبینی + نظرات و پرسش‌وپاسخ + API دستگاه POS مشتری‌محور + یکپارچه‌سازی دستگاه POS راسیس + زیرنمایندگان و سفارش عمده B2B + انبارگردانی پیشرفته و رهگیری فیزیکی + سطح‌بندی فعال/غیرفعال خرید و فروش — Trade Guard + تولید QR Code برای شمش‌ها + سیستم اعلان‌ها) تهیه شده و هیچ قابلیت فرضی شامل نشده است.
+## 34. پوشش ریسک — هجینگ (Position Management / Hedging)
+
+**مسیر فایل‌ها**: `modules/hedging/`
+
+### مدل‌ها
+
+- **MetalPosition**: id, metal_type (unique), balance_mg (BigInteger, signed: negative=short, positive=long), updated_at
+  - Properties: `balance_grams`, `status` (short/long/hedged), `status_label`, `status_color`, `metal_label`
+- **PositionLedger**: id, metal_type, direction (OUT/IN/HEDGE/ADJUST), amount_mg (always positive), balance_after_mg (signed), source_type, source_id, description, metal_price_per_gram (nullable), recorded_by (FK→users), idempotency_key (unique), created_at
+  - Properties: `direction_label`, `direction_color`, `source_label`, `amount_grams`, `balance_after_grams`, `metal_label`
+  - Indexes: (metal_type, created_at), (source_type, source_id)
+- **PositionDirection** (str enum): OUT, IN, HEDGE, ADJUST
+
+### معماری
+
+- **بالانس اتمیک**: آپدیت DB-level با `balance_mg = balance_mg + delta` (بدون read-modify-write در Python → ایمن در برابر race condition)
+- **Idempotency**: هر تراکنش کلید یکتا دارد — جلوگیری از ثبت مضاعف
+- **هشدار آستانه**: وقتی بالانس از حد تعریف‌شده عبور کند، SMS به ادمین‌ها ارسال می‌شود (daemon thread — هرگز request را بلاک نمی‌کند)
+- **Cooldown**: حداقل فاصله بین هشدارها (پیش‌فرض ۶۰ دقیقه)
+- **نمودار**: Chart.js از فایل لوکال (`static/vendor/chartjs/chart.umd.min.js`) — بدون CDN
+
+### آدرس‌ها
+
+| متد | مسیر | دسترسی | توضیح |
+|------|-------|--------|--------|
+| GET | `/admin/hedging` | hedging:view | داشبورد پوزیشن‌ها + نمودار + آخرین تغییرات |
+| GET | `/admin/hedging/ledger` | hedging:view | دفتر کل با فیلتر + صفحه‌بندی |
+| GET/POST | `/admin/hedging/record` | hedging:create | ثبت معامله هج (خرید/فروش از بازار) |
+| GET/POST | `/admin/hedging/adjust` | hedging:edit | تنظیم بالانس اولیه / تعدیل دستی |
+| GET | `/admin/hedging/api/position` | hedging:view | JSON API بالانس فعلی (AJAX) |
+
+### نقاط اتصال خودکار (Integration Hooks)
+
+| منبع | جهت | محل |
+|-------|------|------|
+| سفارش فروشگاهی | OUT | modules/order/service.py → finalize_order() |
+| فروش POS نماینده | OUT | modules/dealer/service.py → create_pos_sale() |
+| فروش POS مشتری | OUT | modules/pos/service.py → confirm_sale() |
+| بازخرید | IN | modules/dealer/service.py → create_buyback() |
+| خرید کیف پول | OUT | modules/wallet/routes.py → wallet_metal_buy() |
+| فروش کیف پول | IN | modules/wallet/routes.py → wallet_metal_sell() |
+
+### تنظیمات (SystemSetting)
+
+| کلید | پیش‌فرض | توضیح |
+|-------|---------|--------|
+| hedge_threshold_gold_mg | 50000 | آستانه هشدار طلا (۵۰ گرم) |
+| hedge_threshold_silver_mg | 500000 | آستانه هشدار نقره (۵۰۰ گرم) |
+| hedge_alert_enabled | true | فعال/غیرفعال بودن هشدار |
+| hedge_alert_cooldown_minutes | 60 | حداقل فاصله بین هشدارها |
+
+### دسترسی
+
+| نقش | دسترسی |
+|------|--------|
+| Super Admin | دسترسی کامل — داشبورد، ثبت هج، تعدیل بالانس |
+| Operator | بسته به سطح دسترسی `hedging` (view/create/edit) |
+| نماینده / مشتری | بدون دسترسی |
+
+---
+
+> این سند بر اساس کد واقعی پروژه TalaMala v4 (فازهای ۱-۱۴، ۱۷، ۱۷.۵، ۲۱ و ۲۲ + بازگشت اجرت بازخرید + بهبود تیکتینگ + صفحات ثابت و فوتر + ثبت مالکیت و انتقال شمش + مدیریت کاربران + ویرایش مشتری توسط ادمین + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان + مدیریت دارایی و قیمت‌گذاری خودکار + چند درگاه پرداخت + درخواست نمایندگی با بازبینی + نظرات و پرسش‌وپاسخ + API دستگاه POS مشتری‌محور + یکپارچه‌سازی دستگاه POS راسیس + زیرنمایندگان و سفارش عمده B2B + انبارگردانی پیشرفته و رهگیری فیزیکی + سطح‌بندی فعال/غیرفعال خرید و فروش — Trade Guard + تولید QR Code برای شمش‌ها + سیستم اعلان‌ها + پوشش ریسک — هجینگ) تهیه شده و هیچ قابلیت فرضی شامل نشده است.

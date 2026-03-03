@@ -115,6 +115,11 @@ from modules.dealer_request.models import DealerRequest, DealerRequestAttachment
 from modules.pricing.models import Asset  # noqa: F401
 from modules.rasis.models import RasisReceipt  # noqa: F401
 from modules.notification.models import Notification, NotificationPreference  # noqa: F401
+from modules.hedging.models import MetalPosition, PositionLedger  # noqa: F401
+from modules.blog.models import (  # noqa: F401
+    ArticleCategory, ArticleTag, ArticleTagLink,
+    Article, ArticleImage, ArticleComment,
+)
 
 # ==========================================
 # Import routers
@@ -149,6 +154,9 @@ from modules.dealer_request.admin_routes import router as dealer_request_admin_r
 from modules.rasis.admin_routes import router as rasis_admin_router
 from modules.notification.routes import router as notification_router
 from modules.notification.admin_routes import router as notification_admin_router
+from modules.hedging.admin_routes import router as hedging_admin_router
+from modules.blog.routes import router as blog_router
+from modules.blog.admin_routes import router as blog_admin_router
 
 
 # ==========================================
@@ -533,6 +541,9 @@ app.include_router(dealer_request_admin_router)
 app.include_router(rasis_admin_router)
 app.include_router(notification_router)
 app.include_router(notification_admin_router)
+app.include_router(hedging_admin_router)
+app.include_router(blog_router)
+app.include_router(blog_admin_router)
 
 
 # ==========================================
