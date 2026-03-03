@@ -137,120 +137,10 @@ async def blog_create(
 
 
 # ==========================================
-# Article Edit
-# ==========================================
-
-@router.get("/{article_id}", response_class=HTMLResponse)
-async def blog_edit_form(
-    request: Request,
-    article_id: int,
-    db: Session = Depends(get_db),
-    user=Depends(require_permission("blog")),
-):
-    article = blog_service.get_by_id(db, article_id)
-    if not article:
-        return RedirectResponse("/admin/blog?error=not-found", status_code=302)
-
-    categories = blog_service.list_categories(db)
-    tags = blog_service.list_tags(db)
-    data, csrf = _ctx(
-        request, user,
-        article=article, categories=categories, tags=tags,
-        statuses=list(ArticleStatus),
-    )
-    response = templates.TemplateResponse("admin/blog/form.html", data)
-    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
-    return response
-
-
-@router.post("/{article_id}/edit")
-async def blog_update(
-    request: Request,
-    article_id: int,
-    title: str = Form(...),
-    slug: str = Form(...),
-    excerpt: str = Form(""),
-    body: str = Form(""),
-    category_id: str = Form(""),
-    status: str = Form("Draft"),
-    meta_title: str = Form(""),
-    meta_description: str = Form(""),
-    is_featured: Optional[str] = Form(None),
-    cover_image: Optional[UploadFile] = File(None),
-    csrf_token: str = Form(""),
-    db: Session = Depends(get_db),
-    user=Depends(require_permission("blog", level="edit")),
-):
-    csrf_check(request, csrf_token)
-
-    form = await request.form()
-    tag_ids = [int(v) for v in form.getlist("tag_ids") if str(v).isdigit()]
-
-    cat_id = int(category_id) if category_id.strip().isdigit() else None
-
-    try:
-        article = blog_service.update(db, article_id, {
-            "title": title,
-            "slug": slug,
-            "excerpt": excerpt,
-            "body": body,
-            "category_id": cat_id,
-            "status": status,
-            "meta_title": meta_title,
-            "meta_description": meta_description,
-            "is_featured": is_featured == "on",
-            "tag_ids": tag_ids,
-        }, cover_file=cover_image)
-        if not article:
-            return RedirectResponse("/admin/blog?error=not-found", status_code=302)
-        db.commit()
-        return RedirectResponse(f"/admin/blog/{article_id}", status_code=303)
-    except IntegrityError:
-        db.rollback()
-        return RedirectResponse(
-            f"/admin/blog/{article_id}?error=slug-duplicate", status_code=303,
-        )
-
-
-# ==========================================
-# Article Delete
-# ==========================================
-
-@router.post("/{article_id}/delete")
-async def blog_delete(
-    request: Request,
-    article_id: int,
-    csrf_token: str = Form(""),
-    db: Session = Depends(get_db),
-    user=Depends(require_permission("blog", level="full")),
-):
-    csrf_check(request, csrf_token)
-    blog_service.delete(db, article_id)
-    db.commit()
-    return RedirectResponse("/admin/blog", status_code=303)
-
-
-# ==========================================
-# Toggle Publish
-# ==========================================
-
-@router.post("/{article_id}/toggle-publish")
-async def blog_toggle_publish(
-    request: Request,
-    article_id: int,
-    csrf_token: str = Form(""),
-    db: Session = Depends(get_db),
-    user=Depends(require_permission("blog", level="edit")),
-):
-    csrf_check(request, csrf_token)
-    blog_service.toggle_publish(db, article_id)
-    db.commit()
-    return RedirectResponse(f"/admin/blog/{article_id}", status_code=303)
-
-
-# ==========================================
 # Categories & Tags Management
 # ==========================================
+# NOTE: These fixed-path routes MUST be defined before /{article_id}
+# to prevent FastAPI from matching "categories"/"comments" as article_id.
 
 @router.get("/categories", response_class=HTMLResponse)
 async def blog_categories_page(
@@ -467,3 +357,115 @@ async def upload_tinymce_image(
         return JSONResponse({"error": "Upload failed"}, status_code=400)
     db.commit()
     return JSONResponse({"location": f"/{path}"})
+
+
+# ==========================================
+# Article Edit (dynamic path - must be AFTER fixed paths)
+# ==========================================
+
+@router.get("/{article_id}", response_class=HTMLResponse)
+async def blog_edit_form(
+    request: Request,
+    article_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("blog")),
+):
+    article = blog_service.get_by_id(db, article_id)
+    if not article:
+        return RedirectResponse("/admin/blog?error=not-found", status_code=302)
+
+    categories = blog_service.list_categories(db)
+    tags = blog_service.list_tags(db)
+    data, csrf = _ctx(
+        request, user,
+        article=article, categories=categories, tags=tags,
+        statuses=list(ArticleStatus),
+    )
+    response = templates.TemplateResponse("admin/blog/form.html", data)
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/{article_id}/edit")
+async def blog_update(
+    request: Request,
+    article_id: int,
+    title: str = Form(...),
+    slug: str = Form(...),
+    excerpt: str = Form(""),
+    body: str = Form(""),
+    category_id: str = Form(""),
+    status: str = Form("Draft"),
+    meta_title: str = Form(""),
+    meta_description: str = Form(""),
+    is_featured: Optional[str] = Form(None),
+    cover_image: Optional[UploadFile] = File(None),
+    csrf_token: str = Form(""),
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("blog", level="edit")),
+):
+    csrf_check(request, csrf_token)
+
+    form = await request.form()
+    tag_ids = [int(v) for v in form.getlist("tag_ids") if str(v).isdigit()]
+
+    cat_id = int(category_id) if category_id.strip().isdigit() else None
+
+    try:
+        article = blog_service.update(db, article_id, {
+            "title": title,
+            "slug": slug,
+            "excerpt": excerpt,
+            "body": body,
+            "category_id": cat_id,
+            "status": status,
+            "meta_title": meta_title,
+            "meta_description": meta_description,
+            "is_featured": is_featured == "on",
+            "tag_ids": tag_ids,
+        }, cover_file=cover_image)
+        if not article:
+            return RedirectResponse("/admin/blog?error=not-found", status_code=302)
+        db.commit()
+        return RedirectResponse(f"/admin/blog/{article_id}", status_code=303)
+    except IntegrityError:
+        db.rollback()
+        return RedirectResponse(
+            f"/admin/blog/{article_id}?error=slug-duplicate", status_code=303,
+        )
+
+
+# ==========================================
+# Article Delete
+# ==========================================
+
+@router.post("/{article_id}/delete")
+async def blog_delete(
+    request: Request,
+    article_id: int,
+    csrf_token: str = Form(""),
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("blog", level="full")),
+):
+    csrf_check(request, csrf_token)
+    blog_service.delete(db, article_id)
+    db.commit()
+    return RedirectResponse("/admin/blog", status_code=303)
+
+
+# ==========================================
+# Toggle Publish
+# ==========================================
+
+@router.post("/{article_id}/toggle-publish")
+async def blog_toggle_publish(
+    request: Request,
+    article_id: int,
+    csrf_token: str = Form(""),
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("blog", level="edit")),
+):
+    csrf_check(request, csrf_token)
+    blog_service.toggle_publish(db, article_id)
+    db.commit()
+    return RedirectResponse(f"/admin/blog/{article_id}", status_code=303)
