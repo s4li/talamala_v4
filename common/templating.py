@@ -86,11 +86,15 @@ _TICKET_CAT_LABELS = {
 templates.env.filters["ticket_category_label"] = lambda v: _TICKET_CAT_LABELS.get(str(v), str(v))
 
 # Static asset version for cache busting (bump when CSS/JS changes)
-STATIC_VERSION = "1.4"
+STATIC_VERSION = "1.5"
 templates.env.globals["STATIC_VER"] = STATIC_VERSION
 
 # Globals (usage in template: {{ get_setting_value('key') }})
 templates.env.globals["get_setting_value"] = get_setting_value
+
+# BASE_URL for SEO templates (og:url, canonical, JSON-LD)
+from config.settings import BASE_URL
+templates.env.globals["BASE_URL"] = BASE_URL
 
 # Flash messages: available in templates via get_flashed_messages(request)
 from common.flash import get_flashed_messages

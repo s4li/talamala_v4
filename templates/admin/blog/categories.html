@@ -1,0 +1,244 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "blog" %}
+
+{% block content %}
+<div class="page-header tm-animate-fade-in">
+    <h4><i class="bi bi-folder me-2"></i>دسته‌بندی‌ها و تگ‌ها</h4>
+    <a href="/admin/blog" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-right me-1"></i>بازگشت به مقالات
+    </a>
+</div>
+
+<div class="row g-3">
+    <!-- Categories -->
+    <div class="col-lg-7">
+        <div class="card-tm p-3 tm-animate-fade-in-up">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0"><i class="bi bi-folder me-1"></i>دسته‌بندی‌ها</h6>
+                {% if user.has_permission('blog', 'create') %}
+                <button class="btn btn-sm btn-tm-primary" data-bs-toggle="modal" data-bs-target="#addCatModal">
+                    <i class="bi bi-plus-lg me-1"></i>دسته جدید
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-tm table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>نام</th>
+                            <th>اسلاگ</th>
+                            <th>ترتیب</th>
+                            <th>وضعیت</th>
+                            <th>مقالات</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cat in categories %}
+                        <tr>
+                            <td class="fw-bold">{{ cat.name }}</td>
+                            <td><code>{{ cat.slug }}</code></td>
+                            <td>{{ cat.sort_order }}</td>
+                            <td>
+                                {% if cat.is_active %}
+                                <span class="badge-tm badge-tm-success">فعال</span>
+                                {% else %}
+                                <span class="badge-tm badge-tm-secondary">غیرفعال</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ cat.published_count | persian_number }}</td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    {% if user.has_permission('blog', 'edit') %}
+                                    <button class="btn btn-sm btn-outline-secondary" title="ویرایش"
+                                            onclick="editCategory({{ cat.id }}, '{{ cat.name }}', '{{ cat.slug }}', '{{ cat.description or '' }}', {{ cat.sort_order }}, {{ 'true' if cat.is_active else 'false' }})">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if user.has_permission('blog', 'full') %}
+                                    <form method="POST" action="/admin/blog/categories/{{ cat.id }}/delete" class="d-inline"
+                                          onsubmit="return confirm('آیا از حذف این دسته مطمئنید؟')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button class="btn btn-sm btn-outline-danger" title="حذف"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">دسته‌ای تعریف نشده</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="col-lg-5">
+        <div class="card-tm p-3 tm-animate-fade-in-up tm-delay-1">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0"><i class="bi bi-tags me-1"></i>تگ‌ها</h6>
+                {% if user.has_permission('blog', 'create') %}
+                <button class="btn btn-sm btn-tm-primary" data-bs-toggle="modal" data-bs-target="#addTagModal">
+                    <i class="bi bi-plus-lg me-1"></i>تگ جدید
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+                {% for tag in tags %}
+                <div class="d-flex align-items-center gap-1 border rounded-pill px-3 py-1">
+                    <span>{{ tag.name }}</span>
+                    <small class="text-muted">({{ tag.slug }})</small>
+                    {% if user.has_permission('blog', 'full') %}
+                    <form method="POST" action="/admin/blog/tags/{{ tag.id }}/delete" class="d-inline ms-1"
+                          onsubmit="return confirm('حذف تگ {{ tag.name }}؟')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button class="btn btn-sm p-0 text-danger border-0" style="font-size:0.8rem;"><i class="bi bi-x"></i></button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% else %}
+                <p class="text-muted small mb-0">تگی تعریف نشده</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCatModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="/admin/blog/categories/new">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h6 class="modal-title">دسته‌بندی جدید</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">نام <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control-tm" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">اسلاگ (Slug) <span class="text-danger">*</span></label>
+                        <input type="text" name="slug" class="form-control-tm" required dir="ltr" placeholder="e.g. market-news">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">توضیحات</label>
+                        <textarea name="description" class="form-control-tm" rows="2"></textarea>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">ترتیب نمایش</label>
+                            <input type="number" name="sort_order" class="form-control-tm" value="0">
+                        </div>
+                        <div class="col-6 d-flex align-items-end">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="catActive" checked>
+                                <label class="form-check-label" for="catActive">فعال</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-sm btn-tm-primary">ایجاد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCatModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="editCatForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h6 class="modal-title">ویرایش دسته‌بندی</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">نام</label>
+                        <input type="text" name="name" id="editCatName" class="form-control-tm" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">اسلاگ</label>
+                        <input type="text" name="slug" id="editCatSlug" class="form-control-tm" required dir="ltr">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">توضیحات</label>
+                        <textarea name="description" id="editCatDesc" class="form-control-tm" rows="2"></textarea>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">ترتیب</label>
+                            <input type="number" name="sort_order" id="editCatOrder" class="form-control-tm" value="0">
+                        </div>
+                        <div class="col-6 d-flex align-items-end">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="editCatActive">
+                                <label class="form-check-label" for="editCatActive">فعال</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-sm btn-tm-primary">ذخیره</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Tag Modal -->
+<div class="modal fade" id="addTagModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form method="POST" action="/admin/blog/tags/new">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h6 class="modal-title">تگ جدید</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">نام</label>
+                        <input type="text" name="name" class="form-control-tm" required placeholder="مثلاً: طلا">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">اسلاگ</label>
+                        <input type="text" name="slug" class="form-control-tm" required dir="ltr" placeholder="e.g. gold">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-sm btn-tm-primary w-100">ایجاد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+function editCategory(id, name, slug, desc, order, active) {
+    document.getElementById('editCatForm').action = '/admin/blog/categories/' + id + '/edit';
+    document.getElementById('editCatName').value = name;
+    document.getElementById('editCatSlug').value = slug;
+    document.getElementById('editCatDesc').value = desc;
+    document.getElementById('editCatOrder').value = order;
+    document.getElementById('editCatActive').checked = active;
+    new bootstrap.Modal(document.getElementById('editCatModal')).show();
+}
+</script>
+{% endblock %}

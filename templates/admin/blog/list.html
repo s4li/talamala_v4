@@ -1,0 +1,161 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "blog" %}
+
+{% block content %}
+<div class="page-header tm-animate-fade-in">
+    <h4><i class="bi bi-journal-richtext me-2"></i>مجله و مقالات</h4>
+    <div class="d-flex gap-2">
+        {% if user.has_permission('blog', 'create') %}
+        <a href="/admin/blog/new" class="btn btn-sm btn-tm-primary">
+            <i class="bi bi-plus-lg me-1"></i>مقاله جدید
+        </a>
+        {% endif %}
+        <a href="/admin/blog/categories" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-folder me-1"></i>دسته‌ها و تگ‌ها
+        </a>
+        <a href="/admin/blog/comments" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-chat-dots me-1"></i>نظرات
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card-tm p-3 mb-3 tm-animate-fade-in-up">
+    <form method="GET" class="d-flex flex-wrap gap-2 align-items-end">
+        <div>
+            <label class="form-label small mb-1">وضعیت</label>
+            <select name="status" class="form-select-tm form-select-sm" onchange="this.form.submit()">
+                <option value="">همه</option>
+                <option value="Draft" {% if current_status == 'Draft' %}selected{% endif %}>پیش‌نویس</option>
+                <option value="Published" {% if current_status == 'Published' %}selected{% endif %}>منتشر شده</option>
+                <option value="Archived" {% if current_status == 'Archived' %}selected{% endif %}>آرشیو</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label small mb-1">دسته‌بندی</label>
+            <select name="category_id" class="form-select-tm form-select-sm" onchange="this.form.submit()">
+                <option value="">همه</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if current_category == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex-grow-1">
+            <label class="form-label small mb-1">جستجو</label>
+            <div class="d-flex gap-1">
+                <input type="text" name="search" value="{{ search_query }}" class="form-control-tm form-control-sm" placeholder="عنوان یا متن...">
+                <button type="submit" class="btn btn-sm btn-tm-primary"><i class="bi bi-search"></i></button>
+                {% if search_query %}
+                <a href="/admin/blog" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-lg"></i></a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Articles Table -->
+<div class="card-tm tm-animate-fade-in-up tm-delay-1">
+    <div class="table-responsive">
+        <table class="table table-tm table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th style="width:50px">#</th>
+                    <th>عنوان</th>
+                    <th>دسته‌بندی</th>
+                    <th>نویسنده</th>
+                    <th>وضعیت</th>
+                    <th>بازدید</th>
+                    <th>تاریخ</th>
+                    <th style="width:120px">عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in articles %}
+                <tr>
+                    <td>{{ a.id }}</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            {% if a.cover_image %}
+                            <img src="/{{ a.cover_image }}" class="img-thumb" alt="">
+                            {% else %}
+                            <div class="img-thumb d-flex align-items-center justify-content-center bg-light">
+                                <i class="bi bi-journal-text text-muted"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <div class="fw-bold" style="max-width:250px;">{{ a.title }}</div>
+                                <small class="text-muted">/blog/{{ a.slug }}</small>
+                                {% if a.is_featured %}
+                                <span class="badge-tm badge-tm-info" style="font-size:0.6rem;">ویژه</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ a.category.name if a.category else '—' }}</td>
+                    <td>{{ a.author_name }}</td>
+                    <td><span class="badge-tm badge-tm-{{ a.status_color }}">{{ a.status_label }}</span></td>
+                    <td>{{ a.view_count | persian_number }}</td>
+                    <td>
+                        <small>{{ a.created_at | jdate }}</small>
+                        {% if a.published_at %}
+                        <br><small class="text-success">{{ a.published_at | jdate }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="/admin/blog/{{ a.id }}" class="btn btn-sm btn-outline-secondary" title="ویرایش">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% if user.has_permission('blog', 'edit') %}
+                            <form method="POST" action="/admin/blog/{{ a.id }}/toggle-publish" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm {% if a.status.value == 'Published' %}btn-outline-warning{% else %}btn-outline-success{% endif %}" title="{% if a.status.value == 'Published' %}پیش‌نویس{% else %}انتشار{% endif %}">
+                                    <i class="bi {% if a.status.value == 'Published' %}bi-eye-slash{% else %}bi-eye{% endif %}"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% if user.has_permission('blog', 'full') %}
+                            <form method="POST" action="/admin/blog/{{ a.id }}/delete" class="d-inline" onsubmit="return confirm('آیا از حذف این مقاله مطمئنید؟')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-5">
+                        <i class="bi bi-journal-x" style="font-size:2rem;"></i>
+                        <p class="mt-2 mb-0">مقاله‌ای یافت نشد</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page > 1 %}
+                <li class="page-item"><a class="page-link" href="?page={{ page - 1 }}&status={{ current_status or '' }}&category_id={{ current_category or '' }}&search={{ search_query }}">قبلی</a></li>
+                {% endif %}
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="?page={{ p }}&status={{ current_status or '' }}&category_id={{ current_category or '' }}&search={{ search_query }}">{{ p | persian_number }}</a>
+                </li>
+                {% endfor %}
+                {% if page < total_pages %}
+                <li class="page-item"><a class="page-link" href="?page={{ page + 1 }}&status={{ current_status or '' }}&category_id={{ current_category or '' }}&search={{ search_query }}">بعدی</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

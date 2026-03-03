@@ -1,0 +1,117 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "blog" %}
+
+{% block content %}
+<div class="page-header tm-animate-fade-in">
+    <h4><i class="bi bi-chat-dots me-2"></i>نظرات مقالات</h4>
+    <a href="/admin/blog" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-right me-1"></i>بازگشت به مقالات
+    </a>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-3 tm-animate-fade-in-up">
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'pending' %}active{% endif %}" href="/admin/blog/comments?tab=pending">
+            در انتظار تأیید
+            {% if pending_count %}<span class="badge-tm badge-tm-warning ms-1">{{ pending_count | persian_number }}</span>{% endif %}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'approved' %}active{% endif %}" href="/admin/blog/comments?tab=approved">
+            تأیید شده
+            {% if approved_count %}<span class="badge-tm badge-tm-success ms-1">{{ approved_count | persian_number }}</span>{% endif %}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'all' %}active{% endif %}" href="/admin/blog/comments?tab=all">
+            همه
+        </a>
+    </li>
+</ul>
+
+<!-- Search -->
+<div class="card-tm p-3 mb-3 tm-animate-fade-in-up">
+    <form method="GET" class="d-flex gap-2">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        <input type="text" name="search" value="{{ search_query }}" class="form-control-tm form-control-sm flex-grow-1" placeholder="جستجو در متن نظرات...">
+        <button type="submit" class="btn btn-sm btn-tm-primary"><i class="bi bi-search"></i></button>
+        {% if search_query %}
+        <a href="/admin/blog/comments?tab={{ tab }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-lg"></i></a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Comments List -->
+<div class="card-tm tm-animate-fade-in-up tm-delay-1">
+    {% if comments %}
+    {% for comment in comments %}
+    <div class="p-3 {% if not loop.last %}border-bottom{% endif %}" style="{% if not comment.is_approved %}border-right:3px solid var(--tm-warning);{% endif %}">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+                <strong>{{ comment.user_name }}</strong>
+                <span class="text-muted mx-1">روی</span>
+                {% if comment.article %}
+                <a href="/admin/blog/{{ comment.article.id }}" class="text-decoration-none">{{ comment.article.title }}</a>
+                {% else %}
+                <span class="text-muted">(حذف شده)</span>
+                {% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                {% if comment.is_approved %}
+                <span class="badge-tm badge-tm-success">تأیید شده</span>
+                {% else %}
+                <span class="badge-tm badge-tm-warning">در انتظار</span>
+                {% endif %}
+                <small class="text-muted">{{ comment.created_at | jdate }}</small>
+            </div>
+        </div>
+
+        <p class="mb-2" style="white-space:pre-wrap;">{{ comment.body }}</p>
+
+        <div class="d-flex gap-1">
+            {% if not comment.is_approved and user.has_permission('blog', 'edit') %}
+            <form method="POST" action="/admin/blog/comments/{{ comment.id }}/approve" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-sm btn-outline-success"><i class="bi bi-check-lg me-1"></i>تأیید</button>
+            </form>
+            {% endif %}
+            {% if user.has_permission('blog', 'full') %}
+            <form method="POST" action="/admin/blog/comments/{{ comment.id }}/reject" class="d-inline"
+                  onsubmit="return confirm('آیا از حذف این نظر مطمئنید؟')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>حذف</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-chat-square" style="font-size:2rem;"></i>
+        <p class="mt-2 mb-0">نظری یافت نشد</p>
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="d-flex justify-content-center py-3 border-top">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page > 1 %}
+                <li class="page-item"><a class="page-link" href="?tab={{ tab }}&page={{ page - 1 }}&search={{ search_query }}">قبلی</a></li>
+                {% endif %}
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="?tab={{ tab }}&page={{ p }}&search={{ search_query }}">{{ p | persian_number }}</a>
+                </li>
+                {% endfor %}
+                {% if page < total_pages %}
+                <li class="page-item"><a class="page-link" href="?tab={{ tab }}&page={{ page + 1 }}&search={{ search_query }}">بعدی</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
