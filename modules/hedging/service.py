@@ -339,6 +339,21 @@ class HedgingService:
         ]
 
     # ==========================================
+    # Balance text helper (for admin SMS alerts)
+    # ==========================================
+
+    def get_balance_text(self, db: Session, metal_type: str) -> str:
+        """Return short balance text for inclusion in admin SMS alerts.
+        Example: 'بالانس طلا: -150.5g' or 'بالانس نقره: 200.0g'
+        """
+        pos = db.query(MetalPosition).filter(MetalPosition.metal_type == metal_type).first()
+        if not pos:
+            return ""
+        label = {"gold": "طلا", "silver": "نقره"}.get(metal_type, metal_type)
+        grams = pos.balance_mg / 1000.0
+        return f"بالانس {label}: {grams:,.1f}g"
+
+    # ==========================================
     # Threshold alert (non-blocking)
     # ==========================================
 

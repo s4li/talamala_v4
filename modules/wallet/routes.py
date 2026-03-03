@@ -517,12 +517,30 @@ async def wallet_metal_buy(
     try:
         result = wallet_service.buy_metal(db, me.id, amount_irr, asset_type=asset_type, fee_percent=fee_percent)
 
+        # Hedging: record OUT position for wallet metal buy (customer buys metal from us)
+        try:
+            from modules.hedging.service import hedging_service
+            hedging_service.record_out(
+                db, asset_type, result["metal_mg"],
+                source_type="wallet_buy", source_id=str(me.id),
+                description=f"Wallet buy {result['metal_mg'] / 1000:.3f}g {asset_type} — user #{me.id}",
+            )
+        except Exception:
+            pass  # Never block wallet trade
+
         try:
             from modules.notification.service import notification_service
             from modules.notification.models import NotificationType
 
             mg = result["metal_mg"]
-            admin_text = f"[هشدار] خرید {mg / 1000:.3f}g {metal['label']} (کیف پول)"
+            # Include current metal balance in admin alert
+            balance_info = ""
+            try:
+                from modules.hedging.service import hedging_service
+                balance_info = f" | {hedging_service.get_balance_text(db, asset_type)}"
+            except Exception:
+                pass
+            admin_text = f"[هشدار] خرید {mg / 1000:.3f}g {metal['label']} (کیف پول){balance_info}"
 
             notification_service.send(
                 db, me.id,
@@ -536,17 +554,6 @@ async def wallet_metal_buy(
             )
         except Exception:
             pass
-
-        # Hedging: record OUT position for wallet metal buy (customer buys metal from us)
-        try:
-            from modules.hedging.service import hedging_service
-            hedging_service.record_out(
-                db, asset_type, result["metal_mg"],
-                source_type="wallet_buy", source_id=str(me.id),
-                description=f"Wallet buy {result['metal_mg'] / 1000:.3f}g {asset_type} — user #{me.id}",
-            )
-        except Exception:
-            pass  # Never block wallet trade
 
         db.commit()
         mg = result["metal_mg"]
@@ -582,11 +589,29 @@ async def wallet_metal_sell(
             raise ValueError(f"مقدار {metal['label']} باید بیشتر از صفر باشد")
         result = wallet_service.sell_metal(db, me.id, mg, asset_type=asset_type, fee_percent=fee_percent)
 
+        # Hedging: record IN position for wallet metal sell (customer sells metal back to us)
+        try:
+            from modules.hedging.service import hedging_service
+            hedging_service.record_in(
+                db, asset_type, mg,
+                source_type="wallet_sell", source_id=str(me.id),
+                description=f"Wallet sell {mg / 1000:.3f}g {asset_type} — user #{me.id}",
+            )
+        except Exception:
+            pass  # Never block wallet trade
+
         try:
             from modules.notification.service import notification_service
             from modules.notification.models import NotificationType
 
-            admin_text = f"[هشدار] فروش {mg / 1000:.3f}g {metal['label']} (کیف پول)"
+            # Include current metal balance in admin alert
+            balance_info = ""
+            try:
+                from modules.hedging.service import hedging_service
+                balance_info = f" | {hedging_service.get_balance_text(db, asset_type)}"
+            except Exception:
+                pass
+            admin_text = f"[هشدار] فروش {mg / 1000:.3f}g {metal['label']} (کیف پول){balance_info}"
 
             notification_service.send(
                 db, me.id,
@@ -600,17 +625,6 @@ async def wallet_metal_sell(
             )
         except Exception:
             pass
-
-        # Hedging: record IN position for wallet metal sell (customer sells metal back to us)
-        try:
-            from modules.hedging.service import hedging_service
-            hedging_service.record_in(
-                db, asset_type, mg,
-                source_type="wallet_sell", source_id=str(me.id),
-                description=f"Wallet sell {mg / 1000:.3f}g {asset_type} — user #{me.id}",
-            )
-        except Exception:
-            pass  # Never block wallet trade
 
         db.commit()
         rial = result["amount_irr"]

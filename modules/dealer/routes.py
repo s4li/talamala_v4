@@ -175,12 +175,19 @@ async def pos_submit(
             from modules.notification.service import notification_service
             from modules.notification.models import NotificationType
 
-            # Build admin alert with weight
+            # Build admin alert with weight + metal balance
             bar = db.query(Bar).filter(Bar.id == bar_id).first()
             admin_text = None
             if bar and bar.product:
                 metal_label = "طلا" if bar.product.metal_type == "gold" else "نقره"
-                admin_text = f"[هشدار] فروش POS شمش {bar.product.weight}g {metal_label}"
+                metal_key = bar.product.metal_type or "gold"
+                balance_info = ""
+                try:
+                    from modules.hedging.service import hedging_service
+                    balance_info = f" | {hedging_service.get_balance_text(db, metal_key)}"
+                except Exception:
+                    pass
+                admin_text = f"[هشدار] فروش POS شمش {bar.product.weight}g {metal_label}{balance_info}"
 
             notification_service.send(
                 db, dealer.id,
@@ -277,12 +284,19 @@ async def buyback_submit(
             from modules.notification.service import notification_service
             from modules.notification.models import NotificationType
 
-            # Build admin alert with weight
+            # Build admin alert with weight + metal balance
             bar = db.query(Bar).filter(Bar.serial_code == serial_code.strip().upper()).first()
             admin_text = None
             if bar and bar.product:
                 metal_label = "طلا" if bar.product.metal_type == "gold" else "نقره"
-                admin_text = f"[هشدار] بازخرید شمش {bar.product.weight}g {metal_label}"
+                metal_key = bar.product.metal_type or "gold"
+                balance_info = ""
+                try:
+                    from modules.hedging.service import hedging_service
+                    balance_info = f" | {hedging_service.get_balance_text(db, metal_key)}"
+                except Exception:
+                    pass
+                admin_text = f"[هشدار] بازخرید شمش {bar.product.weight}g {metal_label}{balance_info}"
 
             notification_service.send(
                 db, dealer.id,

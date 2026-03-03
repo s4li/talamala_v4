@@ -30,21 +30,33 @@ DEFAULT_GATEWAYS = "sepehr,top,parsian"
 
 
 def _build_order_admin_alert(db: Session, order) -> str:
-    """Build admin alert text from order items: weight + metal type per item."""
+    """Build admin alert text from order items: weight + metal type per item + metal balance."""
     from modules.order.models import OrderItem
     from modules.catalog.models import Product
 
     items = db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
     parts = []
+    metal_types_seen = set()
     for item in items:
         product = db.query(Product).filter(Product.id == item.product_id).first()
         if product:
             metal_label = "طلا" if product.metal_type == "gold" else "نقره"
             parts.append(f"{product.weight}g {metal_label}")
+            metal_types_seen.add(product.metal_type or "gold")
 
-    if parts:
-        return "[هشدار] فروش شمش " + " + ".join(parts)
-    return f"[هشدار] فروش سفارش #{order.id}"
+    # Append current metal balance for each metal type in order
+    balance_parts = []
+    try:
+        from modules.hedging.service import hedging_service
+        for mt in sorted(metal_types_seen):
+            balance_parts.append(hedging_service.get_balance_text(db, mt))
+    except Exception:
+        pass
+
+    text = "[هشدار] فروش شمش " + " + ".join(parts) if parts else f"[هشدار] فروش سفارش #{order.id}"
+    if balance_parts:
+        text += " | " + " / ".join(balance_parts)
+    return text
 
 
 class PaymentService:
