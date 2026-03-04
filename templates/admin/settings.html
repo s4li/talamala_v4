@@ -253,6 +253,11 @@
                 <label class="form-label-tm">درگاه‌های فعال (کاربر از بین اینها انتخاب می‌کند)</label>
                 <div class="d-flex flex-column gap-2 mt-2">
                     <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="enabled_gateways" value="zibal" id="gw_zibal"
+                               {{ 'checked' if 'zibal' in enabled_gw }}>
+                        <label class="form-check-label" for="gw_zibal">زیبال (Zibal)</label>
+                    </div>
+                    <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="enabled_gateways" value="sepehr" id="gw_sepehr"
                                {{ 'checked' if 'sepehr' in enabled_gw }}>
                         <label class="form-check-label" for="gw_sepehr">سپهر (Sepehr)</label>
