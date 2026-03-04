@@ -6,8 +6,12 @@ Login page, OTP send/verify, logout.
 NOTE: Unified auth — single auth_token cookie for all user types.
 """
 
+import threading
+import time
+import logging
+
 from fastapi import APIRouter, Request, Depends, Form, Response
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
 
 from config.database import get_db
@@ -18,7 +22,42 @@ from common.exceptions import OTPError, AuthenticationError
 from modules.auth.service import auth_service
 from modules.auth.deps import get_current_active_user
 
+logger = logging.getLogger("talamala.auth")
+
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# In-memory SMS send status tracker (short-lived, auto-cleanup)
+# Key: mobile, Value: {"status": "pending"|"sent"|"failed", "ts": timestamp}
+_sms_status: dict = {}
+_SMS_STATUS_TTL = 300  # 5 minutes
+
+
+def _cleanup_old_sms_status():
+    """Remove stale entries older than TTL."""
+    now = time.time()
+    stale = [k for k, v in _sms_status.items() if now - v["ts"] > _SMS_STATUS_TTL]
+    for k in stale:
+        _sms_status.pop(k, None)
+
+
+def _send_sms_background(mobile: str, token: str, token2: str, template_name: str = "OTP"):
+    """Send SMS in background thread and update status tracker."""
+    try:
+        result = sms_sender.send_otp_lookup(
+            receptor=mobile,
+            token=token,
+            token2=token2,
+            template_name=template_name,
+        )
+        _sms_status[mobile] = {
+            "status": "sent" if result else "failed",
+            "ts": time.time(),
+        }
+        if not result:
+            logger.warning(f"Background SMS failed for {mobile}")
+    except Exception as e:
+        _sms_status[mobile] = {"status": "failed", "ts": time.time()}
+        logger.error(f"Background SMS exception for {mobile}: {e}")
 
 
 def _safe_next_url(url: str) -> str:
@@ -200,23 +239,23 @@ async def send_otp(
         )
         db.commit()
 
-        # Send SMS (debug mode prints to console)
-        sms_sent = sms_sender.send_otp_lookup(
-            receptor=mobile,
-            token=display_name,
-            token2=otp_raw,
-            template_name="OTP",
+        # Send SMS in background (non-blocking)
+        _cleanup_old_sms_status()
+        _sms_status[mobile] = {"status": "pending", "ts": time.time()}
+        sms_thread = threading.Thread(
+            target=_send_sms_background,
+            args=(mobile, display_name, otp_raw, "OTP"),
+            daemon=True,
         )
+        sms_thread.start()
 
         csrf = new_csrf_token()
-        sms_warning = None if sms_sent else "ارتباط با سرویس پیامک برقرار نشد. لطفاً دوباره تلاش کنید."
-
         response = templates.TemplateResponse("auth/login.html", {
             "request": request,
             "csrf_token": csrf,
             "step": "verify",
             "mobile": mobile,
-            "error": sms_warning,
+            "error": None,
             "next_url": next_url,
             "ref_code": ref_code,
         })
@@ -237,6 +276,15 @@ async def send_otp(
         })
         response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
         return response
+
+
+@router.get("/sms-status")
+async def sms_status(mobile: str = ""):
+    """AJAX endpoint: check background SMS send status for a mobile number."""
+    entry = _sms_status.get(mobile)
+    if not entry:
+        return JSONResponse({"status": "unknown"})
+    return JSONResponse({"status": entry["status"]})
 
 
 @router.post("/verify-otp")

@@ -310,6 +310,9 @@
             کد تأیید به <strong dir="ltr">{{ mobile }}</strong> ارسال شد
         </p>
 
+        <!-- SMS status banner (updated by JS polling) -->
+        <div id="smsStatusBanner" class="d-none"></div>
+
         <form method="POST" action="/auth/verify-otp" id="otpForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input type="hidden" name="mobile" value="{{ mobile }}">
@@ -466,6 +469,43 @@ function toggleRegType(type) {
             resendLink.classList.remove('d-none');
         }
     }, 1000);
+
+    // Background SMS status polling
+    var smsMobile = '{{ mobile }}';
+    var smsBanner = document.getElementById('smsStatusBanner');
+    var smsResolved = false;
+    var smsPollCount = 0;
+    var smsPollMax = 15;  // max 15 polls (15 seconds)
+
+    function pollSmsStatus() {
+        if (smsResolved || smsPollCount >= smsPollMax) return;
+        smsPollCount++;
+
+        fetch('/auth/sms-status?mobile=' + encodeURIComponent(smsMobile))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === 'sent') {
+                    smsResolved = true;
+                    // SMS sent OK — no banner needed
+                } else if (data.status === 'failed') {
+                    smsResolved = true;
+                    smsBanner.className = 'alert-tm-danger py-2 text-center mb-3';
+                    smsBanner.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>' +
+                        'ارتباط با سرویس پیامک برقرار نشد.' +
+                        ' <a href="/auth/login" class="fw-bold" style="color:inherit;text-decoration:underline;">تلاش مجدد</a>';
+                } else {
+                    // Still pending — poll again after 1s
+                    setTimeout(pollSmsStatus, 1000);
+                }
+            })
+            .catch(function() {
+                // Network error — stop polling silently
+                smsResolved = true;
+            });
+    }
+
+    // Start polling after 500ms (give SMS thread time to start)
+    setTimeout(pollSmsStatus, 500);
 })();
 </script>
 {% endif %}
