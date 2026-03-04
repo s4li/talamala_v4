@@ -150,6 +150,7 @@ async def dealer_create_form(
         "request": request,
         "user": user,
         "dealer": None,
+        "form_data": None,
         "provinces": provinces,
         "cities": [],
         "districts": [],
@@ -184,25 +185,57 @@ async def dealer_create_submit(
 ):
     csrf_check(request, csrf_token)
 
-    # Check duplicate mobile
-    existing = dealer_service.get_dealer_by_mobile(db, mobile.strip())
-    if existing:
+    # Collect submitted form data for re-rendering on error
+    form_data = {
+        "mobile": mobile.strip(),
+        "full_name": full_name.strip(),
+        "national_id": national_id.strip(),
+        "tier_id": _parse_int(tier_id),
+        "province_id": _parse_int(province_id),
+        "city_id": _parse_int(city_id),
+        "district_id": _parse_int(district_id),
+        "address": address.strip(),
+        "postal_code": postal_code.strip(),
+        "landline_phone": landline_phone.strip(),
+        "is_warehouse": (is_warehouse == "on"),
+        "is_postal_hub": (is_postal_hub == "on"),
+        "can_distribute": (can_distribute == "on"),
+    }
+
+    def _error_response(error_msg: str):
+        """Re-render form with error, preserving all submitted data."""
         provinces, tiers = _load_form_context(db)
+        # Load cities/districts for selected province/city
+        cities, districts = [], []
+        if form_data["province_id"]:
+            cities = db.query(GeoCity).filter(
+                GeoCity.province_id == form_data["province_id"]
+            ).order_by(GeoCity.sort_order, GeoCity.name).all()
+        if form_data["city_id"]:
+            districts = db.query(GeoDistrict).filter(
+                GeoDistrict.city_id == form_data["city_id"]
+            ).order_by(GeoDistrict.name).all()
         csrf = new_csrf_token()
-        response = templates.TemplateResponse("admin/dealers/form.html", {
+        resp = templates.TemplateResponse("admin/dealers/form.html", {
             "request": request,
             "user": user,
             "dealer": None,
+            "form_data": form_data,
             "provinces": provinces,
-            "cities": [],
-            "districts": [],
+            "cities": cities,
+            "districts": districts,
             "tiers": tiers,
             "csrf_token": csrf,
             "active_page": "dealers",
-            "error": "این شماره موبایل قبلا ثبت شده است",
+            "error": error_msg,
         })
-        response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
-        return response
+        resp.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+        return resp
+
+    # Check duplicate mobile
+    existing = dealer_service.get_dealer_by_mobile(db, mobile.strip())
+    if existing:
+        return _error_response("این شماره موبایل قبلا ثبت شده است")
 
     result = dealer_service.create_dealer(
         db, mobile.strip(), full_name.strip(),
@@ -219,22 +252,7 @@ async def dealer_create_submit(
         can_distribute=(can_distribute == "on"),
     )
     if not result["success"]:
-        provinces, tiers = _load_form_context(db)
-        csrf = new_csrf_token()
-        response = templates.TemplateResponse("admin/dealers/form.html", {
-            "request": request,
-            "user": user,
-            "dealer": None,
-            "provinces": provinces,
-            "cities": [],
-            "districts": [],
-            "tiers": tiers,
-            "csrf_token": csrf,
-            "active_page": "dealers",
-            "error": result["message"],
-        })
-        response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
-        return response
+        return _error_response(result["message"])
 
     dealer = result["dealer"]
     db.commit()
