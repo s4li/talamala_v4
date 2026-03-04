@@ -16,6 +16,7 @@ from config.settings import BASE_URL
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
 from common.flash import flash
+from common.helpers import normalize_digits
 from modules.auth.deps import require_login
 from modules.wallet.service import wallet_service
 from modules.wallet.models import AssetCode, WithdrawalStatus, WithdrawalRequest, WalletTopup, PRECIOUS_METALS
@@ -134,14 +135,14 @@ async def wallet_transactions(
 @router.post("/topup")
 async def wallet_topup(
     request: Request,
-    amount_toman: int = Form(...),
+    amount_toman: str = Form(...),
     gateway: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
     me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
-    amount_irr = amount_toman * 10
+    amount_irr = int(normalize_digits(amount_toman)) * 10
 
     # Validate customer-selected gateway
     enabled = _get_enabled_gateways(db)
@@ -430,7 +431,7 @@ async def wallet_withdraw_form(
 @router.post("/withdraw")
 async def wallet_withdraw_submit(
     request: Request,
-    amount_toman: int = Form(...),
+    amount_toman: str = Form(...),
     shaba_number: str = Form(...),
     account_holder: str = Form(""),
     csrf_token: str = Form(""),
@@ -438,7 +439,7 @@ async def wallet_withdraw_submit(
     me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
-    amount_irr = amount_toman * 10
+    amount_irr = int(normalize_digits(amount_toman)) * 10
 
     try:
         wr = wallet_service.create_withdrawal(db, me.id, amount_irr, shaba_number, account_holder)
@@ -499,7 +500,7 @@ async def wallet_metal_page(
 async def wallet_metal_buy(
     request: Request,
     asset_type: str,
-    amount_toman: int = Form(...),
+    amount_toman: str = Form(...),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
     me=Depends(require_login),
@@ -511,7 +512,7 @@ async def wallet_metal_buy(
         flash(request, "نوع دارایی شناسایی نشد", "danger")
         return RedirectResponse("/wallet", status_code=302)
 
-    amount_irr = amount_toman * 10
+    amount_irr = int(normalize_digits(amount_toman)) * 10
     fee_percent = wallet_service.get_fee_for_user(db, me, asset_type=asset_type)
 
     try:
@@ -585,7 +586,7 @@ async def wallet_metal_sell(
     fee_percent = wallet_service.get_fee_for_user(db, me, asset_type=asset_type)
 
     try:
-        mg = int(float(metal_grams) * 1000)
+        mg = int(float(normalize_digits(metal_grams)) * 1000)
         if mg <= 0:
             raise ValueError(f"مقدار {metal['label']} باید بیشتر از صفر باشد")
         result = wallet_service.sell_metal(db, me.id, mg, asset_type=asset_type, fee_percent=fee_percent)

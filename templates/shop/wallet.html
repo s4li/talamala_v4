@@ -203,7 +203,7 @@
                     <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center align-items-sm-end align-items-stretch">
                         <div>
                             <label class="form-label-tm small">مبلغ (تومان)</label>
-                            <input type="number" name="amount_toman" id="topup-amount" class="form-control form-control-tm" min="10000" step="10000"
+                            <input type="text" inputmode="numeric" name="amount_toman" id="topup-amount" class="form-control form-control-tm"
                                    value="1000000" required>
                         </div>
                         <button type="submit" class="btn btn-tm-success">
@@ -217,7 +217,8 @@
                             <input class="form-check-input" type="radio" name="gateway" value="{{ gw }}" id="topup_gw_{{ gw }}"
                                    {{ 'checked' if loop.first }}>
                             <label class="form-check-label small" for="topup_gw_{{ gw }}">
-                                {% if gw == 'sepehr' %}سپهر
+                                {% if gw == 'zibal' %}زیبال
+                                {% elif gw == 'sepehr' %}سپهر
                                 {% elif gw == 'top' %}تاپ
                                 {% elif gw == 'parsian' %}پارسیان
                                 {% else %}{{ gw }}{% endif %}

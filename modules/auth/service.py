@@ -13,7 +13,7 @@ from typing import Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from common.helpers import now_utc
+from common.helpers import now_utc, normalize_digits
 from common.security import (
     hash_otp, generate_otp, check_otp_rate_limit, check_otp_verify_rate_limit,
     create_token,
@@ -103,7 +103,7 @@ class AuthService:
         Raises:
             OTPError if rate limited
         """
-        mobile = mobile.strip()
+        mobile = normalize_digits(mobile.strip())
 
         # Rate limit check
         if not check_otp_rate_limit(mobile):
@@ -137,8 +137,8 @@ class AuthService:
         Raises:
             AuthenticationError if OTP is invalid or expired
         """
-        mobile = mobile.strip()
-        code = code.strip()
+        mobile = normalize_digits(mobile.strip())
+        code = normalize_digits(code.strip())
         now = now_utc()
 
         # Rate limit verification attempts (brute-force protection)

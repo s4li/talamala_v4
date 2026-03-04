@@ -16,21 +16,23 @@ def now_utc() -> datetime:
 
 
 def safe_int(value: Optional[str]) -> Optional[int]:
-    """Safely convert a string to int. Returns None on failure."""
+    """Safely convert a string to int. Returns None on failure.
+    Normalizes Persian/Arabic digits automatically."""
     if value is None:
         return None
     try:
-        return int(str(value).strip())
+        return int(normalize_digits(str(value).strip()))
     except (ValueError, TypeError):
         return None
 
 
 def safe_decimal(value: Optional[str], default: Optional[Decimal] = None) -> Optional[Decimal]:
-    """Safely convert a string to Decimal. Returns default on failure."""
+    """Safely convert a string to Decimal. Returns default on failure.
+    Normalizes Persian/Arabic digits automatically."""
     if value is None:
         return default
     try:
-        return Decimal(str(value).strip())
+        return Decimal(normalize_digits(str(value).strip()))
     except Exception:
         return default
 
@@ -72,7 +74,22 @@ def get_real_ip(request) -> str:
 # Jalali Date & Persian Number Filters
 # ==========================================
 
+# Persian/Arabic → English digit mapping (for normalizing user input)
+_TO_ENGLISH_DIGITS = str.maketrans(
+    "\u06f0\u06f1\u06f2\u06f3\u06f4\u06f5\u06f6\u06f7\u06f8\u06f9"   # Persian ۰-۹
+    "\u0660\u0661\u0662\u0663\u0664\u0665\u0666\u0667\u0668\u0669",   # Arabic ٠-٩
+    "01234567890123456789",
+)
+
+# English → Persian digit mapping (for display)
 _PERSIAN_DIGITS = str.maketrans("0123456789", "\u06f0\u06f1\u06f2\u06f3\u06f4\u06f5\u06f6\u06f7\u06f8\u06f9")
+
+
+def normalize_digits(value: Optional[str]) -> Optional[str]:
+    """Convert Persian/Arabic digits to English digits (backend safety net)."""
+    if value is None:
+        return None
+    return str(value).translate(_TO_ENGLISH_DIGITS)
 
 
 def persian_number(value) -> str:
@@ -125,10 +142,11 @@ def validate_iranian_national_id(value: str) -> bool:
     """
     Validate Iranian National ID (کد ملی) format and check digit.
     Returns True if valid, False otherwise.
+    Normalizes Persian/Arabic digits automatically.
     """
     if not value:
         return False
-    value = value.strip()
+    value = normalize_digits(value.strip())
     if len(value) != 10 or not value.isdigit():
         return False
     # Reject all-same digits (e.g., 1111111111)
@@ -148,10 +166,11 @@ def validate_iranian_mobile(value: str) -> bool:
     """
     Validate Iranian mobile number format (09XXXXXXXXX — 11 digits).
     Returns True if valid, False otherwise.
+    Normalizes Persian/Arabic digits automatically.
     """
     if not value:
         return False
-    value = value.strip()
+    value = normalize_digits(value.strip())
     if len(value) != 11:
         return False
     if not value.startswith("09"):

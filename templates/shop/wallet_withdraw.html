@@ -27,9 +27,8 @@
                     <!-- Amount -->
                     <div class="mb-3">
                         <label class="form-label-tm fw-bold">مبلغ برداشت (تومان) <span class="text-danger">*</span></label>
-                        <input type="number" name="amount_toman" id="withdraw-amount" class="form-control form-control-tm form-control-lg"
-                               min="100000" max="999999999999" step="1" required
-                               placeholder="مثال: ۱,۰۰۰,۰۰۰">
+                        <input type="text" inputmode="numeric" name="amount_toman" id="withdraw-amount" class="form-control form-control-tm form-control-lg"
+                               required placeholder="مثال: ۱,۰۰۰,۰۰۰">
                         <div id="withdraw-amount-words" class="mt-1 text-muted small" style="min-height:1.4em;"></div>
                         <div class="form-text">حداقل ۱۰۰,۰۰۰ تومان • حداکثر تا سقف موجودی ({{ balance.withdrawable | toman }} تومان)</div>
                     </div>
