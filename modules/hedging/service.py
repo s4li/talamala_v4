@@ -238,7 +238,7 @@ class HedgingService:
             "status_label": pos.status_label,
             "status_color": pos.status_color,
             "metal_label": pos.metal_label,
-            "updated_at": pos.updated_at,
+            "updated_at": pos.updated_at.isoformat() if pos.updated_at else None,
         }
 
     def get_all_positions(self, db: Session) -> dict:

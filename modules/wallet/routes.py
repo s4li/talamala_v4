@@ -520,9 +520,10 @@ async def wallet_metal_buy(
         # Hedging: record OUT position for wallet metal buy (customer buys metal from us)
         try:
             from modules.hedging.service import hedging_service
+            import uuid as _uuid
             hedging_service.record_out(
                 db, asset_type, result["metal_mg"],
-                source_type="wallet_buy", source_id=str(me.id),
+                source_type="wallet_buy", source_id=f"{me.id}:{_uuid.uuid4().hex[:8]}",
                 description=f"Wallet buy {result['metal_mg'] / 1000:.3f}g {asset_type} — user #{me.id}",
             )
         except Exception:
@@ -592,9 +593,10 @@ async def wallet_metal_sell(
         # Hedging: record IN position for wallet metal sell (customer sells metal back to us)
         try:
             from modules.hedging.service import hedging_service
+            import uuid as _uuid
             hedging_service.record_in(
                 db, asset_type, mg,
-                source_type="wallet_sell", source_id=str(me.id),
+                source_type="wallet_sell", source_id=f"{me.id}:{_uuid.uuid4().hex[:8]}",
                 description=f"Wallet sell {mg / 1000:.3f}g {asset_type} — user #{me.id}",
             )
         except Exception:
