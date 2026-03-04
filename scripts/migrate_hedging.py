@@ -201,7 +201,7 @@ def seed_data(conn):
     settings_skipped = 0
     for key, value, description in HEDGING_SETTINGS:
         result = conn.execute(text(
-            "SELECT id FROM system_settings WHERE key = :key"
+            "SELECT key FROM system_settings WHERE key = :key"
         ), {"key": key})
         if result.fetchone():
             log(f"Setting '{key}' already exists", "SKIP")
