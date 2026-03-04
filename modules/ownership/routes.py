@@ -157,7 +157,7 @@ async def transfer_send_otp(
         db.commit()
 
         # Send OTP to owner's mobile
-        sms_sender.send_otp_lookup(
+        sms_sent = sms_sender.send_otp_lookup(
             receptor=result["owner_mobile"],
             token=me.full_name.replace(" ", "_"),
             token2=result["otp_raw"],
@@ -168,6 +168,8 @@ async def transfer_send_otp(
         from modules.inventory.models import Bar
         bar = db.query(Bar).filter(Bar.id == bar_id).first()
         cart_map, cart_count = cart_service.get_cart_map(db, me.id)
+
+        sms_warning = None if sms_sent else "ارتباط با سرویس پیامک برقرار نشد. لطفاً دوباره تلاش کنید."
 
         csrf = new_csrf_token()
         response = templates.TemplateResponse("shop/transfer_bar.html", {
@@ -180,7 +182,7 @@ async def transfer_send_otp(
             "step": "otp",
             "transfer_id": result["transfer_id"],
             "to_mobile": to_mobile,
-            "error": None,
+            "error": sms_warning,
         })
         response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
         return response
@@ -357,7 +359,7 @@ async def delivery_send_otp(
         db.commit()
 
         # Send SMS
-        sms_sender.send_otp_lookup(
+        sms_sent = sms_sender.send_otp_lookup(
             receptor=result["customer_mobile"],
             token=result["otp_raw"],
             token2="تحویل شمش",
@@ -365,8 +367,12 @@ async def delivery_send_otp(
         )
 
         import urllib.parse
-        msg = urllib.parse.quote("کد تأیید ارسال شد")
-        return RedirectResponse(f"/my-bars/{bar_id}/delivery?msg={msg}", status_code=303)
+        if sms_sent:
+            msg = urllib.parse.quote("کد تأیید ارسال شد")
+            return RedirectResponse(f"/my-bars/{bar_id}/delivery?msg={msg}", status_code=303)
+        else:
+            error = urllib.parse.quote("ارتباط با سرویس پیامک برقرار نشد. لطفاً دوباره تلاش کنید.")
+            return RedirectResponse(f"/my-bars/{bar_id}/delivery?error={error}", status_code=303)
     except ValueError as e:
         db.rollback()
         import urllib.parse

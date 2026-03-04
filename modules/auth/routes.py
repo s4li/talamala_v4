@@ -201,7 +201,7 @@ async def send_otp(
         db.commit()
 
         # Send SMS (debug mode prints to console)
-        sms_sender.send_otp_lookup(
+        sms_sent = sms_sender.send_otp_lookup(
             receptor=mobile,
             token=display_name,
             token2=otp_raw,
@@ -209,12 +209,14 @@ async def send_otp(
         )
 
         csrf = new_csrf_token()
+        sms_warning = None if sms_sent else "ارتباط با سرویس پیامک برقرار نشد. لطفاً دوباره تلاش کنید."
+
         response = templates.TemplateResponse("auth/login.html", {
             "request": request,
             "csrf_token": csrf,
             "step": "verify",
             "mobile": mobile,
-            "error": None,
+            "error": sms_warning,
             "next_url": next_url,
             "ref_code": ref_code,
         })
