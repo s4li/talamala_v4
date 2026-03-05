@@ -131,9 +131,27 @@ async def blog_create(
         return RedirectResponse(f"/admin/blog/{article.id}", status_code=303)
     except IntegrityError:
         db.rollback()
-        return RedirectResponse(
-            "/admin/blog/new?error=slug-duplicate", status_code=303,
+        # Re-render form with submitted data instead of redirect (preserves TinyMCE body)
+        categories = blog_service.list_categories(db)
+        tags = blog_service.list_tags(db)
+        # Build a lightweight object mimicking article attributes
+        form_article = type("FD", (), {
+            "id": None, "title": title, "slug": slug, "excerpt": excerpt,
+            "body": body, "category_id": cat_id, "status": status,
+            "meta_title": meta_title, "meta_description": meta_description,
+            "is_featured": is_featured == "on", "tag_ids": tag_ids,
+            "cover_image": None, "images": [], "author_name": user.full_name,
+            "seo_title": meta_title or title, "seo_description": meta_description or excerpt,
+        })()
+        data, csrf = _ctx(
+            request, user,
+            article=form_article, categories=categories, tags=tags,
+            statuses=list(ArticleStatus),
+            error="اسلاگ تکراری است. لطفاً یک اسلاگ متفاوت وارد کنید.",
         )
+        response = templates.TemplateResponse("admin/blog/form.html", data)
+        response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+        return response
 
 
 # ==========================================

@@ -177,7 +177,39 @@ async def coupon_create(
         )
     except Exception as e:
         db.rollback()
-        return RedirectResponse(f"/admin/coupons/new?error={str(e)}", status_code=302)
+        # Re-render form with submitted data instead of redirect
+        products = db.query(Product).filter(Product.is_active == True).all()
+        product_categories = db.query(ProductCategory).filter(ProductCategory.is_active == True).order_by(ProductCategory.sort_order).all()
+        # Build lightweight object mimicking coupon attributes
+        form_coupon = type("FD", (), {
+            "id": None, "code": code, "title": title, "description": description,
+            "coupon_type": coupon_type, "discount_mode": discount_mode,
+            "discount_value": int(discount_value) if discount_mode == "PERCENT" else discount_value,
+            "max_discount_amount": max_discount_amount, "scope": scope,
+            "scope_product_id": scope_product_id or None,
+            "min_order_amount": min_order_amount, "max_order_amount": max_order_amount,
+            "min_quantity": min_quantity, "max_total_uses": max_total_uses,
+            "max_per_customer": max_per_customer,
+            "starts_at": _parse_datetime(starts_at), "expires_at": _parse_datetime(expires_at),
+            "first_purchase_only": first_purchase_only == "on",
+            "is_combinable": is_combinable == "on",
+            "is_private": is_private == "on",
+            "status": status, "mobiles": [], "usages": [],
+            "category_ids": [int(c) for c in category_ids if c],
+        })()
+        csrf = new_csrf_token()
+        response = templates.TemplateResponse("admin/coupon/form.html", {
+            "request": request,
+            "user": user,
+            "coupon": form_coupon,
+            "products": products,
+            "product_categories": product_categories,
+            "csrf_token": csrf,
+            "active_page": "coupons",
+            "error": str(e),
+        })
+        response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+        return response
 
 
 # ==========================================

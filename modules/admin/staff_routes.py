@@ -66,6 +66,7 @@ async def create_staff_form(
         "request": request,
         "user": user,
         "staff_user": None,
+        "form_data": None,
         "permissions_registry": PERMISSION_REGISTRY,
         "permission_levels": PERMISSION_LEVELS,
         "permission_level_labels": PERMISSION_LEVEL_LABELS,
@@ -88,30 +89,42 @@ async def create_staff(
 ):
     csrf_check(request, csrf_token)
 
-    # Check duplicate
-    if staff_service.get_by_mobile(db, mobile.strip()):
+    # Extract permissions from dropdowns first (needed for error re-rendering)
+    raw_form = await request.form()
+    perms = {}
+    for key in ALL_PERMISSION_KEYS:
+        lvl = raw_form.get(f"perm_{key}", "")
+        if lvl and lvl in PERMISSION_LEVELS:
+            perms[key] = lvl
+
+    def _error_response(error_msg: str):
+        """Re-render form preserving all submitted data."""
+        # Lightweight object mimicking staff_user attributes for template
+        fd = type("FD", (), {
+            "mobile": mobile.strip(),
+            "full_name": full_name.strip(),
+            "role": role,
+            "permissions": perms,
+        })()
         csrf = new_csrf_token()
-        response = templates.TemplateResponse("admin/staff/form.html", {
+        resp = templates.TemplateResponse("admin/staff/form.html", {
             "request": request,
             "user": user,
             "staff_user": None,
+            "form_data": fd,
             "permissions_registry": PERMISSION_REGISTRY,
-        "permission_levels": PERMISSION_LEVELS,
-        "permission_level_labels": PERMISSION_LEVEL_LABELS,
+            "permission_levels": PERMISSION_LEVELS,
+            "permission_level_labels": PERMISSION_LEVEL_LABELS,
             "csrf_token": csrf,
-            "error": "این شماره موبایل قبلا ثبت شده است.",
+            "error": error_msg,
             "active_page": "staff",
         })
-        response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
-        return response
+        resp.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+        return resp
 
-    # Extract permissions from dropdowns (dict format)
-    form_data = await request.form()
-    perms = {}
-    for key in ALL_PERMISSION_KEYS:
-        lvl = form_data.get(f"perm_{key}", "")
-        if lvl and lvl in PERMISSION_LEVELS:
-            perms[key] = lvl
+    # Check duplicate
+    if staff_service.get_by_mobile(db, mobile.strip()):
+        return _error_response("این شماره موبایل قبلا ثبت شده است.")
 
     staff_service.create_staff(
         db, mobile=mobile.strip(), full_name=full_name.strip(),

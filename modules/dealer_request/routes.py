@@ -103,22 +103,40 @@ async def dealer_request_submit(
     csrf_check(request, csrf_token)
     from common.helpers import validate_iranian_mobile
 
+    # Collect form data for error re-rendering (mimics dealer_request object attributes)
+    form_data = type("FD", (), {
+        "first_name": first_name.strip(),
+        "last_name": last_name.strip(),
+        "mobile": mobile.strip(),
+        "province_id": province_id,
+        "city_id": city_id,
+        "city_name": "",  # will be resolved by JS cascade
+        "birth_date": birth_date.strip(),
+        "email": email.strip(),
+        "gender": gender,
+        "admin_note": None,
+        "attachments": [],
+    })()
+
+    def _err(msg):
+        return _render_form_with_error(request, db, me, msg, form_data)
+
     # Validate required fields
     if not first_name.strip() or not last_name.strip():
-        return await _render_form_with_error(request, db, me, "نام و نام خانوادگی الزامی است.")
+        return await _err("نام و نام خانوادگی الزامی است.")
     if not mobile.strip():
-        return await _render_form_with_error(request, db, me, "شماره تماس الزامی است.")
+        return await _err("شماره تماس الزامی است.")
     if not validate_iranian_mobile(mobile.strip()):
-        return await _render_form_with_error(request, db, me, "شماره موبایل نامعتبر است. فرمت صحیح: ۰۹XXXXXXXXX")
+        return await _err("شماره موبایل نامعتبر است. فرمت صحیح: ۰۹XXXXXXXXX")
 
     # Validate gender
     if gender and gender not in ("male", "female"):
-        return await _render_form_with_error(request, db, me, "جنسیت نامعتبر است.")
+        return await _err("جنسیت نامعتبر است.")
 
     # Limit file uploads
     valid_files = [f for f in (files or []) if f and f.filename]
     if len(valid_files) > 5:
-        return await _render_form_with_error(request, db, me, "حداکثر ۵ فایل مجاز است.")
+        return await _err("حداکثر ۵ فایل مجاز است.")
 
     # Check if customer has an existing RevisionNeeded request (edit/resubmit)
     active = dealer_request_service.get_active_request(db, me.id)
@@ -157,11 +175,11 @@ async def dealer_request_submit(
         return RedirectResponse("/dealer-request", status_code=302)
 
     db.rollback()
-    return await _render_form_with_error(request, db, me, result["message"])
+    return await _err(result["message"])
 
 
-async def _render_form_with_error(request, db, me, error_msg):
-    """Re-render the form with an error message."""
+async def _render_form_with_error(request, db, me, error_msg, form_data=None):
+    """Re-render the form with an error message, preserving submitted data."""
     provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
     csrf = new_csrf_token()
     response = templates.TemplateResponse("shop/dealer_request.html", {
@@ -171,6 +189,7 @@ async def _render_form_with_error(request, db, me, error_msg):
         "csrf_token": csrf,
         "msg": None,
         "error": error_msg,
+        "dealer_request": form_data,  # template uses dealer_request.* to fill fields
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response

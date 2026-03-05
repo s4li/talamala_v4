@@ -14,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from config.database import get_db
 from common.templating import templates
 from common.security import csrf_check, new_csrf_token
+from common.flash import flash
 from modules.auth.deps import require_permission
 from modules.catalog.service import (
     product_service, design_service, package_service, batch_service,
@@ -291,6 +292,7 @@ async def add_batch(
         db.commit()
     except IntegrityError:
         db.rollback()
+        flash(request, "شماره بچ تکراری است. لطفاً شماره متفاوتی وارد کنید.", "danger")
     return RedirectResponse("/admin/batches", status_code=303)
 
 
@@ -377,6 +379,7 @@ async def add_category(
         db.commit()
     except IntegrityError:
         db.rollback()
+        flash(request, "نام یا اسلاگ دسته‌بندی تکراری است.", "danger")
     return RedirectResponse("/admin/categories", status_code=303)
 
 

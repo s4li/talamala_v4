@@ -32,21 +32,22 @@
                     <input type="text" class="form-control form-control-tm" value="{{ staff_user.mobile }}" disabled dir="ltr">
                     {% else %}
                     <input type="text" name="mobile" class="form-control form-control-tm" required
-                           placeholder="09xxxxxxxxx" dir="ltr" maxlength="11" pattern="09[0-9]{9}">
+                           placeholder="09xxxxxxxxx" dir="ltr" maxlength="11" pattern="09[0-9]{9}"
+                           value="{{ form_data.mobile if form_data else '' }}">
                     {% endif %}
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label-tm">نام و نام خانوادگی</label>
                     <input type="text" name="full_name" class="form-control form-control-tm" required
-                           value="{{ staff_user.full_name if staff_user else '' }}">
+                           value="{{ staff_user.full_name if staff_user else (form_data.full_name if form_data else '') }}">
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label-tm">نقش</label>
                     <select name="role" id="roleSelect" class="form-select form-select-tm">
-                        <option value="operator" {% if not staff_user or staff_user.role == 'operator' %}selected{% endif %}>اپراتور</option>
-                        <option value="admin" {% if staff_user and staff_user.role == 'admin' %}selected{% endif %}>مدیر کل</option>
+                        <option value="operator" {% if (staff_user and staff_user.role == 'operator') or (form_data and form_data.role == 'operator') or (not staff_user and not form_data) %}selected{% endif %}>اپراتور</option>
+                        <option value="admin" {% if (staff_user and staff_user.role == 'admin') or (form_data and form_data.role == 'admin') %}selected{% endif %}>مدیر کل</option>
                     </select>
                 </div>
 
@@ -86,7 +87,7 @@
                             <option value="">بدون دسترسی</option>
                             {% for lvl in permission_levels %}
                             <option value="{{ lvl }}"
-                                {% if staff_user and staff_user.permissions.get(key) == lvl %}selected{% endif %}>
+                                {% if staff_user and staff_user.permissions.get(key) == lvl %}selected{% elif form_data and form_data.permissions.get(key) == lvl %}selected{% endif %}>
                                 {{ permission_level_labels[lvl] }}
                             </option>
                             {% endfor %}
