@@ -300,8 +300,9 @@ talamala_v4/
 - **PositionDirection** (str enum): OUT, IN, HEDGE, ADJUST
 - **MetalPosition**: id, metal_type (unique), balance_mg (BigInteger, signed: negative=short, positive=long), updated_at
   - Properties: `balance_grams`, `status` (short/long/hedged), `status_label`, `status_color`, `metal_label`
-- **PositionLedger**: id, metal_type, direction (PositionDirection), amount_mg (positive), balance_after_mg (signed), source_type, source_id, description, metal_price_per_gram (nullable), recorded_by (FK→users), idempotency_key (unique), created_at
+- **PositionLedger**: id, metal_type, direction (PositionDirection), amount_mg (positive), balance_after_mg (signed), source_type, source_id, description, metal_price_per_gram (nullable), recorded_by (FK→users), involved_user_id (FK→users, nullable — customer/dealer involved in operation), idempotency_key (unique), created_at
   - Properties: `direction_label`, `direction_color`, `source_label`, `amount_grams`, `balance_after_grams`, `metal_label`
+  - Relationships: `recorder` (admin who recorded), `involved_user` (customer/dealer involved)
   - Indexes: (metal_type, created_at), (source_type, source_id)
 
 ---

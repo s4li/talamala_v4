@@ -87,11 +87,13 @@ class PositionLedger(Base):
     description = Column(String(500), nullable=True)
     metal_price_per_gram = Column(BigInteger, nullable=True) # Spot price at time (for hedge records, rial)
     recorded_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    involved_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Customer/dealer involved in this operation
     idempotency_key = Column(String(100), unique=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
     recorder = relationship("User", foreign_keys=[recorded_by])
+    involved_user = relationship("User", foreign_keys=[involved_user_id])
 
     __table_args__ = (
         Index("ix_pos_ledger_metal_created", "metal_type", "created_at"),

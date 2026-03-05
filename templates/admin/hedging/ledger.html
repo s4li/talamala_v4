@@ -77,6 +77,7 @@
                     <th>بالانس بعد</th>
                     <th>قیمت هر گرم</th>
                     <th>ثبت‌کننده</th>
+                    <th>کاربر مرتبط</th>
                     <th>توضیحات</th>
                 </tr>
             </thead>
@@ -98,7 +99,14 @@
                         {% else %}-{% endif %}
                     </td>
                     <td>
-                        {% if e.recorder %}{{ e.recorder.full_name }}{% else %}-{% endif %}
+                        {% if e.recorder %}{{ e.recorder.full_name }}{% else %}<span class="text-muted">سیستم</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if e.involved_user %}
+                        <a href="/admin/customers/{{ e.involved_user.id }}" class="text-decoration-none">
+                            {{ e.involved_user.full_name }}
+                        </a>
+                        {% else %}-{% endif %}
                     </td>
                     <td class="text-muted small" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ e.description or '' }}">
                         {{ e.description or '-' }}

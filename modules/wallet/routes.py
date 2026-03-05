@@ -526,6 +526,7 @@ async def wallet_metal_buy(
                 db, asset_type, result["metal_mg"],
                 source_type="wallet_buy", source_id=f"{me.id}:{_uuid.uuid4().hex[:8]}",
                 description=f"Wallet buy {result['metal_mg'] / 1000:.3f}g {asset_type} — user #{me.id}",
+                involved_user_id=me.id,
             )
         except Exception:
             pass  # Never block wallet trade
@@ -599,6 +600,7 @@ async def wallet_metal_sell(
                 db, asset_type, mg,
                 source_type="wallet_sell", source_id=f"{me.id}:{_uuid.uuid4().hex[:8]}",
                 description=f"Wallet sell {mg / 1000:.3f}g {asset_type} — user #{me.id}",
+                involved_user_id=me.id,
             )
         except Exception:
             pass  # Never block wallet trade

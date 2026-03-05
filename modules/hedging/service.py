@@ -11,7 +11,7 @@ import threading
 import uuid
 from typing import Optional, Tuple, List
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func as sa_func, desc
 
 from modules.hedging.models import MetalPosition, PositionLedger, PositionDirection
@@ -41,6 +41,7 @@ class HedgingService:
         description: str = "",
         metal_price_per_gram: int = None,
         recorded_by: int = None,
+        involved_user_id: int = None,
         idempotency_key: str = None,
     ) -> Optional[PositionLedger]:
         """
@@ -121,6 +122,7 @@ class HedgingService:
             description=description or "",
             metal_price_per_gram=metal_price_per_gram,
             recorded_by=recorded_by,
+            involved_user_id=involved_user_id,
             idempotency_key=idempotency_key,
         )
         db.add(entry)
@@ -138,6 +140,7 @@ class HedgingService:
     def record_out(
         self, db: Session, metal_type: str, amount_mg: int,
         source_type: str, source_id: str = "", description: str = "",
+        involved_user_id: int = None,
     ) -> Optional[PositionLedger]:
         """Record an OUT event (we gave metal to customer). Position decreases."""
         idem_key = f"{source_type}:{source_id}:{metal_type}"
@@ -145,11 +148,13 @@ class HedgingService:
             db, metal_type, PositionDirection.OUT, amount_mg,
             source_type=source_type, source_id=source_id,
             description=description, idempotency_key=idem_key,
+            involved_user_id=involved_user_id,
         )
 
     def record_in(
         self, db: Session, metal_type: str, amount_mg: int,
         source_type: str, source_id: str = "", description: str = "",
+        involved_user_id: int = None,
     ) -> Optional[PositionLedger]:
         """Record an IN event (we received metal from customer). Position increases."""
         idem_key = f"{source_type}:{source_id}:{metal_type}"
@@ -157,6 +162,7 @@ class HedgingService:
             db, metal_type, PositionDirection.IN, amount_mg,
             source_type=source_type, source_id=source_id,
             description=description, idempotency_key=idem_key,
+            involved_user_id=involved_user_id,
         )
 
     # ==========================================
@@ -183,6 +189,7 @@ class HedgingService:
             description=description,
             metal_price_per_gram=metal_price_per_gram,
             recorded_by=admin_id,
+            involved_user_id=admin_id,
         )
 
     def set_initial_balance(
@@ -211,6 +218,7 @@ class HedgingService:
             source_id=f"adjust:{uuid.uuid4().hex[:8]}",
             description=description or f"Manual adjustment: {current/1000:.3f}g -> {balance_mg/1000:.3f}g",
             recorded_by=admin_id,
+            involved_user_id=admin_id,
         )
 
     # ==========================================
@@ -264,7 +272,10 @@ class HedgingService:
             q = q.filter(PositionLedger.direction == direction)
 
         total = q.count()
-        entries = q.order_by(desc(PositionLedger.created_at)).offset(
+        entries = q.options(
+            joinedload(PositionLedger.recorder),
+            joinedload(PositionLedger.involved_user),
+        ).order_by(desc(PositionLedger.created_at)).offset(
             (page - 1) * per_page
         ).limit(per_page).all()
 

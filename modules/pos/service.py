@@ -421,6 +421,7 @@ class PosService:
                     db, metal_type, weight_mg,
                     source_type="pos_sale", source_id=str(sale.id),
                     description=f"Customer POS sale #{sale.id} — {bar.serial_code}",
+                    involved_user_id=customer.id if customer else None,
                 )
         except Exception:
             pass  # Never block POS sale

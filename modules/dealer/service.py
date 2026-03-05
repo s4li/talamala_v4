@@ -418,6 +418,7 @@ class DealerService:
                     db, metal_type, weight_mg,
                     source_type="pos_sale", source_id=str(sale.id),
                     description=f"Dealer POS sale #{sale.id} — {bar.serial_code}",
+                    involved_user_id=customer.id if customer else None,
                 )
         except Exception:
             pass  # Never block dealer sale
@@ -525,7 +526,7 @@ class DealerService:
         Smart wage logic: seller_mobile == owner_mobile → wage included.
         """
         from common.security import generate_otp, hash_otp, check_otp_rate_limit
-        from common.sms import send_sms
+        from common.sms import sms_sender
         from datetime import timedelta
         import threading
 
@@ -609,7 +610,7 @@ class DealerService:
         wage_toman = amounts["wage_rial"] // 10
         total_toman = amounts["total_rial"] // 10
         sms_text = f"طلاملا: کد تأیید بازخرید شمش: {otp_raw}\nمبلغ واریز: {total_toman:,} تومان"
-        threading.Thread(target=send_sms, args=(seller_mobile, sms_text), daemon=True).start()
+        threading.Thread(target=sms_sender.send_plain_text, args=(seller_mobile, sms_text), daemon=True).start()
 
         return {
             "success": True,
@@ -709,15 +710,22 @@ class DealerService:
                 db, bb_metal, weight_mg,
                 source_type="buyback", source_id=str(buyback.id),
                 description=f"Buyback #{buyback.id} — {serial}",
+                involved_user_id=seller_user.id,
             )
 
-        # 5. Ownership history
+        # 5. Return bar to dealer inventory (ready for resale)
+        bar.status = BarStatus.ASSIGNED
+        bar.customer_id = None
+        bar.dealer_id = dealer_id
+        bar.delivered_at = None
+
+        # 6. Ownership history
         total_deposit = buyback.buyback_price + buyback.wage_refund_amount
         dealer = db.query(User).filter(User.id == dealer_id).first()
         db.add(OwnershipHistory(
             bar_id=bar.id,
             previous_owner_id=bar.customer_id,
-            new_owner_id=seller_user.id,
+            new_owner_id=None,
             description=f"بازخرید توسط نماینده {dealer.full_name if dealer else ''} — {total_deposit // 10:,} تومان به کیف پول واریز شد",
         ))
 
@@ -737,7 +745,7 @@ class DealerService:
     ) -> Dict[str, Any]:
         """Resend OTP for a PENDING buyback request."""
         from common.security import generate_otp, hash_otp, check_otp_rate_limit
-        from common.sms import send_sms
+        from common.sms import sms_sender
         from datetime import timedelta
         import threading
 
@@ -763,7 +771,7 @@ class DealerService:
 
         total_toman = (buyback.buyback_price + buyback.wage_refund_amount) // 10
         sms_text = f"طلاملا: کد تأیید بازخرید شمش: {otp_raw}\nمبلغ واریز: {total_toman:,} تومان"
-        threading.Thread(target=send_sms, args=(buyback.customer_mobile, sms_text), daemon=True).start()
+        threading.Thread(target=sms_sender.send_plain_text, args=(buyback.customer_mobile, sms_text), daemon=True).start()
 
         return {"success": True, "message": f"کد تأیید مجدداً به {buyback.customer_mobile} ارسال شد"}
 

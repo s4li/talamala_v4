@@ -356,6 +356,7 @@ class OrderService:
                         db, metal, weight_mg,
                         source_type="order", source_id=str(order.id),
                         description=f"Order #{order.id}",
+                        involved_user_id=order.customer_id,
                     )
         except Exception:
             pass  # Never block order finalization
