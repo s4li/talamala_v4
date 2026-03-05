@@ -255,76 +255,155 @@ async def buyback_page(
     return response
 
 
-@router.post("/buyback")
-async def buyback_submit(
+@router.post("/buyback/send-otp")
+async def buyback_send_otp(
     request: Request,
-    serial_code: str = Form(...),
-    buyback_price: int = Form(...),
-    customer_name: str = Form(""),
-    customer_mobile: str = Form(""),
-    description: str = Form(""),
-    csrf_token: str = Form(""),
     dealer=Depends(require_dealer),
     db: Session = Depends(get_db),
 ):
+    """Step 1: Send OTP to seller mobile. AJAX endpoint."""
+    # CSRF from header (AJAX)
+    csrf_token = request.headers.get("X-CSRF-Token", "")
     csrf_check(request, csrf_token)
 
-    # buyback_price from form is in toman, convert to rial
-    buyback_price_rial = buyback_price * 10
+    body = await request.json()
+    serial_code = body.get("serial_code", "").strip()
+    seller_mobile = body.get("seller_mobile", "").strip()
+    seller_national_id = body.get("seller_national_id", "").strip()
+    seller_name = body.get("seller_name", "").strip()
+    description = body.get("description", "").strip()
 
-    result = dealer_service.create_buyback(
-        db, dealer.id, serial_code, buyback_price_rial,
-        customer_name=customer_name,
-        customer_mobile=customer_mobile,
+    if not serial_code:
+        return JSONResponse({"success": False, "message": "سریال شمش الزامی است"})
+    if not seller_mobile or len(seller_mobile) < 11:
+        return JSONResponse({"success": False, "message": "شماره موبایل فروشنده الزامی است"})
+
+    result = dealer_service.initiate_buyback(
+        db, dealer.id, serial_code,
+        seller_mobile=seller_mobile,
+        seller_national_id=seller_national_id,
+        seller_name=seller_name,
         description=description,
     )
 
     if result["success"]:
-        try:
-            from modules.notification.service import notification_service
-            from modules.notification.models import NotificationType
-
-            # Build admin alert with weight + metal balance
-            bar = db.query(Bar).filter(Bar.serial_code == serial_code.strip().upper()).first()
-            admin_text = None
-            if bar and bar.product:
-                metal_label = "طلا" if bar.product.metal_type == "gold" else "نقره"
-                metal_key = bar.product.metal_type or "gold"
-                balance_info = ""
-                try:
-                    from modules.hedging.service import hedging_service
-                    balance_info = f" | {hedging_service.get_balance_text(db, metal_key)}"
-                except Exception:
-                    pass
-                admin_text = f"[هشدار] بازخرید شمش {bar.product.weight}g {metal_label}{balance_info}"
-
-            notification_service.send(
-                db, dealer.id,
-                notification_type=NotificationType.DEALER_BUYBACK,
-                title="بازخرید ثبت شد",
-                body=f"بازخرید شمش {serial_code} به مبلغ {buyback_price:,} تومان ثبت شد.",
-                link="/dealer/buybacks",
-                sms_text=f"طلاملا: بازخرید شمش {serial_code} به مبلغ {buyback_price:,} تومان ثبت شد.",
-                reference_type="buyback", reference_id=str(result.get("buyback_id", "")),
-                admin_alert_text=admin_text,
-            )
-        except Exception:
-            pass
         db.commit()
     else:
         db.rollback()
 
-    csrf = new_csrf_token()
-    response = templates.TemplateResponse("dealer/buyback.html", {
-        "request": request,
-        "dealer": dealer,
-        "csrf_token": csrf,
-        "active_page": "buyback",
-        "error": None if result["success"] else result["message"],
-        "success": result["message"] if result["success"] else None,
-    })
-    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
-    return response
+    return JSONResponse(result)
+
+
+@router.post("/buyback/confirm")
+async def buyback_confirm(
+    request: Request,
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    """Step 2: Verify OTP → atomic: register + deposit + hedging. AJAX endpoint."""
+    csrf_token = request.headers.get("X-CSRF-Token", "")
+    csrf_check(request, csrf_token)
+
+    body = await request.json()
+    buyback_id = body.get("buyback_id")
+    otp_code = body.get("otp_code", "").strip()
+
+    if not buyback_id or not otp_code:
+        return JSONResponse({"success": False, "message": "اطلاعات ناقص است"})
+
+    try:
+        result = dealer_service.confirm_buyback(db, int(buyback_id), dealer.id, otp_code)
+
+        if result["success"]:
+            # Send notifications before commit
+            try:
+                from modules.notification.service import notification_service
+                from modules.notification.models import NotificationType
+
+                buyback = result.get("buyback")
+                bar = db.query(Bar).filter(Bar.id == buyback.bar_id).first() if buyback else None
+                admin_text = None
+                if bar and bar.product:
+                    metal_label = "طلا" if bar.product.metal_type == "gold" else "نقره"
+                    metal_key = bar.product.metal_type or "gold"
+                    balance_info = ""
+                    try:
+                        from modules.hedging.service import hedging_service
+                        balance_info = f" | {hedging_service.get_balance_text(db, metal_key)}"
+                    except Exception:
+                        pass
+                    admin_text = f"[هشدار] بازخرید شمش {bar.product.weight}g {metal_label}{balance_info}"
+
+                total_toman = (buyback.buyback_price + buyback.wage_refund_amount) // 10
+                notification_service.send(
+                    db, dealer.id,
+                    notification_type=NotificationType.DEALER_BUYBACK,
+                    title="بازخرید ثبت شد",
+                    body=f"بازخرید شمش {bar.serial_code if bar else ''} — {total_toman:,} تومان به کیف پول واریز شد.",
+                    link="/dealer/buybacks",
+                    sms_text=f"طلاملا: بازخرید شمش {bar.serial_code if bar else ''} — {total_toman:,} تومان واریز شد.",
+                    reference_type="buyback", reference_id=str(buyback.id) if buyback else "",
+                    admin_alert_text=admin_text,
+                )
+            except Exception:
+                pass
+
+            db.commit()
+        else:
+            db.rollback()
+    except Exception as e:
+        db.rollback()
+        result = {"success": False, "message": f"خطای سرور: {str(e)}"}
+
+    # Remove buyback object from response (not JSON serializable)
+    result.pop("buyback", None)
+    return JSONResponse(result)
+
+
+@router.post("/buyback/resend-otp")
+async def buyback_resend_otp(
+    request: Request,
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    """Resend OTP for a PENDING buyback. AJAX endpoint."""
+    csrf_token = request.headers.get("X-CSRF-Token", "")
+    csrf_check(request, csrf_token)
+
+    body = await request.json()
+    buyback_id = body.get("buyback_id")
+    if not buyback_id:
+        return JSONResponse({"success": False, "message": "شناسه درخواست الزامی است"})
+
+    result = dealer_service.resend_buyback_otp(db, int(buyback_id), dealer.id)
+    if result["success"]:
+        db.commit()
+    else:
+        db.rollback()
+    return JSONResponse(result)
+
+
+@router.post("/buyback/cancel")
+async def buyback_cancel(
+    request: Request,
+    dealer=Depends(require_dealer),
+    db: Session = Depends(get_db),
+):
+    """Cancel a PENDING buyback. AJAX endpoint."""
+    csrf_token = request.headers.get("X-CSRF-Token", "")
+    csrf_check(request, csrf_token)
+
+    body = await request.json()
+    buyback_id = body.get("buyback_id")
+    if not buyback_id:
+        return JSONResponse({"success": False, "message": "شناسه درخواست الزامی است"})
+
+    result = dealer_service.cancel_buyback(db, int(buyback_id), dealer.id)
+    if result["success"]:
+        db.commit()
+    else:
+        db.rollback()
+    return JSONResponse(result)
 
 
 # ==========================================
@@ -854,6 +933,14 @@ async def buyback_lookup(
         )
         wage_toman = bb_info.get("wage", 0) // 10
 
+    # Owner info for smart wage logic hint
+    has_owner = bool(bar.customer_id and bar.customer)
+    owner_name = bar.customer.full_name if has_owner else "نامشخص"
+    owner_mobile_masked = ""
+    if has_owner and bar.customer.mobile:
+        m = bar.customer.mobile
+        owner_mobile_masked = m[:4] + "***" + m[-4:] if len(m) >= 8 else m
+
     return JSONResponse({
         "found": True,
         "serial_code": bar.serial_code,
@@ -863,7 +950,9 @@ async def buyback_lookup(
         "raw_gold_toman": raw_gold_toman,
         "wage_toman": wage_toman,
         "retail_toman": retail_toman,
-        "owner_name": bar.customer.full_name if bar.customer_id and bar.customer else "نامشخص",
+        "owner_name": owner_name,
+        "has_owner": has_owner,
+        "owner_mobile_masked": owner_mobile_masked,
     })
 
 

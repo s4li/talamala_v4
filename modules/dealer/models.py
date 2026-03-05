@@ -27,10 +27,9 @@ from config.database import Base
 # ==========================================
 
 class BuybackStatus(str, enum.Enum):
-    PENDING = "Pending"       # در انتظار تایید ادمین
-    APPROVED = "Approved"     # تایید شده - آماده تسویه
-    COMPLETED = "Completed"   # تسویه شده - وجه واریز شد
-    REJECTED = "Rejected"     # رد شده
+    PENDING = "Pending"       # OTP ارسال شده — در انتظار تأیید فروشنده
+    COMPLETED = "Completed"   # تسویه شده — وجه به کیف پول واریز شد
+    REJECTED = "Rejected"     # رد شده / لغو شده / منقضی شده
 
 
 class B2BOrderStatus(str, enum.Enum):
@@ -100,27 +99,32 @@ class BuybackRequest(Base):
     id = Column(Integer, primary_key=True)
     dealer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     bar_id = Column(Integer, ForeignKey("bars.id", ondelete="SET NULL"), nullable=True, index=True)
-    customer_name = Column(String, nullable=True)
-    customer_mobile = Column(String(15), nullable=True)
-    buyback_price = Column(BigInteger, nullable=False)        # ریال - مبلغ پیشنهادی بازخرید
+    customer_name = Column(String, nullable=True)              # نام فروشنده
+    customer_mobile = Column(String(15), nullable=True)        # موبایل فروشنده
+    seller_national_id = Column(String, nullable=True)         # کد ملی فروشنده
+    seller_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # کاربر فروشنده (بعد از verify)
+    is_owner = Column(Boolean, default=False, nullable=False)  # آیا فروشنده همون مالک اصلیه؟
+    buyback_price = Column(BigInteger, nullable=False)         # ریال — ارزش طلای خام
+    wage_refund_amount = Column(BigInteger, default=0, nullable=False)      # اجرت بازخرید (ریال) — فقط وقتی is_owner=True
+    wage_refund_customer_id = Column(Integer, nullable=True)                 # user_id دریافت‌کننده وجه
     status = Column(String, default=BuybackStatus.PENDING, nullable=False)
+    otp_hash = Column(String, nullable=True)                   # HMAC hash of OTP
+    otp_expiry = Column(DateTime(timezone=True), nullable=True)
     admin_note = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
-    wage_refund_amount = Column(BigInteger, default=0, nullable=False)      # اعتبار اجرت واریزشده (ریال)
-    wage_refund_customer_id = Column(Integer, nullable=True)                 # مشتری دریافت‌کننده اعتبار
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     dealer = relationship("User", foreign_keys=[dealer_id])
+    seller = relationship("User", foreign_keys=[seller_user_id])
     bar = relationship("Bar", foreign_keys=[bar_id])
 
     @property
     def status_label(self) -> str:
         labels = {
-            BuybackStatus.PENDING: "در انتظار بررسی",
-            BuybackStatus.APPROVED: "تایید شده",
+            BuybackStatus.PENDING: "در انتظار تأیید OTP",
             BuybackStatus.COMPLETED: "تسویه شده",
-            BuybackStatus.REJECTED: "رد شده",
+            BuybackStatus.REJECTED: "لغو شده",
         }
         return labels.get(self.status, self.status)
 
@@ -128,7 +132,6 @@ class BuybackRequest(Base):
     def status_color(self) -> str:
         colors = {
             BuybackStatus.PENDING: "warning",
-            BuybackStatus.APPROVED: "info",
             BuybackStatus.COMPLETED: "success",
             BuybackStatus.REJECTED: "danger",
         }

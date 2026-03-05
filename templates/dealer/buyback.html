@@ -6,50 +6,38 @@
 <div class="d-flex align-items-center justify-content-between mb-4 tm-animate-fade-in">
     <h4 class="mb-0 fw-bold">
         <i class="bi bi-arrow-return-left text-tm-primary"></i>
-        درخواست بازخرید
+        بازخرید شمش
     </h4>
     <a href="/dealer/buybacks" class="btn btn-sm btn-tm-outline">
         <i class="bi bi-clock-history me-1"></i> تاریخچه بازخرید
     </a>
 </div>
 
-{% if error %}
-<div class="alert-tm-danger">
-    <i class="bi bi-exclamation-triangle me-1"></i>
-    {{ error }}
-</div>
-{% endif %}
-
-{% if success %}
-<div class="alert-tm-success">
-    <i class="bi bi-check-circle me-1"></i>
-    {{ success }}
-</div>
-{% endif %}
+<!-- Global alerts -->
+<div id="globalAlert" style="display:none;"></div>
 
 <div class="card-tm no-hover tm-animate-fade-in-up tm-delay-2">
     <div class="alert-tm-info mb-4">
         <i class="bi bi-info-circle me-1"></i>
-        پس از ثبت بازخرید، ارزش طلای خام و مبلغ بازخرید (اجرت) بصورت جداگانه به کیف پول مالک شمش واریز می‌شود.
+        پس از ثبت بازخرید، مبلغ بازخرید به کیف پول دیجیتال فروشنده واریز می‌شود.
+        اگر فروشنده حساب نداشته باشد، حساب جدید برایش ساخته می‌شود.
     </div>
 
-    <form method="POST" action="/dealer/buyback">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-
-        <!-- Serial Code -->
+    <!-- ===================== STEP 1: Serial Lookup ===================== -->
+    <div id="step1">
         <div class="mb-3">
             <label class="form-label-tm fw-bold">سریال شمش <span class="text-danger">*</span></label>
             <div class="input-group">
-                <input type="text" name="serial_code" id="serialInput" class="form-control form-control-tm" required
+                <input type="text" id="serialInput" class="form-control form-control-tm" required
                        dir="ltr" placeholder="سریال شمش را وارد کنید" style="text-transform: uppercase;">
                 <button type="button" id="lookupBtn" class="btn btn-tm-outline">
                     <i class="bi bi-search me-1"></i> استعلام
                 </button>
             </div>
-            <small class="text-muted">سریال را وارد کنید و روی «استعلام» بزنید تا قیمت سیستمی نمایش داده شود</small>
+            <small class="text-muted">سریال را وارد کنید و روی «استعلام» بزنید تا اطلاعات شمش نمایش داده شود</small>
         </div>
 
-        <!-- Bar Info Box (auto-filled by AJAX) -->
+        <!-- Bar Info Box -->
         <div id="barInfoBox" class="mb-3" style="display:none;">
             <div class="p-3 rounded" style="background:var(--tm-info-900, #f8f5f0); border:1px solid var(--tm-primary-100, #ddd);">
                 <div class="d-flex align-items-center gap-2 mb-2">
@@ -68,7 +56,7 @@
                         <div class="fw-bold fs-5" style="color:var(--tm-primary);" id="rawGoldPrice"></div>
                     </div>
                     <div class="col-md-4">
-                        <div class="small text-muted">مبلغ بازخرید (اجرت)</div>
+                        <div class="small text-muted">اجرت بازخرید (حداکثر)</div>
                         <div class="fw-bold fs-5 text-success" id="wagePrice"></div>
                     </div>
                     <div class="col-md-4">
@@ -76,13 +64,7 @@
                         <div class="fw-bold text-muted" id="retailPrice"></div>
                     </div>
                 </div>
-                <div class="mt-2 p-2 rounded" style="background:rgba(25,135,84,0.08); border:1px solid rgba(25,135,84,0.2);">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="small fw-bold">مجموع واریز به کیف پول مالک:</span>
-                        <span class="fw-bold fs-5" style="color:var(--tm-primary);" id="totalDepositPrice"></span>
-                    </div>
-                    <small class="text-muted">ارزش طلای خام + مبلغ بازخرید (اجرت) — در دو تراکنش جداگانه واریز می‌شود</small>
-                </div>
+                <div id="ownerHint" class="mt-2 small" style="display:none;"></div>
             </div>
         </div>
         <div id="barErrorBox" class="mb-3" style="display:none;">
@@ -91,194 +73,431 @@
                 <span id="barErrorMsg"></span>
             </div>
         </div>
+    </div>
 
-        <!-- Buyback Price (hidden, sent to server) -->
-        <input type="hidden" name="buyback_price" id="buybackPriceInput" value="0">
-
-        <div class="row mb-3">
-            <div class="col-md-6 mb-2">
-                <label class="form-label-tm fw-bold">ارزش طلای خام (تومان)</label>
-                <input type="text" id="rawGoldDisplay" class="form-control form-control-tm" readonly
-                       style="background-color: var(--tm-info-900, #f8f5f0);" placeholder="—">
-            </div>
-            <div class="col-md-6 mb-2">
-                <label class="form-label-tm fw-bold">مبلغ بازخرید — اجرت (تومان)</label>
-                <input type="text" id="wageDisplay" class="form-control form-control-tm" readonly
-                       style="background-color: rgba(25,135,84,0.06); border-color: rgba(25,135,84,0.3);" placeholder="—">
-            </div>
-        </div>
-        <div id="priceWordsBox" class="mb-3" style="display:none;">
-            <small id="priceInWords" class="text-muted d-block" style="color:var(--tm-primary); font-weight:600;"></small>
-        </div>
-
+    <!-- ===================== STEP 2: Seller Info + Send OTP ===================== -->
+    <div id="step2" style="display:none;">
         <hr>
-        <h6 class="fw-bold text-muted mb-3">
-            <i class="bi bi-person me-1"></i>
-            اطلاعات فروشنده (اختیاری)
+        <h6 class="fw-bold mb-3">
+            <i class="bi bi-person-badge me-1"></i>
+            اطلاعات فروشنده
         </h6>
 
         <div class="row">
-            <div class="col-md-6 mb-3">
-                <label class="form-label-tm">نام فروشنده</label>
-                <input type="text" name="customer_name" class="form-control form-control-tm" placeholder="نام و نام خانوادگی">
+            <div class="col-md-4 mb-3">
+                <label class="form-label-tm fw-bold">موبایل فروشنده <span class="text-danger">*</span></label>
+                <input type="tel" id="sellerMobile" class="form-control form-control-tm" dir="ltr"
+                       placeholder="09xxxxxxxxx" pattern="09[0-9]{9}" maxlength="11" required>
             </div>
-            <div class="col-md-6 mb-3">
-                <label class="form-label-tm">موبایل فروشنده</label>
-                <input type="tel" name="customer_mobile" class="form-control form-control-tm" dir="ltr"
-                       placeholder="09xxxxxxxxx" pattern="09[0-9]{9}" maxlength="11">
+            <div class="col-md-4 mb-3">
+                <label class="form-label-tm fw-bold">کد ملی فروشنده <span class="text-danger">*</span></label>
+                <input type="text" id="sellerNationalId" class="form-control form-control-tm" dir="ltr"
+                       placeholder="کد ملی ۱۰ رقمی" maxlength="10" required>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label-tm">نام فروشنده</label>
+                <input type="text" id="sellerName" class="form-control form-control-tm"
+                       placeholder="نام و نام خانوادگی (اختیاری)">
             </div>
         </div>
 
         <div class="mb-3">
             <label class="form-label-tm">توضیحات</label>
-            <textarea name="description" class="form-control form-control-tm" rows="2" placeholder="توضیح اختیاری..."></textarea>
+            <textarea id="description" class="form-control form-control-tm" rows="2" placeholder="توضیح اختیاری..."></textarea>
         </div>
 
-        <button type="submit" id="submitBtn" class="btn btn-lg btn-tm-primary px-5" disabled>
+        <div id="step2Error" class="mb-3" style="display:none;">
+            <div class="alert-tm-danger mb-0">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                <span id="step2ErrorMsg"></span>
+            </div>
+        </div>
+
+        <button type="button" id="sendOtpBtn" class="btn btn-lg btn-tm-primary px-5">
             <i class="bi bi-send me-1"></i>
-            ارسال درخواست بازخرید
+            ارسال کد تأیید
         </button>
-    </form>
+    </div>
+
+    <!-- ===================== STEP 3: OTP Verification ===================== -->
+    <div id="step3" style="display:none;">
+        <hr>
+        <h6 class="fw-bold mb-3">
+            <i class="bi bi-shield-lock me-1"></i>
+            تأیید کد OTP
+        </h6>
+
+        <!-- Price summary after OTP sent -->
+        <div id="priceSummary" class="p-3 rounded mb-3" style="background:rgba(25,135,84,0.08); border:1px solid rgba(25,135,84,0.2);">
+            <div class="row text-center">
+                <div class="col-4">
+                    <div class="small text-muted">ارزش طلای خام</div>
+                    <div class="fw-bold" style="color:var(--tm-primary);" id="summaryRaw"></div>
+                </div>
+                <div class="col-4">
+                    <div class="small text-muted">اجرت بازخرید</div>
+                    <div class="fw-bold text-success" id="summaryWage"></div>
+                </div>
+                <div class="col-4">
+                    <div class="small text-muted fw-bold">مجموع واریز</div>
+                    <div class="fw-bold fs-5" style="color:var(--tm-primary);" id="summaryTotal"></div>
+                </div>
+            </div>
+            <div id="wageNote" class="text-center mt-2 small"></div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label-tm fw-bold">کد تأیید ۶ رقمی</label>
+            <input type="text" id="otpInput" class="form-control form-control-tm text-center"
+                   dir="ltr" maxlength="6" placeholder="------"
+                   style="font-size:1.5rem; letter-spacing:0.5rem; max-width:300px;">
+            <small class="text-muted">
+                کد تأیید به شماره <span id="otpMobile" class="fw-bold" dir="ltr"></span> ارسال شد
+                — <span id="otpTimer" class="text-danger fw-bold"></span>
+            </small>
+        </div>
+
+        <div id="step3Error" class="mb-3" style="display:none;">
+            <div class="alert-tm-danger mb-0">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                <span id="step3ErrorMsg"></span>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <button type="button" id="confirmBtn" class="btn btn-lg btn-tm-primary px-5">
+                <i class="bi bi-check-circle me-1"></i>
+                تأیید و ثبت بازخرید
+            </button>
+            <button type="button" id="resendBtn" class="btn btn-sm btn-tm-outline" style="display:none;">
+                <i class="bi bi-arrow-repeat me-1"></i>
+                ارسال مجدد کد
+            </button>
+            <button type="button" id="cancelBtn" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-x-lg me-1"></i>
+                لغو
+            </button>
+        </div>
+    </div>
+
+    <!-- ===================== STEP 4: Success ===================== -->
+    <div id="step4" style="display:none;">
+        <div class="text-center py-4">
+            <i class="bi bi-check-circle text-success" style="font-size:3rem;"></i>
+            <h5 class="fw-bold mt-3" id="successTitle"></h5>
+            <p class="text-muted" id="successMsg"></p>
+            <a href="/dealer/buyback" class="btn btn-tm-primary mt-2">
+                <i class="bi bi-arrow-return-left me-1"></i>
+                بازخرید جدید
+            </a>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block page_js %}
 <script>
 (function(){
-    const serialInput = document.getElementById('serialInput');
-    const lookupBtn = document.getElementById('lookupBtn');
-    const infoBox = document.getElementById('barInfoBox');
-    const errorBox = document.getElementById('barErrorBox');
-    const priceInput = document.getElementById('buybackPriceInput');
-    const priceWords = document.getElementById('priceInWords');
-    const priceWordsBox = document.getElementById('priceWordsBox');
-    const rawGoldDisplay = document.getElementById('rawGoldDisplay');
-    const wageDisplay = document.getElementById('wageDisplay');
-    const submitBtn = document.getElementById('submitBtn');
+    // === Elements ===
+    var serialInput = document.getElementById('serialInput');
+    var lookupBtn = document.getElementById('lookupBtn');
+    var step1 = document.getElementById('step1');
+    var step2 = document.getElementById('step2');
+    var step3 = document.getElementById('step3');
+    var step4 = document.getElementById('step4');
+    var infoBox = document.getElementById('barInfoBox');
+    var errorBox = document.getElementById('barErrorBox');
+    var sendOtpBtn = document.getElementById('sendOtpBtn');
+    var confirmBtn = document.getElementById('confirmBtn');
+    var resendBtn = document.getElementById('resendBtn');
+    var cancelBtn = document.getElementById('cancelBtn');
 
+    // === State ===
+    var currentSerial = '';
+    var currentBuybackId = null;
+    var otpTimerInterval = null;
+    var resendCooldownInterval = null;
+
+    // === Helpers ===
     function fmt(n) {
-        var v = Number(n);
-        return (isNaN(v) ? 0 : v).toLocaleString('fa-IR') + ' تومان';
+        return (Number(n) || 0).toLocaleString('fa-IR') + ' تومان';
     }
 
-    /* ---- تبدیل عدد به حروف فارسی ---- */
-    function numToWords(n) {
-        if (!n || n <= 0) return '';
-        n = Math.floor(n);
-        if (n === 0) return 'صفر';
-
-        const yekan = ['','یک','دو','سه','چهار','پنج','شش','هفت','هشت','نه'];
-        const dahgan = ['','','بیست','سی','چهل','پنجاه','شصت','هفتاد','هشتاد','نود'];
-        const dahyek = ['ده','یازده','دوازده','سیزده','چهارده','پانزده','شانزده','هفده','هجده','نوزده'];
-        const sadgan = ['','یکصد','دویست','سیصد','چهارصد','پانصد','ششصد','هفتصد','هشتصد','نهصد'];
-        const scale = ['','هزار','میلیون','میلیارد','تریلیون'];
-
-        function threeDigit(x) {
-            if (x === 0) return '';
-            let parts = [];
-            let s = Math.floor(x / 100);
-            let remainder = x % 100;
-            if (s > 0) parts.push(sadgan[s]);
-            if (remainder >= 10 && remainder <= 19) {
-                parts.push(dahyek[remainder - 10]);
-            } else {
-                let d = Math.floor(remainder / 10);
-                let y = remainder % 10;
-                if (d > 0) parts.push(dahgan[d]);
-                if (y > 0) parts.push(yekan[y]);
-            }
-            return parts.join(' و ');
-        }
-
-        let chunks = [];
-        let i = 0;
-        while (n > 0) {
-            let chunk = n % 1000;
-            if (chunk > 0) {
-                let words = threeDigit(chunk);
-                if (scale[i]) words += ' ' + scale[i];
-                chunks.unshift(words);
-            }
-            n = Math.floor(n / 1000);
-            i++;
-        }
-        return chunks.join(' و ');
+    function getCsrf() {
+        var m = document.cookie.match(/csrf_token=([^;]+)/);
+        return m ? m[1] : '';
     }
 
-    function showPriceWords(totalToman) {
-        if (totalToman && totalToman > 0) {
-            priceWords.textContent = 'مجموع واریز: ' + numToWords(totalToman) + ' تومان';
-            priceWordsBox.style.display = 'block';
-        } else {
-            priceWordsBox.style.display = 'none';
-            priceWords.textContent = '';
-        }
+    function ajaxPost(url, data) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrf(),
+            },
+            body: JSON.stringify(data),
+        }).then(function(r) { return r.json(); });
     }
 
-    function fmtInput(n) {
-        var v = Number(n);
-        return (isNaN(v) ? 0 : v).toLocaleString('fa-IR');
+    function showError(boxId, msgId, msg) {
+        var box = document.getElementById(boxId);
+        var el = document.getElementById(msgId);
+        if (box && el) { el.textContent = msg; box.style.display = 'block'; }
+    }
+    function hideError(boxId) {
+        var box = document.getElementById(boxId);
+        if (box) box.style.display = 'none';
     }
 
+    function showGlobalAlert(msg, type) {
+        var el = document.getElementById('globalAlert');
+        el.className = type === 'success' ? 'alert-tm-success mb-3' : 'alert-tm-danger mb-3';
+        el.innerHTML = '<i class="bi bi-' + (type === 'success' ? 'check-circle' : 'exclamation-triangle') + ' me-1"></i>' + msg;
+        el.style.display = 'block';
+    }
+
+    // === Step 1: Lookup ===
     function doLookup() {
-        const serial = serialInput.value.trim();
+        var serial = serialInput.value.trim();
         if (serial.length < 3) return;
 
         lookupBtn.disabled = true;
         lookupBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> ...';
         infoBox.style.display = 'none';
         errorBox.style.display = 'none';
-        showPriceWords(0);
+        step2.style.display = 'none';
+        step3.style.display = 'none';
 
         fetch('/dealer/buyback/lookup?serial=' + encodeURIComponent(serial))
-            .then(r => r.json())
-            .then(data => {
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
                 if (data.found) {
                     document.getElementById('barProductName').textContent = data.product_name;
                     document.getElementById('barSerial').textContent = data.serial_code;
                     document.getElementById('barWeight').textContent = data.weight;
                     document.getElementById('barPurity').textContent = data.purity;
                     document.getElementById('barOwner').textContent = data.owner_name;
-                    var rawGold = data.raw_gold_toman || 0;
-                    var wage = data.wage_toman || 0;
-                    var retail = data.retail_toman || 0;
-                    var totalDeposit = rawGold + wage;
-                    document.getElementById('rawGoldPrice').textContent = fmt(rawGold);
-                    document.getElementById('wagePrice').textContent = fmt(wage);
-                    document.getElementById('retailPrice').textContent = fmt(retail);
-                    document.getElementById('totalDepositPrice').textContent = fmt(totalDeposit);
-                    priceInput.value = rawGold;
-                    rawGoldDisplay.value = fmtInput(rawGold);
-                    wageDisplay.value = fmtInput(wage);
-                    showPriceWords(totalDeposit);
-                    submitBtn.disabled = false;
+                    document.getElementById('rawGoldPrice').textContent = fmt(data.raw_gold_toman);
+                    document.getElementById('wagePrice').textContent = fmt(data.wage_toman);
+                    document.getElementById('retailPrice').textContent = fmt(data.retail_toman);
+
+                    // Owner hint
+                    var hint = document.getElementById('ownerHint');
+                    if (data.has_owner && data.owner_mobile_masked) {
+                        hint.innerHTML = '<i class="bi bi-person-check text-success me-1"></i>مالک ثبت‌شده: ' +
+                            data.owner_name + ' (' + data.owner_mobile_masked + ') — اگر فروشنده همین شخص باشد، اجرت بازخرید هم واریز می‌شود.';
+                        hint.style.display = 'block';
+                    } else {
+                        hint.innerHTML = '<i class="bi bi-person-x text-warning me-1"></i>مالک ثبت‌شده ندارد — اجرت بازخرید لحاظ نخواهد شد.';
+                        hint.style.display = 'block';
+                    }
+
+                    currentSerial = data.serial_code;
                     infoBox.style.display = 'block';
-                    errorBox.style.display = 'none';
+                    step2.style.display = 'block';
                 } else {
                     document.getElementById('barErrorMsg').textContent = data.error || 'شمش یافت نشد';
                     errorBox.style.display = 'block';
-                    infoBox.style.display = 'none';
-                    priceInput.value = '';
-                    rawGoldDisplay.value = '';
-                    wageDisplay.value = '';
-                    showPriceWords(0);
-                    submitBtn.disabled = true;
                 }
             })
-            .catch(() => {
+            .catch(function() {
                 document.getElementById('barErrorMsg').textContent = 'خطا در ارتباط با سرور';
                 errorBox.style.display = 'block';
             })
-            .finally(() => {
+            .finally(function() {
                 lookupBtn.disabled = false;
                 lookupBtn.innerHTML = '<i class="bi bi-search me-1"></i> استعلام';
             });
     }
 
     lookupBtn.addEventListener('click', doLookup);
-    serialInput.addEventListener('keydown', function(e){
+    serialInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') { e.preventDefault(); doLookup(); }
     });
+
+    // === Step 2: Send OTP ===
+    sendOtpBtn.addEventListener('click', function() {
+        var mobile = document.getElementById('sellerMobile').value.trim();
+        var nationalId = document.getElementById('sellerNationalId').value.trim();
+        var name = document.getElementById('sellerName').value.trim();
+        var desc = document.getElementById('description').value.trim();
+
+        if (!mobile || !/^09[0-9]{9}$/.test(mobile)) {
+            showError('step2Error', 'step2ErrorMsg', 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود');
+            return;
+        }
+        if (!nationalId || nationalId.length < 8) {
+            showError('step2Error', 'step2ErrorMsg', 'کد ملی الزامی است');
+            return;
+        }
+        hideError('step2Error');
+
+        sendOtpBtn.disabled = true;
+        sendOtpBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> در حال ارسال...';
+
+        ajaxPost('/dealer/buyback/send-otp', {
+            serial_code: currentSerial,
+            seller_mobile: mobile,
+            seller_national_id: nationalId,
+            seller_name: name,
+            description: desc,
+        }).then(function(data) {
+            if (data.success) {
+                currentBuybackId = data.buyback_id;
+
+                // Update price summary
+                document.getElementById('summaryRaw').textContent = fmt(data.raw_metal_toman);
+                document.getElementById('summaryWage').textContent = fmt(data.wage_toman);
+                document.getElementById('summaryTotal').textContent = fmt(data.total_toman);
+
+                var wageNote = document.getElementById('wageNote');
+                if (data.is_owner) {
+                    wageNote.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>فروشنده مالک اصلی شمش است — اجرت بازخرید لحاظ شد</span>';
+                } else {
+                    wageNote.innerHTML = '<span class="text-warning"><i class="bi bi-info-circle me-1"></i>فروشنده مالک اصلی نیست — بدون اجرت بازخرید</span>';
+                }
+
+                document.getElementById('otpMobile').textContent = mobile;
+
+                // Show step 3, hide step 2 inputs
+                step2.style.display = 'none';
+                step3.style.display = 'block';
+                document.getElementById('otpInput').focus();
+
+                // Start 5-minute countdown
+                startOtpTimer(5 * 60);
+                // Start 60s resend cooldown
+                startResendCooldown(60);
+            } else {
+                showError('step2Error', 'step2ErrorMsg', data.message);
+            }
+        }).catch(function() {
+            showError('step2Error', 'step2ErrorMsg', 'خطا در ارتباط با سرور');
+        }).finally(function() {
+            sendOtpBtn.disabled = false;
+            sendOtpBtn.innerHTML = '<i class="bi bi-send me-1"></i> ارسال کد تأیید';
+        });
+    });
+
+    // === Step 3: Confirm OTP ===
+    confirmBtn.addEventListener('click', function() {
+        var otp = document.getElementById('otpInput').value.trim();
+        if (!otp || otp.length < 4) {
+            showError('step3Error', 'step3ErrorMsg', 'کد تأیید را وارد کنید');
+            return;
+        }
+        hideError('step3Error');
+
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> در حال ثبت...';
+
+        ajaxPost('/dealer/buyback/confirm', {
+            buyback_id: currentBuybackId,
+            otp_code: otp,
+        }).then(function(data) {
+            if (data.success) {
+                // Show success
+                clearTimers();
+                step1.style.display = 'none';
+                step3.style.display = 'none';
+                step4.style.display = 'block';
+                document.getElementById('successTitle').textContent = 'بازخرید با موفقیت ثبت شد';
+                document.getElementById('successMsg').textContent = data.message;
+            } else {
+                showError('step3Error', 'step3ErrorMsg', data.message);
+            }
+        }).catch(function() {
+            showError('step3Error', 'step3ErrorMsg', 'خطا در ارتباط با سرور');
+        }).finally(function() {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> تأیید و ثبت بازخرید';
+        });
+    });
+
+    // Enter key on OTP input
+    document.getElementById('otpInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); confirmBtn.click(); }
+    });
+
+    // === Resend OTP ===
+    resendBtn.addEventListener('click', function() {
+        if (!currentBuybackId) return;
+        resendBtn.disabled = true;
+
+        ajaxPost('/dealer/buyback/resend-otp', {
+            buyback_id: currentBuybackId,
+        }).then(function(data) {
+            if (data.success) {
+                hideError('step3Error');
+                startOtpTimer(5 * 60);
+                startResendCooldown(60);
+                resendBtn.style.display = 'none';
+            } else {
+                showError('step3Error', 'step3ErrorMsg', data.message);
+            }
+        }).catch(function() {
+            showError('step3Error', 'step3ErrorMsg', 'خطا در ارسال مجدد');
+        }).finally(function() {
+            resendBtn.disabled = false;
+        });
+    });
+
+    // === Cancel ===
+    cancelBtn.addEventListener('click', function() {
+        if (!currentBuybackId) return;
+        if (!confirm('آیا از لغو بازخرید مطمئن هستید؟')) return;
+
+        ajaxPost('/dealer/buyback/cancel', {
+            buyback_id: currentBuybackId,
+        }).then(function(data) {
+            clearTimers();
+            currentBuybackId = null;
+            step3.style.display = 'none';
+            step2.style.display = 'block';
+            if (data.success) {
+                showGlobalAlert('درخواست بازخرید لغو شد', 'success');
+            }
+        }).catch(function() {});
+    });
+
+    // === Timers ===
+    function startOtpTimer(seconds) {
+        clearInterval(otpTimerInterval);
+        var remaining = seconds;
+        var timerEl = document.getElementById('otpTimer');
+        function tick() {
+            var m = Math.floor(remaining / 60);
+            var s = remaining % 60;
+            timerEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+            if (remaining <= 0) {
+                clearInterval(otpTimerInterval);
+                timerEl.textContent = 'منقضی شده';
+                confirmBtn.disabled = true;
+                resendBtn.style.display = 'inline-block';
+            }
+            remaining--;
+        }
+        tick();
+        otpTimerInterval = setInterval(tick, 1000);
+    }
+
+    function startResendCooldown(seconds) {
+        resendBtn.style.display = 'none';
+        clearInterval(resendCooldownInterval);
+        var remaining = seconds;
+        resendCooldownInterval = setInterval(function() {
+            remaining--;
+            if (remaining <= 0) {
+                clearInterval(resendCooldownInterval);
+                resendBtn.style.display = 'inline-block';
+            }
+        }, 1000);
+    }
+
+    function clearTimers() {
+        clearInterval(otpTimerInterval);
+        clearInterval(resendCooldownInterval);
+    }
 })();
 </script>
 {% endblock %}

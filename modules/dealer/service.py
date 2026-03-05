@@ -431,66 +431,11 @@ class DealerService:
         }
 
     # ------------------------------------------
-    # Buyback
+    # Buyback (OTP-verified, wallet-only)
     # ------------------------------------------
 
-    def create_buyback(
-        self, db: Session, dealer_id: int, serial_code: str,
-        buyback_price: int, customer_name: str = "",
-        customer_mobile: str = "", description: str = "",
-    ) -> Dict[str, Any]:
-        """
-        Dealer initiates a buyback — instant process:
-        1. Recalculate raw metal value + wage server-side
-        2. Deposit raw metal value to owner's wallet (transaction 1)
-        3. Deposit wage amount to owner's wallet (transaction 2)
-        4. Set buyback status to COMPLETED
-        """
-        from modules.wallet.service import wallet_service
-        from modules.pricing.calculator import calculate_bar_price
-        from common.templating import get_setting_from_db
-
-        dealer = self.get_dealer(db, dealer_id)
-        if not dealer or not dealer.is_active:
-            return {"success": False, "message": "نماینده غیرفعال"}
-
-        bar = db.query(Bar).filter(Bar.serial_code == serial_code.upper()).first()
-        if not bar:
-            return {"success": False, "message": "شمش با این سریال یافت نشد"}
-        if bar.status != BarStatus.SOLD:
-            return {"success": False, "message": "فقط شمش‌های فروخته‌شده قابل بازخرید هستند"}
-
-        # Trade toggle guard
-        product = bar.product
-        bb_metal = (product.metal_type if product else "gold") or "gold"
-        try:
-            from modules.pricing.trade_guard import require_trade_enabled
-            require_trade_enabled(db, bb_metal, "buyback")
-        except ValueError as e:
-            return {"success": False, "message": str(e)}
-
-        # Prevent duplicate buyback for same bar
-        existing = (
-            db.query(BuybackRequest)
-            .filter(
-                BuybackRequest.bar_id == bar.id,
-                BuybackRequest.status != BuybackStatus.REJECTED,
-            )
-            .first()
-        )
-        if existing:
-            return {"success": False, "message": "برای این شمش قبلاً درخواست بازخرید ثبت شده است"}
-
-        if not bar.customer_id:
-            return {"success": False, "message": "مالک شمش مشخص نیست"}
-
-        product = bar.product
-        if not product:
-            return {"success": False, "message": "محصول مرتبط یافت نشد"}
-
-        owner_id = bar.customer_id
-
-        # --- Find the original sale price (at time of purchase) ---
+    def _get_original_metal_price(self, db: Session, bar: Bar, product) -> Tuple[int, int]:
+        """Find original sale price → returns (metal_price_rial, base_purity)."""
         from modules.order.models import OrderItem, Order
 
         original_metal_price = None
@@ -500,7 +445,7 @@ class DealerService:
         if dealer_sale and dealer_sale.applied_metal_price:
             original_metal_price = int(dealer_sale.applied_metal_price)
 
-        # Check OrderItem (online order) if not found in POS
+        # Check OrderItem (online order)
         if not original_metal_price:
             order_item = (
                 db.query(OrderItem)
@@ -511,14 +456,20 @@ class DealerService:
             if order_item and order_item.applied_metal_price:
                 original_metal_price = int(order_item.applied_metal_price)
 
-        # Fallback to current price only if no sale record found
         _, p_bp, _ = get_product_pricing(db, product)
         if original_metal_price:
-            p_price = original_metal_price
+            return original_metal_price, p_bp
         else:
             p_price, p_bp, _ = get_product_pricing(db, product)
+            return p_price, p_bp
 
-        # Raw metal value (no wage, no tax) — based on ORIGINAL sale price
+    def _calculate_buyback_amounts(self, db: Session, bar: Bar, product, is_owner: bool) -> Dict[str, int]:
+        """Calculate raw metal value + wage for buyback."""
+        from modules.pricing.calculator import calculate_bar_price
+
+        p_price, p_bp = self._get_original_metal_price(db, bar, product)
+
+        # Raw metal value (no wage, no tax)
         raw_info = calculate_bar_price(
             weight=product.weight, purity=product.purity,
             wage_percent=0, base_metal_price=p_price,
@@ -526,82 +477,316 @@ class DealerService:
         )
         raw_metal_rial = raw_info.get("total", 0)
 
-        # Buyback wage uses separate buyback_wage_percent (no tax) — based on ORIGINAL sale price
-        buyback_pct = float(product.buyback_wage_percent or 0)
+        # Wage only if seller is the original owner
         wage_rial = 0
-        if buyback_pct > 0:
-            bb_info = calculate_bar_price(
-                weight=product.weight, purity=product.purity,
-                wage_percent=buyback_pct, base_metal_price=p_price,
-                tax_percent=0, base_purity=p_bp,
+        if is_owner:
+            buyback_pct = float(product.buyback_wage_percent or 0)
+            if buyback_pct > 0:
+                bb_info = calculate_bar_price(
+                    weight=product.weight, purity=product.purity,
+                    wage_percent=buyback_pct, base_metal_price=p_price,
+                    tax_percent=0, base_purity=p_bp,
+                )
+                wage_rial = bb_info.get("wage", 0)
+
+        return {
+            "raw_metal_rial": raw_metal_rial,
+            "wage_rial": wage_rial,
+            "total_rial": raw_metal_rial + wage_rial,
+            "metal_price": p_price,
+            "base_purity": p_bp,
+        }
+
+    def _auto_cancel_expired_pending(self, db: Session, bar_id: int):
+        """Auto-cancel expired PENDING buyback requests for this bar."""
+        pending = (
+            db.query(BuybackRequest)
+            .filter(
+                BuybackRequest.bar_id == bar_id,
+                BuybackRequest.status == BuybackStatus.PENDING,
             )
-            wage_rial = bb_info.get("wage", 0)
+            .all()
+        )
+        for req in pending:
+            if req.otp_expiry and req.otp_expiry < now_utc():
+                req.status = BuybackStatus.REJECTED
+                req.admin_note = "منقضی شده — OTP تأیید نشد"
+        if pending:
+            db.flush()
 
-        total_deposit = raw_metal_rial + wage_rial
+    def initiate_buyback(
+        self, db: Session, dealer_id: int, serial_code: str,
+        seller_mobile: str, seller_national_id: str = "",
+        seller_name: str = "", description: str = "",
+    ) -> Dict[str, Any]:
+        """
+        Step 1: Dealer enters serial + seller info → send OTP.
+        Creates PENDING BuybackRequest, sends OTP to seller mobile.
+        Smart wage logic: seller_mobile == owner_mobile → wage included.
+        """
+        from common.security import generate_otp, hash_otp, check_otp_rate_limit
+        from common.sms import send_sms
+        from datetime import timedelta
+        import threading
 
+        dealer = self.get_dealer(db, dealer_id)
+        if not dealer or not dealer.is_active:
+            return {"success": False, "message": "نماینده غیرفعال"}
+
+        if not seller_mobile or len(seller_mobile.strip()) < 11:
+            return {"success": False, "message": "شماره موبایل فروشنده الزامی است"}
+        seller_mobile = seller_mobile.strip()
+
+        bar = db.query(Bar).filter(Bar.serial_code == serial_code.strip().upper()).first()
+        if not bar:
+            return {"success": False, "message": "شمش با این سریال یافت نشد"}
+        if bar.status != BarStatus.SOLD:
+            return {"success": False, "message": "فقط شمش‌های فروخته‌شده قابل بازخرید هستند"}
+
+        product = bar.product
+        if not product:
+            return {"success": False, "message": "محصول مرتبط یافت نشد"}
+
+        # Trade toggle guard
+        bb_metal = (product.metal_type if product else "gold") or "gold"
+        try:
+            from modules.pricing.trade_guard import require_trade_enabled
+            require_trade_enabled(db, bb_metal, "buyback")
+        except ValueError as e:
+            return {"success": False, "message": str(e)}
+
+        # Auto-cancel expired pending requests for this bar
+        self._auto_cancel_expired_pending(db, bar.id)
+
+        # Prevent duplicate active buyback
+        existing = (
+            db.query(BuybackRequest)
+            .filter(
+                BuybackRequest.bar_id == bar.id,
+                BuybackRequest.status != BuybackStatus.REJECTED,
+            )
+            .first()
+        )
+        if existing:
+            return {"success": False, "message": "برای این شمش قبلاً درخواست بازخرید فعال وجود دارد"}
+
+        # Smart wage logic: compare seller mobile with registered owner mobile
+        is_owner = False
+        if bar.customer_id and bar.customer:
+            is_owner = (bar.customer.mobile == seller_mobile)
+
+        # Calculate amounts
+        amounts = self._calculate_buyback_amounts(db, bar, product, is_owner)
+
+        # OTP rate limit
+        if not check_otp_rate_limit(seller_mobile):
+            return {"success": False, "message": "تعداد درخواست کد تأیید بیش از حد مجاز. لطفاً چند دقیقه صبر کنید."}
+
+        # Generate OTP
+        otp_raw = generate_otp()
+        otp_hashed = hash_otp(seller_mobile, otp_raw)
+
+        # Create PENDING buyback
         buyback = BuybackRequest(
             dealer_id=dealer_id,
             bar_id=bar.id,
-            customer_name=customer_name,
-            customer_mobile=customer_mobile,
-            buyback_price=raw_metal_rial,
-            wage_refund_amount=wage_rial,
-            wage_refund_customer_id=owner_id,
-            description=description,
-            status=BuybackStatus.COMPLETED,
+            customer_name=seller_name.strip(),
+            customer_mobile=seller_mobile,
+            seller_national_id=seller_national_id.strip(),
+            is_owner=is_owner,
+            buyback_price=amounts["raw_metal_rial"],
+            wage_refund_amount=amounts["wage_rial"],
+            otp_hash=otp_hashed,
+            otp_expiry=now_utc() + timedelta(minutes=5),
+            description=description.strip(),
+            status=BuybackStatus.PENDING,
         )
         db.add(buyback)
         db.flush()
 
-        # Transaction 1: Raw metal value
-        wallet_service.deposit(
-            db, owner_id, raw_metal_rial,
-            reference_type="buyback",
-            reference_id=str(buyback.id),
-            description=f"واریز ارزش طلای خام شمش {bar.serial_code}",
-            idempotency_key=f"buyback_raw:{buyback.id}",
-        )
-
-        # Transaction 2: Wage refund
-        if wage_rial > 0:
-            wallet_service.deposit(
-                db, owner_id, wage_rial,
-                reference_type="buyback_wage",
-                reference_id=str(buyback.id),
-                description=f"واریز مبلغ بازخرید (اجرت) شمش {bar.serial_code}",
-                idempotency_key=f"buyback_wage:{buyback.id}",
-            )
-
-        # Ownership history
-        db.add(OwnershipHistory(
-            bar_id=bar.id,
-            previous_owner_id=owner_id,
-            new_owner_id=owner_id,
-            description=f"بازخرید توسط نماینده {dealer.full_name} — مبلغ {total_deposit // 10:,} تومان به کیف پول واریز شد",
-        ))
-
-        # Hedging: record IN position for buyback (metal returned to company)
-        try:
-            from modules.hedging.service import hedging_service
-            if product and product.weight:
-                weight_mg = int(float(product.weight) * 1000)
-                hedging_service.record_in(
-                    db, bb_metal, weight_mg,
-                    source_type="buyback", source_id=str(buyback.id),
-                    description=f"Buyback #{buyback.id} — {bar.serial_code}",
-                )
-        except Exception:
-            pass  # Never block buyback
-
-        db.flush()
+        # Send SMS in background thread
+        raw_toman = amounts["raw_metal_rial"] // 10
+        wage_toman = amounts["wage_rial"] // 10
+        total_toman = amounts["total_rial"] // 10
+        sms_text = f"طلاملا: کد تأیید بازخرید شمش: {otp_raw}\nمبلغ واریز: {total_toman:,} تومان"
+        threading.Thread(target=send_sms, args=(seller_mobile, sms_text), daemon=True).start()
 
         return {
             "success": True,
-            "message": f"بازخرید شمش {bar.serial_code} انجام شد — مبلغ {raw_metal_rial // 10:,} تومان (طلای خام) + {wage_rial // 10:,} تومان (اجرت) به کیف پول مالک واریز شد",
+            "buyback_id": buyback.id,
+            "raw_metal_toman": raw_toman,
+            "wage_toman": wage_toman,
+            "total_toman": total_toman,
+            "is_owner": is_owner,
+            "message": f"کد تأیید به شماره {seller_mobile} ارسال شد",
+        }
+
+    def confirm_buyback(
+        self, db: Session, buyback_id: int, dealer_id: int, otp_code: str,
+    ) -> Dict[str, Any]:
+        """
+        Step 2: Verify OTP → auto-register seller → deposit to wallet → hedging IN.
+        All operations in one atomic transaction (caller must commit or rollback).
+        """
+        from common.security import hash_otp, check_otp_verify_rate_limit
+        from modules.wallet.service import wallet_service
+        from modules.auth.service import auth_service
+        from modules.hedging.service import hedging_service
+
+        buyback = (
+            db.query(BuybackRequest)
+            .filter(
+                BuybackRequest.id == buyback_id,
+                BuybackRequest.dealer_id == dealer_id,
+                BuybackRequest.status == BuybackStatus.PENDING,
+            )
+            .first()
+        )
+        if not buyback:
+            return {"success": False, "message": "درخواست بازخرید یافت نشد یا قبلاً تکمیل شده"}
+
+        # Re-verify bar status (may have changed between OTP send and confirm)
+        bar = db.query(Bar).filter(Bar.id == buyback.bar_id).first()
+        if not bar or bar.status != BarStatus.SOLD:
+            buyback.status = BuybackStatus.REJECTED
+            buyback.admin_note = "شمش دیگر در وضعیت فروخته‌شده نیست"
+            db.flush()
+            return {"success": False, "message": "وضعیت شمش تغییر کرده — بازخرید لغو شد"}
+
+        # Check OTP expiry
+        if not buyback.otp_expiry or buyback.otp_expiry < now_utc():
+            return {"success": False, "message": "کد تأیید منقضی شده. لطفاً کد جدید ارسال کنید."}
+
+        # OTP verify rate limit (brute-force protection)
+        if not check_otp_verify_rate_limit(buyback.customer_mobile):
+            return {"success": False, "message": "تعداد تلاش بیش از حد مجاز. لطفاً چند دقیقه صبر کنید."}
+
+        # Verify OTP hash
+        otp_code = otp_code.strip()
+        expected_hash = hash_otp(buyback.customer_mobile, otp_code)
+        if expected_hash != buyback.otp_hash:
+            return {"success": False, "message": "کد تأیید اشتباه است"}
+
+        # === ATOMIC BLOCK: all-or-nothing ===
+        # 1. Auto-register seller if needed
+        seller_user = auth_service.find_or_create_user(
+            db, buyback.customer_mobile,
+            first_name=buyback.customer_name or "کاربر",
+            last_name="",
+            profile_data={"national_id": buyback.seller_national_id or ""},
+        )
+        buyback.seller_user_id = seller_user.id
+        buyback.wage_refund_customer_id = seller_user.id
+
+        # 2. Wallet deposits
+        serial = bar.serial_code
+        wallet_service.deposit(
+            db, seller_user.id, buyback.buyback_price,
+            reference_type="buyback",
+            reference_id=str(buyback.id),
+            description=f"واریز ارزش طلای خام شمش {serial}",
+            idempotency_key=f"buyback_raw:{buyback.id}",
+        )
+        if buyback.wage_refund_amount > 0:
+            wallet_service.deposit(
+                db, seller_user.id, buyback.wage_refund_amount,
+                reference_type="buyback_wage",
+                reference_id=str(buyback.id),
+                description=f"واریز مبلغ بازخرید (اجرت) شمش {serial}",
+                idempotency_key=f"buyback_wage:{buyback.id}",
+            )
+
+        # 3. Update buyback status
+        buyback.status = BuybackStatus.COMPLETED
+        buyback.otp_hash = None  # Clear OTP after use
+
+        # 4. Hedging: record IN
+        product = bar.product
+        bb_metal = (product.metal_type if product else "gold") or "gold"
+        if product and product.weight:
+            weight_mg = int(float(product.weight) * 1000)
+            hedging_service.record_in(
+                db, bb_metal, weight_mg,
+                source_type="buyback", source_id=str(buyback.id),
+                description=f"Buyback #{buyback.id} — {serial}",
+            )
+
+        # 5. Ownership history
+        total_deposit = buyback.buyback_price + buyback.wage_refund_amount
+        dealer = db.query(User).filter(User.id == dealer_id).first()
+        db.add(OwnershipHistory(
+            bar_id=bar.id,
+            previous_owner_id=bar.customer_id,
+            new_owner_id=seller_user.id,
+            description=f"بازخرید توسط نماینده {dealer.full_name if dealer else ''} — {total_deposit // 10:,} تومان به کیف پول واریز شد",
+        ))
+
+        db.flush()
+        # === END ATOMIC BLOCK ===
+
+        raw_toman = buyback.buyback_price // 10
+        wage_toman = buyback.wage_refund_amount // 10
+        return {
+            "success": True,
+            "message": f"بازخرید شمش {serial} انجام شد — {raw_toman:,} تومان (طلای خام) + {wage_toman:,} تومان (اجرت) به کیف پول واریز شد",
             "buyback": buyback,
         }
 
-    # approve_buyback / reject_buyback removed — buyback is now instant (no admin approval)
+    def resend_buyback_otp(
+        self, db: Session, buyback_id: int, dealer_id: int,
+    ) -> Dict[str, Any]:
+        """Resend OTP for a PENDING buyback request."""
+        from common.security import generate_otp, hash_otp, check_otp_rate_limit
+        from common.sms import send_sms
+        from datetime import timedelta
+        import threading
+
+        buyback = (
+            db.query(BuybackRequest)
+            .filter(
+                BuybackRequest.id == buyback_id,
+                BuybackRequest.dealer_id == dealer_id,
+                BuybackRequest.status == BuybackStatus.PENDING,
+            )
+            .first()
+        )
+        if not buyback:
+            return {"success": False, "message": "درخواست بازخرید فعال یافت نشد"}
+
+        if not check_otp_rate_limit(buyback.customer_mobile):
+            return {"success": False, "message": "تعداد درخواست کد تأیید بیش از حد مجاز. لطفاً چند دقیقه صبر کنید."}
+
+        otp_raw = generate_otp()
+        buyback.otp_hash = hash_otp(buyback.customer_mobile, otp_raw)
+        buyback.otp_expiry = now_utc() + timedelta(minutes=5)
+        db.flush()
+
+        total_toman = (buyback.buyback_price + buyback.wage_refund_amount) // 10
+        sms_text = f"طلاملا: کد تأیید بازخرید شمش: {otp_raw}\nمبلغ واریز: {total_toman:,} تومان"
+        threading.Thread(target=send_sms, args=(buyback.customer_mobile, sms_text), daemon=True).start()
+
+        return {"success": True, "message": f"کد تأیید مجدداً به {buyback.customer_mobile} ارسال شد"}
+
+    def cancel_buyback(
+        self, db: Session, buyback_id: int, dealer_id: int,
+    ) -> Dict[str, Any]:
+        """Cancel a PENDING buyback request."""
+        buyback = (
+            db.query(BuybackRequest)
+            .filter(
+                BuybackRequest.id == buyback_id,
+                BuybackRequest.dealer_id == dealer_id,
+                BuybackRequest.status == BuybackStatus.PENDING,
+            )
+            .first()
+        )
+        if not buyback:
+            return {"success": False, "message": "درخواست بازخرید فعال یافت نشد"}
+
+        buyback.status = BuybackStatus.REJECTED
+        buyback.admin_note = "لغو توسط نماینده"
+        db.flush()
+        return {"success": True, "message": "درخواست بازخرید لغو شد"}
 
     # ------------------------------------------
     # Reports & Stats
