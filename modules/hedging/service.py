@@ -304,9 +304,9 @@ class HedgingService:
             PositionLedger.direction == PositionDirection.IN,
         ).with_entities(sa_func.coalesce(sa_func.sum(PositionLedger.amount_mg), 0)).scalar()
 
-        # Total hedged
+        # Total hedged (hedge trades are stored as IN/OUT with source_type="hedge")
         total_hedged = q.filter(
-            PositionLedger.direction == PositionDirection.HEDGE,
+            PositionLedger.source_type == "hedge",
         ).with_entities(sa_func.coalesce(sa_func.sum(PositionLedger.amount_mg), 0)).scalar()
 
         # Entries today
