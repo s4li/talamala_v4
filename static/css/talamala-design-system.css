@@ -238,12 +238,12 @@ p, .text-body-lg { font-size: 16px; line-height: 24px; font-weight: 400; }
 
 /* ─── 6. FORM CONTROLS ─── */
 .form-control-tm {
-  height: 48px; border-radius: 8px; background-color: var(--tm-info-900);
-  border: 1px solid transparent; padding: 0 12px;
+  height: 48px; border-radius: 8px; background-color: #fff;
+  border: 1px solid var(--tm-border); padding: 0 12px;
   font-family: 'IRANYekan', sans-serif; font-size: 14px; font-weight: 400;
   color: var(--tm-subtitle); transition: border-color 0.2s ease; width: 100%;
 }
-.form-control-tm:focus { border-color: var(--tm-primary); background-color: var(--tm-info-900); box-shadow: 0 0 0 3px rgba(107,0,45,0.08); outline: none; }
+.form-control-tm:focus { border-color: var(--tm-primary); background-color: #fff; box-shadow: 0 0 0 3px rgba(107,0,45,0.08); outline: none; }
 .form-control-tm::placeholder { font-size: 12px; color: var(--tm-info-600); }
 .form-control-tm.is-invalid { border-color: var(--tm-negative); }
 textarea.form-control-tm { height: auto; min-height: 120px; padding: 12px; }
@@ -251,8 +251,8 @@ textarea.form-control-tm { height: auto; min-height: 120px; padding: 12px; }
 .form-label-tm { font-size: 14px; font-weight: 500; color: var(--tm-dark); margin-bottom: 8px; display: block; }
 
 .form-select-tm {
-  height: 48px; border-radius: 8px; background-color: var(--tm-info-900);
-  border: 1px solid transparent; font-family: 'IRANYekan', sans-serif;
+  height: 48px; border-radius: 8px; background-color: #fff;
+  border: 1px solid var(--tm-border); font-family: 'IRANYekan', sans-serif;
   font-size: 14px; color: var(--tm-subtitle); padding: 0 12px; padding-left: 36px; width: 100%;
   transition: border-color 0.2s ease;
   appearance: none;
