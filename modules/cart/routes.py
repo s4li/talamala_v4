@@ -100,7 +100,7 @@ async def update_cart_form(
             try:
                 require_trade_enabled(db, product.metal_type or "gold", "shop")
             except ValueError as e:
-                from common.security import flash
+                from common.flash import flash
                 flash(request, str(e), "danger")
                 return RedirectResponse(referer, status_code=303)
 
