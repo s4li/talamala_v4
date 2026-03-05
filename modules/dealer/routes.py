@@ -251,7 +251,7 @@ async def buyback_page(
         "error": None,
         "success": None,
     })
-    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    response.set_cookie("csrf_token", csrf, httponly=False, samesite="lax")
     return response
 
 
@@ -262,36 +262,40 @@ async def buyback_send_otp(
     db: Session = Depends(get_db),
 ):
     """Step 1: Send OTP to seller mobile. AJAX endpoint."""
-    # CSRF from header (AJAX)
-    csrf_token = request.headers.get("X-CSRF-Token", "")
-    csrf_check(request, csrf_token)
+    try:
+        # CSRF from header (AJAX)
+        csrf_token = request.headers.get("X-CSRF-Token", "")
+        csrf_check(request, csrf_token)
 
-    body = await request.json()
-    serial_code = body.get("serial_code", "").strip()
-    seller_mobile = body.get("seller_mobile", "").strip()
-    seller_national_id = body.get("seller_national_id", "").strip()
-    seller_name = body.get("seller_name", "").strip()
-    description = body.get("description", "").strip()
+        body = await request.json()
+        serial_code = body.get("serial_code", "").strip()
+        seller_mobile = body.get("seller_mobile", "").strip()
+        seller_national_id = body.get("seller_national_id", "").strip()
+        seller_name = body.get("seller_name", "").strip()
+        description = body.get("description", "").strip()
 
-    if not serial_code:
-        return JSONResponse({"success": False, "message": "سریال شمش الزامی است"})
-    if not seller_mobile or len(seller_mobile) < 11:
-        return JSONResponse({"success": False, "message": "شماره موبایل فروشنده الزامی است"})
+        if not serial_code:
+            return JSONResponse({"success": False, "message": "سریال شمش الزامی است"})
+        if not seller_mobile or len(seller_mobile) < 11:
+            return JSONResponse({"success": False, "message": "شماره موبایل فروشنده الزامی است"})
 
-    result = dealer_service.initiate_buyback(
-        db, dealer.id, serial_code,
-        seller_mobile=seller_mobile,
-        seller_national_id=seller_national_id,
-        seller_name=seller_name,
-        description=description,
-    )
+        result = dealer_service.initiate_buyback(
+            db, dealer.id, serial_code,
+            seller_mobile=seller_mobile,
+            seller_national_id=seller_national_id,
+            seller_name=seller_name,
+            description=description,
+        )
 
-    if result["success"]:
-        db.commit()
-    else:
+        if result["success"]:
+            db.commit()
+        else:
+            db.rollback()
+
+        return JSONResponse(result)
+    except Exception as e:
         db.rollback()
-
-    return JSONResponse(result)
+        return JSONResponse({"success": False, "message": f"خطا: {str(e)}"})
 
 
 @router.post("/buyback/confirm")
@@ -367,20 +371,24 @@ async def buyback_resend_otp(
     db: Session = Depends(get_db),
 ):
     """Resend OTP for a PENDING buyback. AJAX endpoint."""
-    csrf_token = request.headers.get("X-CSRF-Token", "")
-    csrf_check(request, csrf_token)
+    try:
+        csrf_token = request.headers.get("X-CSRF-Token", "")
+        csrf_check(request, csrf_token)
 
-    body = await request.json()
-    buyback_id = body.get("buyback_id")
-    if not buyback_id:
-        return JSONResponse({"success": False, "message": "شناسه درخواست الزامی است"})
+        body = await request.json()
+        buyback_id = body.get("buyback_id")
+        if not buyback_id:
+            return JSONResponse({"success": False, "message": "شناسه درخواست الزامی است"})
 
-    result = dealer_service.resend_buyback_otp(db, int(buyback_id), dealer.id)
-    if result["success"]:
-        db.commit()
-    else:
+        result = dealer_service.resend_buyback_otp(db, int(buyback_id), dealer.id)
+        if result["success"]:
+            db.commit()
+        else:
+            db.rollback()
+        return JSONResponse(result)
+    except Exception as e:
         db.rollback()
-    return JSONResponse(result)
+        return JSONResponse({"success": False, "message": f"خطا: {str(e)}"})
 
 
 @router.post("/buyback/cancel")
@@ -390,20 +398,24 @@ async def buyback_cancel(
     db: Session = Depends(get_db),
 ):
     """Cancel a PENDING buyback. AJAX endpoint."""
-    csrf_token = request.headers.get("X-CSRF-Token", "")
-    csrf_check(request, csrf_token)
+    try:
+        csrf_token = request.headers.get("X-CSRF-Token", "")
+        csrf_check(request, csrf_token)
 
-    body = await request.json()
-    buyback_id = body.get("buyback_id")
-    if not buyback_id:
-        return JSONResponse({"success": False, "message": "شناسه درخواست الزامی است"})
+        body = await request.json()
+        buyback_id = body.get("buyback_id")
+        if not buyback_id:
+            return JSONResponse({"success": False, "message": "شناسه درخواست الزامی است"})
 
-    result = dealer_service.cancel_buyback(db, int(buyback_id), dealer.id)
-    if result["success"]:
-        db.commit()
-    else:
+        result = dealer_service.cancel_buyback(db, int(buyback_id), dealer.id)
+        if result["success"]:
+            db.commit()
+        else:
+            db.rollback()
+        return JSONResponse(result)
+    except Exception as e:
         db.rollback()
-    return JSONResponse(result)
+        return JSONResponse({"success": False, "message": f"خطا: {str(e)}"})
 
 
 # ==========================================
