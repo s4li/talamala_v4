@@ -17,6 +17,7 @@ from common.security import csrf_check, new_csrf_token
 from modules.auth.deps import require_login
 from modules.user.models import User
 from modules.customer.address_models import CustomerAddress, GeoProvince, GeoCity, GeoDistrict
+from modules.cart.service import cart_service
 
 router = APIRouter(tags=["profile"])
 
@@ -37,11 +38,12 @@ async def profile_page(
     from common.templating import get_setting_from_db
     shahkar_enabled = get_setting_from_db(db, "shahkar_enabled", "false") == "true"
 
+    _, cart_count = cart_service.get_cart_map(db, me.id)
     csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/profile.html", {
         "request": request,
         "user": me,
-        "cart_count": 0,
+        "cart_count": cart_count,
         "csrf_token": csrf,
         "msg": msg,
         "error": error,
@@ -187,7 +189,7 @@ async def address_list(
         "user": me,
         "addresses": addresses,
         "provinces": provinces,
-        "cart_count": 0,
+        "cart_count": cart_service.get_cart_map(db, me.id)[1],
         "csrf_token": csrf,
         "msg": msg,
         "next_url": next,

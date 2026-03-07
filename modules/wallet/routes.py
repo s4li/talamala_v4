@@ -18,6 +18,7 @@ from common.security import csrf_check, new_csrf_token
 from common.flash import flash
 from common.helpers import normalize_digits
 from modules.auth.deps import require_login
+from modules.cart.service import cart_service
 from modules.wallet.service import wallet_service
 from modules.wallet.models import AssetCode, WithdrawalStatus, WithdrawalRequest, WalletTopup, PRECIOUS_METALS
 from modules.payment.gateways import get_gateway, GatewayPaymentRequest
@@ -80,7 +81,7 @@ async def wallet_dashboard(
         "metals": metals,
         "entries": entries,
         "pending_withdrawals": pending_wr,
-        "cart_count": 0,
+        "cart_count": cart_service.get_cart_map(db, me.id)[1],
         "csrf_token": csrf,
         "enabled_gateways": enabled_gateways,
     })
@@ -124,7 +125,7 @@ async def wallet_transactions(
         "total_pages": total_pages,
         "total": total,
         "asset_filter": asset,
-        "cart_count": 0,
+        "cart_count": cart_service.get_cart_map(db, me.id)[1],
     })
 
 
@@ -422,7 +423,7 @@ async def wallet_withdraw_form(
         "balance": balance,
         "withdrawals": withdrawals,
         "csrf_token": csrf,
-        "cart_count": 0,
+        "cart_count": cart_service.get_cart_map(db, me.id)[1],
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
@@ -486,7 +487,7 @@ async def wallet_metal_page(
         "rates": rates,
         "fee_percent": fee_percent,
         "csrf_token": csrf,
-        "cart_count": 0,
+        "cart_count": cart_service.get_cart_map(db, me.id)[1],
         "metal": metal,
         "asset_type": asset_type,
         "buy_enabled": buy_enabled,
