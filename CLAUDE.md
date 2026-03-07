@@ -56,7 +56,7 @@ talamala_v4/
 │   ├── user/                    # Unified User model (customers + dealers + admins in one table)
 │   ├── admin/                   # SystemSetting, RequestLog, admin settings page, staff service
 │   ├── auth/                    # Login (OTP), JWT, deps (require_login, require_dealer, require_staff etc.)
-│   ├── catalog/                 # Product, ProductCategory, CardDesign, PackageType, Batch
+│   ├── catalog/                 # Product, ProductCategory, PackageType, GiftBox, Batch
 │   ├── inventory/               # Bar, BarImage, OwnershipHistory, DealerTransfer, TransferType, ReconciliationSession, ReconciliationItem, CustodialDeliveryRequest
 │   ├── shop/                    # Public storefront (product list + detail)
 │   ├── cart/                    # Cart, CartItem, checkout, delivery location API
@@ -109,7 +109,7 @@ talamala_v4/
 │   │   ├── base_admin.html      # Admin sidebar layout
 │   │   ├── dashboard.html
 │   │   ├── settings.html        # Asset prices (gold/silver) + tax, shipping, trade toggles, precious metal trade fees, log retention
-│   │   ├── catalog/             # products, categories, designs, packages, batches
+│   │   ├── catalog/             # products, categories, packages, gift_boxes, batches
 │   │   ├── inventory/           # bars, edit_bar
 │   │   ├── reconciliation.html  # Admin reconciliation session list
 │   │   ├── reconciliation_detail.html  # Admin session detail + scanner
@@ -171,12 +171,12 @@ talamala_v4/
 ### catalog/models.py
 - **ProductCategory**: id, name (unique), slug (unique), sort_order, is_active
 - **ProductCategoryLink**: id, product_id (FK → products), category_id (FK → product_categories) — M2M junction (UniqueConstraint)
-- **Product**: id, name, weight (Decimal), purity (int: 750=18K), wage (Numeric 5,2 — percent), is_wage_percent, design, card_design_id, package_type_id, metal_type (String(20), default="gold"), is_active
+- **Product**: id, name, weight (Decimal), purity (int: 750=18K), wage (Numeric 5,2 — percent), is_wage_percent, design, package_type_id, metal_type (String(20), default="gold"), is_active
   - `metal_type` maps to `PRECIOUS_METALS` keys ("gold", "silver") — determines which asset price + base purity to use for pricing
   - Properties: `categories` (list of ProductCategory), `category_ids` (list of int)
 - **ProductImage**: id, product_id, path, is_default
-- **CardDesign / CardDesignImage**: طرح کارت‌های هدیه
-- **PackageType / PackageTypeImage**: بسته‌بندی — price (BigInteger, ریال, default=0), is_active (Boolean, default=True)
+- **PackageType / PackageTypeImage**: بسته‌بندی کارت محصول — price (BigInteger, ریال, default=0), is_active (Boolean, default=True)
+- **GiftBox / GiftBoxImage**: جعبه کادو (بسته‌بندی خارجی انتخابی مشتری) — name (unique), description (Text, nullable), price (BigInteger, ریال, default=0), is_active, sort_order
 - **Batch / BatchImage**: بچ تولید (ذوب)
 
 ### inventory/models.py
@@ -196,11 +196,11 @@ talamala_v4/
 
 ### cart/models.py
 - **Cart**: id, customer_id (FK→users, unique), created_at
-- **CartItem**: id, cart_id, product_id, quantity, package_type_id (FK→package_types, nullable)
+- **CartItem**: id, cart_id, product_id, quantity, gift_box_id (FK→gift_boxes, nullable)
 
 ### order/models.py
 - **Order**: id, customer_id (FK→users), status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_dealer_id (FK→users), shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at
-- **OrderItem**: id, order_id, product_id, bar_id, applied_metal_price, applied_unit_price, applied_weight, applied_purity, applied_wage_percent, applied_tax_percent, final_gold_amount, final_wage_amount, final_tax_amount, package_type_id (FK→package_types, nullable), applied_package_price (BigInteger, default=0), line_total (= gold_total + package_price)
+- **OrderItem**: id, order_id, product_id, bar_id, applied_metal_price, applied_unit_price, applied_weight, applied_purity, applied_wage_percent, applied_tax_percent, final_gold_amount, final_wage_amount, final_tax_amount, gift_box_id (FK→gift_boxes, nullable), applied_gift_box_price (BigInteger, default=0), line_total (= gold_total + gift_box_price)
 - **OrderStatusLog**: id, order_id (FK→orders, CASCADE), field ("status"/"delivery_status"), old_value, new_value, changed_by, description, created_at — audit trail for status changes
 
 ### wallet/models.py
@@ -705,8 +705,8 @@ total     = raw_metal + wage + tax
 
 ### Cart & Orders
 - `GET /cart` — Cart page
-- `POST /cart/update` — افزودن/حذف آیتم (با product_id + action + package_type_id)
-- `POST /cart/set-package` — تغییر بسته‌بندی آیتم سبد خرید
+- `POST /cart/update` — افزودن/حذف آیتم (با product_id + action + gift_box_id)
+- `POST /cart/set-gift-box` — تغییر جعبه کادو آیتم سبد خرید
 - `GET /checkout` — Checkout
 - `POST /cart/checkout` — Place order
 - `GET /orders` — My orders
@@ -808,7 +808,7 @@ total     = raw_metal + wage + tax
 - `POST /notifications/settings` — Save preferences
 
 ### Admin
-- `/admin/dashboard|products|categories|designs|packages|batches`
+- `/admin/dashboard|products|categories|packages|gift-boxes|batches`
 - `/admin/bars|orders|settings`
 - `GET /admin/customers` — لیست کاربران + جستجو + فیلتر (فعال/غیرفعال)
 - `GET /admin/customers/{id}` — جزئیات کاربر (تب‌ها: خلاصه، تراکنش کیف پول، سفارشات، درخواست برداشت)

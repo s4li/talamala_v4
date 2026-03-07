@@ -124,7 +124,7 @@
 | کلید | فارسی | توضیح |
 |------|--------|--------|
 | `dashboard` | داشبورد | صفحه اصلی مدیریت |
-| `products` | محصولات و کاتالوگ | محصولات، دسته‌بندی‌ها، طرح کارت، بسته‌بندی |
+| `products` | محصولات و کاتالوگ | محصولات، دسته‌بندی‌ها، بسته‌بندی، جعبه هدیه |
 | `batches` | بچ / ذوب | مدیریت بچ‌های تولید |
 | `inventory` | شمش‌ها (موجودی) | مدیریت شمش‌ها و انبار |
 | `orders` | سفارشات | مدیریت سفارشات مشتریان |
@@ -250,15 +250,15 @@ async def delete_product(user=Depends(require_permission("products", level="full
 - `category_id` (FK → product_categories): شناسه دسته‌بندی
 - UniqueConstraint روی (product_id, category_id)
 
-#### CardDesign (طرح کارت هدیه)
-- طرح‌های مختلف کارت برای بسته‌بندی شمش
-- تصاویر طرح (CardDesignImage)
-
 #### PackageType (نوع بسته‌بندی)
-- انواع بسته‌بندی شمش (با قیمت‌گذاری)
-- **فیلدهای جدید**: `price` (قیمت به ریال، پیش‌فرض ۰ = رایگان)، `is_active` (وضعیت فعال/غیرفعال)
+- انواع بسته‌بندی شمش (کارت محصول)
 - تصاویر بسته‌بندی (PackageTypeImage)
-- مشتری هنگام خرید می‌تواند بسته‌بندی انتخاب کند — قیمت بسته‌بندی به فاکتور اضافه می‌شود
+
+#### GiftBox (جعبه هدیه)
+- جعبه‌های هدیه برای بسته‌بندی ویژه شمش (با قیمت‌گذاری)
+- فیلدها: `name` (نام)، `description` (توضیحات)، `price` (قیمت به ریال، پیش‌فرض ۰ = رایگان)، `is_active` (وضعیت فعال/غیرفعال)، `sort_order` (ترتیب نمایش)
+- تصاویر جعبه هدیه (GiftBoxImage)
+- مشتری هنگام خرید می‌تواند جعبه هدیه انتخاب کند — قیمت جعبه هدیه به فاکتور اضافه می‌شود
 
 #### Batch (بچ تولید / ذوب)
 - شناسه بچ، توضیحات
@@ -272,8 +272,8 @@ async def delete_product(user=Depends(require_permission("products", level="full
 | GET/POST | `/admin/products/{id}/edit` | ویرایش محصول |
 | GET | `/admin/categories` | لیست دسته‌بندی‌ها |
 | GET/POST | `/admin/categories/create` | ایجاد دسته‌بندی |
-| GET | `/admin/designs` | لیست طرح‌های کارت |
 | GET | `/admin/packages` | لیست بسته‌بندی‌ها |
+| GET | `/admin/gift-boxes` | لیست جعبه‌های هدیه |
 | GET | `/admin/batches` | لیست بچ‌ها |
 
 ---
@@ -298,7 +298,7 @@ async def delete_product(user=Depends(require_permission("products", level="full
   - **Assigned** (تخصیص): به محصول وصل شده، آماده فروش
   - **Reserved** (رزرو): در سبد خرید مشتری قرار دارد
   - **Sold** (فروخته شده): فروش نهایی شده
-- ارتباطات: محصول، مالک (user_id FK → users)، بچ، طرح کارت، بسته‌بندی، نمایندگی (dealer_id FK → users where is_dealer=True)
+- ارتباطات: محصول، مالک (user_id FK → users)، بچ، بسته‌بندی، نمایندگی (dealer_id FK → users where is_dealer=True)
 - تصاویر شمش (BarImage)
 
 #### طلای امانی (Custodial Gold)
@@ -337,7 +337,7 @@ async def delete_product(user=Depends(require_permission("products", level="full
 - فیلتر بر اساس دسته‌بندی (M2M — محصولات چنددسته‌بندی‌ای در نتایج همه دسته‌بندی‌های مرتبط نمایش داده می‌شوند)
 - مرتب‌سازی (جدیدترین، ارزان‌ترین، گران‌ترین)
 - صفحه جزئیات محصول با ریز قیمت
-- انتخاب بسته‌بندی در صفحه جزئیات محصول (رادیو باتن با نام و قیمت)
+- انتخاب جعبه هدیه در صفحه جزئیات محصول (رادیو باتن با نام و قیمت)
 
 ### نمایش قیمت
 قیمت هر محصول **لحظه‌ای** محاسبه می‌شود بر اساس:
@@ -363,8 +363,8 @@ async def delete_product(user=Depends(require_permission("products", level="full
 - افزودن محصول به سبد
 - تغییر تعداد / حذف آیتم
 - نمایش قیمت لحظه‌ای
-- انتخاب / تغییر بسته‌بندی هر آیتم (dropdown)
-- قیمت بسته‌بندی در مبلغ خط سفارش لحاظ می‌شود
+- انتخاب / تغییر جعبه هدیه هر آیتم (dropdown)
+- قیمت جعبه هدیه در مبلغ خط سفارش لحاظ می‌شود
 
 ### فرآیند ثبت سفارش (Checkout)
 1. مشتری سبد خرید را بررسی می‌کند
@@ -426,9 +426,9 @@ async def delete_product(user=Depends(require_permission("products", level="full
   - مبلغ طلای خالص
   - مبلغ اجرت
   - مبلغ مالیات
-- بسته‌بندی انتخاب‌شده (FK → package_types)
-- قیمت بسته‌بندی
-- مبلغ خط (= طلا + اجرت + مالیات + بسته‌بندی)
+- جعبه هدیه انتخاب‌شده (FK → gift_boxes)
+- قیمت جعبه هدیه (applied_gift_box_price)
+- مبلغ خط (= طلا + اجرت + مالیات + جعبه هدیه)
 
 #### OrderStatusLog (تاریخچه تغییر وضعیت) — مدل جدید
 - شناسه یکتا (id)
@@ -453,7 +453,7 @@ async def delete_product(user=Depends(require_permission("products", level="full
 | POST | `/cart/update/{pid}` | تغییر تعداد |
 | POST | `/cart/remove/{pid}` | حذف از سبد |
 | GET | `/checkout` | صفحه ثبت سفارش |
-| POST | `/cart/set-package` | تغییر بسته‌بندی آیتم سبد خرید |
+| POST | `/cart/set-gift-box` | تغییر جعبه هدیه آیتم سبد خرید |
 | POST | `/cart/checkout` | ثبت نهایی سفارش |
 | GET | `/orders` | لیست سفارشات من |
 | GET | `/orders/{id}` | جزئیات سفارش |
@@ -1279,8 +1279,8 @@ metal_price, base_purity = get_product_pricing(product, db)
 | **دسته‌بندی‌ها — مشاهده** | `products` | `view` | ✅ bypass |
 | **دسته‌بندی‌ها — ایجاد/ویرایش** | `products` | `create`/`edit` | ✅ bypass |
 | **دسته‌بندی‌ها — حذف** | `products` | `full` | ✅ bypass |
-| **طرح کارت / بسته‌بندی — مشاهده** | `products` | `view` | ✅ bypass |
-| **طرح کارت / بسته‌بندی — ایجاد/ویرایش/حذف** | `products` | `create`/`edit`/`full` | ✅ bypass |
+| **بسته‌بندی / جعبه هدیه — مشاهده** | `products` | `view` | ✅ bypass |
+| **بسته‌بندی / جعبه هدیه — ایجاد/ویرایش/حذف** | `products` | `create`/`edit`/`full` | ✅ bypass |
 | **بچ/ذوب — مشاهده** | `batches` | `view` | ✅ bypass |
 | **بچ/ذوب — ایجاد** | `batches` | `create` | ✅ bypass |
 | **بچ/ذوب — ویرایش** | `batches` | `edit` | ✅ bypass |
