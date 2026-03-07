@@ -46,9 +46,9 @@ async def auth_exception_handler(request: Request, exc: StarletteHTTPException):
                 next_url += "?" + str(request.url.query)
         return RedirectResponse(f"/auth/login?next={urllib.parse.quote(next_url, safe='')}", status_code=302)
     if exc.status_code == 403 and is_html:
-        # Permission denied → show friendly admin error page
+        # Permission denied → show friendly error page
         path = str(request.url.path)
-        if path.startswith("/admin"):
+        if path.startswith("/admin") or path.startswith("/dealer"):
             return templates.TemplateResponse("admin/403.html", {
                 "request": request,
                 "detail": exc.detail,

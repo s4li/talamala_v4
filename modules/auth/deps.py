@@ -44,31 +44,38 @@ def require_login(user=Depends(get_current_active_user)):
 
 
 def require_staff(user=Depends(get_current_active_user)):
-    """Only allow staff/admin users. Raises 403 otherwise."""
-    if not user or not user.is_admin:
+    """Only allow staff/admin users. 401 if not logged in, 403 if not admin."""
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="login_required")
+    if not user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="دسترسی غیرمجاز")
     return user
 
 
 def require_operator_or_admin(user=Depends(get_current_active_user)):
-    """Allow both Admins and Operators. Raises 403 otherwise."""
-    if not user or not user.is_admin:
+    """Allow both Admins and Operators. 401 if not logged in, 403 if not admin."""
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="login_required")
+    if not user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="دسترسی غیرمجاز")
     return user
 
 
 def require_dealer(user=Depends(get_current_active_user)):
-    """Only allow dealer users. Raises 401 if not authenticated as dealer."""
-    if not user or not user.is_dealer:
+    """Only allow dealer users. 401 if not logged in, 403 if not dealer."""
+    if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="login_required")
+    if not user.is_dealer:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="دسترسی غیرمجاز — فقط نمایندگان")
     return user
 
 
 def require_super_admin(user=Depends(get_current_active_user)):
-    """Only allow full Admins (not operators)."""
-    if not user or not user.is_admin:
+    """Only allow full Admins (not operators). 401 if not logged in, 403 if not super admin."""
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="login_required")
+    if not user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="نیازمند دسترسی مدیر کل")
-
     if user.admin_role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="نیازمند دسترسی مدیر کل")
 
@@ -94,8 +101,10 @@ def require_permission(*perm_keys: str, level: str = "view"):
     from modules.admin.permissions import PERMISSION_REGISTRY, PERMISSION_LEVEL_LABELS
 
     def dependency(user=Depends(get_current_active_user)):
-        if not user or not user.is_admin:
+        if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="login_required")
+        if not user.is_admin:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="دسترسی غیرمجاز")
 
         # super admin bypasses all
         if user.admin_role == "admin":
