@@ -52,7 +52,7 @@ async def coupon_list(
     total_pages = max(1, (total + per_page - 1) // per_page)
     stats = coupon_service.get_stats(db)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/coupon/list.html", {
         "request": request,
         "user": user,
@@ -82,7 +82,7 @@ async def coupon_new_form(
 ):
     products = db.query(Product).filter(Product.is_active == True).all()
     product_categories = db.query(ProductCategory).filter(ProductCategory.is_active == True).order_by(ProductCategory.sort_order).all()
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/coupon/form.html", {
         "request": request,
         "user": user,
@@ -197,7 +197,7 @@ async def coupon_create(
             "status": status, "mobiles": [], "usages": [],
             "category_ids": [int(c) for c in category_ids if c],
         })()
-        csrf = new_csrf_token()
+        csrf = new_csrf_token(request)
         response = templates.TemplateResponse("admin/coupon/form.html", {
             "request": request,
             "user": user,
@@ -231,7 +231,7 @@ async def coupon_detail(
 
     usages, usage_total = coupon_service.get_coupon_usages(db, coupon_id)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/coupon/detail.html", {
         "request": request,
         "user": user,
@@ -264,7 +264,7 @@ async def coupon_edit_form(
 
     products = db.query(Product).filter(Product.is_active == True).all()
     product_categories = db.query(ProductCategory).filter(ProductCategory.is_active == True).order_by(ProductCategory.sort_order).all()
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/coupon/form.html", {
         "request": request,
         "user": user,

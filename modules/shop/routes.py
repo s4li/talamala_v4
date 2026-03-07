@@ -63,7 +63,7 @@ async def home_page(
     shop_disabled = not shop_gold_enabled or not shop_silver_enabled
     shop_closed_message = get_setting_from_db(db, "shop_closed_message", "")
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/home.html", {
         "request": request,
         "products": products,
@@ -149,7 +149,7 @@ async def product_detail(
     shop_disabled = not product_trade_enabled
     shop_closed_message = get_setting_from_db(db, "shop_closed_message", "")
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/product_detail.html", {
         "request": request,
         "p": product,

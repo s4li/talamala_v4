@@ -40,7 +40,7 @@ async def admin_customer_list(
     total_pages = max(1, (total + per_page - 1) // per_page)
     stats = customer_admin_service.get_customer_stats(db)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/customers/list.html", {
         "request": request,
         "user": user,
@@ -152,7 +152,7 @@ async def admin_customer_detail(
         )
         order_pages = max(1, (order_total + per_page - 1) // per_page)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/customers/detail.html", {
         "request": request,
         "user": user,

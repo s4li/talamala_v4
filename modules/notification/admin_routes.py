@@ -31,7 +31,7 @@ async def admin_send_notification_form(
 ):
     notification_count = notification_service.get_unread_count(db, user.id)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/notifications/send.html", {
         "request": request,
         "user": user,

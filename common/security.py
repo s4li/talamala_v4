@@ -150,8 +150,17 @@ def get_cookie_kwargs() -> dict:
 # CSRF
 # ==========================================
 
-def new_csrf_token() -> str:
-    """Generate a new random CSRF token."""
+def new_csrf_token(request: Request = None) -> str:
+    """
+    Return CSRF token: reuse existing cookie value if present,
+    otherwise generate a new random token.
+    Reusing the cookie token prevents multi-tab CSRF mismatch:
+    when tab-2 loads, the cookie stays the same so tab-1 forms still work.
+    """
+    if request is not None:
+        existing = request.cookies.get("csrf_token")
+        if existing:
+            return existing
     return secrets.token_urlsafe(32)
 
 

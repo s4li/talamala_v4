@@ -44,7 +44,7 @@ async def admin_review_list(
 
     total_pages = max(1, (total + per_page - 1) // per_page)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/reviews/list.html", {
         "request": request,
         "user": user,
@@ -77,7 +77,7 @@ async def admin_comment_detail(
     if not comment:
         return RedirectResponse("/admin/reviews?error=نظر+یافت+نشد", status_code=302)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/reviews/detail.html", {
         "request": request,
         "user": user,
@@ -104,7 +104,7 @@ async def admin_review_detail(
     if not review:
         return RedirectResponse("/admin/reviews?tab=reviews&error=نظر+یافت+نشد", status_code=302)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/reviews/detail.html", {
         "request": request,
         "user": user,

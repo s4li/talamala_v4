@@ -40,7 +40,7 @@ async def dealer_request_form(
         # If RevisionNeeded and edit mode requested, show the form pre-filled
         if active.status == DealerRequestStatus.REVISION_NEEDED.value and edit:
             provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
-            csrf = new_csrf_token()
+            csrf = new_csrf_token(request)
             response = templates.TemplateResponse("shop/dealer_request.html", {
                 "request": request,
                 "user": me,
@@ -54,7 +54,7 @@ async def dealer_request_form(
             return response
 
         # Otherwise show status page
-        csrf = new_csrf_token()
+        csrf = new_csrf_token(request)
         response = templates.TemplateResponse("shop/dealer_request_status.html", {
             "request": request,
             "user": me,
@@ -67,7 +67,7 @@ async def dealer_request_form(
     # Show the form (new request)
     provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/dealer_request.html", {
         "request": request,
         "user": me,
@@ -181,7 +181,7 @@ async def dealer_request_submit(
 async def _render_form_with_error(request, db, me, error_msg, form_data=None):
     """Re-render the form with an error message, preserving submitted data."""
     provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/dealer_request.html", {
         "request": request,
         "user": me,

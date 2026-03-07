@@ -70,7 +70,7 @@ async def rasis_panel(
         .all()
     )
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/rasis/panel.html", {
         "request": request,
         "user": user,

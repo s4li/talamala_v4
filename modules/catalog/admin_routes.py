@@ -30,7 +30,7 @@ router = APIRouter(tags=["catalog-admin"])
 # ==========================================
 
 def ctx(request, user, **extra):
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     data = {"request": request, "user": user, "csrf_token": csrf, **extra}
     return data, csrf
 

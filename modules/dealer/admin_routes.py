@@ -89,7 +89,7 @@ async def dealer_list(
     total_pages = (total + 29) // 30
     admin_stats = dealer_service.get_admin_stats(db)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/dealers/list.html", {
         "request": request,
         "user": user,
@@ -145,7 +145,7 @@ async def dealer_create_form(
 ):
     provinces, tiers = _load_form_context(db)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/dealers/form.html", {
         "request": request,
         "user": user,
@@ -215,7 +215,7 @@ async def dealer_create_submit(
             districts = db.query(GeoDistrict).filter(
                 GeoDistrict.city_id == form_data["city_id"]
             ).order_by(GeoDistrict.name).all()
-        csrf = new_csrf_token()
+        csrf = new_csrf_token(request)
         resp = templates.TemplateResponse("admin/dealers/form.html", {
             "request": request,
             "user": user,
@@ -289,7 +289,7 @@ async def dealer_edit_form(
     provinces, tiers = _load_form_context(db)
     cities, districts = _load_edit_geo(db, dealer)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/dealers/form.html", {
         "request": request,
         "user": user,
@@ -504,7 +504,7 @@ async def tier_list(
     db: Session = Depends(get_db),
 ):
     tiers = db.query(DealerTier).order_by(DealerTier.sort_order).all()
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/dealers/tiers.html", {
         "request": request,
         "user": user,
@@ -522,7 +522,7 @@ async def tier_create_form(
     user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/dealers/tier_form.html", {
         "request": request,
         "user": user,
@@ -571,7 +571,7 @@ async def tier_edit_form(
     if not tier:
         return RedirectResponse("/admin/dealers/tiers/list", status_code=302)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/dealers/tier_form.html", {
         "request": request,
         "user": user,
@@ -638,7 +638,7 @@ async def tier_wages_form(
             "wage_percent": float(tw.wage_percent) if tw else "",
         })
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/dealers/tier_wages.html", {
         "request": request,
         "user": user,
@@ -732,7 +732,7 @@ async def admin_sub_dealers(
     # All dealers for the add form dropdown
     all_dealers = db.query(User).filter(User.is_dealer == True, User.is_active == True, User.id != dealer_id).order_by(User.first_name).all()
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/dealers/sub_dealers.html", {
         "request": request,
         "admin": admin,
@@ -869,7 +869,7 @@ async def admin_b2b_order_detail(
     if not order:
         return RedirectResponse("/admin/dealers/b2b-orders", status_code=302)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/dealers/b2b_order_detail.html", {
         "request": request,
         "user": user,

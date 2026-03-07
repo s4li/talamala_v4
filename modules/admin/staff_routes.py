@@ -35,7 +35,7 @@ async def staff_list(
 ):
     staff_users = staff_service.list_staff(db)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/staff/list.html", {
         "request": request,
         "user": user,
@@ -61,7 +61,7 @@ async def create_staff_form(
     db: Session = Depends(get_db),
     user=Depends(require_permission("staff")),
 ):
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/staff/form.html", {
         "request": request,
         "user": user,
@@ -106,7 +106,7 @@ async def create_staff(
             "role": role,
             "permissions": perms,
         })()
-        csrf = new_csrf_token()
+        csrf = new_csrf_token(request)
         resp = templates.TemplateResponse("admin/staff/form.html", {
             "request": request,
             "user": user,
@@ -149,7 +149,7 @@ async def edit_staff_form(
     if not staff_user:
         raise HTTPException(404, "کاربر یافت نشد")
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/staff/form.html", {
         "request": request,
         "user": user,

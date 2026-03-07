@@ -52,7 +52,7 @@ async def view_cart(
         for it in items
     )
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/cart.html", {
         "request": request,
         "user": me,
@@ -234,7 +234,7 @@ async def checkout_page(
         for it in items
     )
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/checkout.html", {
         "request": request,
         "user": me,
@@ -390,7 +390,7 @@ async def my_orders(
     orders = order_service.get_customer_orders(db, me.id)
     cart_map, cart_count = cart_service.get_cart_map(db, me.id)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/orders.html", {
         "request": request,
         "user": me,
@@ -445,7 +445,7 @@ async def order_detail(
     from modules.payment.service import payment_service
     enabled_gateways = payment_service.get_enabled_gateways(db)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/order_detail.html", {
         "request": request,
         "user": user,

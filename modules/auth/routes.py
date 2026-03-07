@@ -97,7 +97,7 @@ async def login_page(
     # If ref code is provided (from invite link), default to register tab
     mode = "register" if ref else "login"
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("auth/login.html", {
         "request": request,
         "csrf_token": csrf,
@@ -154,7 +154,7 @@ async def send_otp(
     )
 
     def _error_response(error_msg: str):
-        csrf = new_csrf_token()
+        csrf = new_csrf_token(request)
         resp = templates.TemplateResponse("auth/login.html", {
             "request": request,
             "csrf_token": csrf,
@@ -249,7 +249,7 @@ async def send_otp(
         )
         sms_thread.start()
 
-        csrf = new_csrf_token()
+        csrf = new_csrf_token(request)
         response = templates.TemplateResponse("auth/login.html", {
             "request": request,
             "csrf_token": csrf,
@@ -263,7 +263,7 @@ async def send_otp(
         return response
 
     except OTPError as e:
-        csrf = new_csrf_token()
+        csrf = new_csrf_token(request)
         response = templates.TemplateResponse("auth/login.html", {
             "request": request,
             "csrf_token": csrf,
@@ -320,7 +320,7 @@ async def verify_otp(
         return response
 
     except AuthenticationError as e:
-        csrf = new_csrf_token()
+        csrf = new_csrf_token(request)
         response = templates.TemplateResponse("auth/login.html", {
             "request": request,
             "csrf_token": csrf,

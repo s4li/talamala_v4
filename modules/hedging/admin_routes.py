@@ -70,7 +70,7 @@ async def hedging_dashboard(
     gold_chart = hedging_service.get_chart_data(db, "gold", days=30)
     silver_chart = hedging_service.get_chart_data(db, "silver", days=30)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/hedging/dashboard.html", {
         "request": request,
         "user": user,
@@ -113,7 +113,7 @@ async def hedging_ledger(
     )
     total_pages = max(1, (total + per_page - 1) // per_page)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/hedging/ledger.html", {
         "request": request,
         "user": user,
@@ -145,7 +145,7 @@ async def hedge_record_form(
 ):
     positions = hedging_service.get_all_positions(db)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/hedging/record.html", {
         "request": request,
         "user": user,
@@ -213,7 +213,7 @@ async def hedge_adjust_form(
 ):
     positions = hedging_service.get_all_positions(db)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/hedging/adjust.html", {
         "request": request,
         "user": user,

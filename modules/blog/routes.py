@@ -80,7 +80,7 @@ async def blog_list(
     featured = blog_service.get_featured(db, limit=5)
 
     ctx = _blog_context(request, db, user)
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/blog/list.html", {
         "request": request,
         **ctx,
@@ -140,7 +140,7 @@ async def blog_detail(
     approved_comments = [c for c in article.comments if c.is_approved]
 
     ctx = _blog_context(request, db, user)
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/blog/detail.html", {
         "request": request,
         **ctx,

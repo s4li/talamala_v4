@@ -45,7 +45,7 @@ async def admin_ticket_list(
     total_pages = max(1, (total + 29) // 30)
     stats = ticket_service.get_admin_stats(db)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/tickets/list.html", {
         "request": request,
         "user": user,
@@ -83,7 +83,7 @@ async def admin_ticket_detail(
 
     staff_list = db.query(User).filter(User.is_admin == True).order_by(User.first_name, User.last_name).all()
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/tickets/detail.html", {
         "request": request,
         "user": user,

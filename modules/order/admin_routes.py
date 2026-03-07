@@ -38,7 +38,7 @@ async def admin_orders(
     orders = order_service.get_all_orders(db, status=status, delivery=delivery, search=search)
     pending_stats = order_service.get_pending_delivery_stats(db)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/orders/list.html", {
         "request": request,
         "user": user,

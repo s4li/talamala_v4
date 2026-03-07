@@ -35,7 +35,7 @@ async def notification_list(
     _, cart_count = cart_service.get_cart_map(db, me.id)
     notification_count = notification_service.get_unread_count(db, me.id)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/notifications.html", {
         "request": request,
         "user": me,
@@ -109,7 +109,7 @@ async def notification_settings_page(
     _, cart_count = cart_service.get_cart_map(db, me.id)
     notification_count = notification_service.get_unread_count(db, me.id)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/notification_settings.html", {
         "request": request,
         "user": me,

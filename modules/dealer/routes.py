@@ -50,7 +50,7 @@ async def dealer_dashboard(
     period_comparison = dealer_service.get_period_comparison(db, dealer.id)
     inventory_value = dealer_service.get_inventory_value(db, dealer.id)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("dealer/dashboard.html", {
         "request": request,
         "dealer": dealer,
@@ -121,7 +121,7 @@ async def pos_page(
     bars = dealer_service.get_available_bars(db, dealer.id)
     bar_prices = _calc_bar_prices(db, bars, dealer)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("dealer/pos.html", {
         "request": request,
         "dealer": dealer,
@@ -216,7 +216,7 @@ async def pos_submit(
         if claim_code:
             success_msg += f" | کد ثبت مالکیت: {claim_code}"
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("dealer/pos.html", {
         "request": request,
         "dealer": dealer,
@@ -242,7 +242,7 @@ async def buyback_page(
     dealer=Depends(require_dealer),
     db: Session = Depends(get_db),
 ):
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("dealer/buyback.html", {
         "request": request,
         "dealer": dealer,
@@ -569,7 +569,7 @@ async def dealer_reconciliation_list(
     sessions, total = inventory_service.list_reconciliation_sessions(db, dealer_id=dealer.id, page=page)
     total_pages = (total + 19) // 20
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("dealer/reconciliation.html", {
         "request": request,
         "dealer": dealer,
@@ -614,7 +614,7 @@ async def dealer_reconciliation_detail(
     if not recon:
         return RedirectResponse("/dealer/reconciliation", status_code=303)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("dealer/reconciliation_detail.html", {
         "request": request,
         "dealer": dealer,
@@ -714,7 +714,7 @@ async def b2b_order_new(
     catalog = dealer_service.get_b2b_catalog_for_dealer(db, dealer.id)
     irr_balance = wallet_service.get_balance(db, dealer.id, asset_code=AssetCode.IRR)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("dealer/b2b_order_new.html", {
         "request": request,
         "dealer": dealer,
@@ -759,7 +759,7 @@ async def b2b_order_submit(
         # Re-render form with error
         catalog = dealer_service.get_b2b_catalog_for_dealer(db, dealer.id)
         irr_balance = wallet_service.get_balance(db, dealer.id, asset_code=AssetCode.IRR)
-        csrf = new_csrf_token()
+        csrf = new_csrf_token(request)
         response = templates.TemplateResponse("dealer/b2b_order_new.html", {
             "request": request,
             "dealer": dealer,
@@ -788,7 +788,7 @@ async def b2b_order_detail(
 
     irr_balance = wallet_service.get_balance(db, dealer.id, asset_code=AssetCode.IRR)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("dealer/b2b_order_detail.html", {
         "request": request,
         "dealer": dealer,
@@ -984,7 +984,7 @@ async def dealer_deliveries(
         db, dealer.id, status_filter=status_filter or None,
     )
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("dealer/deliveries.html", {
         "request": request,
         "dealer": dealer,
@@ -1011,7 +1011,7 @@ async def dealer_delivery_detail(
     if not req or req.dealer_id != dealer.id:
         return RedirectResponse("/dealer/deliveries", status_code=303)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("dealer/delivery_confirm.html", {
         "request": request,
         "dealer": dealer,
@@ -1115,7 +1115,7 @@ async def dealer_transfers_page(
             .all()
         )
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("dealer/transfers.html", {
         "request": request,
         "dealer": dealer,

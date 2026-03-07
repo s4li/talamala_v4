@@ -34,7 +34,7 @@ async def settings_page(request: Request, db: Session = Depends(get_db), user=De
     from modules.pricing.trade_guard import get_all_trade_status
     trade_status = get_all_trade_status(db)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/settings.html", {
         "request": request,
         "user": user,

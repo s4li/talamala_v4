@@ -77,7 +77,7 @@ async def ticket_new_form(
 ):
     sender_type, sender_id, tpl_prefix, ctx_key, ctx_val = _get_user_info(user)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse(f"{tpl_prefix}/ticket_new.html", {
         "request": request,
         ctx_key: ctx_val,
@@ -120,7 +120,7 @@ async def ticket_create(
         return RedirectResponse(f"/tickets/{result['ticket'].id}", status_code=302)
 
     db.rollback()
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse(f"{tpl_prefix}/ticket_new.html", {
         "request": request,
         ctx_key: ctx_val,
@@ -154,7 +154,7 @@ async def ticket_detail(
     if ticket.user_id != sender_id:
         raise HTTPException(status_code=403, detail="دسترسی غیرمجاز")
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse(f"{tpl_prefix}/ticket_detail.html", {
         "request": request,
         ctx_key: ctx_val,

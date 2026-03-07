@@ -26,7 +26,7 @@ router = APIRouter(tags=["inventory-admin"])
 
 
 def ctx(request, user, **extra):
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     return {"request": request, "user": user, "csrf_token": csrf, **extra}, csrf
 
 

@@ -87,7 +87,7 @@ def _static_page_ctx(request: Request, db: Session):
         gold_price = shop_service.get_gold_price(db)
     except Exception:
         pass
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     return user, cart_count, gold_price, csrf
 
 # ==========================================

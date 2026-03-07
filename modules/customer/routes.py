@@ -37,7 +37,7 @@ async def profile_page(
     from common.templating import get_setting_from_db
     shahkar_enabled = get_setting_from_db(db, "shahkar_enabled", "false") == "true"
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/profile.html", {
         "request": request,
         "user": me,
@@ -181,7 +181,7 @@ async def address_list(
 
     provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/addresses.html", {
         "request": request,
         "user": me,
@@ -347,7 +347,7 @@ async def invite_page(
 
     referral_link = f"{BASE_URL}/auth/login?ref={me.referral_code}"
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/invite.html", {
         "request": request,
         "user": me,

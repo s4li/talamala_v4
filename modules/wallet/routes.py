@@ -72,7 +72,7 @@ async def wallet_dashboard(
             "fee_percent": fee,
         })
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/wallet.html", {
         "request": request,
         "user": me,
@@ -415,7 +415,7 @@ async def wallet_withdraw_form(
         .limit(20)
         .all()
     )
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/wallet_withdraw.html", {
         "request": request,
         "user": me,
@@ -477,7 +477,7 @@ async def wallet_metal_page(
     buy_enabled = is_trade_enabled(db, asset_type, "wallet_buy")
     sell_enabled = is_trade_enabled(db, asset_type, "wallet_sell")
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/wallet_trade.html", {
         "request": request,
         "user": me,

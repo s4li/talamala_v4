@@ -36,7 +36,7 @@ async def my_bars(
     bars = ownership_service.get_customer_bars(db, me.id)
     cart_map, cart_count = cart_service.get_cart_map(db, me.id)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/my_bars.html", {
         "request": request,
         "user": me,
@@ -65,7 +65,7 @@ async def claim_bar_page(
 ):
     cart_map, cart_count = cart_service.get_cart_map(db, me.id)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/claim_bar.html", {
         "request": request,
         "user": me,
@@ -122,7 +122,7 @@ async def transfer_page(
 
     cart_map, cart_count = cart_service.get_cart_map(db, me.id)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/transfer_bar.html", {
         "request": request,
         "user": me,
@@ -171,7 +171,7 @@ async def transfer_send_otp(
 
         sms_warning = None if sms_sent else "ارتباط با سرویس پیامک برقرار نشد. لطفاً دوباره تلاش کنید."
 
-        csrf = new_csrf_token()
+        csrf = new_csrf_token(request)
         response = templates.TemplateResponse("shop/transfer_bar.html", {
             "request": request,
             "user": me,
@@ -256,7 +256,7 @@ async def transfer_confirm(
         transfer = ownership_service.get_pending_transfer(db, transfer_id, me.id)
         cart_map, cart_count = cart_service.get_cart_map(db, me.id)
 
-        csrf = new_csrf_token()
+        csrf = new_csrf_token(request)
         response = templates.TemplateResponse("shop/transfer_bar.html", {
             "request": request,
             "user": me,
@@ -305,7 +305,7 @@ async def delivery_request_page(
     provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
     cart_map, cart_count = cart_service.get_cart_map(db, me.id)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/custodial_delivery.html", {
         "request": request,
         "user": me,

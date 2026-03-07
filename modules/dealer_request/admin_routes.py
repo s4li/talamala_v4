@@ -37,7 +37,7 @@ async def admin_dealer_request_list(
     total_pages = max(1, (total + 29) // 30)
     stats = dealer_request_service.get_stats(db)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/dealer_requests/list.html", {
         "request": request,
         "user": user,
@@ -70,7 +70,7 @@ async def admin_dealer_request_detail(
     if not dealer_req:
         return RedirectResponse("/admin/dealer-requests", status_code=302)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/dealer_requests/detail.html", {
         "request": request,
         "user": user,

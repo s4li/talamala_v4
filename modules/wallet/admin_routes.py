@@ -75,7 +75,7 @@ async def admin_wallet_detail(
     entries, total = wallet_service.get_transactions(db, user_id, page=page, per_page=per_page)
     total_pages = max(1, (total + per_page - 1) // per_page)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/wallet/detail.html", {
         "request": request,
         "user": user,
@@ -119,7 +119,7 @@ async def admin_wallet_dealer_detail(
     entries, total = wallet_service.get_transactions(db, user_id, page=page, per_page=per_page)
     total_pages = max(1, (total + per_page - 1) // per_page)
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/wallet/detail.html", {
         "request": request,
         "user": user,
@@ -245,7 +245,7 @@ async def admin_withdrawals_list(
         .count()
     )
 
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     response = templates.TemplateResponse("admin/wallet/withdrawals.html", {
         "request": request,
         "user": user,

@@ -27,7 +27,7 @@ router = APIRouter(prefix="/admin/blog", tags=["admin-blog"])
 # ==========================================
 
 def _ctx(request, user, **extra):
-    csrf = new_csrf_token()
+    csrf = new_csrf_token(request)
     data = {"request": request, "user": user, "csrf_token": csrf, **extra}
     return data, csrf
 
