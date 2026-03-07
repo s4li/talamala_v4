@@ -104,7 +104,7 @@ async def update_cart_form(
                 flash(request, str(e), "danger")
                 return RedirectResponse(referer, status_code=303)
 
-    gb_id = int(gift_box_id) if gift_box_id.strip().isdigit() else None
+    gb_id = int(gift_box_id) if gift_box_id.strip().isdigit() and int(gift_box_id) > 0 else None
     if action == "remove":
         cart_service.update_item(db, me.id, product_id, -9999)
     else:
@@ -148,7 +148,7 @@ async def api_update_cart(
     gb_id = data.get("gift_box_id")
     if gb_id is not None:
         try:
-            gb_id = int(gb_id)
+            gb_id = int(gb_id) or None
         except (TypeError, ValueError):
             gb_id = None
 
@@ -176,7 +176,7 @@ async def set_cart_gift_box(
     me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
-    gb_id = int(gift_box_id) if gift_box_id.strip().isdigit() else None
+    gb_id = int(gift_box_id) if gift_box_id.strip().isdigit() and int(gift_box_id) > 0 else None
     cart_service.set_gift_box(db, me.id, product_id, gb_id)
     db.commit()
     referer = request.headers.get("referer", "/cart")
