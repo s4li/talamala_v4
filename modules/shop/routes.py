@@ -46,11 +46,7 @@ async def home_page(
     from modules.catalog.models import ProductCategory
     categories = db.query(ProductCategory).filter(ProductCategory.is_active == True).order_by(ProductCategory.sort_order).all()
 
-    # Default to first category when no category specified
-    if not category and categories:
-        category = str(categories[0].id)
-
-    # Category filter (DB-level) — "all" means no filter
+    # Category filter (DB-level) — empty or "all" means no filter
     cat_id = int(category) if category and category.isdigit() else None
 
     products, total, gold_price_rial, tax_percent_str = shop_service.list_products_with_pricing(

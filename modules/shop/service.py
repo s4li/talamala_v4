@@ -8,7 +8,7 @@ from decimal import Decimal
 from typing import List, Optional, Tuple
 
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, desc, asc
+from sqlalchemy import func, desc, asc, case
 
 from modules.catalog.models import Product, ProductCategoryLink
 from modules.inventory.models import Bar, BarStatus
@@ -79,17 +79,20 @@ class ShopService:
         # Total count (before pagination)
         total = query.count()
 
-        # Sorting
+        # Sorting — always put in-stock items first
+        inv_label = func.count(Bar.id)
+        stock_first = desc(case((inv_label > 0, 1), else_=0))
+
         if sort == "weight_desc":
-            query = query.order_by(desc(Product.weight))
+            query = query.order_by(stock_first, desc(Product.weight))
         elif sort == "newest":
-            query = query.order_by(desc(Product.id))
+            query = query.order_by(stock_first, desc(Product.id))
         elif sort == "price_asc":
-            query = query.order_by(asc(Product.weight))
+            query = query.order_by(stock_first, asc(Product.weight))
         elif sort == "price_desc":
-            query = query.order_by(desc(Product.weight))
+            query = query.order_by(stock_first, desc(Product.weight))
         else:
-            query = query.order_by(asc(Product.weight))
+            query = query.order_by(stock_first, asc(Product.weight))
 
         # Pagination
         offset = (page - 1) * per_page
