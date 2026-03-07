@@ -62,14 +62,19 @@ def check_otp_rate_limit(mobile: str) -> bool:
     """
     Check if mobile number has exceeded OTP request limit.
     Returns True if allowed, False if rate limited.
+    In DEBUG mode, limits are relaxed (100 attempts / 1 minute window).
     """
+    from config.settings import DEBUG
+    max_attempts = 100 if DEBUG else OTP_MAX_ATTEMPTS
+    window = 1 if DEBUG else OTP_RATE_LIMIT_WINDOW
+
     now = now_utc()
-    cutoff = now - timedelta(minutes=OTP_RATE_LIMIT_WINDOW)
+    cutoff = now - timedelta(minutes=window)
 
     # Clean old entries
     _otp_attempts[mobile] = [t for t in _otp_attempts[mobile] if t > cutoff]
 
-    if len(_otp_attempts[mobile]) >= OTP_MAX_ATTEMPTS:
+    if len(_otp_attempts[mobile]) >= max_attempts:
         return False
 
     _otp_attempts[mobile].append(now)
@@ -80,13 +85,18 @@ def check_otp_verify_rate_limit(mobile: str) -> bool:
     """
     Check if mobile number has exceeded OTP verification attempts.
     Returns True if allowed, False if rate limited.
+    In DEBUG mode, limits are relaxed (100 attempts / 1 minute window).
     """
+    from config.settings import DEBUG
+    max_attempts = 100 if DEBUG else OTP_VERIFY_MAX_ATTEMPTS
+    window = 1 if DEBUG else OTP_VERIFY_WINDOW
+
     now = now_utc()
-    cutoff = now - timedelta(minutes=OTP_VERIFY_WINDOW)
+    cutoff = now - timedelta(minutes=window)
 
     _otp_verify_attempts[mobile] = [t for t in _otp_verify_attempts[mobile] if t > cutoff]
 
-    if len(_otp_verify_attempts[mobile]) >= OTP_VERIFY_MAX_ATTEMPTS:
+    if len(_otp_verify_attempts[mobile]) >= max_attempts:
         return False
 
     _otp_verify_attempts[mobile].append(now)
