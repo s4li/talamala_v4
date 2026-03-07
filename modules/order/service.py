@@ -25,8 +25,8 @@ logger = logging.getLogger("talamala.order")
 
 
 def build_order_item(product, bar, invoice: dict, metal_price_rial: int, tax_percent_str: str,
-                     package_type_id: int = None, package_price: int = 0) -> OrderItem:
-    """Create an OrderItem with full price snapshot (including package)."""
+                     gift_box_id: int = None, gift_box_price: int = 0) -> OrderItem:
+    """Create an OrderItem with full price snapshot (including gift box)."""
     audit = invoice.get("audit", {})
     metal_total = int(invoice.get("total", 0))
     return OrderItem(
@@ -41,9 +41,9 @@ def build_order_item(product, bar, invoice: dict, metal_price_rial: int, tax_per
         final_gold_amount=int(invoice.get("raw_gold", 0)),
         final_wage_amount=int(invoice.get("wage", 0)),
         final_tax_amount=int(invoice.get("tax", 0)),
-        package_type_id=package_type_id,
-        applied_package_price=package_price,
-        line_total=metal_total + package_price,
+        gift_box_id=gift_box_id,
+        applied_gift_box_price=gift_box_price,
+        line_total=metal_total + gift_box_price,
     )
 
 
@@ -170,11 +170,11 @@ class OrderService:
                 base_purity=p_bp,
             )
 
-            # Package price snapshot
-            pkg_type_id = item.package_type_id
-            pkg_price = 0
-            if pkg_type_id and item.package_type:
-                pkg_price = int(item.package_type.price or 0)
+            # Gift box price snapshot
+            gb_id = item.gift_box_id
+            gb_price = 0
+            if gb_id and item.gift_box:
+                gb_price = int(item.gift_box.price or 0)
 
             required_qty = item.quantity
 
@@ -221,10 +221,10 @@ class OrderService:
                 bar.reserved_until = expire_at
 
                 oi = build_order_item(item.product, bar, price_info, p_price, tax_percent_str,
-                                     package_type_id=pkg_type_id, package_price=pkg_price)
+                                     gift_box_id=gb_id, gift_box_price=gb_price)
                 oi.order_id = new_order.id
                 order_items.append(oi)
-                cart_raw_total += int(price_info.get("total", 0)) + pkg_price
+                cart_raw_total += int(price_info.get("total", 0)) + gb_price
 
         new_order.total_amount = cart_raw_total
 

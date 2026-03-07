@@ -272,29 +272,33 @@ def test_L02_product_crud():
     return suite
 
 
-def test_L03_card_design_crud():
-    """L03: Admin creates card designs."""
-    suite = TestSuite("L03: CRUD طرح کارت")
+def test_L03_gift_box_crud():
+    """L03: Admin creates gift boxes."""
+    suite = TestSuite("L03: CRUD جعبه کادو")
     print(f"\n{'='*60}\n  {suite.name}\n{'='*60}")
     a = get_session(ADMIN_MOBILE)
 
-    design_name = f"طرح_تست_{_SUFFIX}"
-    _get(a, "/admin/designs")
-    r = _post_no_redirect(a, "/admin/designs/add", {"name": design_name})
-    suite.add("L03-01", "ایجاد طرح کارت", r.status_code in (302, 303))
+    gb_name = f"جعبه_تست_{_SUFFIX}"
+    _get(a, "/admin/gift-boxes")
+    r = _post_no_redirect(a, "/admin/gift-boxes/add", {
+        "name": gb_name, "price": "50000", "description": "تست", "sort_order": "1", "is_active": "on",
+    })
+    suite.add("L03-01", "ایجاد جعبه کادو", r.status_code in (302, 303))
 
-    design_id = db_scalar("SELECT id FROM card_designs WHERE name = :n", {"n": design_name})
-    suite.add("L03-02", "طرح کارت در دیتابیس", design_id is not None)
+    gb_id = db_scalar("SELECT id FROM gift_boxes WHERE name = :n", {"n": gb_name})
+    suite.add("L03-02", "جعبه کادو در دیتابیس", gb_id is not None)
 
-    if design_id:
-        new_name = f"طرح_ویرایش_{_SUFFIX}"
-        _get(a, "/admin/designs")
-        r = _post_no_redirect(a, f"/admin/designs/update/{design_id}", {"name": new_name})
-        suite.add("L03-03", "ویرایش طرح کارت", r.status_code in (302, 303))
+    if gb_id:
+        new_name = f"جعبه_ویرایش_{_SUFFIX}"
+        _get(a, "/admin/gift-boxes")
+        r = _post_no_redirect(a, f"/admin/gift-boxes/update/{gb_id}", {
+            "name": new_name, "price": "60000", "sort_order": "2", "is_active": "on",
+        })
+        suite.add("L03-03", "ویرایش جعبه کادو", r.status_code in (302, 303))
 
         # Delete
-        r = _post_no_redirect(a, f"/admin/designs/delete/{design_id}")
-        suite.add("L03-04", "حذف طرح کارت", r.status_code in (302, 303))
+        r = _post_no_redirect(a, f"/admin/gift-boxes/delete/{gb_id}")
+        suite.add("L03-04", "حذف جعبه کادو", r.status_code in (302, 303))
 
     return suite
 
@@ -1832,7 +1836,7 @@ def main():
         # Phase 1: Production & Catalog
         test_L01_category_crud,
         test_L02_product_crud,
-        test_L03_card_design_crud,
+        test_L03_gift_box_crud,
         test_L04_package_type_crud,
         test_L05_batch_crud,
         # Phase 2: Inventory & Distribution

@@ -39,9 +39,9 @@ async def view_cart(
 ):
     items, total_price = cart_service.get_cart_items_with_pricing(db, me.id)
 
-    # Get active packages for selection dropdown
-    from modules.catalog.models import PackageType
-    packages = db.query(PackageType).filter(PackageType.is_active == True).order_by(PackageType.id).all()
+    # Get active gift boxes for selection dropdown
+    from modules.catalog.models import GiftBox
+    gift_boxes = db.query(GiftBox).filter(GiftBox.is_active == True).order_by(GiftBox.sort_order, GiftBox.id).all()
 
     shop_gold_enabled = is_trade_enabled(db, "gold", "shop")
     shop_silver_enabled = is_trade_enabled(db, "silver", "shop")
@@ -66,7 +66,7 @@ async def view_cart(
         "shop_gold_enabled": shop_gold_enabled,
         "shop_silver_enabled": shop_silver_enabled,
         "has_disabled_items": has_disabled_items,
-        "packages": packages,
+        "gift_boxes": gift_boxes,
         "csrf_token": csrf,
         "msg": msg,
         "error": error,
@@ -84,7 +84,7 @@ async def update_cart_form(
     request: Request,
     product_id: int = Form(...),
     action: str = Form(...),
-    package_type_id: str = Form(""),
+    gift_box_id: str = Form(""),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     me=Depends(require_login),
@@ -104,12 +104,12 @@ async def update_cart_form(
                 flash(request, str(e), "danger")
                 return RedirectResponse(referer, status_code=303)
 
-    pkg_id = int(package_type_id) if package_type_id.strip().isdigit() else None
+    gb_id = int(gift_box_id) if gift_box_id.strip().isdigit() else None
     if action == "remove":
         cart_service.update_item(db, me.id, product_id, -9999)
     else:
         change = 1 if action == "increase" else -1
-        cart_service.update_item(db, me.id, product_id, change, package_type_id=pkg_id)
+        cart_service.update_item(db, me.id, product_id, change, gift_box_id=gb_id)
     db.commit()
 
     return RedirectResponse(referer, status_code=303)
@@ -145,15 +145,15 @@ async def api_update_cart(
             except ValueError as e:
                 return JSONResponse({"status": "error", "message": str(e)}, status_code=403)
 
-    pkg_id = data.get("package_type_id")
-    if pkg_id is not None:
+    gb_id = data.get("gift_box_id")
+    if gb_id is not None:
         try:
-            pkg_id = int(pkg_id)
+            gb_id = int(gb_id)
         except (TypeError, ValueError):
-            pkg_id = None
+            gb_id = None
 
     new_qty, cart_count = cart_service.update_item(db, me.id, product_id, change,
-                                                   package_type_id=pkg_id)
+                                                   gift_box_id=gb_id)
     db.commit()
     return JSONResponse({
         "status": "success",
@@ -163,21 +163,21 @@ async def api_update_cart(
 
 
 # ==========================================
-# 📦 Set Cart Package (Form-based)
+# 🎁 Set Cart Gift Box (Form-based)
 # ==========================================
 
-@router.post("/cart/set-package")
-async def set_cart_package(
+@router.post("/cart/set-gift-box")
+async def set_cart_gift_box(
     request: Request,
     product_id: int = Form(...),
-    package_type_id: str = Form(""),
+    gift_box_id: str = Form(""),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
-    pkg_id = int(package_type_id) if package_type_id.strip().isdigit() else None
-    cart_service.set_package(db, me.id, product_id, pkg_id)
+    gb_id = int(gift_box_id) if gift_box_id.strip().isdigit() else None
+    cart_service.set_gift_box(db, me.id, product_id, gb_id)
     db.commit()
     referer = request.headers.get("referer", "/cart")
     return RedirectResponse(referer, status_code=303)

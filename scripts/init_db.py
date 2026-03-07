@@ -22,8 +22,8 @@ from modules.admin.models import SystemSetting  # noqa
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress  # noqa
 from modules.catalog.models import (  # noqa
     Product, ProductCategory, ProductImage, ProductTierWage,
-    CardDesign, CardDesignImage,
-    PackageType, PackageTypeImage, Batch, BatchImage,
+    PackageType, PackageTypeImage, GiftBox, GiftBoxImage,
+    Batch, BatchImage,
 )
 from modules.inventory.models import (  # noqa
     Bar, BarImage, OwnershipHistory, DealerTransfer, BarTransfer,

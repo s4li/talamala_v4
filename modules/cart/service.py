@@ -39,10 +39,10 @@ class CartService:
         ).count()
 
     def update_item(self, db: Session, customer_id: int, product_id: int, change: int,
-                    package_type_id: int = None) -> Tuple[int, int]:
+                    gift_box_id: int = None) -> Tuple[int, int]:
         """
         Update cart item quantity by `change` (+1 or -1).
-        If package_type_id is provided on first add, it's set on the CartItem.
+        If gift_box_id is provided on first add, it's set on the CartItem.
         Returns: (new_quantity, total_cart_count)
         """
         cart = self.get_or_create_cart(db, customer_id)
@@ -63,13 +63,13 @@ class CartService:
                 new_qty = 0
             else:
                 item.quantity = new_qty
-                if package_type_id is not None and change > 0:
-                    item.package_type_id = package_type_id
+                if gift_box_id is not None and change > 0:
+                    item.gift_box_id = gift_box_id
         elif change > 0:
             if inventory < 1:
                 return 0, self._cart_count(db, cart.id)
             item = CartItem(cart_id=cart.id, product_id=product_id, quantity=1,
-                           package_type_id=package_type_id)
+                           gift_box_id=gift_box_id)
             db.add(item)
             new_qty = 1
 
@@ -77,9 +77,9 @@ class CartService:
         total = self._cart_count(db, cart.id)
         return new_qty, total
 
-    def set_package(self, db: Session, customer_id: int, product_id: int,
-                    package_type_id: int = None) -> bool:
-        """Set or clear the package type for a cart item. Returns True if found."""
+    def set_gift_box(self, db: Session, customer_id: int, product_id: int,
+                     gift_box_id: int = None) -> bool:
+        """Set or clear the gift box for a cart item. Returns True if found."""
         cart = db.query(Cart).filter(Cart.customer_id == customer_id).first()
         if not cart:
             return False
@@ -89,7 +89,7 @@ class CartService:
         ).first()
         if not item:
             return False
-        item.package_type_id = package_type_id
+        item.gift_box_id = gift_box_id
         db.flush()
         return True
 
@@ -131,20 +131,20 @@ class CartService:
             )
             unit_total = int(price_info.get("total", 0))
 
-            # Package price (per bar)
-            pkg_price = 0
-            if item.package_type_id and item.package_type:
-                pkg_price = int(item.package_type.price or 0)
+            # Gift box price (per bar)
+            gift_box_price = 0
+            if item.gift_box_id and item.gift_box:
+                gift_box_price = int(item.gift_box.price or 0)
 
-            line_total = (unit_total + pkg_price) * item.quantity
+            line_total = (unit_total + gift_box_price) * item.quantity
             total_price += line_total
 
             items_data.append({
                 "product": item.product,
                 "quantity": item.quantity,
                 "unit_price": unit_total,
-                "package_type": item.package_type,
-                "package_price": pkg_price,
+                "gift_box": item.gift_box,
+                "gift_box_price": gift_box_price,
                 "line_total": line_total,
                 "inventory": inv_map.get(item.product_id, 0),
                 "details": price_info,

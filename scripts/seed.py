@@ -40,8 +40,9 @@ from modules.user.models import User
 from modules.admin.models import SystemSetting, RequestLog
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress
 from modules.catalog.models import (
-    ProductCategory, ProductCategoryLink, Product, ProductImage, CardDesign, CardDesignImage,
-    PackageType, PackageTypeImage, Batch, BatchImage, ProductTierWage,
+    ProductCategory, ProductCategoryLink, Product, ProductImage,
+    PackageType, PackageTypeImage, GiftBox, GiftBoxImage,
+    Batch, BatchImage, ProductTierWage,
 )
 from modules.inventory.models import (
     Bar, BarImage, OwnershipHistory, BarStatus,
@@ -295,20 +296,13 @@ def seed():
         db.flush()
 
         # ==========================================
-        # 4. Card Designs + Package Types + Batches
+        # 4. Package Types + Gift Boxes + Batches
         # ==========================================
         print("\n[4/9] Catalog Accessories")
 
-        for name in ["طرح کلاسیک", "طرح مدرن", "طرح هدیه", "طرح نوروز"]:
-            if not db.query(CardDesign).filter(CardDesign.name == name).first():
-                db.add(CardDesign(name=name))
-                print(f"  + Design: {name}")
-
         pkg_data = [
-            {"name": "جعبه استاندارد", "price": 0},
-            {"name": "جعبه لوکس", "price": 5_000_000},
-            {"name": "جعبه هدیه ویژه", "price": 15_000_000},
-            {"name": "پاکت ساده", "price": 1_000_000},
+            {"name": "کارت استاندارد", "price": 0},
+            {"name": "کارت لوکس", "price": 5_000_000},
         ]
         for pd in pkg_data:
             existing = db.query(PackageType).filter(PackageType.name == pd["name"]).first()
@@ -318,6 +312,23 @@ def seed():
             else:
                 existing.price = pd["price"]
                 print(f"  = Package: {pd['name']} (price updated)")
+
+        gb_data = [
+            {"name": "جعبه کادو ساده", "price": 2_000_000, "description": "جعبه مقوایی با روبان", "sort_order": 1},
+            {"name": "جعبه کادو لوکس", "price": 8_000_000, "description": "جعبه چرمی درجه یک", "sort_order": 2},
+            {"name": "جعبه هدیه ویژه", "price": 15_000_000, "description": "جعبه چوبی خاص با حکاکی", "sort_order": 3},
+            {"name": "پاکت هدیه", "price": 1_000_000, "description": "پاکت ساتن با روبان", "sort_order": 4},
+        ]
+        for gd in gb_data:
+            existing = db.query(GiftBox).filter(GiftBox.name == gd["name"]).first()
+            if not existing:
+                db.add(GiftBox(name=gd["name"], price=gd["price"], description=gd.get("description"),
+                              sort_order=gd.get("sort_order", 0), is_active=True))
+                print(f"  + GiftBox: {gd['name']} ({gd['price']} rial)")
+            else:
+                existing.price = gd["price"]
+                existing.description = gd.get("description")
+                print(f"  = GiftBox: {gd['name']} (updated)")
 
         batches_data = [
             {"batch_number": "B-1403-001", "melt_number": "M-001", "operator": "استاد کریمی", "purity": 750},
@@ -705,7 +716,6 @@ def seed():
         print(f"\n[5/9] Products ({len(weights_def)} weights x {len(product_types)} types)")
 
         product_map = {}
-        default_design = db.query(CardDesign).first()
         default_package = db.query(PackageType).first()
 
         for ptype in product_types:
@@ -757,7 +767,6 @@ def seed():
                         weight=weight_grams,
                         purity=ptype["purity"],
                         metal_type=ptype.get("metal", "gold"),
-                        card_design_id=default_design.id if default_design else None,
                         package_type_id=default_package.id if default_package else None,
                         wage=end_customer_wage,
                         buyback_wage_percent=end_customer_wage,
@@ -2056,7 +2065,7 @@ def seed():
         print(f"  Categories:     {db.query(ProductCategory).count()}")
         print(f"  Provinces:      {db.query(GeoProvince).count()}")
         print(f"  Cities:         {db.query(GeoCity).count()}")
-        print(f"  Card Designs:   {db.query(CardDesign).count()}")
+        print(f"  Gift Boxes:     {db.query(GiftBox).count()}")
         print(f"  Package Types:  {db.query(PackageType).count()}")
         print(f"  Batches:        {db.query(Batch).count()}")
         print(f"  Bars:           {db.query(Bar).count()}")

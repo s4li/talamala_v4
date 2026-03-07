@@ -1,0 +1,155 @@
+{% extends "admin/base_admin.html" %}
+{% set active_page = "gift_boxes" %}
+{% block title %}جعبه‌های کادو - پنل مدیریت{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4 class="fw-bold mb-0"><i class="bi bi-gift me-2"></i>جعبه‌های کادو</h4>
+    {% if user.has_permission("products", "create") %}
+    <button class="btn btn-tm-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-plus-lg me-1"></i> افزودن جعبه کادو
+    </button>
+    {% endif %}
+</div>
+
+<div class="row g-3">
+    {% for gb in gift_boxes %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card-tm no-hover h-100">
+            {% if user.has_permission("products", "edit") %}
+            <form method="POST" action="/admin/gift-boxes/update/{{ gb.id }}" enctype="multipart/form-data" class="mb-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="input-group">
+                    <input type="text" name="name" class="form-control form-control-tm fw-bold" value="{{ gb.name }}">
+                    <button class="btn btn-sm btn-tm-outline"><i class="bi bi-check-lg"></i></button>
+                </div>
+                <div class="mt-2">
+                    <textarea name="description" class="form-control form-control-tm form-control-sm" rows="2" placeholder="توضیحات (اختیاری)">{{ gb.description or '' }}</textarea>
+                </div>
+                <div class="row g-2 mt-2">
+                    <div class="col-5">
+                        <div class="input-group input-group-sm">
+                            <input type="number" name="price" class="form-control form-control-tm"
+                                   value="{{ (gb.price / 10)|int }}" min="0" placeholder="قیمت">
+                            <span class="input-group-text">تومان</span>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <input type="number" name="sort_order" class="form-control form-control-tm form-control-sm"
+                               value="{{ gb.sort_order }}" min="0" placeholder="ترتیب">
+                    </div>
+                    <div class="col-4">
+                        <div class="form-check form-switch mt-1">
+                            <input class="form-check-input" type="checkbox" name="is_active"
+                                   {% if gb.is_active %}checked{% endif %}>
+                            <label class="form-check-label small">فعال</label>
+                        </div>
+                    </div>
+                </div>
+                <input type="file" name="files" class="form-control form-control-tm form-control-sm mt-2" multiple accept="image/*">
+                <button type="submit" class="btn btn-sm btn-tm-primary mt-2 w-100">ذخیره</button>
+            </form>
+            {% else %}
+            <div class="mb-3">
+                <div class="fw-bold">{{ gb.name }}</div>
+                {% if gb.description %}<small class="text-muted">{{ gb.description }}</small><br>{% endif %}
+                <small class="text-muted">{{ (gb.price / 10)|int | toman }} تومان</small>
+            </div>
+            {% endif %}
+            {% if gb.images %}
+            <div class="d-flex flex-wrap gap-2">
+                {% for img in gb.images %}
+                <div class="position-relative">
+                    <img src="/{{ img.file_path }}" class="img-thumb" alt="">
+                    {% if img.is_default %}<span class="default-badge">✓</span>{% endif %}
+                    <div class="d-flex gap-1 mt-1">
+                        {% if not img.is_default %}
+                        {% if user.has_permission("products", "edit") %}
+                        <form method="POST" action="/admin/gift-boxes/image/default/{{ img.id }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button class="btn btn-tm-warning" style="padding:1px 5px;font-size:0.65rem;"><i class="bi bi-star"></i></button>
+                        </form>
+                        {% endif %}
+                        {% endif %}
+                        {% if user.has_permission("products", "full") %}
+                        <form method="POST" action="/admin/gift-boxes/image/delete/{{ img.id }}" onsubmit="return confirm('حذف؟')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button class="btn btn-tm-danger" style="padding:1px 5px;font-size:0.65rem;"><i class="bi bi-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% if user.has_permission("products", "full") %}
+            <div class="border-top pt-3 mt-3 text-end">
+                <form method="POST" action="/admin/gift-boxes/delete/{{ gb.id }}" class="d-inline"
+                      onsubmit="return confirm('آیا از حذف «{{ gb.name }}» مطمئن هستید؟')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash me-1"></i>حذف</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center text-muted py-5">هنوز جعبه کادویی ثبت نشده</div>
+    {% endfor %}
+</div>
+
+<!-- Add Modal -->
+{% if user.has_permission("products", "create") %}
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="/admin/gift-boxes/add" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">افزودن جعبه کادو</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label-tm">نام *</label>
+                        <input type="text" name="name" class="form-control form-control-tm" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-tm">توضیحات</label>
+                        <textarea name="description" class="form-control form-control-tm" rows="2" placeholder="اختیاری"></textarea>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label-tm">قیمت (تومان)</label>
+                            <div class="input-group">
+                                <input type="number" name="price" class="form-control form-control-tm" value="0" min="0">
+                                <span class="input-group-text">تومان</span>
+                            </div>
+                            <small class="text-muted">۰ = رایگان</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-tm">ترتیب نمایش</label>
+                            <input type="number" name="sort_order" class="form-control form-control-tm" value="0" min="0">
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_active" checked>
+                            <label class="form-check-label">فعال</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-tm">تصاویر</label>
+                        <input type="file" name="files" class="form-control form-control-tm" multiple accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-tm-primary">ذخیره</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -33,7 +33,7 @@ def _get_cart_info(db: Session, user) -> tuple:
 @router.get("/", response_class=HTMLResponse)
 async def home_page(
     request: Request,
-    sort: str = Query("weight_asc"),
+    sort: str = Query("price_asc"),
     category: str = Query(""),
     page: int = Query(1),
     db: Session = Depends(get_db),
@@ -119,9 +119,9 @@ async def product_detail(
         )
         buyback_amount = bb_info.get("wage", 0)
 
-    # Get active packages for selection
-    from modules.catalog.models import PackageType
-    packages = db.query(PackageType).filter(PackageType.is_active == True).order_by(PackageType.id).all()
+    # Get active gift boxes for selection
+    from modules.catalog.models import GiftBox
+    gift_boxes = db.query(GiftBox).filter(GiftBox.is_active == True).order_by(GiftBox.sort_order, GiftBox.id).all()
 
     # Reviews & Comments
     from modules.review.service import review_service
@@ -167,7 +167,7 @@ async def product_detail(
         "location_inventory": location_inventory,
         "cart_map": cart_map,
         "cart_count": cart_count,
-        "packages": packages,
+        "gift_boxes": gift_boxes,
         "reviews": reviews,
         "review_stats": review_stats,
         "product_comments": product_comments,

@@ -163,36 +163,38 @@
         </div>
         {% endif %}
 
-        <!-- Package Selection -->
-        {% if packages %}
+        <!-- Gift Box Selection -->
+        {% if gift_boxes %}
         <div class="card-tm no-hover mt-3">
-            <h6 class="fw-bold mb-3"><i class="bi bi-gift me-1"></i>انتخاب بسته‌بندی</h6>
-            <div class="d-flex flex-column gap-2" id="packageOptions">
-                <label class="d-flex align-items-center gap-3 p-2 border rounded-3 package-option package-selected"
-                       style="border-color:var(--tm-secondary-600)!important;background:var(--tm-secondary-900);"
-                       style="cursor:pointer;">
-                    <input type="radio" name="package_choice" value="" checked class="form-check-input"
-                           onchange="selectPackage(this)">
+            <h6 class="fw-bold mb-3"><i class="bi bi-gift me-1"></i>انتخاب جعبه کادو</h6>
+            <div class="d-flex flex-column gap-2" id="giftBoxOptions">
+                <label class="d-flex align-items-center gap-3 p-2 border rounded-3 gift-box-option gift-box-selected"
+                       style="border-color:var(--tm-secondary-600)!important;background:var(--tm-secondary-900);cursor:pointer;">
+                    <input type="radio" name="gift_box_choice" value="" checked class="form-check-input"
+                           onchange="selectGiftBox(this)">
                     <div class="flex-grow-1">
-                        <span class="fw-bold small">بدون بسته‌بندی خاص</span>
+                        <span class="fw-bold small">بدون جعبه کادو</span>
                         <div class="text-muted" style="font-size:0.75rem;">بسته‌بندی استاندارد</div>
                     </div>
                     <span class="text-success fw-bold small">رایگان</span>
                 </label>
-                {% for pkg in packages %}
-                <label class="d-flex align-items-center gap-3 p-2 border rounded-3 package-option"
+                {% for gb in gift_boxes %}
+                <label class="d-flex align-items-center gap-3 p-2 border rounded-3 gift-box-option"
                        style="cursor:pointer;">
-                    <input type="radio" name="package_choice" value="{{ pkg.id }}" class="form-check-input"
-                           onchange="selectPackage(this)">
-                    {% if pkg.default_image %}
-                    <img src="/{{ pkg.default_image }}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;cursor:zoom-in;" alt="{{ pkg.name }}"
-                         onclick="event.preventDefault(); event.stopPropagation(); openPkgGallery({{ pkg.id }})">
+                    <input type="radio" name="gift_box_choice" value="{{ gb.id }}" class="form-check-input"
+                           onchange="selectGiftBox(this)">
+                    {% if gb.default_image %}
+                    <img src="/{{ gb.default_image }}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;cursor:zoom-in;" alt="{{ gb.name }}"
+                         onclick="event.preventDefault(); event.stopPropagation(); openGbGallery({{ gb.id }})">
                     {% endif %}
                     <div class="flex-grow-1">
-                        <span class="fw-bold small">{{ pkg.name }}</span>
+                        <span class="fw-bold small">{{ gb.name }}</span>
+                        {% if gb.description %}
+                        <div class="text-muted" style="font-size:0.75rem;">{{ gb.description }}</div>
+                        {% endif %}
                     </div>
-                    {% if pkg.price > 0 %}
-                    <span class="text-tm-primary fw-bold small">{{ pkg.price | toman }} تومان</span>
+                    {% if gb.price > 0 %}
+                    <span class="text-tm-primary fw-bold small">{{ gb.price | toman }} تومان</span>
                     {% else %}
                     <span class="text-success fw-bold small">رایگان</span>
                     {% endif %}
@@ -380,17 +382,17 @@
     </div>
     {% endfor %}
     {% endif %}
-<!-- Package Image Modal -->
-<div class="modal fade" id="pkgImageModal" tabindex="-1">
+<!-- Gift Box Image Modal -->
+<div class="modal fade" id="gbImageModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius:16px;overflow:hidden;background:var(--tm-info-900);">
             <div class="modal-header border-0 pb-0">
-                <h6 class="modal-title fw-bold" id="pkgModalTitle"></h6>
+                <h6 class="modal-title fw-bold" id="gbModalTitle"></h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center p-3">
-                <img id="pkgModalImg" src="" alt="" style="max-width:100%;max-height:70vh;border-radius:12px;object-fit:contain;">
-                <div id="pkgModalThumbs" class="d-flex justify-content-center gap-2 mt-3 flex-wrap"></div>
+                <img id="gbModalImg" src="" alt="" style="max-width:100%;max-height:70vh;border-radius:12px;object-fit:contain;">
+                <div id="gbModalThumbs" class="d-flex justify-content-center gap-2 mt-3 flex-wrap"></div>
             </div>
         </div>
     </div>
@@ -405,18 +407,18 @@
         new bootstrap.Tooltip(el);
     });
 
-    var pkgImages = {
-        {% for pkg in packages %}
-        {{ pkg.id }}: { name: "{{ pkg.name }}", images: [{% for img in pkg.images %}"/{{ img.file_path }}"{% if not loop.last %},{% endif %}{% endfor %}] },
+    var gbImages = {
+        {% for gb in gift_boxes %}
+        {{ gb.id }}: { name: "{{ gb.name }}", images: [{% for img in gb.images %}"/{{ img.file_path }}"{% if not loop.last %},{% endif %}{% endfor %}] },
         {% endfor %}
     };
 
-    function openPkgGallery(pkgId) {
-        var data = pkgImages[pkgId];
+    function openGbGallery(gbId) {
+        var data = gbImages[gbId];
         if (!data || data.images.length === 0) return;
-        document.getElementById('pkgModalTitle').textContent = data.name;
-        document.getElementById('pkgModalImg').src = data.images[0];
-        var thumbsEl = document.getElementById('pkgModalThumbs');
+        document.getElementById('gbModalTitle').textContent = data.name;
+        document.getElementById('gbModalImg').src = data.images[0];
+        var thumbsEl = document.getElementById('gbModalThumbs');
         thumbsEl.innerHTML = '';
         if (data.images.length > 1) {
             data.images.forEach(function(src, i) {
@@ -424,37 +426,34 @@
                 thumb.src = src;
                 thumb.style.cssText = 'width:56px;height:56px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid ' + (i === 0 ? 'var(--tm-primary)' : 'transparent');
                 thumb.onclick = function() {
-                    document.getElementById('pkgModalImg').src = src;
+                    document.getElementById('gbModalImg').src = src;
                     thumbsEl.querySelectorAll('img').forEach(function(t) { t.style.borderColor = 'transparent'; });
                     thumb.style.borderColor = 'var(--tm-primary)';
                 };
                 thumbsEl.appendChild(thumb);
             });
         }
-        new bootstrap.Modal(document.getElementById('pkgImageModal')).show();
+        new bootstrap.Modal(document.getElementById('gbImageModal')).show();
     }
 
-    function selectPackage(radio) {
-        document.querySelectorAll('.package-option').forEach(function(el) {
-            el.classList.remove('package-selected');
+    function selectGiftBox(radio) {
+        document.querySelectorAll('.gift-box-option').forEach(function(el) {
+            el.classList.remove('gift-box-selected');
             el.style.borderColor = '';
             el.style.background = '';
         });
-        var sel = radio.closest('.package-option');
-        sel.classList.add('package-selected');
+        var sel = radio.closest('.gift-box-option');
+        sel.classList.add('gift-box-selected');
         sel.style.borderColor = 'var(--tm-secondary-600)';
         sel.style.background = 'var(--tm-secondary-900)';
-        document.querySelectorAll('.pkg-hidden').forEach(function(h) {
-            h.value = radio.value;
-        });
     }
 
     var _cartBusy = false;
     function updateQty(change) {
         if (_cartBusy) return;
         _cartBusy = true;
-        var pkgEl = document.querySelector('input[name="package_choice"]:checked');
-        var pkgId = pkgEl ? pkgEl.value : '';
+        var gbEl = document.querySelector('input[name="gift_box_choice"]:checked');
+        var gbId = gbEl ? gbEl.value : '';
         fetch('/api/cart/update', {
             method: 'POST',
             headers: {
@@ -464,7 +463,7 @@
             body: JSON.stringify({
                 product_id: {{ p.id }},
                 change: change,
-                package_type_id: pkgId || null
+                gift_box_id: gbId || null
             })
         })
         .then(function(res) {

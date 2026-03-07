@@ -15,11 +15,11 @@
     <div class="d-flex align-items-center gap-2">
         <small class="text-muted d-none d-md-inline">مرتب‌سازی:</small>
         <div class="btn-group btn-group-sm">
-            <a href="/?sort=weight_asc{% if current_category %}&category={{ current_category }}{% endif %}" class="{% if current_sort == 'weight_asc' %}btn btn-tm-primary{% else %}btn-tm-outline{% endif %}">
-                سبک‌ترین
+            <a href="/?sort=price_asc{% if current_category %}&category={{ current_category }}{% endif %}" class="{% if current_sort == 'price_asc' or current_sort == 'weight_asc' %}btn btn-tm-primary{% else %}btn-tm-outline{% endif %}">
+                ارزان‌ترین
             </a>
-            <a href="/?sort=weight_desc{% if current_category %}&category={{ current_category }}{% endif %}" class="{% if current_sort == 'weight_desc' %}btn btn-tm-primary{% else %}btn-tm-outline{% endif %}">
-                سنگین‌ترین
+            <a href="/?sort=price_desc{% if current_category %}&category={{ current_category }}{% endif %}" class="{% if current_sort == 'price_desc' or current_sort == 'weight_desc' %}btn btn-tm-primary{% else %}btn-tm-outline{% endif %}">
+                گران‌ترین
             </a>
             <a href="/?sort=newest{% if current_category %}&category={{ current_category }}{% endif %}" class="{% if current_sort == 'newest' %}btn btn-tm-primary{% else %}btn-tm-outline{% endif %}">
                 جدیدترین

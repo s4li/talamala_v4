@@ -26,7 +26,6 @@
                         <th>وزن (گرم)</th>
                         <th>عیار</th>
                         <th>اجرت</th>
-                        <th>طرح کارت</th>
                         <th>بسته‌بندی</th>
                         <th>وضعیت</th>
                         <th>عملیات</th>
@@ -50,7 +49,6 @@
                         <td>{{ p.weight }}</td>
                         <td>{{ p.purity|purity }}</td>
                         <td>{{ p.wage }}%</td>
-                        <td><small>{{ p.card_design.name if p.card_design else '—' }}</small></td>
                         <td><small>{{ p.package_type.name if p.package_type else '—' }}</small></td>
                         <td>
                             {% if p.is_active %}
@@ -73,7 +71,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="11" class="text-center text-muted py-4">هنوز محصولی ثبت نشده</td></tr>
+                    <tr><td colspan="10" class="text-center text-muted py-4">هنوز محصولی ثبت نشده</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -132,15 +130,6 @@
                         <div class="col-md-6">
                             <label class="form-label-tm">طرح</label>
                             <input type="text" name="design" class="form-control form-control-tm" placeholder="اختیاری">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label-tm">طرح کارت</label>
-                            <select name="card_design_id" class="form-select form-select-tm">
-                                <option value="">بدون طرح کارت</option>
-                                {% for d in designs %}
-                                <option value="{{ d.id }}">{{ d.name }}</option>
-                                {% endfor %}
-                            </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label-tm">بسته‌بندی</label>

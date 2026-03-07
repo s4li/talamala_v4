@@ -1,7 +1,7 @@
 """
 Catalog Module - Service Layer
 ================================
-Business logic for Products, Designs, Packages, and Batches.
+Business logic for Products, Packages, GiftBoxes, and Batches.
 Generic image management to avoid code duplication.
 """
 
@@ -16,8 +16,8 @@ from modules.dealer.models import DealerTier
 from modules.catalog.models import (
     ProductTierWage,
     Product, ProductImage, ProductCategoryLink,
-    CardDesign, CardDesignImage,
     PackageType, PackageTypeImage,
+    GiftBox, GiftBoxImage,
     Batch, BatchImage,
 )
 
@@ -117,7 +117,6 @@ class ProductService:
             weight=data["weight"],
             purity=safe_decimal(data.get("purity", "750"), Decimal("750")),
             design=data.get("design"),
-            card_design_id=data.get("card_design_id"),
             package_type_id=data.get("package_type_id"),
             wage=safe_decimal(data.get("wage", "0"), Decimal("0")),
             buyback_wage_percent=safe_decimal(data.get("buyback_wage_percent", "0"), Decimal("0")),
@@ -162,7 +161,6 @@ class ProductService:
         p.purity = safe_decimal(data.get("purity", "750"), Decimal("750"))
         p.design = data.get("design")
         p.description = data.get("description") or None
-        p.card_design_id = data.get("card_design_id")
         p.package_type_id = data.get("package_type_id")
         p.wage = safe_decimal(data.get("wage", "0"), Decimal("0"))
         p.buyback_wage_percent = safe_decimal(data.get("buyback_wage_percent", "0"), Decimal("0"))
@@ -345,10 +343,61 @@ class PackageService:
 
 
 # ==========================================
+# Gift Box Service (جعبه کادو — بسته‌بندی بیرونی)
+# ==========================================
+
+class GiftBoxService:
+    """Service for GiftBox with name, description, price, is_active, sort_order + images."""
+
+    def list_all(self, db: Session) -> List[GiftBox]:
+        return db.query(GiftBox).order_by(GiftBox.sort_order, GiftBox.id).all()
+
+    def list_active(self, db: Session) -> List[GiftBox]:
+        return db.query(GiftBox).filter(GiftBox.is_active == True).order_by(GiftBox.sort_order, GiftBox.id).all()
+
+    def get_by_id(self, db: Session, item_id: int) -> Optional[GiftBox]:
+        return db.query(GiftBox).filter(GiftBox.id == item_id).first()
+
+    def create(self, db: Session, name: str, description: str = None, price: int = 0,
+               is_active: bool = True, sort_order: int = 0,
+               files: List[UploadFile] = None) -> GiftBox:
+        item = GiftBox(name=name, description=description, price=price,
+                       is_active=is_active, sort_order=sort_order)
+        db.add(item)
+        db.flush()
+        db.refresh(item)
+        if files:
+            images.save_images(db, item.id, files, GiftBoxImage, "gift_box_id",
+                             subfolder="gift_boxes")
+        return item
+
+    def update(self, db: Session, item_id: int, name: str, description: str = None,
+               price: int = 0, is_active: bool = True, sort_order: int = 0,
+               files: List[UploadFile] = None) -> Optional[GiftBox]:
+        item = self.get_by_id(db, item_id)
+        if not item:
+            return None
+        item.name = name
+        item.description = description
+        item.price = price
+        item.is_active = is_active
+        item.sort_order = sort_order
+        db.flush()
+        if files:
+            images.save_images(db, item.id, files, GiftBoxImage, "gift_box_id",
+                             set_first_default=False, subfolder="gift_boxes")
+        return item
+
+    def delete(self, db: Session, item_id: int):
+        db.query(GiftBox).filter(GiftBox.id == item_id).delete()
+        db.flush()
+
+
+# ==========================================
 # Service Singletons
 # ==========================================
 
 product_service = ProductService()
-design_service = SimpleEntityService(CardDesign, CardDesignImage, "design_id", "designs")
 package_service = PackageService()
+gift_box_service = GiftBoxService()
 batch_service = BatchService()

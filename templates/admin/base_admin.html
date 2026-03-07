@@ -53,11 +53,11 @@
         <a href="/admin/categories" class="nav-link {% if active_page == 'categories' %}active{% endif %}">
             <i class="bi bi-folder"></i> دسته‌بندی‌ها
         </a>
-        <a href="/admin/designs" class="nav-link {% if active_page == 'designs' %}active{% endif %}">
-            <i class="bi bi-palette"></i> طرح کارت‌ها
-        </a>
         <a href="/admin/packages" class="nav-link {% if active_page == 'packages' %}active{% endif %}">
-            <i class="bi bi-gift"></i> بسته‌بندی‌ها
+            <i class="bi bi-credit-card-2-front"></i> بسته‌بندی‌ها
+        </a>
+        <a href="/admin/gift-boxes" class="nav-link {% if active_page == 'gift_boxes' %}active{% endif %}">
+            <i class="bi bi-gift"></i> جعبه‌های کادو
         </a>
         {% endif %}
         {% if user.has_permission('batches') %}

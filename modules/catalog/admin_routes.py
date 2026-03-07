@@ -1,7 +1,7 @@
 """
 Catalog Module - Admin Routes
 ===============================
-CRUD for Products, CardDesigns, PackageTypes, Batches.
+CRUD for Products, PackageTypes, GiftBoxes, Batches.
 All routes require staff authentication.
 """
 
@@ -17,10 +17,10 @@ from common.security import csrf_check, new_csrf_token
 from common.flash import flash
 from modules.auth.deps import require_permission
 from modules.catalog.service import (
-    product_service, design_service, package_service, batch_service,
-    images, ProductImage, CardDesignImage, PackageTypeImage, BatchImage,
+    product_service, package_service, gift_box_service, batch_service,
+    images, ProductImage, PackageTypeImage, GiftBoxImage, BatchImage,
 )
-from modules.catalog.models import ProductCategory, CardDesign, PackageType
+from modules.catalog.models import ProductCategory, PackageType, GiftBox
 
 router = APIRouter(tags=["catalog-admin"])
 
@@ -43,9 +43,8 @@ def ctx(request, user, **extra):
 async def list_products(request: Request, db: Session = Depends(get_db), user=Depends(require_permission("products"))):
     products = product_service.list_all(db)
     categories = db.query(ProductCategory).order_by(ProductCategory.sort_order).all()
-    designs = db.query(CardDesign).all()
     packages = db.query(PackageType).all()
-    data, csrf = ctx(request, user, products=products, categories=categories, designs=designs, packages=packages)
+    data, csrf = ctx(request, user, products=products, categories=categories, packages=packages)
     response = templates.TemplateResponse("admin/catalog/products.html", data)
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
@@ -56,7 +55,7 @@ async def add_product(
     request: Request,
     name: str = Form(...), weight: str = Form(...), purity: str = Form("995"),
     design: str = Form(None),
-    card_design_id: str = Form(""), package_type_id: str = Form(""),
+    package_type_id: str = Form(""),
     wage: str = Form("0"),
     is_active: bool = Form(True),
     files: List[UploadFile] = File(None),
@@ -66,11 +65,10 @@ async def add_product(
     csrf_check(request, csrf_token)
     form = await request.form()
     category_ids = [int(v) for v in form.getlist("category_ids") if str(v).isdigit()]
-    cd_id = int(card_design_id) if card_design_id.strip().isdigit() else None
     pt_id = int(package_type_id) if package_type_id.strip().isdigit() else None
     product_service.create(db, {
         "name": name, "weight": weight, "purity": purity, "design": design,
-        "category_ids": category_ids, "card_design_id": cd_id, "package_type_id": pt_id,
+        "category_ids": category_ids, "package_type_id": pt_id,
         "wage": wage,
         "is_active": is_active,
     }, files)
@@ -84,9 +82,8 @@ async def edit_product_form(request: Request, p_id: int, db: Session = Depends(g
     if not p:
         raise HTTPException(404)
     categories = db.query(ProductCategory).order_by(ProductCategory.sort_order).all()
-    designs = db.query(CardDesign).all()
     packages = db.query(PackageType).all()
-    data, csrf = ctx(request, user, p=p, categories=categories, designs=designs, packages=packages)
+    data, csrf = ctx(request, user, p=p, categories=categories, packages=packages)
     response = templates.TemplateResponse("admin/catalog/edit_product.html", data)
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
@@ -97,7 +94,7 @@ async def update_product(
     request: Request, p_id: int,
     name: str = Form(...), weight: str = Form(...), purity: str = Form(...),
     design: str = Form(None),
-    card_design_id: str = Form(""), package_type_id: str = Form(""),
+    package_type_id: str = Form(""),
     wage: str = Form(...),
     is_active: bool = Form(False),
     new_files: List[UploadFile] = File(None),
@@ -109,13 +106,12 @@ async def update_product(
     description = form.get("description", "")
     buyback_wage_percent = str(form.get("buyback_wage_percent", "0")).strip()
     category_ids = [int(v) for v in form.getlist("category_ids") if str(v).isdigit()]
-    cd_id = int(card_design_id) if card_design_id.strip().isdigit() else None
     pt_id = int(package_type_id) if package_type_id.strip().isdigit() else None
 
     product_service.update(db, p_id, {
         "name": name, "weight": weight, "purity": purity, "design": design,
         "description": description,
-        "category_ids": category_ids, "card_design_id": cd_id, "package_type_id": pt_id,
+        "category_ids": category_ids, "package_type_id": pt_id,
         "wage": wage,
         "buyback_wage_percent": buyback_wage_percent,
         "is_active": is_active,
@@ -144,65 +140,7 @@ async def set_product_default(request: Request, img_id: int, csrf_token: Optiona
 
 
 # ==========================================
-# 🎨 Card Designs
-# ==========================================
-
-@router.get("/admin/designs", response_class=HTMLResponse)
-async def list_designs(request: Request, db: Session = Depends(get_db), user=Depends(require_permission("products"))):
-    items = design_service.list_all(db)
-    data, csrf = ctx(request, user, designs=items)
-    response = templates.TemplateResponse("admin/catalog/designs.html", data)
-    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
-    return response
-
-
-@router.post("/admin/designs/add")
-async def add_design(request: Request, name: str = Form(...), files: List[UploadFile] = File(None),
-                      csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products", level="create"))):
-    csrf_check(request, csrf_token)
-    design_service.create(db, name, files)
-    db.commit()
-    return RedirectResponse("/admin/designs", status_code=303)
-
-
-@router.post("/admin/designs/update/{item_id}")
-async def update_design(request: Request, item_id: int, name: str = Form(...), files: List[UploadFile] = File(None),
-                          csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
-    csrf_check(request, csrf_token)
-    design_service.update(db, item_id, name, files)
-    db.commit()
-    return RedirectResponse("/admin/designs", status_code=303)
-
-
-@router.post("/admin/designs/delete/{item_id}")
-async def delete_design(request: Request, item_id: int, csrf_token: Optional[str] = Form(None),
-                          db: Session = Depends(get_db), user=Depends(require_permission("products", level="full"))):
-    csrf_check(request, csrf_token)
-    design_service.delete(db, item_id)
-    db.commit()
-    return RedirectResponse("/admin/designs", status_code=303)
-
-
-@router.post("/admin/designs/image/delete/{img_id}")
-async def delete_design_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
-    csrf_check(request, csrf_token)
-    images.delete_image(db, CardDesignImage, img_id)
-    db.commit()
-    return RedirectResponse("/admin/designs", status_code=303)
-
-
-@router.post("/admin/designs/image/default/{img_id}")
-async def set_default_design_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
-                                     db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
-    csrf_check(request, csrf_token)
-    images.set_default(db, CardDesignImage, img_id, "design_id")
-    db.commit()
-    return RedirectResponse("/admin/designs", status_code=303)
-
-
-# ==========================================
-# 📦 Package Types
+# 📦 Package Types (کارت محصول)
 # ==========================================
 
 @router.get("/admin/packages", response_class=HTMLResponse)
@@ -261,6 +199,76 @@ async def set_default_package_image(request: Request, img_id: int, csrf_token: O
     images.set_default(db, PackageTypeImage, img_id, "package_id")
     db.commit()
     return RedirectResponse("/admin/packages", status_code=303)
+
+
+# ==========================================
+# 🎁 Gift Boxes (جعبه کادو)
+# ==========================================
+
+@router.get("/admin/gift-boxes", response_class=HTMLResponse)
+async def list_gift_boxes(request: Request, db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+    items = gift_box_service.list_all(db)
+    data, csrf = ctx(request, user, gift_boxes=items)
+    response = templates.TemplateResponse("admin/catalog/gift_boxes.html", data)
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/admin/gift-boxes/add")
+async def add_gift_box(request: Request, name: str = Form(...), price: str = Form("0"),
+                       description: str = Form(""), sort_order: str = Form("0"),
+                       is_active: str = Form("on"), files: List[UploadFile] = File(None),
+                       csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db),
+                       user=Depends(require_permission("products", level="create"))):
+    csrf_check(request, csrf_token)
+    price_rial = int(price) * 10 if price.strip().isdigit() else 0
+    so = int(sort_order) if sort_order.strip().isdigit() else 0
+    gift_box_service.create(db, name, description=description or None, price=price_rial,
+                            is_active=(is_active == "on"), sort_order=so, files=files)
+    db.commit()
+    return RedirectResponse("/admin/gift-boxes", status_code=303)
+
+
+@router.post("/admin/gift-boxes/update/{item_id}")
+async def update_gift_box(request: Request, item_id: int, name: str = Form(...), price: str = Form("0"),
+                          description: str = Form(""), sort_order: str = Form("0"),
+                          is_active: str = Form(None), files: List[UploadFile] = File(None),
+                          csrf_token: Optional[str] = Form(None), db: Session = Depends(get_db),
+                          user=Depends(require_permission("products", level="edit"))):
+    csrf_check(request, csrf_token)
+    price_rial = int(price) * 10 if price.strip().isdigit() else 0
+    so = int(sort_order) if sort_order.strip().isdigit() else 0
+    gift_box_service.update(db, item_id, name, description=description or None, price=price_rial,
+                            is_active=(is_active == "on"), sort_order=so, files=files)
+    db.commit()
+    return RedirectResponse("/admin/gift-boxes", status_code=303)
+
+
+@router.post("/admin/gift-boxes/delete/{item_id}")
+async def delete_gift_box(request: Request, item_id: int, csrf_token: Optional[str] = Form(None),
+                          db: Session = Depends(get_db), user=Depends(require_permission("products", level="full"))):
+    csrf_check(request, csrf_token)
+    gift_box_service.delete(db, item_id)
+    db.commit()
+    return RedirectResponse("/admin/gift-boxes", status_code=303)
+
+
+@router.post("/admin/gift-boxes/image/delete/{img_id}")
+async def delete_gift_box_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
+                                db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
+    csrf_check(request, csrf_token)
+    images.delete_image(db, GiftBoxImage, img_id)
+    db.commit()
+    return RedirectResponse("/admin/gift-boxes", status_code=303)
+
+
+@router.post("/admin/gift-boxes/image/default/{img_id}")
+async def set_default_gift_box_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
+                                     db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
+    csrf_check(request, csrf_token)
+    images.set_default(db, GiftBoxImage, img_id, "gift_box_id")
+    db.commit()
+    return RedirectResponse("/admin/gift-boxes", status_code=303)
 
 
 # ==========================================

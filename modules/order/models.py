@@ -164,15 +164,15 @@ class OrderItem(Base):
     final_tax_amount = Column(BigInteger, default=0, nullable=False)
     line_total = Column(BigInteger, nullable=False)
 
-    # Package snapshot
-    package_type_id = Column(Integer, ForeignKey("package_types.id", ondelete="SET NULL"), nullable=True, index=True)
-    applied_package_price = Column(BigInteger, default=0, nullable=False)   # ریال — snapshot at checkout
+    # Gift box snapshot
+    gift_box_id = Column(Integer, ForeignKey("gift_boxes.id", ondelete="SET NULL"), nullable=True, index=True)
+    applied_gift_box_price = Column(BigInteger, default=0, nullable=False)   # ریال — snapshot at checkout
 
     # Relationships
     order = relationship("Order", back_populates="items")
     product = relationship("Product")
     bar = relationship("Bar")
-    package_type = relationship("PackageType")
+    gift_box = relationship("GiftBox")
 
     __table_args__ = (
         CheckConstraint("line_total >= 0", name="ck_order_item_line_total_nonneg"),

@@ -289,7 +289,7 @@
                             <th>محصول</th>
                             <th class="text-center">وزن</th>
                             <th class="text-center">عیار</th>
-                            <th class="text-center">بسته‌بندی</th>
+                            <th class="text-center">جعبه کادو</th>
                             <th class="text-end">مبلغ (تومان)</th>
                             <th style="width:70px;"></th>
                         </tr>
@@ -307,10 +307,10 @@
                             <td class="text-center">{{ item.applied_weight }}g</td>
                             <td class="text-center">{{ item.applied_purity|purity }}</td>
                             <td class="text-center small">
-                                {% if item.package_type %}
-                                {{ item.package_type.name }}
-                                {% if item.applied_package_price > 0 %}
-                                <br><span class="text-muted">({{ item.applied_package_price | toman }} ت)</span>
+                                {% if item.gift_box %}
+                                {{ item.gift_box.name }}
+                                {% if item.applied_gift_box_price > 0 %}
+                                <br><span class="text-muted">({{ item.applied_gift_box_price | toman }} ت)</span>
                                 {% endif %}
                                 {% else %}—{% endif %}
                             </td>
@@ -343,10 +343,10 @@
                                             <span>مالیات ({{ item.applied_tax_percent }}%)</span>
                                             <span>{{ item.final_tax_amount | toman }} تومان</span>
                                         </div>
-                                        {% if item.applied_package_price > 0 %}
+                                        {% if item.applied_gift_box_price > 0 %}
                                         <div class="breakdown-item">
-                                            <span>بسته‌بندی ({{ item.package_type.name if item.package_type else '' }})</span>
-                                            <span>{{ item.applied_package_price | toman }} تومان</span>
+                                            <span>بسته‌بندی ({{ item.gift_box.name if item.gift_box else '' }})</span>
+                                            <span>{{ item.applied_gift_box_price | toman }} تومان</span>
                                         </div>
                                         {% endif %}
                                     </div>
@@ -372,16 +372,16 @@
                     <div class="d-flex gap-2 small text-muted">
                         <span>{{ item.applied_weight }}g</span>
                         <span>عیار {{ item.applied_purity|purity }}</span>
-                        {% if item.package_type %}<span>{{ item.package_type.name }}</span>{% endif %}
+                        {% if item.gift_box %}<span>{{ item.gift_box.name }}</span>{% endif %}
                     </div>
                     {% if order.status == 'Paid' and item.bar %}
                     <small class="text-muted d-block mt-1">سریال: <code>{{ item.bar.serial_code }}</code></small>
                     {% endif %}
-                    {% if item.package_type %}
+                    {% if item.gift_box %}
                     <small class="text-muted d-block">
-                        <i class="bi bi-gift me-1"></i>بسته‌بندی: {{ item.package_type.name }}
-                        {% if item.applied_package_price > 0 %}
-                        ({{ item.applied_package_price | toman }} تومان)
+                        <i class="bi bi-gift me-1"></i>بسته‌بندی: {{ item.gift_box.name }}
+                        {% if item.applied_gift_box_price > 0 %}
+                        ({{ item.applied_gift_box_price | toman }} تومان)
                         {% endif %}
                     </small>
                     {% endif %}
@@ -405,10 +405,10 @@
                 {% if order.status == 'Paid' and item.bar %}
                 <small class="text-muted d-block">سریال: <code>{{ item.bar.serial_code }}</code></small>
                 {% endif %}
-                {% if item.package_type %}
+                {% if item.gift_box %}
                 <small class="text-muted d-block">
-                    <i class="bi bi-gift me-1"></i>{{ item.package_type.name }}
-                    {% if item.applied_package_price > 0 %}({{ item.applied_package_price | toman }} ت){% endif %}
+                    <i class="bi bi-gift me-1"></i>{{ item.gift_box.name }}
+                    {% if item.applied_gift_box_price > 0 %}({{ item.applied_gift_box_price | toman }} ت){% endif %}
                 </small>
                 {% endif %}
             </div>
@@ -435,10 +435,10 @@
                             <span>مالیات ({{ item.applied_tax_percent }}%)</span>
                             <span>{{ item.final_tax_amount | toman }} تومان</span>
                         </div>
-                        {% if item.applied_package_price > 0 %}
+                        {% if item.applied_gift_box_price > 0 %}
                         <div class="breakdown-item">
-                            <span>بسته‌بندی ({{ item.package_type.name if item.package_type else '' }})</span>
-                            <span>{{ item.applied_package_price | toman }} تومان</span>
+                            <span>بسته‌بندی ({{ item.gift_box.name if item.gift_box else '' }})</span>
+                            <span>{{ item.applied_gift_box_price | toman }} تومان</span>
                         </div>
                         {% endif %}
                         <div class="breakdown-item">

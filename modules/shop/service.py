@@ -8,7 +8,7 @@ from decimal import Decimal
 from typing import List, Optional, Tuple
 
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, desc, asc, case
+from sqlalchemy import func
 
 from modules.catalog.models import Product, ProductCategoryLink
 from modules.inventory.models import Bar, BarStatus
@@ -76,27 +76,8 @@ class ShopService:
             joinedload(Product.images),
         )
 
-        # Total count (before pagination)
-        total = query.count()
-
-        # Sorting — always put in-stock items first
-        inv_label = func.count(Bar.id)
-        stock_first = desc(case((inv_label > 0, 1), else_=0))
-
-        if sort == "weight_desc":
-            query = query.order_by(stock_first, desc(Product.weight))
-        elif sort == "newest":
-            query = query.order_by(stock_first, desc(Product.id))
-        elif sort == "price_asc":
-            query = query.order_by(stock_first, asc(Product.weight))
-        elif sort == "price_desc":
-            query = query.order_by(stock_first, desc(Product.weight))
-        else:
-            query = query.order_by(stock_first, asc(Product.weight))
-
-        # Pagination
-        offset = (page - 1) * per_page
-        results = query.offset(offset).limit(per_page).all()
+        # Fetch all matching products (sort + paginate in Python after pricing)
+        results = query.all()
 
         # Calculate price for each product (per-product metal pricing)
         products = []
@@ -116,6 +97,20 @@ class ShopService:
             product.final_price = price_info.get("total", 0)
             product.price_info = price_info
             products.append(product)
+
+        # Sort: in-stock first, then by user-selected criteria
+        if sort == "price_desc":
+            products.sort(key=lambda p: (p.inventory <= 0, -p.final_price))
+        elif sort == "newest":
+            products.sort(key=lambda p: (p.inventory <= 0, -p.id))
+        else:  # price_asc (default)
+            products.sort(key=lambda p: (p.inventory <= 0, p.final_price))
+
+        total = len(products)
+
+        # Pagination (Python-side)
+        offset = (page - 1) * per_page
+        products = products[offset:offset + per_page]
 
         return products, total, gold_price_rial, tax_percent_str
 

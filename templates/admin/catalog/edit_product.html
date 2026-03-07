@@ -66,15 +66,6 @@
                         <input type="text" name="design" class="form-control form-control-tm" value="{{ p.design or '' }}">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label-tm">طرح کارت</label>
-                        <select name="card_design_id" class="form-select form-select-tm">
-                            <option value="">بدون طرح کارت</option>
-                            {% for d in designs %}
-                            <option value="{{ d.id }}" {% if p.card_design_id == d.id %}selected{% endif %}>{{ d.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-3">
                         <label class="form-label-tm">بسته‌بندی</label>
                         <select name="package_type_id" class="form-select form-select-tm">
                             <option value="">بدون بسته‌بندی</option>
