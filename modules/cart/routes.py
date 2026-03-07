@@ -163,7 +163,52 @@ async def api_update_cart(
 
 
 # ==========================================
-# 🎁 Set Cart Gift Box (Form-based)
+# 🎁 Set Cart Gift Box (AJAX)
+# ==========================================
+
+@router.post("/api/cart/set-gift-box")
+async def api_set_cart_gift_box(
+    data: Dict[str, Any],
+    request: Request,
+    db: Session = Depends(get_db),
+    me=Depends(require_login),
+):
+    csrf_token = request.headers.get("X-CSRF-Token")
+    csrf_check(request, csrf_token)
+
+    try:
+        product_id = int(data.get("product_id"))
+    except (TypeError, ValueError):
+        return JSONResponse({"status": "error", "message": "پارامتر نامعتبر"}, status_code=400)
+
+    gb_id = data.get("gift_box_id")
+    if gb_id is not None:
+        try:
+            gb_id = int(gb_id) or None
+        except (TypeError, ValueError):
+            gb_id = None
+
+    cart_service.set_gift_box(db, me.id, product_id, gb_id)
+    db.commit()
+
+    # Return updated cart pricing
+    from common.helpers import format_toman
+    items, total_price = cart_service.get_cart_items_with_pricing(db, me.id)
+    updated = next((it for it in items if it["product"].id == product_id), None)
+
+    result = {
+        "status": "success",
+        "total_price": format_toman(total_price),
+    }
+    if updated:
+        result["line_total"] = format_toman(updated["line_total"])
+        result["gift_box_price"] = updated["gift_box_price"]
+
+    return JSONResponse(result)
+
+
+# ==========================================
+# 🎁 Set Cart Gift Box (Form fallback)
 # ==========================================
 
 @router.post("/cart/set-gift-box")

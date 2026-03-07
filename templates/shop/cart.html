@@ -176,7 +176,7 @@
     <!-- Cart Items -->
     <div class="col-lg-8">
         {% for item in items %}
-        <div class="cart-item tm-animate-fade-in-up tm-delay-{{ loop.index if loop.index <= 6 else 6 }}">
+        <div class="cart-item tm-animate-fade-in-up tm-delay-{{ loop.index if loop.index <= 6 else 6 }}" data-product-id="{{ item.product.id }}">
             <!-- Image -->
             {% if item.product.default_image %}
             <img src="/{{ item.product.default_image }}" class="cart-item-img" alt="{{ item.product.name }}">
@@ -191,24 +191,20 @@
                 <h6><a href="/product/{{ item.product.id }}">{{ item.product.name }}</a></h6>
                 <div class="cart-item-specs">{{ item.product.weight }} گرم | عیار {{ item.product.purity|purity }}</div>
                 <div class="cart-item-unit-price">{{ item.unit_price | toman }} تومان</div>
-                <!-- Gift box selection -->
-                <form method="POST" action="/cart/set-gift-box" class="d-inline mt-1" style="display:block!important;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <input type="hidden" name="product_id" value="{{ item.product.id }}">
-                    <div class="d-flex align-items-center gap-1">
-                        <i class="bi bi-gift text-muted" style="font-size:0.78rem;"></i>
-                        <select name="gift_box_id" class="form-select form-select-sm d-inline-block"
-                                style="width:auto;font-size:0.78rem;padding:2px 24px 2px 8px;height:auto;"
-                                autocomplete="off" onchange="this.form.submit()">
-                            <option value="0" {% if not item.gift_box %}selected{% endif %}>بدون جعبه کادو (رایگان)</option>
-                            {% for gb in gift_boxes %}
-                            <option value="{{ gb.id }}" {% if item.gift_box and item.gift_box.id == gb.id %}selected{% endif %}>
-                                {{ gb.name }}{% if gb.price > 0 %} ({{ gb.price | toman }} ت){% endif %}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </form>
+                <!-- Gift box selection (AJAX) -->
+                <div class="d-flex align-items-center gap-1 mt-1">
+                    <i class="bi bi-gift text-muted" style="font-size:0.78rem;"></i>
+                    <select class="form-select form-select-sm d-inline-block gift-box-select"
+                            style="width:auto;font-size:0.78rem;padding:2px 24px 2px 8px;height:auto;"
+                            autocomplete="off" data-product-id="{{ item.product.id }}">
+                        <option value="0" {% if not item.gift_box %}selected{% endif %}>بدون جعبه کادو (رایگان)</option>
+                        {% for gb in gift_boxes %}
+                        <option value="{{ gb.id }}" {% if item.gift_box and item.gift_box.id == gb.id %}selected{% endif %}>
+                            {{ gb.name }}{% if gb.price > 0 %} ({{ gb.price | toman }} ت){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
 
             <!-- Quantity Controls -->
@@ -234,11 +230,9 @@
 
             <!-- Line Total -->
             <div class="cart-item-total">
-                <div class="price">{{ item.line_total | toman }}</div>
+                <div class="price line-total-price">{{ item.line_total | toman }}</div>
                 <div class="currency">تومان</div>
-                {% if item.gift_box_price > 0 %}
-                <div class="text-muted" style="font-size:0.68rem;">شامل جعبه کادو</div>
-                {% endif %}
+                <div class="text-muted gift-box-label" style="font-size:0.68rem;{% if item.gift_box_price <= 0 %}display:none;{% endif %}">شامل جعبه کادو</div>
             </div>
 
             <!-- Remove -->
@@ -283,7 +277,7 @@
                 <div class="d-flex justify-content-between align-items-center pt-3" style="border-top: 2px solid var(--tm-border);">
                     <span class="fw-bold">جمع کل</span>
                     <div class="text-start">
-                        <span class="fw-bold text-tm-primary fs-5">{{ total_price | toman }}</span>
+                        <span class="fw-bold text-tm-primary fs-5" id="cart-total-price">{{ total_price | toman }}</span>
                         <small class="text-muted d-block">تومان</small>
                     </div>
                 </div>
@@ -321,5 +315,63 @@
         <i class="bi bi-arrow-right me-1"></i> مشاهده محصولات
     </a>
 </div>
+{% endif %}
+{% endblock %}
+
+{% block shop_js %}
+{% if items %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var csrfToken = '{{ csrf_token }}';
+
+    document.querySelectorAll('.gift-box-select').forEach(function(sel) {
+        sel.addEventListener('change', function() {
+            var productId = parseInt(this.dataset.productId);
+            var gbId = parseInt(this.value) || null;
+            var cartItem = this.closest('.cart-item');
+
+            sel.disabled = true;
+            sel.style.opacity = '0.5';
+
+            fetch('/api/cart/set-gift-box', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    gift_box_id: gbId
+                })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.status === 'success') {
+                    // Update line total
+                    var priceEl = cartItem.querySelector('.line-total-price');
+                    if (priceEl && data.line_total) {
+                        priceEl.textContent = data.line_total;
+                    }
+                    // Toggle gift box label
+                    var labelEl = cartItem.querySelector('.gift-box-label');
+                    if (labelEl) {
+                        labelEl.style.display = data.gift_box_price > 0 ? '' : 'none';
+                    }
+                    // Update cart total
+                    var totalEl = document.getElementById('cart-total-price');
+                    if (totalEl && data.total_price) {
+                        totalEl.textContent = data.total_price;
+                    }
+                }
+            })
+            .catch(function() {})
+            .finally(function() {
+                sel.disabled = false;
+                sel.style.opacity = '';
+            });
+        });
+    });
+});
+</script>
 {% endif %}
 {% endblock %}
