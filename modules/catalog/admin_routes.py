@@ -54,7 +54,6 @@ async def list_products(request: Request, db: Session = Depends(get_db), user=De
 async def add_product(
     request: Request,
     name: str = Form(...), weight: str = Form(...), purity: str = Form("995"),
-    design: str = Form(None),
     package_type_id: str = Form(""),
     wage: str = Form("0"),
     is_active: bool = Form(True),
@@ -67,7 +66,7 @@ async def add_product(
     category_ids = [int(v) for v in form.getlist("category_ids") if str(v).isdigit()]
     pt_id = int(package_type_id) if package_type_id.strip().isdigit() else None
     product_service.create(db, {
-        "name": name, "weight": weight, "purity": purity, "design": design,
+        "name": name, "weight": weight, "purity": purity,
         "category_ids": category_ids, "package_type_id": pt_id,
         "wage": wage,
         "is_active": is_active,
@@ -93,7 +92,6 @@ async def edit_product_form(request: Request, p_id: int, db: Session = Depends(g
 async def update_product(
     request: Request, p_id: int,
     name: str = Form(...), weight: str = Form(...), purity: str = Form(...),
-    design: str = Form(None),
     package_type_id: str = Form(""),
     wage: str = Form(...),
     is_active: bool = Form(False),
@@ -109,7 +107,7 @@ async def update_product(
     pt_id = int(package_type_id) if package_type_id.strip().isdigit() else None
 
     product_service.update(db, p_id, {
-        "name": name, "weight": weight, "purity": purity, "design": design,
+        "name": name, "weight": weight, "purity": purity,
         "description": description,
         "category_ids": category_ids, "package_type_id": pt_id,
         "wage": wage,

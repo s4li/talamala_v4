@@ -66,7 +66,6 @@ class Product(Base):
     buyback_wage_percent = Column(Numeric(5, 2), default=0, nullable=False)  # درصد اجرت بازخرید (جدا از اجرت ساخت)
     is_wage_percent = Column(Boolean, default=True, nullable=False)  # همیشه True برای شمش
     metal_type = Column(String(20), default="gold", nullable=False)  # "gold", "silver" — maps to PRECIOUS_METALS keys
-    design = Column(String, nullable=True)
     package_type_id = Column(Integer, ForeignKey("package_types.id", ondelete="SET NULL"), nullable=True, index=True)
 
     __table_args__ = (

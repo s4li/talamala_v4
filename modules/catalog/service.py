@@ -116,7 +116,6 @@ class ProductService:
             name=data["name"],
             weight=data["weight"],
             purity=safe_decimal(data.get("purity", "750"), Decimal("750")),
-            design=data.get("design"),
             package_type_id=data.get("package_type_id"),
             wage=safe_decimal(data.get("wage", "0"), Decimal("0")),
             buyback_wage_percent=safe_decimal(data.get("buyback_wage_percent", "0"), Decimal("0")),
@@ -159,7 +158,6 @@ class ProductService:
         p.name = data["name"]
         p.weight = data["weight"]
         p.purity = safe_decimal(data.get("purity", "750"), Decimal("750"))
-        p.design = data.get("design")
         p.description = data.get("description") or None
         p.package_type_id = data.get("package_type_id")
         p.wage = safe_decimal(data.get("wage", "0"), Decimal("0"))

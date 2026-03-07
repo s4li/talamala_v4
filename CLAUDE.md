@@ -171,7 +171,7 @@ talamala_v4/
 ### catalog/models.py
 - **ProductCategory**: id, name (unique), slug (unique), sort_order, is_active
 - **ProductCategoryLink**: id, product_id (FK → products), category_id (FK → product_categories) — M2M junction (UniqueConstraint)
-- **Product**: id, name, weight (Decimal), purity (int: 750=18K), wage (Numeric 5,2 — percent), is_wage_percent, design, package_type_id, metal_type (String(20), default="gold"), is_active
+- **Product**: id, name, weight (Decimal), purity (int: 750=18K), wage (Numeric 5,2 — percent), is_wage_percent, package_type_id, metal_type (String(20), default="gold"), is_active
   - `metal_type` maps to `PRECIOUS_METALS` keys ("gold", "silver") — determines which asset price + base purity to use for pricing
   - Properties: `categories` (list of ProductCategory), `category_ids` (list of int)
 - **ProductImage**: id, product_id, path, is_default

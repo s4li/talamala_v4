@@ -54,8 +54,9 @@ UPDATE order_items SET applied_gift_box_price = COALESCE(applied_package_price, 
 ALTER TABLE order_items DROP COLUMN package_type_id;
 ALTER TABLE order_items DROP COLUMN applied_package_price;
 
--- 7. حذف card_design_id از products
+-- 7. حذف card_design_id و design از products
 ALTER TABLE products DROP COLUMN IF EXISTS card_design_id;
+ALTER TABLE products DROP COLUMN IF EXISTS design;
 
 -- 8. حذف جداول card_design
 DROP TABLE IF EXISTS card_design_images;
