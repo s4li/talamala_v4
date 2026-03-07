@@ -92,9 +92,10 @@
                 </div>
                 <div class="col-md-4" id="capRow">
                     <label class="form-label-tm">سقف تخفیف (تومان)</label>
-                    <input type="number" name="max_discount_amount" class="form-control form-control-tm"
+                    <input type="number" name="max_discount_amount" class="form-control form-control-tm price-input"
                            value="{{ coupon.max_discount_amount // 10 if coupon and coupon.max_discount_amount else '' }}"
                            placeholder="بدون سقف">
+                    <small class="price-words text-muted mt-1 d-block"></small>
                 </div>
             </div>
         </div>
@@ -147,14 +148,16 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label-tm">حداقل سفارش (تومان)</label>
-                    <input type="number" name="min_order_amount" class="form-control form-control-tm"
+                    <input type="number" name="min_order_amount" class="form-control form-control-tm price-input"
                            value="{{ coupon.min_order_amount // 10 if coupon and coupon.min_order_amount else '0' }}">
+                    <small class="price-words text-muted mt-1 d-block"></small>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label-tm">حداکثر سفارش (تومان)</label>
-                    <input type="number" name="max_order_amount" class="form-control form-control-tm"
+                    <input type="number" name="max_order_amount" class="form-control form-control-tm price-input"
                            value="{{ coupon.max_order_amount // 10 if coupon and coupon.max_order_amount else '' }}"
                            placeholder="بدون سقف">
+                    <small class="price-words text-muted mt-1 d-block"></small>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label-tm">حداقل تعداد اقلام</label>

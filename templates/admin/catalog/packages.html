@@ -12,82 +12,70 @@
     {% endif %}
 </div>
 
-<div class="row g-3">
-    {% for pkg in packages %}
-    <div class="col-md-6 col-lg-4">
-        <div class="card-tm no-hover h-100">
-            {% if user.has_permission("products", "edit") %}
-            <form method="POST" action="/admin/packages/update/{{ pkg.id }}" enctype="multipart/form-data" class="mb-3">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <div class="input-group">
-                    <input type="text" name="name" class="form-control form-control-tm fw-bold" value="{{ pkg.name }}">
-                    <button class="btn btn-sm btn-tm-outline"><i class="bi bi-check-lg"></i></button>
-                </div>
-                <div class="row g-2 mt-2">
-                    <div class="col-7">
-                        <div class="input-group input-group-sm">
-                            <input type="number" name="price" class="form-control form-control-tm"
-                                   value="{{ (pkg.price / 10)|int }}" min="0" placeholder="قیمت">
-                            <span class="input-group-text">تومان</span>
-                        </div>
-                    </div>
-                    <div class="col-5">
-                        <div class="form-check form-switch mt-1">
-                            <input class="form-check-input" type="checkbox" name="is_active"
-                                   {% if pkg.is_active %}checked{% endif %}>
-                            <label class="form-check-label small">فعال</label>
-                        </div>
-                    </div>
-                </div>
-                <input type="file" name="files" class="form-control form-control-tm form-control-sm mt-2" multiple accept="image/*">
-                <button type="submit" class="btn btn-sm btn-tm-primary mt-2 w-100">ذخیره</button>
-            </form>
-            {% else %}
-            <div class="mb-3">
-                <div class="fw-bold">{{ pkg.name }}</div>
-                <small class="text-muted">{{ (pkg.price / 10)|int | toman }} تومان</small>
-            </div>
-            {% endif %}
-            {% if pkg.images %}
-            <div class="d-flex flex-wrap gap-2">
-                {% for img in pkg.images %}
-                <div class="position-relative">
-                    <img src="/{{ img.file_path }}" class="img-thumb" alt="">
-                    {% if img.is_default %}<span class="default-badge">✓</span>{% endif %}
-                    <div class="d-flex gap-1 mt-1">
-                        {% if not img.is_default %}
-                        {% if user.has_permission("products", "edit") %}
-                        <form method="POST" action="/admin/packages/image/default/{{ img.id }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <button class="btn btn-tm-warning" style="padding:1px 5px;font-size:0.65rem;"><i class="bi bi-star"></i></button>
-                        </form>
-                        {% endif %}
-                        {% endif %}
-                        {% if user.has_permission("products", "full") %}
-                        <form method="POST" action="/admin/packages/image/delete/{{ img.id }}" onsubmit="return confirm('حذف؟')">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <button class="btn btn-tm-danger" style="padding:1px 5px;font-size:0.65rem;"><i class="bi bi-trash"></i></button>
-                        </form>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% if user.has_permission("products", "full") %}
-            <div class="border-top pt-3 mt-3 text-end">
-                <form method="POST" action="/admin/packages/delete/{{ pkg.id }}" class="d-inline"
-                      onsubmit="return confirm('آیا از حذف «{{ pkg.name }}» مطمئن هستید؟')">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash me-1"></i>حذف</button>
-                </form>
-            </div>
-            {% endif %}
+<div class="card-tm no-hover">
+    <div class="p-0">
+        <div class="table-responsive">
+            <table class="table table-tm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>تصویر</th>
+                        <th>نام</th>
+                        <th>قیمت</th>
+                        <th>وضعیت</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pkg in packages %}
+                    <tr>
+                        <td>{{ pkg.id }}</td>
+                        <td>
+                            {% if pkg.default_image %}
+                            <img src="/{{ pkg.default_image }}" class="img-thumb" alt="">
+                            {% else %}
+                            <div class="img-thumb bg-light d-flex align-items-center justify-content-center">
+                                <i class="bi bi-image text-muted"></i>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold">{{ pkg.name }}</td>
+                        <td>
+                            {% if pkg.price > 0 %}
+                            {{ pkg.price | toman }} تومان
+                            {% else %}
+                            <span class="text-muted">رایگان</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if pkg.is_active %}
+                            <span class="badge bg-success">فعال</span>
+                            {% else %}
+                            <span class="badge bg-secondary">غیرفعال</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.has_permission("products", "edit") %}
+                            <a href="/admin/packages/edit/{{ pkg.id }}" class="btn btn-sm btn-tm-outline me-1">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                            {% if user.has_permission("products", "full") %}
+                            <form method="POST" action="/admin/packages/delete/{{ pkg.id }}" class="d-inline"
+                                  onsubmit="return confirm('آیا از حذف «{{ pkg.name }}» مطمئن هستید؟')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button class="btn btn-sm btn-tm-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">هنوز بسته‌بندی ثبت نشده</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
-    {% else %}
-    <div class="col-12 text-center text-muted py-5">هنوز بسته‌بندی ثبت نشده</div>
-    {% endfor %}
 </div>
 
 <!-- Add Modal -->
@@ -109,10 +97,10 @@
                     <div class="mb-3">
                         <label class="form-label-tm">قیمت (تومان)</label>
                         <div class="input-group">
-                            <input type="number" name="price" class="form-control form-control-tm" value="0" min="0">
+                            <input type="number" name="price" class="form-control form-control-tm price-input" value="0" min="0">
                             <span class="input-group-text">تومان</span>
                         </div>
-                        <small class="text-muted">۰ = رایگان</small>
+                        <small class="price-words text-muted mt-1 d-block"></small>
                     </div>
                     <div class="mb-3">
                         <div class="form-check form-switch">

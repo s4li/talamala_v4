@@ -150,6 +150,17 @@ async def list_packages(request: Request, db: Session = Depends(get_db), user=De
     return response
 
 
+@router.get("/admin/packages/edit/{item_id}", response_class=HTMLResponse)
+async def edit_package_form(request: Request, item_id: int, db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+    pkg = package_service.get_by_id(db, item_id)
+    if not pkg:
+        raise HTTPException(404)
+    data, csrf = ctx(request, user, pkg=pkg)
+    response = templates.TemplateResponse("admin/catalog/edit_package.html", data)
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
 @router.post("/admin/packages/add")
 async def add_package(request: Request, name: str = Form(...), price: str = Form("0"),
                        is_active: str = Form("on"), files: List[UploadFile] = File(None),
@@ -169,7 +180,7 @@ async def update_package(request: Request, item_id: int, name: str = Form(...), 
     price_rial = int(price) * 10 if price.strip().isdigit() else 0
     package_service.update(db, item_id, name, price=price_rial, is_active=(is_active == "on"), files=files)
     db.commit()
-    return RedirectResponse("/admin/packages", status_code=303)
+    return RedirectResponse(f"/admin/packages/edit/{item_id}", status_code=303)
 
 
 @router.post("/admin/packages/delete/{item_id}")
@@ -185,18 +196,18 @@ async def delete_package(request: Request, item_id: int, csrf_token: Optional[st
 async def delete_package_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
                                  db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
     csrf_check(request, csrf_token)
-    images.delete_image(db, PackageTypeImage, img_id)
+    pid = images.delete_image(db, PackageTypeImage, img_id)
     db.commit()
-    return RedirectResponse("/admin/packages", status_code=303)
+    return RedirectResponse(f"/admin/packages/edit/{pid}" if pid else "/admin/packages", status_code=303)
 
 
 @router.post("/admin/packages/image/default/{img_id}")
 async def set_default_package_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
                                       db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
     csrf_check(request, csrf_token)
-    images.set_default(db, PackageTypeImage, img_id, "package_id")
+    pid = images.set_default(db, PackageTypeImage, img_id, "package_id")
     db.commit()
-    return RedirectResponse("/admin/packages", status_code=303)
+    return RedirectResponse(f"/admin/packages/edit/{pid}" if pid else "/admin/packages", status_code=303)
 
 
 # ==========================================
@@ -208,6 +219,17 @@ async def list_gift_boxes(request: Request, db: Session = Depends(get_db), user=
     items = gift_box_service.list_all(db)
     data, csrf = ctx(request, user, gift_boxes=items)
     response = templates.TemplateResponse("admin/catalog/gift_boxes.html", data)
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.get("/admin/gift-boxes/edit/{item_id}", response_class=HTMLResponse)
+async def edit_gift_box_form(request: Request, item_id: int, db: Session = Depends(get_db), user=Depends(require_permission("products"))):
+    gb = gift_box_service.get_by_id(db, item_id)
+    if not gb:
+        raise HTTPException(404)
+    data, csrf = ctx(request, user, gb=gb)
+    response = templates.TemplateResponse("admin/catalog/edit_gift_box.html", data)
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
 
@@ -239,7 +261,7 @@ async def update_gift_box(request: Request, item_id: int, name: str = Form(...),
     gift_box_service.update(db, item_id, name, description=description or None, price=price_rial,
                             is_active=(is_active == "on"), sort_order=so, files=files)
     db.commit()
-    return RedirectResponse("/admin/gift-boxes", status_code=303)
+    return RedirectResponse(f"/admin/gift-boxes/edit/{item_id}", status_code=303)
 
 
 @router.post("/admin/gift-boxes/delete/{item_id}")
@@ -255,18 +277,18 @@ async def delete_gift_box(request: Request, item_id: int, csrf_token: Optional[s
 async def delete_gift_box_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
                                 db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
     csrf_check(request, csrf_token)
-    images.delete_image(db, GiftBoxImage, img_id)
+    gid = images.delete_image(db, GiftBoxImage, img_id)
     db.commit()
-    return RedirectResponse("/admin/gift-boxes", status_code=303)
+    return RedirectResponse(f"/admin/gift-boxes/edit/{gid}" if gid else "/admin/gift-boxes", status_code=303)
 
 
 @router.post("/admin/gift-boxes/image/default/{img_id}")
 async def set_default_gift_box_image(request: Request, img_id: int, csrf_token: Optional[str] = Form(None),
                                      db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit"))):
     csrf_check(request, csrf_token)
-    images.set_default(db, GiftBoxImage, img_id, "gift_box_id")
+    gid = images.set_default(db, GiftBoxImage, img_id, "gift_box_id")
     db.commit()
-    return RedirectResponse("/admin/gift-boxes", status_code=303)
+    return RedirectResponse(f"/admin/gift-boxes/edit/{gid}" if gid else "/admin/gift-boxes", status_code=303)
 
 
 # ==========================================
