@@ -275,7 +275,29 @@
                 </div>
                 <small class="text-muted mt-2 d-block">حداقل یک درگاه باید فعال باشد. کاربر موقع پرداخت یکی را انتخاب می‌کند.</small>
             </div>
+            <div class="col-md-6">
+                {% set current_default = settings.get('default_gateway').value if settings.get('default_gateway') else '' %}
+                <label class="form-label-tm" for="default_gateway">درگاه پیش‌فرض</label>
+                <select class="form-select" name="default_gateway" id="default_gateway">
+                    <option value="" {{ 'selected' if not current_default }}>اولین درگاه فعال</option>
+                    <option value="zibal" {{ 'selected' if current_default == 'zibal' }} {{ 'disabled' if 'zibal' not in enabled_gw }}>زیبال (Zibal)</option>
+                    <option value="sepehr" {{ 'selected' if current_default == 'sepehr' }} {{ 'disabled' if 'sepehr' not in enabled_gw }}>سپهر (Sepehr)</option>
+                    <option value="top" {{ 'selected' if current_default == 'top' }} {{ 'disabled' if 'top' not in enabled_gw }}>تاپ (Top)</option>
+                    <option value="parsian" {{ 'selected' if current_default == 'parsian' }} {{ 'disabled' if 'parsian' not in enabled_gw }}>پارسیان (Parsian)</option>
+                </select>
+                <small class="text-muted d-block mt-1">این درگاه هنگام پرداخت به‌صورت پیش‌فرض انتخاب شده نمایش داده می‌شود.</small>
+            </div>
         </div>
+        <script>
+        (function(){
+            const cbs = document.querySelectorAll('input[name="enabled_gateways"]');
+            const sel = document.getElementById('default_gateway');
+            cbs.forEach(cb => cb.addEventListener('change', function(){
+                const opt = sel.querySelector('option[value="'+cb.value+'"]');
+                if(opt){ opt.disabled = !cb.checked; if(!cb.checked && opt.selected) sel.value = ''; }
+            }));
+        })();
+        </script>
 
         <!-- ===== احراز هویت شاهکار ===== -->
         <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-shield-check me-1"></i> احراز هویت شاهکار</h6>

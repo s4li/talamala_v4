@@ -215,7 +215,7 @@
                         {% for gw in enabled_gateways %}
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="radio" name="gateway" value="{{ gw }}" id="topup_gw_{{ gw }}"
-                                   {{ 'checked' if loop.first }}>
+                                   {{ 'checked' if (default_gateway and gw == default_gateway) or (not default_gateway and loop.first) }}>
                             <label class="form-check-label small" for="topup_gw_{{ gw }}">
                                 {% if gw == 'zibal' %}زیبال
                                 {% elif gw == 'sepehr' %}سپهر

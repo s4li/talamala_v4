@@ -36,6 +36,13 @@ def _get_enabled_gateways(db: Session) -> list:
     return [g.strip() for g in raw.split(",") if g.strip()]
 
 
+def _get_default_gateway(db: Session) -> str:
+    """Read default gateway from SystemSetting."""
+    from modules.admin.models import SystemSetting
+    setting = db.query(SystemSetting).filter(SystemSetting.key == "default_gateway").first()
+    return setting.value.strip() if setting and setting.value else ""
+
+
 # ==========================================
 # 💰 Wallet Dashboard
 # ==========================================
@@ -58,6 +65,7 @@ async def wallet_dashboard(
 
     # Enabled gateways for topup selector
     enabled_gateways = _get_enabled_gateways(db)
+    default_gateway = _get_default_gateway(db)
 
     # Build metals list with balances, rates, fees
     metals = []
@@ -84,6 +92,7 @@ async def wallet_dashboard(
         "cart_count": cart_service.get_cart_map(db, me.id)[1],
         "csrf_token": csrf,
         "enabled_gateways": enabled_gateways,
+        "default_gateway": default_gateway,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
@@ -143,7 +152,13 @@ async def wallet_topup(
     me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
-    amount_irr = int(normalize_digits(amount_toman)) * 10
+    # Strip commas and normalize digits before int conversion
+    clean_amount = normalize_digits(amount_toman).replace(",", "").strip()
+    try:
+        amount_irr = int(clean_amount) * 10
+    except (ValueError, TypeError):
+        flash(request, "مبلغ وارد شده معتبر نیست", "danger")
+        return RedirectResponse("/wallet", status_code=302)
 
     # Validate customer-selected gateway
     enabled = _get_enabled_gateways(db)
@@ -163,11 +178,12 @@ async def wallet_topup(
             flash(request, f"درگاه {gateway_name} در دسترس نیست", "danger")
             return RedirectResponse("/wallet", status_code=302)
 
+        amount_toman_int = amount_irr // 10
         callback_url = f"{BASE_URL}/wallet/topup/{gateway_name}/callback?topup_id={topup.id}"
         result = gw.create_payment(GatewayPaymentRequest(
             amount_irr=amount_irr,
             callback_url=callback_url,
-            description=f"شارژ کیف پول - {int(normalize_digits(amount_toman)):,} تومان",
+            description=f"شارژ کیف پول - {amount_toman_int:,} تومان",
             order_ref=str(topup.id),
         ))
 
@@ -440,7 +456,12 @@ async def wallet_withdraw_submit(
     me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
-    amount_irr = int(normalize_digits(amount_toman)) * 10
+    clean_amount = normalize_digits(amount_toman).replace(",", "").strip()
+    try:
+        amount_irr = int(clean_amount) * 10
+    except (ValueError, TypeError):
+        flash(request, "مبلغ وارد شده معتبر نیست", "danger")
+        return RedirectResponse("/wallet/withdraw", status_code=302)
 
     try:
         wr = wallet_service.create_withdrawal(db, me.id, amount_irr, shaba_number, account_holder)

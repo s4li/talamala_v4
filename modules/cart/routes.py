@@ -487,6 +487,7 @@ async def order_detail(
     # Get enabled gateways for payment selector
     from modules.payment.service import payment_service
     enabled_gateways = payment_service.get_enabled_gateways(db)
+    default_gateway = payment_service.get_default_gateway(db)
 
     csrf = new_csrf_token(request)
     response = templates.TemplateResponse("shop/order_detail.html", {
@@ -501,6 +502,7 @@ async def order_detail(
         "wallet_balance": wallet_balance,
         "item_reviews": item_reviews,
         "enabled_gateways": enabled_gateways,
+        "default_gateway": default_gateway,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response

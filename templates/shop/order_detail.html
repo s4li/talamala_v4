@@ -676,7 +676,7 @@
                     {% for gw in enabled_gateways %}
                     <div class="form-check mb-1">
                         <input class="form-check-input" type="radio" name="gateway" value="{{ gw }}" id="gw_{{ gw }}"
-                               {{ 'checked' if loop.first }}>
+                               {{ 'checked' if (default_gateway and gw == default_gateway) or (not default_gateway and loop.first) }}>
                         <label class="form-check-label" for="gw_{{ gw }}">
                             {% if gw == 'sepehr' %}درگاه سپهر
                             {% elif gw == 'top' %}درگاه تاپ

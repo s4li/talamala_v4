@@ -71,6 +71,11 @@ class PaymentService:
         raw = setting.value if setting else DEFAULT_GATEWAYS
         return [g.strip() for g in raw.split(",") if g.strip()]
 
+    def get_default_gateway(self, db: Session) -> str:
+        """Read default gateway from SystemSetting. Returns name or empty string."""
+        setting = db.query(SystemSetting).filter(SystemSetting.key == "default_gateway").first()
+        return setting.value.strip() if setting and setting.value else ""
+
     # ==========================================
     # 💰 Pay from Wallet
     # ==========================================
