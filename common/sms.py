@@ -64,11 +64,8 @@ class SmsSender:
             token3: Third template variable (optional)
             template_name: Kavenegar template name (ignored for sms.ir)
         """
-        # Always print OTP to console for debugging
-        print(f"\n{'='*40}")
-        print(f"[OTP] CODE (DEBUG): {token2}")
-        print(f"[OTP] To: {receptor}")
-        print(f"{'='*40}\n")
+        # Always log OTP for debugging (visible in gunicorn/journalctl)
+        logger.warning(f"[OTP] CODE: {token2} | To: {receptor}")
 
         provider = _get_active_provider()
         logger.info(f"SMS provider: {provider}")
@@ -214,11 +211,7 @@ class SmsSender:
         Send plain-text transactional SMS (notifications, alerts).
         Uses active provider's bulk/direct API (not template-based).
         """
-        print(f"\n{'='*40}")
-        print(f"[SMS] NOTIFICATION (DEBUG)")
-        print(f"[SMS] To: {receptor}")
-        print(f"[SMS] Text: {message}")
-        print(f"{'='*40}\n")
+        logger.warning(f"[SMS] NOTIFICATION | To: {receptor} | Text: {message}")
 
         provider = _get_active_provider()
 

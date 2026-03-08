@@ -5,6 +5,7 @@ FastAPI app initialization, middleware, and router registration.
 """
 
 import logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Depends
