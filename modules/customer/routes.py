@@ -115,23 +115,30 @@ async def profile_update(
 
     # Validate national ID before applying any changes
     has_real_national_id = me.national_id and not me.national_id.startswith("GUEST_")
-    if national_id.strip() and not has_real_national_id:
-        if not validate_iranian_national_id(national_id.strip()):
+    if national_id.strip():
+        if has_real_national_id and national_id.strip() != me.national_id:
+            # User already has a verified national ID and is trying to change it
             return _render_with_error(
-                "کد ملی نامعتبر است. لطفاً یک کد ملی ۱۰ رقمی معتبر وارد کنید.",
+                "کد ملی قبلاً ثبت شده و قابل تغییر نیست.",
                 ["national_id"],
             )
-        # Check uniqueness
-        if national_id.strip() != me.national_id:
-            existing = db.query(User).filter(
-                User.national_id == national_id.strip(),
-                User.id != me.id,
-            ).first()
-            if existing:
+        if not has_real_national_id:
+            if not validate_iranian_national_id(national_id.strip()):
                 return _render_with_error(
-                    "این کد ملی قبلاً ثبت شده است.",
+                    "کد ملی نامعتبر است. لطفاً یک کد ملی ۱۰ رقمی معتبر وارد کنید.",
                     ["national_id"],
                 )
+            # Check uniqueness
+            if national_id.strip() != me.national_id:
+                existing = db.query(User).filter(
+                    User.national_id == national_id.strip(),
+                    User.id != me.id,
+                ).first()
+                if existing:
+                    return _render_with_error(
+                        "این کد ملی قبلاً ثبت شده است.",
+                        ["national_id"],
+                    )
 
     # --- All validations passed — apply changes ---
 
