@@ -114,6 +114,13 @@ class InventoryService:
                         is_preorder=True,
                     )
                     db.add(bar)
+                    db.flush()
+                    db.add(OwnershipHistory(
+                        bar_id=bar.id,
+                        previous_owner_id=None,
+                        new_owner_id=None,
+                        description=f"تولید پیش‌سفارش — انبار مرکزی",
+                    ))
                     db.commit()
                     created += 1
                     break
@@ -394,6 +401,12 @@ class InventoryService:
             reference_id=reference_id,
         ))
         bar.dealer_id = to_dealer_id if to_dealer_id else None
+        db.add(OwnershipHistory(
+            bar_id=bar.id,
+            previous_owner_id=bar.customer_id,
+            new_owner_id=bar.customer_id,
+            description=f"انتقال مکان — {description}" if description else f"انتقال مکان توسط {transferred_by}",
+        ))
         db.flush()
         return bar
 

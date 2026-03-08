@@ -575,7 +575,7 @@ class RasisService:
         Returns summary dict.
         """
         from modules.rasis.models import RasisReceipt
-        from modules.inventory.models import Bar, BarStatus
+        from modules.inventory.models import Bar, BarStatus, OwnershipHistory
         from modules.dealer.models import DealerSale
         from modules.user.models import User
         from modules.pricing.models import Asset
@@ -657,6 +657,13 @@ class RasisService:
 
                     bar.status = BarStatus.SOLD
                     bar.delivered_at = now_utc()
+
+                    db.add(OwnershipHistory(
+                        bar_id=bar.id,
+                        previous_owner_id=None,
+                        new_owner_id=None,
+                        description=f"فروش دستگاه راسیس — فاکتور #{item.get('ReceiptNo', '')}",
+                    ))
 
                     # Remove from POS (best-effort)
                     try:

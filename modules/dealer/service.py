@@ -1910,6 +1910,12 @@ class DealerService:
                 reference_id=order.id,
             )
             db.add(transfer)
+            db.add(OwnershipHistory(
+                bar_id=bar.id,
+                previous_owner_id=None,
+                new_owner_id=None,
+                description=f"تحویل سفارش عمده #{order.id} — ارسال به نمایندگی",
+            ))
 
         order.status = B2BOrderStatus.FULFILLED
         order.fulfilled_at = now_utc()
