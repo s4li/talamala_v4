@@ -223,7 +223,7 @@
                         <label class="form-label-tm">محصول</label>
                         <select name="product_id" class="form-select form-select-tm" required>
                             <option value="">انتخاب محصول...</option>
-                            {% for p in products %}
+                            {% for p in all_products %}
                             <option value="{{ p.id }}">{{ p.name }} ({{ p.weight }}g)</option>
                             {% endfor %}
                         </select>
