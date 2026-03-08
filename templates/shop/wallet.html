@@ -396,11 +396,24 @@ function numberToWordsFa(num) {
     return chunks.join(' و ');
 }
 
+// فرمت عدد با کاما (۳ رقم ۳ رقم)
+function formatWithCommas(val) {
+    // حذف همه کاما و کاراکتر غیرعددی
+    val = val.replace(/[^0-9]/g, '');
+    if (!val) return '';
+    return parseInt(val, 10).toLocaleString('en-US');
+}
+
+// استخراج عدد خالص (بدون کاما)
+function getRawNumber(val) {
+    return parseInt(val.replace(/[^0-9]/g, ''), 10) || 0;
+}
+
 function updateAmountWords() {
     const inp = document.getElementById('topup-amount');
     const el = document.getElementById('amount-words');
-    const val = parseInt(inp.value);
-    if (val && val > 0) {
+    const val = getRawNumber(inp.value);
+    if (val > 0) {
         el.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + numberToWordsFa(val) + ' تومان';
     } else {
         el.textContent = '';
@@ -408,12 +421,24 @@ function updateAmountWords() {
 }
 
 const topupInput = document.getElementById('topup-amount');
-topupInput.addEventListener('input', updateAmountWords);
+topupInput.addEventListener('input', function() {
+    const raw = this.value.replace(/[^0-9]/g, '');
+    const cursorPos = this.selectionStart;
+    const oldLen = this.value.length;
+    this.value = formatWithCommas(raw);
+    // تنظیم موقعیت cursor بعد از فرمت
+    const newLen = this.value.length;
+    this.setSelectionRange(cursorPos + (newLen - oldLen), cursorPos + (newLen - oldLen));
+    updateAmountWords();
+});
+
+// فرمت مقدار اولیه
+topupInput.value = formatWithCommas(topupInput.value);
 updateAmountWords();
 
 document.querySelectorAll('.quick-amount').forEach(btn => {
     btn.addEventListener('click', () => {
-        topupInput.value = btn.dataset.amount;
+        topupInput.value = formatWithCommas(btn.dataset.amount);
         updateAmountWords();
     });
 });

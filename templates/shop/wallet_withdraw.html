@@ -145,15 +145,31 @@ function numberToWordsFa(num) {
 }
 const wdInp = document.getElementById('withdraw-amount');
 const wdEl = document.getElementById('withdraw-amount-words');
+function formatWithCommas(val) {
+    val = val.replace(/[^0-9]/g, '');
+    if (!val) return '';
+    return parseInt(val, 10).toLocaleString('en-US');
+}
+function getRawNumber(val) {
+    return parseInt(val.replace(/[^0-9]/g, ''), 10) || 0;
+}
 function updateWdWords() {
-    const val = parseInt(wdInp.value);
-    if (val && val > 0) {
+    const val = getRawNumber(wdInp.value);
+    if (val > 0) {
         wdEl.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + numberToWordsFa(val) + ' تومان';
     } else {
         wdEl.textContent = '';
     }
 }
-wdInp.addEventListener('input', updateWdWords);
+wdInp.addEventListener('input', function() {
+    const raw = this.value.replace(/[^0-9]/g, '');
+    const cursorPos = this.selectionStart;
+    const oldLen = this.value.length;
+    this.value = formatWithCommas(raw);
+    const newLen = this.value.length;
+    this.setSelectionRange(cursorPos + (newLen - oldLen), cursorPos + (newLen - oldLen));
+    updateWdWords();
+});
 
 // SHABA: only allow digits, sync hidden field
 var shabaInp = document.getElementById('shabaInput');

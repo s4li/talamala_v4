@@ -252,6 +252,15 @@ function formatToman(n) {
     return Number(n).toLocaleString('fa-IR') + ' تومان';
 }
 
+function formatWithCommas(val) {
+    val = String(val).replace(/[^0-9]/g, '');
+    if (!val) return '';
+    return parseInt(val, 10).toLocaleString('en-US');
+}
+function getRawNumber(val) {
+    return parseInt(String(val).replace(/[^0-9]/g, ''), 10) || 0;
+}
+
 // نمایش حداکثر گرم خرید و حداکثر تومان فروش
 const buyMaxGramsEl = document.getElementById('buy-max-grams-display');
 if (buyMaxGramsEl) buyMaxGramsEl.textContent = MAX_BUY_GRAMS.toFixed(3) + ' ' + METAL_UNIT;
@@ -284,7 +293,15 @@ function updateBuyFee(toman) {
 buyToman.addEventListener('input', function() {
     if (buyLock) return;
     buyLock = true;
-    const toman = parseFloat(this.value) || 0;
+    // Auto-comma formatting
+    const raw = this.value.replace(/[^0-9]/g, '');
+    const cursorPos = this.selectionStart;
+    const oldLen = this.value.length;
+    this.value = formatWithCommas(raw);
+    const newLen = this.value.length;
+    this.setSelectionRange(cursorPos + (newLen - oldLen), cursorPos + (newLen - oldLen));
+
+    const toman = getRawNumber(this.value);
     if (toman > 0) {
         buyTomanWords.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + numberToWordsFa(toman) + ' تومان';
     } else {
@@ -308,7 +325,7 @@ buyGrams.addEventListener('input', function() {
     const grams = parseFloat(this.value) || 0;
     if (grams > 0 && BUY_PER_GRAM > 0) {
         const toman = Math.round((grams * BUY_PER_GRAM) / 10);
-        buyToman.value = toman;
+        buyToman.value = formatWithCommas(String(toman));
         buyTomanWords.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + numberToWordsFa(toman) + ' تومان';
         buyGramsInfo.innerHTML = '<i class="bi bi-arrow-left-right me-1"></i>' + formatGrams(grams);
         updateBuyFee(toman);
@@ -395,7 +412,7 @@ if (buyMaxLink) {
     buyMaxLink.addEventListener('click', function(e) {
         e.preventDefault();
         if (MAX_BUY_TOMAN > 0 && buyToman) {
-            buyToman.value = MAX_BUY_TOMAN;
+            buyToman.value = formatWithCommas(String(MAX_BUY_TOMAN));
             buyToman.dispatchEvent(new Event('input'));
         }
     });
