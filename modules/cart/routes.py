@@ -473,13 +473,11 @@ async def order_detail(
     if not is_staff and order.customer_id != user.id:
         raise HTTPException(403)
 
-    cart_map, cart_count = {}, 0
+    cart_map, cart_count = cart_service.get_cart_map(db, user.id)
     wallet_balance = None
-    if not is_staff:
-        cart_map, cart_count = cart_service.get_cart_map(db, user.id)
-        # Get wallet balance for payment
-        from modules.wallet.service import wallet_service
-        wallet_balance = wallet_service.get_balance(db, user.id)
+    # Get wallet balance for payment
+    from modules.wallet.service import wallet_service
+    wallet_balance = wallet_service.get_balance(db, user.id)
 
     # Get existing reviews for order items (to show/hide review form)
     from modules.review.service import review_service

@@ -25,7 +25,7 @@ router = APIRouter(tags=["shop"])
 
 def _get_cart_info(db: Session, user) -> tuple:
     """Get cart map and count for the current customer (if logged in)."""
-    if user and not getattr(user, "is_staff", False):
+    if user:
         return cart_service.get_cart_map(db, user.id)
     return {}, 0
 
@@ -130,7 +130,7 @@ async def product_detail(
     product_comments = review_service.get_product_comments(db, product_id)
     has_purchased = False
     customer_id = None
-    if user and not getattr(user, "is_staff", False):
+    if user:
         has_purchased = review_service.customer_has_purchased(db, user.id, product_id)
         customer_id = user.id
 
