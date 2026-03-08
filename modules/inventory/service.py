@@ -156,7 +156,9 @@ class InventoryService:
         new_status = data.get("status", bar.status)
         new_dealer = safe_int(data.get("dealer_id")) if data.get("dealer_id") != "0" else None
 
-        # Validation: ASSIGNED/RESERVED/SOLD bars must have a dealer (physical location)
+        # Validation: bar with product must have a dealer (physical location)
+        if new_prod and not new_dealer:
+            raise ValueError("شمش دارای محصول باید مکان (نماینده) داشته باشد.")
         if new_status in (BarStatus.ASSIGNED, BarStatus.RESERVED, BarStatus.SOLD) and not new_dealer:
             raise ValueError("شمش با وضعیت اختصاص‌یافته/رزرو/فروخته‌شده باید مکان (نماینده) داشته باشد.")
 
@@ -225,12 +227,11 @@ class InventoryService:
         if data.get("target_product_id") not in (None, ""):
             prod_id = safe_int(data["target_product_id"]) if data["target_product_id"] != "0" else None
             new_status = BarStatus.ASSIGNED if prod_id else BarStatus.RAW
-            # Validation: ASSIGNED requires dealer
-            if new_status == BarStatus.ASSIGNED and not target_dealer:
-                # Check if bars already have dealer_id set; if not, require it
+            # Validation: bar with product must have dealer (physical location)
+            if prod_id and not target_dealer:
                 orphan_count = db.query(Bar).filter(Bar.id.in_(ids), Bar.dealer_id.is_(None)).count()
                 if orphan_count > 0 and not has_dealer:
-                    raise ValueError("برای اختصاص محصول، انتخاب نماینده (مکان) الزامی است.")
+                    raise ValueError("شمش دارای محصول باید مکان (نماینده) داشته باشد.")
             update_data[Bar.product_id] = prod_id
             update_data[Bar.status] = new_status
 
