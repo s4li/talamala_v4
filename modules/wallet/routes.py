@@ -167,7 +167,7 @@ async def wallet_topup(
         result = gw.create_payment(GatewayPaymentRequest(
             amount_irr=amount_irr,
             callback_url=callback_url,
-            description=f"شارژ کیف پول - {amount_toman:,} تومان",
+            description=f"شارژ کیف پول - {int(normalize_digits(amount_toman)):,} تومان",
             order_ref=str(topup.id),
         ))
 
