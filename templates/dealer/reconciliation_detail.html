@@ -34,7 +34,7 @@
         </div>
     </div>
 
-    {% if recon.status.value != 'InProgress' %}
+    {% if recon.status != 'InProgress' %}
     <div class="row g-3 mt-3 pt-3 border-top">
         <div class="col-auto"><span class="badge bg-success px-3 py-2"><i class="bi bi-check-circle me-1"></i>تطابق: {{ (recon.total_matched or 0) | persian_number }}</span></div>
         <div class="col-auto"><span class="badge bg-danger px-3 py-2"><i class="bi bi-x-circle me-1"></i>مفقود: {{ (recon.total_missing or 0) | persian_number }}</span></div>
@@ -47,7 +47,7 @@
 </div>
 
 <!-- Scanner (in-progress only) -->
-{% if recon.status.value == 'InProgress' %}
+{% if recon.status == 'InProgress' %}
 <div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-2">
     <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-upc-scan me-1"></i> اسکن شمش</h6>
 
@@ -101,7 +101,7 @@
             <thead><tr><th>سریال</th><th>وضعیت</th><th>محصول</th><th>وضعیت شمش</th><th>زمان</th></tr></thead>
             <tbody id="scanFeed">
                 {% for item in recon.items %}
-                <tr class="{% if item.item_status.value == 'Missing' %}table-danger{% elif item.item_status.value == 'Unexpected' %}table-warning{% endif %}">
+                <tr class="{% if item.item_status == 'Missing' %}table-danger{% elif item.item_status == 'Unexpected' %}table-warning{% endif %}">
                     <td dir="ltr"><strong>{{ item.serial_code }}</strong></td>
                     <td><span class="badge bg-{{ item.item_status_color }}">{{ item.item_status_label }}</span></td>
                     <td>{{ item.expected_product or '—' }}</td>
@@ -118,7 +118,7 @@
 {% endblock %}
 
 {% block page_js %}
-{% if recon.status.value == 'InProgress' %}
+{% if recon.status == 'InProgress' %}
 <script src="/static/vendor/html5-qrcode/html5-qrcode.min.js?v={{ STATIC_VER }}"></script>
 <script src="/static/js/scanner.js?v={{ STATIC_VER }}"></script>
 <script>
