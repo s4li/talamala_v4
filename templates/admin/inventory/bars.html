@@ -231,7 +231,6 @@
                         <label class="form-label-tm small">بچ</label>
                         <select id="bulk_batch" class="form-select form-select-tm form-select-sm">
                             <option value="">بدون تغییر</option>
-                            <option value="0">حذف</option>
                             {% for b in all_batches %}<option value="{{ b.id }}">{{ b.batch_number }}</option>{% endfor %}
                         </select>
                     </div>

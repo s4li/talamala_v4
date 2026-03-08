@@ -116,6 +116,7 @@ async def generate_bars(
 @router.get("/admin/bars/edit/{bar_id}", response_class=HTMLResponse)
 async def edit_bar_form(
     request: Request, bar_id: int,
+    error: str = None,
     db: Session = Depends(get_db),
     user=Depends(require_permission("inventory")),
 ):
@@ -132,6 +133,7 @@ async def edit_bar_form(
         dealers=db.query(User).filter(User.is_dealer == True, User.is_active == True).order_by(User.first_name, User.last_name).all(),
         provinces=db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all(),
         bar_statuses=BarStatus,
+        error=error,
     )
     response = templates.TemplateResponse("admin/inventory/edit_bar.html", data)
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
@@ -153,6 +155,9 @@ async def update_bar(
     user=Depends(require_permission("inventory", level="edit")),
 ):
     csrf_check(request, csrf_token)
+    if not batch_id or batch_id.strip() in ("", "0"):
+        msg = urllib.parse.quote("انتخاب بچ الزامی است.")
+        return RedirectResponse(f"/admin/bars/edit/{bar_id}?error={msg}", status_code=303)
     inventory_service.update_bar(db, bar_id, {
         "status": status,
         "product_id": product_id,

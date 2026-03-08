@@ -11,6 +11,8 @@
     </h4>
 </div>
 
+{% if error %}<div class="alert alert-danger py-2 mb-3">{{ error }}</div>{% endif %}
+
 <div class="row g-4">
     <!-- Edit Form -->
     <div class="col-lg-7">
@@ -45,9 +47,9 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label-tm">بچ</label>
-                        <select name="batch_id" class="form-select form-select-tm">
-                            <option value="0">— بدون بچ —</option>
+                        <label class="form-label-tm">بچ <span class="text-danger">*</span></label>
+                        <select name="batch_id" class="form-select form-select-tm" required>
+                            <option value="">— انتخاب بچ —</option>
                             {% for b in batches %}
                             <option value="{{ b.id }}" {% if bar.batch_id == b.id %}selected{% endif %}>{{ b.batch_number }}</option>
                             {% endfor %}
