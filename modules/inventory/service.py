@@ -164,6 +164,7 @@ class InventoryService:
         bar.product_id = new_prod
         bar.customer_id = new_cust
         bar.batch_id = safe_int(data.get("batch_id")) if data.get("batch_id") != "0" else None
+        bar.is_preorder = bool(data.get("is_preorder"))
 
         # Track dealer (location) change
         if bar.dealer_id != new_dealer:

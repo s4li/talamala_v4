@@ -173,6 +173,7 @@ async def update_bar(
     customer_id: str = Form(None),
     batch_id: str = Form(None),
     dealer_id: str = Form(None),
+    is_preorder: str = Form(None),
     transfer_note: str = Form(""),
     new_files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
@@ -190,6 +191,7 @@ async def update_bar(
             "customer_id": customer_id,
             "batch_id": batch_id,
             "dealer_id": dealer_id,
+            "is_preorder": is_preorder,
             "transfer_note": transfer_note,
         }, new_files, updated_by=user.full_name)
         db.commit()
