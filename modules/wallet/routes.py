@@ -534,7 +534,12 @@ async def wallet_metal_buy(
         flash(request, "نوع دارایی شناسایی نشد", "danger")
         return RedirectResponse("/wallet", status_code=302)
 
-    amount_irr = int(normalize_digits(amount_toman)) * 10
+    clean_amount = normalize_digits(amount_toman).replace(",", "").strip()
+    try:
+        amount_irr = int(clean_amount) * 10
+    except (ValueError, TypeError):
+        flash(request, "مبلغ وارد شده معتبر نیست", "danger")
+        return RedirectResponse(f"/wallet/{asset_type}", status_code=302)
     fee_percent = wallet_service.get_fee_for_user(db, me, asset_type=asset_type)
 
     try:
