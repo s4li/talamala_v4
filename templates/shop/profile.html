@@ -56,6 +56,10 @@
         {% if msg %}<div class="alert-tm-success py-2">{{ msg }}</div>{% endif %}
         {% if error %}<div class="alert-tm-danger py-2">{{ error }}</div>{% endif %}
 
+        {# When form_data exists, use submitted values; otherwise use DB values #}
+        {% set fd = form_data if form_data is defined and form_data else none %}
+        {% set ef = error_fields if error_fields is defined and error_fields else [] %}
+
         {% if not user.is_profile_complete %}
         <div class="alert-tm-warning py-2 mb-3">
             <i class="bi bi-exclamation-triangle me-1"></i>
@@ -105,12 +109,13 @@
                     <i class="bi bi-building me-1"></i>نوع شخصیت
                     <span class="text-danger">*</span>
                 </div>
+                {% set ct = fd.customer_type if fd else user.customer_type %}
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <div class="form-check border rounded p-3 {% if user.customer_type == 'real' %}border-success bg-light{% endif %}" style="cursor:pointer;"
+                        <div class="form-check border rounded p-3 {% if ct == 'real' or not ct %}border-success bg-light{% endif %}" style="cursor:pointer;"
                              onclick="this.querySelector('input').checked=true; toggleCustomerType('real');">
                             <input class="form-check-input" type="radio" name="customer_type" value="real" id="typeReal"
-                                   {% if user.customer_type == 'real' or not user.customer_type %}checked{% endif %}
+                                   {% if ct == 'real' or not ct %}checked{% endif %}
                                    onchange="toggleCustomerType('real')">
                             <label class="form-check-label w-100" for="typeReal">
                                 <strong><i class="bi bi-person me-1"></i>شخص حقیقی</strong>
@@ -119,10 +124,10 @@
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-check border rounded p-3 {% if user.customer_type == 'legal' %}border-success bg-light{% endif %}" style="cursor:pointer;"
+                        <div class="form-check border rounded p-3 {% if ct == 'legal' %}border-success bg-light{% endif %}" style="cursor:pointer;"
                              onclick="this.querySelector('input').checked=true; toggleCustomerType('legal');">
                             <input class="form-check-input" type="radio" name="customer_type" value="legal" id="typeLegal"
-                                   {% if user.customer_type == 'legal' %}checked{% endif %}
+                                   {% if ct == 'legal' %}checked{% endif %}
                                    onchange="toggleCustomerType('legal')">
                             <label class="form-check-label w-100" for="typeLegal">
                                 <strong><i class="bi bi-building me-1"></i>شخص حقوقی</strong>
@@ -142,21 +147,24 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label-tm small fw-bold">نام <span class="text-danger">*</span></label>
-                        <input type="text" name="first_name" class="form-control form-control-tm"
-                               value="{{ '' if user.first_name == 'کاربر' else (user.first_name or '') }}" placeholder="نام">
+                        {% set fn_val = fd.first_name if fd else ('' if user.first_name == 'کاربر' else (user.first_name or '')) %}
+                        <input type="text" name="first_name" class="form-control form-control-tm {% if 'first_name' in ef %}is-invalid{% endif %}"
+                               value="{{ fn_val }}" placeholder="نام">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm small fw-bold">نام خانوادگی <span class="text-danger">*</span></label>
-                        <input type="text" name="last_name" class="form-control form-control-tm"
-                               value="{{ '' if user.last_name == 'مهمان' else (user.last_name or '') }}" placeholder="نام خانوادگی">
+                        {% set ln_val = fd.last_name if fd else ('' if user.last_name == 'مهمان' else (user.last_name or '')) %}
+                        <input type="text" name="last_name" class="form-control form-control-tm {% if 'last_name' in ef %}is-invalid{% endif %}"
+                               value="{{ ln_val }}" placeholder="نام خانوادگی">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm small fw-bold">
-                            <span id="idLabel">{{ 'شناسه ملی' if user.customer_type == 'legal' else 'کد ملی' }}</span>
+                            <span id="idLabel">{{ 'شناسه ملی' if ct == 'legal' else 'کد ملی' }}</span>
                             <span class="text-danger">*</span>
                         </label>
-                        <input type="text" name="national_id" class="form-control form-control-tm" dir="ltr"
-                               value="{{ '' if user.national_id and user.national_id.startswith('GUEST_') else (user.national_id or '') }}" placeholder="۱۰ رقم" maxlength="10">
+                        {% set nid_val = fd.national_id if fd else ('' if user.national_id and user.national_id.startswith('GUEST_') else (user.national_id or '')) %}
+                        <input type="text" name="national_id" class="form-control form-control-tm {% if 'national_id' in ef %}is-invalid{% endif %}" dir="ltr"
+                               value="{{ nid_val }}" placeholder="۱۰ رقم" maxlength="10">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm small text-muted">شماره موبایل</label>
@@ -197,7 +205,7 @@
 
             <!-- Legal entity fields (shown only for حقوقی) -->
             <div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-3" id="legalFields"
-                 style="{% if user.customer_type != 'legal' %}display:none;{% endif %}">
+                 style="{% if ct != 'legal' %}display:none;{% endif %}">
                 <div class="border-bottom pb-3 mb-3 fw-bold small">
                     <i class="bi bi-building me-1"></i>اطلاعات حقوقی
                 </div>
@@ -205,12 +213,12 @@
                     <div class="col-md-6">
                         <label class="form-label-tm small fw-bold">نام شرکت / سازمان <span class="text-danger">*</span></label>
                         <input type="text" name="company_name" class="form-control form-control-tm"
-                               value="{{ user.company_name or '' }}" placeholder="نام رسمی شرکت">
+                               value="{{ fd.company_name if fd else (user.company_name or '') }}" placeholder="نام رسمی شرکت">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm small fw-bold">کد اقتصادی</label>
                         <input type="text" name="economic_code" class="form-control form-control-tm" dir="ltr"
-                               value="{{ user.economic_code or '' }}" placeholder="کد اقتصادی (اختیاری)">
+                               value="{{ fd.economic_code if fd else (user.economic_code or '') }}" placeholder="کد اقتصادی (اختیاری)">
                     </div>
                 </div>
             </div>
@@ -225,22 +233,22 @@
                     <div class="col-md-6">
                         <label class="form-label-tm small fw-bold">شماره تماس ثابت</label>
                         <input type="text" name="phone" class="form-control form-control-tm" dir="ltr"
-                               value="{{ user.phone or '' }}" placeholder="021-12345678">
+                               value="{{ fd.phone if fd else (user.phone or '') }}" placeholder="021-12345678">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm small fw-bold">کد پستی <span class="text-danger">*</span></label>
-                        <input type="text" name="postal_code" class="form-control form-control-tm" dir="ltr"
-                               value="{{ user.postal_code or '' }}" placeholder="۱۰ رقم" maxlength="10">
+                        <input type="text" name="postal_code" class="form-control form-control-tm {% if 'postal_code' in ef %}is-invalid{% endif %}" dir="ltr"
+                               value="{{ fd.postal_code if fd else (user.postal_code or '') }}" placeholder="۱۰ رقم" maxlength="10">
                     </div>
                     <div class="col-12">
                         <label class="form-label-tm small fw-bold">نشانی <span class="text-danger">*</span></label>
-                        <textarea name="address" class="form-control form-control-tm" rows="2"
-                                  placeholder="نشانی کامل (استان، شهر، خیابان، پلاک)">{{ user.address or '' }}</textarea>
+                        <textarea name="address" class="form-control form-control-tm {% if 'address' in ef %}is-invalid{% endif %}" rows="2"
+                                  placeholder="نشانی کامل (استان، شهر، خیابان، پلاک)">{{ fd.address if fd else (user.address or '') }}</textarea>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm small fw-bold">تاریخ تولد</label>
                         <input type="text" name="birth_date" class="form-control form-control-tm" dir="ltr"
-                               value="{{ user.birth_date or '' }}" placeholder="1370/01/15">
+                               value="{{ fd.birth_date if fd else (user.birth_date or '') }}" placeholder="1370/01/15">
                     </div>
                 </div>
                 <div class="d-flex gap-2 mt-3">

@@ -49,6 +49,8 @@ async def profile_page(
         "error": error,
         "next_url": return_to or "",
         "shahkar_enabled": shahkar_enabled,
+        "form_data": None,
+        "error_fields": [],
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
@@ -75,19 +77,50 @@ async def profile_update(
     """Update profile fields (identity fields editable until Shahkar verification)."""
     csrf_check(request, csrf_token)
     from common.helpers import validate_iranian_national_id
+    from common.templating import get_setting_from_db
 
-    # Identity fields
-    if first_name.strip():
-        me.first_name = first_name.strip()
-    if last_name.strip():
-        me.last_name = last_name.strip()
+    # Collect submitted form data for re-rendering on error
+    form_data = {
+        "first_name": first_name.strip(),
+        "last_name": last_name.strip(),
+        "national_id": national_id.strip(),
+        "customer_type": customer_type,
+        "company_name": company_name.strip(),
+        "economic_code": economic_code.strip(),
+        "postal_code": postal_code.strip(),
+        "address": address.strip(),
+        "phone": phone.strip(),
+        "birth_date": birth_date.strip() if birth_date else "",
+    }
 
-    # National ID: only editable if not set yet (GUEST_ prefix or empty)
+    def _render_with_error(error_msg, error_fields=None):
+        """Re-render profile page preserving form data + highlighting error fields."""
+        shahkar_enabled = get_setting_from_db(db, "shahkar_enabled", "false") == "true"
+        _, cart_count = cart_service.get_cart_map(db, me.id)
+        csrf = new_csrf_token(request)
+        resp = templates.TemplateResponse("shop/profile.html", {
+            "request": request,
+            "user": me,
+            "cart_count": cart_count,
+            "csrf_token": csrf,
+            "error": error_msg,
+            "msg": None,
+            "next_url": return_to or "",
+            "shahkar_enabled": shahkar_enabled,
+            "form_data": form_data,
+            "error_fields": error_fields or [],
+        })
+        resp.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+        return resp
+
+    # Validate national ID before applying any changes
     has_real_national_id = me.national_id and not me.national_id.startswith("GUEST_")
     if national_id.strip() and not has_real_national_id:
         if not validate_iranian_national_id(national_id.strip()):
-            msg = urllib.parse.quote("کد ملی نامعتبر است. لطفاً یک کد ملی ۱۰ رقمی معتبر وارد کنید.")
-            return RedirectResponse(f"/profile?error={msg}", status_code=303)
+            return _render_with_error(
+                "کد ملی نامعتبر است. لطفاً یک کد ملی ۱۰ رقمی معتبر وارد کنید.",
+                ["national_id"],
+            )
         # Check uniqueness
         if national_id.strip() != me.national_id:
             existing = db.query(User).filter(
@@ -95,9 +128,22 @@ async def profile_update(
                 User.id != me.id,
             ).first()
             if existing:
-                msg = urllib.parse.quote("این کد ملی قبلاً ثبت شده است.")
-                return RedirectResponse(f"/profile?error={msg}", status_code=303)
-            me.national_id = national_id.strip()
+                return _render_with_error(
+                    "این کد ملی قبلاً ثبت شده است.",
+                    ["national_id"],
+                )
+
+    # --- All validations passed — apply changes ---
+
+    # Identity fields
+    if first_name.strip():
+        me.first_name = first_name.strip()
+    if last_name.strip():
+        me.last_name = last_name.strip()
+
+    # National ID
+    if national_id.strip() and not has_real_national_id:
+        me.national_id = national_id.strip()
 
     # Customer type
     if customer_type in ("real", "legal"):
