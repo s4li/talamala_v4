@@ -82,7 +82,7 @@ class DealerService:
         district_id: int = None, address: str = "",
         postal_code: str = "", landline_phone: str = "",
         is_warehouse: bool = False, is_postal_hub: bool = False,
-        can_distribute: bool = False,
+        can_distribute: bool = False, is_central_warehouse: bool = False,
     ) -> Dict[str, Any]:
         nid = national_id.strip() if national_id else ""
 
@@ -106,6 +106,7 @@ class DealerService:
             existing.is_warehouse = is_warehouse
             existing.is_postal_hub = is_postal_hub
             existing.can_distribute = can_distribute
+            existing.is_central_warehouse = is_central_warehouse
             try:
                 db.flush()
             except IntegrityError:
@@ -125,6 +126,7 @@ class DealerService:
                 existing.is_warehouse = is_warehouse
                 existing.is_postal_hub = is_postal_hub
                 existing.can_distribute = can_distribute
+                existing.is_central_warehouse = is_central_warehouse
                 db.flush()
             return {"success": True, "dealer": existing}
 
@@ -145,6 +147,7 @@ class DealerService:
             is_warehouse=is_warehouse,
             is_postal_hub=is_postal_hub,
             can_distribute=can_distribute,
+            is_central_warehouse=is_central_warehouse,
         )
         db.add(dealer)
         try:
@@ -162,7 +165,7 @@ class DealerService:
         district_id: int = None, address: str = None,
         postal_code: str = None, landline_phone: str = None,
         is_warehouse: bool = None, is_postal_hub: bool = None,
-        can_distribute: bool = None,
+        can_distribute: bool = None, is_central_warehouse: bool = None,
     ) -> Optional[User]:
         dealer = self.get_dealer(db, dealer_id)
         if not dealer:
@@ -193,6 +196,8 @@ class DealerService:
             dealer.is_postal_hub = is_postal_hub
         if can_distribute is not None:
             dealer.can_distribute = can_distribute
+        if is_central_warehouse is not None:
+            dealer.is_central_warehouse = is_central_warehouse
         db.flush()
         return dealer
 
@@ -235,6 +240,8 @@ class DealerService:
             return {"success": False, "message": "شمش یافت نشد"}
         if bar.status != BarStatus.ASSIGNED:
             return {"success": False, "message": "این شمش قابل فروش نیست"}
+        if bar.is_preorder:
+            return {"success": False, "message": "شمش پیش‌سفارش قابل فروش حضوری نیست"}
         if bar.dealer_id != dealer.id:
             return {"success": False, "message": "این شمش در محل نمایندگی شما نیست"}
 

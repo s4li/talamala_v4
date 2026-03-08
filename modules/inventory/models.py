@@ -74,6 +74,9 @@ class Bar(Base):
     # Physical delivery timestamp (NULL = not yet delivered = "امانی")
     delivered_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Pre-order: bar not yet physically produced (exists only on paper)
+    is_preorder = Column(Boolean, default=False, server_default="false", nullable=False)
+
     # Relationships
     product = relationship("Product", foreign_keys=[product_id])
     customer = relationship("User", foreign_keys=[customer_id])

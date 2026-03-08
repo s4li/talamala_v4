@@ -65,6 +65,7 @@ class User(Base):
     is_warehouse = Column(Boolean, default=False, server_default="false", nullable=False)
     is_postal_hub = Column(Boolean, default=False, server_default="false", nullable=False)
     can_distribute = Column(Boolean, default=False, server_default="false", nullable=False)  # Can transfer bars to other dealers
+    is_central_warehouse = Column(Boolean, default=False, server_default="false", nullable=False)  # Factory / central warehouse (not a pickup location)
     province_id = Column(Integer, ForeignKey("geo_provinces.id", ondelete="SET NULL"), nullable=True, index=True)
     city_id = Column(Integer, ForeignKey("geo_cities.id", ondelete="SET NULL"), nullable=True, index=True)
     district_id = Column(Integer, ForeignKey("geo_districts.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -227,18 +228,24 @@ class User(Base):
 
     @property
     def type_label(self) -> str:
+        if self.is_central_warehouse:
+            return "کارخانه"
         if self.is_warehouse:
             return "انبار مرکزی"
         return self.tier_name
 
     @property
     def type_icon(self) -> str:
+        if self.is_central_warehouse:
+            return "bi-building"
         if self.is_warehouse:
             return "bi-box-seam"
         return "bi-shop"
 
     @property
     def type_color(self) -> str:
+        if self.is_central_warehouse:
+            return "danger"
         if self.is_warehouse:
             return "primary"
         return "success"

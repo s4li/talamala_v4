@@ -40,6 +40,7 @@ class PosService:
                 Bar.dealer_id == dealer_id,
                 Bar.status == BarStatus.ASSIGNED,
                 Bar.product_id.isnot(None),
+                Bar.is_preorder == False,
             )
             .distinct()
             .subquery()
@@ -90,13 +91,14 @@ class PosService:
         gold_price = get_price_value(db, GOLD_18K)  # default display price
         tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
 
-        # Count available bars per product at this dealer
+        # Count available bars per product at this dealer (exclude preorder)
         stock_query = (
             db.query(Bar.product_id, sa_func.count(Bar.id).label("cnt"))
             .filter(
                 Bar.dealer_id == dealer_id,
                 Bar.status == BarStatus.ASSIGNED,
                 Bar.product_id.isnot(None),
+                Bar.is_preorder == False,
             )
             .group_by(Bar.product_id)
         )
@@ -189,6 +191,7 @@ class PosService:
                 Bar.dealer_id == dealer_id,
                 Bar.product_id == product_id,
                 Bar.status == BarStatus.ASSIGNED,
+                Bar.is_preorder == False,
             )
             .with_for_update(skip_locked=True)
             .first()

@@ -166,6 +166,16 @@
                     <div class="small text-muted">این نماینده می‌تواند شمش به نمایندگان دیگر منتقل کند</div>
                 </div>
             </div>
+            <div class="col-md-6">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_central_warehouse" id="isCentralWarehouse"
+                           {% if dealer and dealer.is_central_warehouse %}checked{% elif form_data and form_data.is_central_warehouse %}checked{% endif %}>
+                    <label class="form-check-label fw-bold" for="isCentralWarehouse">
+                        <i class="bi bi-building me-1 text-danger"></i> کارخانه / انبار مرکزی
+                    </label>
+                    <div class="small text-muted">شمش‌های پیش‌سفارش در این مکان ثبت می‌شوند. در لیست تحویل حضوری مشتری نمایش داده نمی‌شود.</div>
+                </div>
+            </div>
         </div>
 
         <!-- وضعیت (فقط ویرایش) -->

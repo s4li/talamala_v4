@@ -245,6 +245,17 @@
             </div>
         </div>
 
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-clock-history me-1"></i> پیش‌سفارش</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label class="form-label-tm">زمان تحویل پیش‌سفارش</label>
+                <input type="text" name="preorder_delivery_days" class="form-control form-control-tm"
+                       value="{{ settings.get('preorder_delivery_days', {}).value if settings.get('preorder_delivery_days') else '۳ تا ۵ روز کاری' }}"
+                       placeholder="۳ تا ۵ روز کاری">
+                <small class="text-muted">این متن در صفحه تسویه‌حساب به مشتری نمایش داده می‌شود</small>
+            </div>
+        </div>
+
         <!-- ===== درگاه‌های پرداخت ===== -->
         <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-credit-card me-1"></i> درگاه‌های پرداخت</h6>
         {% set enabled_gw = (settings.get('enabled_gateways').value if settings.get('enabled_gateways') else 'sepehr,top,parsian').split(',') %}

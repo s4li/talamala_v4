@@ -100,6 +100,29 @@ class InventoryService:
                         raise
         return created
 
+    def generate_preorder_bars(self, db: Session, product_id: int, central_warehouse_id: int, count: int) -> int:
+        """Generate N preorder bars: ASSIGNED to central warehouse with is_preorder=True."""
+        created = 0
+        for _ in range(count):
+            for attempt in range(5):
+                try:
+                    bar = Bar(
+                        serial_code=generate_serial(),
+                        status=BarStatus.ASSIGNED,
+                        product_id=product_id,
+                        dealer_id=central_warehouse_id,
+                        is_preorder=True,
+                    )
+                    db.add(bar)
+                    db.commit()
+                    created += 1
+                    break
+                except IntegrityError:
+                    db.rollback()
+                    if attempt == 4:
+                        raise
+        return created
+
     # ==========================================
     # Update
     # ==========================================
@@ -393,6 +416,7 @@ class InventoryService:
         expected = db.query(Bar).filter(
             Bar.dealer_id == dealer_id,
             Bar.status.in_([BarStatus.ASSIGNED, BarStatus.RESERVED]),
+            Bar.is_preorder == False,  # Preorder bars don't physically exist
         ).count()
 
         session = ReconciliationSession(
@@ -483,6 +507,7 @@ class InventoryService:
         expected_bars = db.query(Bar).filter(
             Bar.dealer_id == dealer_id,
             Bar.status.in_([BarStatus.ASSIGNED, BarStatus.RESERVED]),
+            Bar.is_preorder == False,  # Preorder bars don't physically exist
         ).all()
 
         for bar in expected_bars:

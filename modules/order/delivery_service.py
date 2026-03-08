@@ -39,17 +39,20 @@ class DeliveryService:
     # ==========================================
 
     def get_provinces_with_branches(self, db: Session) -> List[str]:
-        """Get distinct province names that have active dealers (for pickup)."""
+        """Get distinct province names that have active dealers (for pickup).
+        Excludes central warehouse (factory) — not a pickup location."""
         rows = db.query(GeoProvince.name).join(
             User, User.province_id == GeoProvince.id,
         ).filter(
             User.is_dealer == True,
             User.is_active == True,
+            User.is_central_warehouse == False,
         ).distinct().order_by(GeoProvince.name).all()
         return [r[0] for r in rows]
 
     def get_cities_in_province(self, db: Session, province: str) -> List[str]:
-        """Get distinct city names in a province that have active dealers."""
+        """Get distinct city names in a province that have active dealers.
+        Excludes central warehouse (factory)."""
         rows = db.query(GeoCity.name).join(
             User, User.city_id == GeoCity.id,
         ).join(
@@ -57,8 +60,18 @@ class DeliveryService:
         ).filter(
             User.is_dealer == True,
             User.is_active == True,
+            User.is_central_warehouse == False,
             GeoProvince.name == province,
         ).distinct().order_by(GeoCity.name).all()
+        return [r[0] for r in rows]
+
+    def get_central_warehouse_ids(self, db: Session) -> List[int]:
+        """Get IDs of all active central warehouse dealers."""
+        rows = db.query(User.id).filter(
+            User.is_dealer == True,
+            User.is_active == True,
+            User.is_central_warehouse == True,
+        ).all()
         return [r[0] for r in rows]
 
     def get_pickup_dealers(
@@ -70,11 +83,12 @@ class DeliveryService:
     ) -> List[dict]:
         """
         Get dealers where pickup is available.
-        If product_ids given, also shows available inventory per dealer.
+        Excludes central warehouse. Shows real stock + preorder stock separately.
         """
         q = db.query(User).filter(
             User.is_dealer == True,
             User.is_active == True,
+            User.is_central_warehouse == False,
         )
         if province:
             q = q.join(GeoProvince, User.province_id == GeoProvince.id).filter(
@@ -86,6 +100,30 @@ class DeliveryService:
             )
 
         dealers = q.order_by(User.first_name, User.last_name).all()
+
+        # Pre-order stock from central warehouse(s)
+        cw_ids = self.get_central_warehouse_ids(db)
+        preorder_stock = 0
+        if cw_ids and product_ids:
+            preorder_stock = db.query(func.count(Bar.id)).filter(
+                Bar.dealer_id.in_(cw_ids),
+                Bar.status == BarStatus.ASSIGNED,
+                Bar.customer_id.is_(None),
+                Bar.reserved_customer_id.is_(None),
+                Bar.is_preorder == True,
+                Bar.product_id.in_(product_ids),
+            ).scalar() or 0
+        elif cw_ids:
+            preorder_stock = db.query(func.count(Bar.id)).filter(
+                Bar.dealer_id.in_(cw_ids),
+                Bar.status == BarStatus.ASSIGNED,
+                Bar.customer_id.is_(None),
+                Bar.reserved_customer_id.is_(None),
+                Bar.is_preorder == True,
+            ).scalar() or 0
+
+        # Get preorder delivery time setting
+        preorder_delivery_days = get_setting_from_db(db, "preorder_delivery_days", "۳ تا ۵ روز کاری")
 
         results = []
         for dealer in dealers:
@@ -110,6 +148,8 @@ class DeliveryService:
                 "type": dealer.type_label,
                 "type_label": dealer.type_label,
                 "stock": stock,
+                "preorder_stock": preorder_stock,
+                "preorder_delivery_days": preorder_delivery_days,
             })
 
         return results

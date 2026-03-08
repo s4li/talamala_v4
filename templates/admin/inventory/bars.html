@@ -15,6 +15,9 @@
         <button class="btn btn-tm-primary" data-bs-toggle="modal" data-bs-target="#generateModal">
             <i class="bi bi-plus-lg me-1"></i> ایجاد شمش
         </button>
+        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#preorderModal">
+            <i class="bi bi-clock-history me-1"></i> پیش‌سفارش
+        </button>
         {% endif %}
         <!-- Bulk Action Button -->
         <button class="btn btn-tm-outline" data-bs-toggle="modal" data-bs-target="#bulkModal" id="bulkBtn" disabled>
@@ -135,7 +138,10 @@
                             <br><small class="font-monospace" style="color:var(--tm-primary);" title="کد ثبت مالکیت"><i class="bi bi-key me-1"></i>{{ bar.claim_code }}</small>
                             {% endif %}
                         </td>
-                        <td><span class="badge bg-{{ bar.status_color }}">{{ bar.status_label }}</span></td>
+                        <td>
+                            <span class="badge bg-{{ bar.status_color }}">{{ bar.status_label }}</span>
+                            {% if bar.is_preorder %}<span class="badge bg-warning text-dark ms-1">پیش‌سفارش</span>{% endif %}
+                        </td>
                         <td>{{ bar.product.name if bar.product else '—' }}</td>
                         <td>{{ bar.batch.batch_number if bar.batch else '—' }}</td>
                         <td>
@@ -191,6 +197,45 @@
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-tm-primary w-100">ایجاد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pre-order Modal -->
+<div class="modal fade" id="preorderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="/admin/bars/generate-preorder">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-clock-history me-1"></i> ایجاد شمش پیش‌سفارش</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        شمش پیش‌سفارش هنوز فیزیکاً تولید نشده و در انبار مرکزی (کارخانه) ثبت می‌شود.
+                        مشتری می‌تواند این شمش‌ها را خریداری کند، ولی زمان تحویل بیشتر خواهد بود.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-tm">محصول</label>
+                        <select name="product_id" class="form-select form-select-tm" required>
+                            <option value="">انتخاب محصول...</option>
+                            {% for p in products %}
+                            <option value="{{ p.id }}">{{ p.name }} ({{ p.weight }}g)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-tm">تعداد</label>
+                        <input type="number" name="count" class="form-control form-control-tm" value="5" min="1" max="100" required>
+                        <small class="text-muted">حداکثر ۱۰۰ عدد</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-warning w-100">ایجاد پیش‌سفارش</button>
                 </div>
             </form>
         </div>

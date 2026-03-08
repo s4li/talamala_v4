@@ -186,18 +186,25 @@ class OrderService:
                 Bar.reserved_customer_id.is_(None),
             )
 
-            # Dealer-aware reservation
+            # Dealer-aware reservation (with central warehouse fallback)
+            cw_ids = delivery_service.get_central_warehouse_ids(db)
+
             if delivery_method == DeliveryMethod.PICKUP and new_order.pickup_dealer_id:
-                bar_filter = bar_filter.filter(Bar.dealer_id == new_order.pickup_dealer_id)
+                # Pickup: dealer's own stock + central warehouse preorder
+                allowed_ids = [new_order.pickup_dealer_id] + cw_ids
+                bar_filter = bar_filter.filter(Bar.dealer_id.in_(allowed_ids))
             elif delivery_method == DeliveryMethod.POSTAL:
                 postal_hub = delivery_service.get_postal_hub(db)
                 if not postal_hub:
                     db.rollback()
                     raise ValueError("انبار ارسال پستی تنظیم نشده است. لطفاً با پشتیبانی تماس بگیرید.")
-                bar_filter = bar_filter.filter(Bar.dealer_id == postal_hub.id)
+                # Postal: postal hub stock + central warehouse preorder
+                allowed_ids = [postal_hub.id] + cw_ids
+                bar_filter = bar_filter.filter(Bar.dealer_id.in_(allowed_ids))
 
             available_bars = (
                 bar_filter
+                .order_by(Bar.is_preorder.asc())  # Real bars first, preorder as fallback
                 .with_for_update(skip_locked=True)
                 .limit(required_qty)
                 .all()

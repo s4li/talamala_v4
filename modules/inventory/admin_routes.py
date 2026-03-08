@@ -109,6 +109,31 @@ async def generate_bars(
     return RedirectResponse(f"/admin/bars?msg={msg}", status_code=303)
 
 
+@router.post("/admin/bars/generate-preorder")
+async def generate_preorder_bars(
+    request: Request,
+    product_id: int = Form(...),
+    count: int = Form(...),
+    csrf_token: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("inventory", level="create")),
+):
+    csrf_check(request, csrf_token)
+    count = min(count, 100)  # Safety limit for preorder
+
+    # Find central warehouse
+    central = db.query(User).filter(
+        User.is_central_warehouse == True, User.is_active == True,
+    ).first()
+    if not central:
+        msg = urllib.parse.quote("کارخانه/انبار مرکزی تنظیم نشده است. ابتدا یک نماینده با نوع «کارخانه» بسازید.")
+        return RedirectResponse(f"/admin/bars?error={msg}", status_code=303)
+
+    created = inventory_service.generate_preorder_bars(db, product_id, central.id, count)
+    msg = urllib.parse.quote(f"{created} شمش پیش‌سفارش ایجاد شد")
+    return RedirectResponse(f"/admin/bars?msg={msg}", status_code=303)
+
+
 # ==========================================
 # ✏️ Edit
 # ==========================================

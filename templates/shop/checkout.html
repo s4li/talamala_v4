@@ -142,7 +142,7 @@
                     <div id="locationsList" class="row g-2"></div>
                     <div id="noLocations" class="text-center py-3 d-none">
                         <i class="bi bi-info-circle text-warning me-1"></i>
-                        <span class="text-muted">در این شهر موجودی نداریم. لطفاً ارسال پستی را انتخاب کنید یا شهر دیگری را امتحان کنید.</span>
+                        <span class="text-muted">در این شهر نمایندگی فعالی با موجودی نداریم. لطفاً ارسال پستی را انتخاب کنید یا شهر دیگری را امتحان کنید.</span>
                     </div>
                 </div>
 
@@ -517,8 +517,8 @@
         const container = document.getElementById('locationsList');
         const noLoc = document.getElementById('noLocations');
 
-        // Only show dealers that have stock
-        const available = locations.filter(loc => loc.stock > 0);
+        // Show dealers that have real stock OR preorder is available
+        const available = locations.filter(loc => loc.stock > 0 || loc.preorder_stock > 0);
 
         if (!available.length) {
             container.innerHTML = '';
@@ -528,21 +528,33 @@
         noLoc.classList.add('d-none');
 
         container.innerHTML = available.map(loc => {
-            const hasStock = loc.stock > 0;
+            const hasRealStock = loc.stock > 0;
+            const hasPreorder = !hasRealStock && loc.preorder_stock > 0;
+            const canSelect = hasRealStock || hasPreorder;
+
+            let badgeHtml = '';
+            let deliveryNote = '';
+            if (hasRealStock) {
+                badgeHtml = `<span class="badge-tm badge-tm-success">${loc.stock} موجود</span>`;
+                deliveryNote = `<div class="small text-success mt-1"><i class="bi bi-lightning-charge me-1"></i>تحویل فوری</div>`;
+            } else if (hasPreorder) {
+                badgeHtml = `<span class="badge-tm badge-tm-warning">پیش‌سفارش</span>`;
+                deliveryNote = `<div class="small text-warning mt-1"><i class="bi bi-clock me-1"></i>تحویل: ${loc.preorder_delivery_days}</div>`;
+            }
+
             return `
                 <div class="col-md-6">
-                    <div class="location-card ${hasStock ? '' : 'no-stock'} ${selectedLocationId == loc.id ? 'selected' : ''}"
-                         ${hasStock ? `onclick="selectLocation(${loc.id}, this)"` : ''}>
+                    <div class="location-card ${canSelect ? '' : 'no-stock'} ${selectedLocationId == loc.id ? 'selected' : ''}"
+                         ${canSelect ? `onclick="selectLocation(${loc.id}, this)"` : ''}>
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <div class="fw-bold"><i class="bi bi-shop me-1"></i>${loc.name}</div>
                                 <div class="small text-muted">${loc.city}${loc.province ? ' - ' + loc.province : ''}</div>
                                 ${loc.address ? `<div class="small text-muted mt-1"><i class="bi bi-geo me-1"></i>${loc.address}</div>` : ''}
                                 ${loc.phone ? `<div class="small text-muted" dir="ltr"><i class="bi bi-telephone me-1"></i>${loc.phone}</div>` : ''}
+                                ${deliveryNote}
                             </div>
-                            <span class="${hasStock ? 'badge-tm badge-tm-success' : 'badge-tm badge-tm-info'}">
-                                ${hasStock ? loc.stock + ' موجود' : 'ناموجود'}
-                            </span>
+                            ${badgeHtml}
                         </div>
                     </div>
                 </div>`;

@@ -179,6 +179,7 @@ async def dealer_create_submit(
     is_warehouse: str = Form("off"),
     is_postal_hub: str = Form("off"),
     can_distribute: str = Form("off"),
+    is_central_warehouse: str = Form("off"),
     csrf_token: str = Form(""),
     user=Depends(require_permission("dealers", level="create")),
     db: Session = Depends(get_db),
@@ -200,6 +201,7 @@ async def dealer_create_submit(
         "is_warehouse": (is_warehouse == "on"),
         "is_postal_hub": (is_postal_hub == "on"),
         "can_distribute": (can_distribute == "on"),
+        "is_central_warehouse": (is_central_warehouse == "on"),
     }
 
     def _error_response(error_msg: str):
@@ -250,6 +252,7 @@ async def dealer_create_submit(
         is_warehouse=(is_warehouse == "on"),
         is_postal_hub=(is_postal_hub == "on"),
         can_distribute=(can_distribute == "on"),
+        is_central_warehouse=(is_central_warehouse == "on"),
     )
     if not result["success"]:
         return _error_response(result["message"])
@@ -322,6 +325,7 @@ async def dealer_edit_submit(
     is_warehouse: str = Form("off"),
     is_postal_hub: str = Form("off"),
     can_distribute: str = Form("off"),
+    is_central_warehouse: str = Form("off"),
     csrf_token: str = Form(""),
     user=Depends(require_permission("dealers", level="edit")),
     db: Session = Depends(get_db),
@@ -342,6 +346,7 @@ async def dealer_edit_submit(
         is_warehouse=(is_warehouse == "on"),
         is_postal_hub=(is_postal_hub == "on"),
         can_distribute=(can_distribute == "on"),
+        is_central_warehouse=(is_central_warehouse == "on"),
     )
     db.commit()
 
