@@ -158,15 +158,20 @@ async def update_bar(
     if not batch_id or batch_id.strip() in ("", "0"):
         msg = urllib.parse.quote("انتخاب بچ الزامی است.")
         return RedirectResponse(f"/admin/bars/edit/{bar_id}?error={msg}", status_code=303)
-    inventory_service.update_bar(db, bar_id, {
-        "status": status,
-        "product_id": product_id,
-        "customer_id": customer_id,
-        "batch_id": batch_id,
-        "dealer_id": dealer_id,
-        "transfer_note": transfer_note,
-    }, new_files, updated_by=user.full_name)
-    db.commit()
+    try:
+        inventory_service.update_bar(db, bar_id, {
+            "status": status,
+            "product_id": product_id,
+            "customer_id": customer_id,
+            "batch_id": batch_id,
+            "dealer_id": dealer_id,
+            "transfer_note": transfer_note,
+        }, new_files, updated_by=user.full_name)
+        db.commit()
+    except ValueError as e:
+        db.rollback()
+        msg = urllib.parse.quote(str(e))
+        return RedirectResponse(f"/admin/bars/edit/{bar_id}?error={msg}", status_code=303)
     return RedirectResponse("/admin/bars", status_code=303)
 
 
@@ -206,13 +211,18 @@ async def bulk_action(
         msg = urllib.parse.quote(f"{count} شمش حذف شد")
 
     elif action == "update":
-        count = inventory_service.bulk_update(db, ids, {
-            "target_product_id": target_product_id,
-            "target_customer_id": target_customer_id,
-            "target_batch_id": target_batch_id,
-            "target_dealer_id": target_dealer_id,
-        })
-        msg = urllib.parse.quote(f"{count} شمش بروزرسانی شد")
+        try:
+            count = inventory_service.bulk_update(db, ids, {
+                "target_product_id": target_product_id,
+                "target_customer_id": target_customer_id,
+                "target_batch_id": target_batch_id,
+                "target_dealer_id": target_dealer_id,
+            })
+            msg = urllib.parse.quote(f"{count} شمش بروزرسانی شد")
+        except ValueError as e:
+            db.rollback()
+            msg = urllib.parse.quote(str(e))
+            return RedirectResponse(f"/admin/bars?error={msg}", status_code=303)
     else:
         msg = urllib.parse.quote("عملیات نامعتبر")
 

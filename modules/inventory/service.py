@@ -130,13 +130,19 @@ class InventoryService:
             ))
 
         # Update fields
-        bar.status = data.get("status", bar.status)
+        new_status = data.get("status", bar.status)
+        new_dealer = safe_int(data.get("dealer_id")) if data.get("dealer_id") != "0" else None
+
+        # Validation: ASSIGNED/RESERVED/SOLD bars must have a dealer (physical location)
+        if new_status in (BarStatus.ASSIGNED, BarStatus.RESERVED, BarStatus.SOLD) and not new_dealer:
+            raise ValueError("شمش با وضعیت اختصاص‌یافته/رزرو/فروخته‌شده باید مکان (نماینده) داشته باشد.")
+
+        bar.status = new_status
         bar.product_id = new_prod
         bar.customer_id = new_cust
         bar.batch_id = safe_int(data.get("batch_id")) if data.get("batch_id") != "0" else None
 
         # Track dealer (location) change
-        new_dealer = safe_int(data.get("dealer_id")) if data.get("dealer_id") != "0" else None
         if bar.dealer_id != new_dealer:
             db.add(DealerTransfer(
                 bar_id=bar.id,
@@ -187,23 +193,39 @@ class InventoryService:
 
         update_data = {}
 
+        # Resolve target values first
+        has_dealer = data.get("target_dealer_id") not in (None, "")
+        target_dealer = safe_int(data["target_dealer_id"]) if has_dealer and data["target_dealer_id"] != "0" else None
+
         # Product assignment
         if data.get("target_product_id") not in (None, ""):
             prod_id = safe_int(data["target_product_id"]) if data["target_product_id"] != "0" else None
+            new_status = BarStatus.ASSIGNED if prod_id else BarStatus.RAW
+            # Validation: ASSIGNED requires dealer
+            if new_status == BarStatus.ASSIGNED and not target_dealer:
+                # Check if bars already have dealer_id set; if not, require it
+                orphan_count = db.query(Bar).filter(Bar.id.in_(ids), Bar.dealer_id.is_(None)).count()
+                if orphan_count > 0 and not has_dealer:
+                    raise ValueError("برای اختصاص محصول، انتخاب نماینده (مکان) الزامی است.")
             update_data[Bar.product_id] = prod_id
-            update_data[Bar.status] = BarStatus.ASSIGNED if prod_id else BarStatus.RAW
+            update_data[Bar.status] = new_status
 
         # Customer assignment
         if data.get("target_customer_id") not in (None, ""):
             cust_id = safe_int(data["target_customer_id"]) if data["target_customer_id"] != "0" else None
+            new_status = BarStatus.SOLD if cust_id else BarStatus.ASSIGNED
+            if new_status in (BarStatus.SOLD, BarStatus.ASSIGNED) and not target_dealer:
+                orphan_count = db.query(Bar).filter(Bar.id.in_(ids), Bar.dealer_id.is_(None)).count()
+                if orphan_count > 0 and not has_dealer:
+                    raise ValueError("برای تغییر مالکیت، انتخاب نماینده (مکان) الزامی است.")
             update_data[Bar.customer_id] = cust_id
-            update_data[Bar.status] = BarStatus.SOLD if cust_id else BarStatus.ASSIGNED
+            update_data[Bar.status] = new_status
 
         # Other fields
         if data.get("target_batch_id") not in (None, ""):
             update_data[Bar.batch_id] = safe_int(data["target_batch_id"]) if data["target_batch_id"] != "0" else None
-        if data.get("target_dealer_id") not in (None, ""):
-            update_data[Bar.dealer_id] = safe_int(data["target_dealer_id"]) if data["target_dealer_id"] != "0" else None
+        if has_dealer:
+            update_data[Bar.dealer_id] = target_dealer
 
         if update_data:
             # Always clear reservation on bulk update
