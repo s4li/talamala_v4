@@ -230,8 +230,8 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label-tm">تعداد</label>
-                        <input type="number" name="count" class="form-control form-control-tm" value="5" min="1" max="100" required>
-                        <small class="text-muted">حداکثر ۱۰۰ عدد</small>
+                        <input type="number" name="count" class="form-control form-control-tm" value="5" min="1" max="{{ preorder_max }}" required>
+                        <small class="text-muted">حداکثر {{ preorder_max | persian_number }} عدد</small>
                     </div>
                 </div>
                 <div class="modal-footer">

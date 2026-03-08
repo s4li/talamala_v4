@@ -254,6 +254,13 @@
                        placeholder="۳ تا ۵ روز کاری">
                 <small class="text-muted">این متن در صفحه تسویه‌حساب به مشتری نمایش داده می‌شود</small>
             </div>
+            <div class="col-md-6">
+                <label class="form-label-tm">حداکثر تعداد ایجاد پیش‌سفارش</label>
+                <input type="number" name="preorder_max_count" class="form-control form-control-tm"
+                       value="{{ settings.get('preorder_max_count', {}).value if settings.get('preorder_max_count') else '100' }}"
+                       min="1" max="10000">
+                <small class="text-muted">حداکثر تعداد شمش پیش‌سفارش در هر بار ایجاد</small>
+            </div>
         </div>
 
         <!-- ===== درگاه‌های پرداخت ===== -->

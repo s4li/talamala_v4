@@ -97,6 +97,10 @@ async def update_settings(
     silver_fee_dealer_percent: str = Form("0.3"),
     shop_closed_message: str = Form(""),
     # Admin SMS alerts
+    # Preorder
+    preorder_delivery_days: str = Form("۳ تا ۵ روز کاری"),
+    preorder_max_count: str = Form("100"),
+    # Admin SMS alerts
     admin_alert_enabled: Optional[str] = Form(None),
     admin_alert_mobiles: str = Form(""),
     admin_alert_types: List[str] = Form([]),
@@ -168,6 +172,9 @@ async def update_settings(
         "silver_fee_customer_percent": silver_fee_customer_percent,
         "silver_fee_dealer_percent": silver_fee_dealer_percent,
         "shop_closed_message": shop_closed_message.strip() if shop_closed_message else "",
+        # Preorder
+        "preorder_delivery_days": preorder_delivery_days.strip() if preorder_delivery_days else "۳ تا ۵ روز کاری",
+        "preorder_max_count": str(parse_int(preorder_max_count) or 100),
         # Admin SMS alerts
         "admin_alert_enabled": "true" if admin_alert_enabled == "on" else "false",
         "admin_alert_mobiles": admin_alert_mobiles.strip() if admin_alert_mobiles else "",

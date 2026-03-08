@@ -65,6 +65,9 @@ async def list_bars(
     all_dealers = db.query(User).filter(User.is_dealer == True, User.is_active == True).order_by(User.first_name, User.last_name).all()
     all_provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
 
+    from common.templating import get_setting_from_db
+    preorder_max = int(get_setting_from_db(db, "preorder_max_count", "100"))
+
     data, csrf = ctx(
         request, user,
         bars=bars,
@@ -82,6 +85,7 @@ async def list_bars(
         all_dealers=all_dealers,
         all_provinces=all_provinces,
         bar_statuses=BarStatus,
+        preorder_max=preorder_max,
         msg=msg,
         error=error,
     )
@@ -119,7 +123,9 @@ async def generate_preorder_bars(
     user=Depends(require_permission("inventory", level="create")),
 ):
     csrf_check(request, csrf_token)
-    count = min(count, 100)  # Safety limit for preorder
+    from common.templating import get_setting_from_db
+    max_count = int(get_setting_from_db(db, "preorder_max_count", "100"))
+    count = min(count, max_count)
 
     # Find central warehouse
     central = db.query(User).filter(
