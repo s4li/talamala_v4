@@ -8,7 +8,7 @@ RequestLog: HTTP request audit trail
 
 import json
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, Index
+from sqlalchemy import Column, Integer, String, DateTime, Text, Index, Boolean
 from sqlalchemy.sql import func
 from config.database import Base
 
@@ -130,3 +130,23 @@ class RequestLog(Base):
     def user_type_color(self) -> str:
         return {"admin": "danger", "operator": "warning", "customer": "info",
                 "dealer": "purple", "anonymous": "secondary"}.get(self.user_type, "secondary")
+
+
+# ==========================================
+# Testimonials (VIP quotes on landing page)
+# ==========================================
+
+class Testimonial(Base):
+    __tablename__ = "testimonials"
+
+    id = Column(Integer, primary_key=True)
+    person_name = Column(String(200), nullable=False)
+    person_title = Column(String(300), nullable=False)      # سمت (رئیس اتحادیه، ...)
+    body = Column(Text, nullable=False)                      # متن نظر
+    avatar_path = Column(String(500), nullable=True)         # عکس شخص
+    sort_order = Column(Integer, default=0, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    def __repr__(self):
+        return f"<Testimonial {self.person_name}>"

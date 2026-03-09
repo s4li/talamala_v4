@@ -95,7 +95,7 @@ def _static_page_ctx(request: Request, db: Session):
 # Import ALL models so Alembic/Base can see them
 # ==========================================
 from modules.user.models import User  # noqa: F401 — unified user model
-from modules.admin.models import SystemSetting, RequestLog  # noqa: F401
+from modules.admin.models import SystemSetting, RequestLog, Testimonial  # noqa: F401
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress  # noqa: F401
 from modules.catalog.models import (  # noqa: F401
     ProductCategory, ProductCategoryLink, Product, ProductImage,
@@ -159,6 +159,7 @@ from modules.notification.admin_routes import router as notification_admin_route
 from modules.hedging.admin_routes import router as hedging_admin_router
 from modules.blog.routes import router as blog_router
 from modules.blog.admin_routes import router as blog_admin_router
+from modules.admin.testimonial_routes import router as testimonial_admin_router
 
 
 # ==========================================
@@ -546,6 +547,7 @@ app.include_router(notification_admin_router)
 app.include_router(hedging_admin_router)
 app.include_router(blog_router)
 app.include_router(blog_admin_router)
+app.include_router(testimonial_admin_router)
 
 
 # ==========================================
@@ -652,6 +654,15 @@ async def landing_page(request: Request, db: Session = Depends(get_db)):
     total_sold = db.query(Bar).filter(Bar.status == BarStatus.SOLD).count()
     total_products = db.query(Product).filter(Product.is_active == True).count()
 
+    # VIP testimonials
+    from modules.admin.models import Testimonial
+    testimonials = (
+        db.query(Testimonial)
+        .filter(Testimonial.is_active == True)
+        .order_by(Testimonial.sort_order, Testimonial.id)
+        .all()
+    )
+
     response = templates.TemplateResponse("shop/landing.html", {
         "request": request,
         "user": user,
@@ -665,6 +676,7 @@ async def landing_page(request: Request, db: Session = Depends(get_db)):
         "dealer_by_province": dealer_by_province,
         "total_sold": total_sold,
         "total_products": total_products,
+        "testimonials": testimonials,
         "csrf_token": csrf,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")

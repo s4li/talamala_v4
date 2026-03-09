@@ -80,12 +80,77 @@
 }
 .landing-stat-label { font-size: 0.85rem; color: #737373; margin-top: 4px; }
 
+/* ─── Testimonials Carousel ─── */
+.testimonial-section {
+    background: linear-gradient(135deg, #faf7f2 0%, #f5efe6 100%);
+    padding: 3.5rem 0;
+}
+.testimonial-track-wrapper {
+    overflow: hidden;
+    position: relative;
+    mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+}
+.testimonial-track {
+    display: flex;
+    gap: 24px;
+    animation: testimonialScroll var(--scroll-duration, 30s) linear infinite;
+    width: max-content;
+}
+.testimonial-track:hover { animation-play-state: paused; }
+
+@keyframes testimonialScroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(calc(-50% - 12px)); }
+}
+
+.testimonial-card {
+    flex: 0 0 340px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 24px rgba(107,0,45,0.06);
+    border: 1px solid rgba(107,0,45,0.06);
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.testimonial-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(107,0,45,0.12);
+}
+.testimonial-card::before {
+    content: '\201C';
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    font-size: 3.5rem;
+    color: rgba(212,168,67,0.2);
+    font-family: serif;
+    line-height: 1;
+}
+.testimonial-avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #D4A843;
+}
+.testimonial-avatar-placeholder {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6B002D, #8a0040);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-weight: 700;
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 767px) {
     .landing-hero { padding: 2.5rem 0 2rem; }
     .landing-hero h1 { font-size: 1.4rem; line-height: 2.2rem; }
     .landing-hero .lead { font-size: 0.88rem; }
     .landing-stat-value { font-size: 1.5rem; }
+    .testimonial-card { flex: 0 0 280px; padding: 1.25rem; }
+    .testimonial-section { padding: 2.5rem 0; }
 }
 </style>
 {% endblock %}
@@ -341,7 +406,67 @@
 
 
 {# ══════════════════════════════════════════
-   Section 7: Dealer Network
+   Section 7: Testimonials (VIP Quotes)
+   ══════════════════════════════════════════ #}
+{% if testimonials %}
+<section class="landing-full testimonial-section tm-reveal">
+    <div class="container">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold" style="color:#262626;">
+                <span style="color:#D4A843;">طلاملا</span> از نگاه بزرگان صنف
+            </h2>
+            <p class="text-muted">نظر شخصیت‌های تأثیرگذار درباره ما</p>
+        </div>
+
+        <div class="testimonial-track-wrapper">
+            <div class="testimonial-track" id="testimonialTrack">
+                {# Original items #}
+                {% for t in testimonials %}
+                <div class="testimonial-card">
+                    <div class="mb-3" style="position:relative; z-index:1;">
+                        <p class="mb-0" style="line-height:1.9; color:#444; font-size:0.92rem;">{{ t.body }}</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        {% if t.avatar_path %}
+                        <img src="/{{ t.avatar_path }}" alt="{{ t.person_name }}" class="testimonial-avatar">
+                        {% else %}
+                        <div class="testimonial-avatar-placeholder">{{ t.person_name[:1] }}</div>
+                        {% endif %}
+                        <div>
+                            <strong class="d-block" style="color:#262626; font-size:0.9rem;">{{ t.person_name }}</strong>
+                            <small style="color:#888;">{{ t.person_title }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {# Duplicate for seamless infinite scroll #}
+                {% for t in testimonials %}
+                <div class="testimonial-card">
+                    <div class="mb-3" style="position:relative; z-index:1;">
+                        <p class="mb-0" style="line-height:1.9; color:#444; font-size:0.92rem;">{{ t.body }}</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        {% if t.avatar_path %}
+                        <img src="/{{ t.avatar_path }}" alt="{{ t.person_name }}" class="testimonial-avatar">
+                        {% else %}
+                        <div class="testimonial-avatar-placeholder">{{ t.person_name[:1] }}</div>
+                        {% endif %}
+                        <div>
+                            <strong class="d-block" style="color:#262626; font-size:0.9rem;">{{ t.person_name }}</strong>
+                            <small style="color:#888;">{{ t.person_title }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+
+{# ══════════════════════════════════════════
+   Section 8: Dealer Network
    ══════════════════════════════════════════ #}
 <section class="landing-full dealer-section tm-reveal">
     <div class="container">
@@ -378,4 +503,20 @@
 </section>
 
 {% endblock shop_content %}
+
+{% block shop_js %}
+{% if testimonials %}
+<script>
+(function(){
+    var track = document.getElementById('testimonialTrack');
+    if (!track) return;
+    var count = {{ testimonials|length }};
+    // ~8 seconds per item for comfortable reading speed
+    var duration = Math.max(20, count * 8);
+    track.style.setProperty('--scroll-duration', duration + 's');
+})();
+</script>
+{% endif %}
+{% endblock %}
+
 

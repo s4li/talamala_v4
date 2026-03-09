@@ -1,0 +1,183 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}نظرات شخصیت‌ها — طلاملا{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="bi bi-quote me-2"></i>نظرات شخصیت‌های مهم</h4>
+    {% if user.has_permission('settings', 'create') %}
+    <button class="btn btn-sm btn-tm-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-plus-lg me-1"></i> افزودن نظر
+    </button>
+    {% endif %}
+</div>
+
+{% if items %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th style="width:60px;">تصویر</th>
+                <th>نام</th>
+                <th>سمت</th>
+                <th>متن نظر</th>
+                <th style="width:60px;">ترتیب</th>
+                <th style="width:70px;">وضعیت</th>
+                <th style="width:120px;">عملیات</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for t in items %}
+            <tr>
+                <td>
+                    {% if t.avatar_path %}
+                    <img src="/{{ t.avatar_path }}" class="img-thumb" alt="{{ t.person_name }}">
+                    {% else %}
+                    <div class="img-thumb d-flex align-items-center justify-content-center bg-light text-muted">
+                        <i class="bi bi-person fs-4"></i>
+                    </div>
+                    {% endif %}
+                </td>
+                <td class="fw-bold">{{ t.person_name }}</td>
+                <td class="text-muted small">{{ t.person_title }}</td>
+                <td class="small" style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    {{ t.body[:80] }}{% if t.body|length > 80 %}...{% endif %}
+                </td>
+                <td class="text-center">{{ t.sort_order }}</td>
+                <td>
+                    {% if t.is_active %}
+                    <span class="badge-tm badge-tm-positive">فعال</span>
+                    {% else %}
+                    <span class="badge-tm badge-tm-info">غیرفعال</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.has_permission('settings', 'edit') %}
+                    <button class="btn btn-sm btn-outline-primary me-1"
+                            data-bs-toggle="modal" data-bs-target="#editModal{{ t.id }}">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    {% endif %}
+                    {% if user.has_permission('settings', 'full') %}
+                    <form action="/admin/testimonials/{{ t.id }}/delete" method="POST" class="d-inline"
+                          onsubmit="return confirm('حذف این نظر؟');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+
+            {# Edit Modal #}
+            {% if user.has_permission('settings', 'edit') %}
+            <div class="modal fade" id="editModal{{ t.id }}" tabindex="-1">
+                <div class="modal-dialog">
+                    <form action="/admin/testimonials/{{ t.id }}/edit" method="POST" enctype="multipart/form-data" class="modal-content">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">ویرایش نظر</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">نام شخص</label>
+                                <input type="text" name="person_name" class="form-control" value="{{ t.person_name }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">سمت / عنوان</label>
+                                <input type="text" name="person_title" class="form-control" value="{{ t.person_title }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">متن نظر</label>
+                                <textarea name="body" class="form-control" rows="4" required>{{ t.body }}</textarea>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-bold">تصویر (اختیاری)</label>
+                                    <input type="file" name="avatar" class="form-control" accept="image/*">
+                                    {% if t.avatar_path %}
+                                    <small class="text-muted">تصویر فعلی موجود است</small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-3">
+                                    <label class="form-label fw-bold">ترتیب</label>
+                                    <input type="number" name="sort_order" class="form-control" value="{{ t.sort_order }}">
+                                </div>
+                                <div class="col-3 d-flex align-items-end">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="is_active"
+                                               {% if t.is_active %}checked{% endif %}>
+                                        <label class="form-check-label">فعال</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                            <button type="submit" class="btn btn-tm-primary">ذخیره</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-chat-square-quote fs-1 d-block mb-2"></i>
+    <p>هنوز نظری ثبت نشده. اولین نظر را اضافه کنید.</p>
+</div>
+{% endif %}
+
+
+{# ═══ Add Modal ═══ #}
+{% if user.has_permission('settings', 'create') %}
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="/admin/testimonials/new" method="POST" enctype="multipart/form-data" class="modal-content">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">افزودن نظر جدید</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">نام شخص</label>
+                    <input type="text" name="person_name" class="form-control" placeholder="مثلاً: محمدرضا محمدی" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">سمت / عنوان</label>
+                    <input type="text" name="person_title" class="form-control" placeholder="مثلاً: رئیس اتحادیه طلا و جواهر تهران" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">متن نظر</label>
+                    <textarea name="body" class="form-control" rows="4" placeholder="متن نظر شخصیت درباره طلاملا..." required></textarea>
+                </div>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold">تصویر شخص</label>
+                        <input type="file" name="avatar" class="form-control" accept="image/*">
+                    </div>
+                    <div class="col-3">
+                        <label class="form-label fw-bold">ترتیب</label>
+                        <input type="number" name="sort_order" class="form-control" value="0">
+                    </div>
+                    <div class="col-3 d-flex align-items-end">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_active" checked>
+                            <label class="form-check-label">فعال</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                <button type="submit" class="btn btn-tm-primary"><i class="bi bi-plus-lg me-1"></i> ثبت</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
