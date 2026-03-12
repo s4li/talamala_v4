@@ -161,10 +161,10 @@
 </div>
 {% endif %}
 
-{% if order.status.value in ('Submitted', 'Approved', 'Paid') %}
+{% if order.status.value == 'Submitted' %}
 <div class="d-flex justify-content-end">
     <form method="post" action="/dealer/b2b-orders/{{ order.id }}/cancel"
-          onsubmit="return confirm('آیا از لغو سفارش مطمئن هستید؟{{ ' وجه پرداختی به کیف پول بازگشت داده می‌شود.' if order.status.value == 'Paid' else '' }}')">
+          onsubmit="return confirm('آیا از لغو سفارش مطمئن هستید؟')">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button type="submit" class="btn btn-outline-danger btn-sm">
             <i class="bi bi-x-circle"></i> لغو سفارش

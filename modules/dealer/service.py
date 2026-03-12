@@ -1935,23 +1935,13 @@ class DealerService:
         if not order:
             return {"success": False, "message": "سفارش یافت نشد"}
 
-        if order.status in (B2BOrderStatus.FULFILLED, B2BOrderStatus.CANCELLED):
-            return {"success": False, "message": f"سفارش در وضعیت {order.status_label} قابل لغو نیست"}
-
-        # Refund if paid
-        if order.status == B2BOrderStatus.PAID:
-            wallet_service.deposit(
-                db, dealer_id, order.total_amount,
-                reference_type="b2b_order_refund",
-                reference_id=str(order.id),
-                description=f"بازگشت وجه سفارش عمده #{order.id} ({order.total_amount // 10:,} تومان)",
-            )
+        if order.status != B2BOrderStatus.SUBMITTED:
+            return {"success": False, "message": f"فقط سفارش‌های در انتظار تأیید قابل لغو هستند (وضعیت فعلی: {order.status_label})"}
 
         order.status = B2BOrderStatus.CANCELLED
         db.flush()
 
-        refund_msg = " — وجه پرداختی به کیف پول بازگشت" if order.payment_method else ""
-        return {"success": True, "message": f"سفارش #{order.id} لغو شد{refund_msg}"}
+        return {"success": True, "message": f"سفارش #{order.id} لغو شد"}
 
 
     # ------------------------------------------
