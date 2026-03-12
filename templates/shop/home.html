@@ -76,7 +76,14 @@
                     {{ p.weight }} گرم | عیار {{ p.purity|purity }}
                 </div>
 
-                {% if p.final_price %}
+                {% if user and user.is_dealer and p.gold_cost_info is defined and p.gold_cost_info %}
+                <div class="price-tag text-warning">
+                    {{ p.gold_cost_info.total_g | persian_number }} گرم طلا
+                </div>
+                <div class="text-muted" style="font-size:0.65rem;">
+                    معادل ریالی: {{ p.final_price | toman }} ت
+                </div>
+                {% elif p.final_price %}
                 <div class="price-tag">
                     {{ p.final_price | toman }}
                     <small class="text-muted fw-normal" style="font-size:0.7rem;">تومان</small>

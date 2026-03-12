@@ -95,6 +95,7 @@ class Account(Base):
     balance = Column(BigInteger, default=0, nullable=False)
     locked_balance = Column(BigInteger, default=0, nullable=False)
     credit_balance = Column(BigInteger, default=0, nullable=False)  # اعتبار غیرقابل برداشت
+    credit_limit_mg = Column(BigInteger, default=0, nullable=False, server_default="0")  # سقف اعتبار طلایی (mg) — فقط XAU_MG
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     user = relationship("User")
@@ -102,7 +103,7 @@ class Account(Base):
 
     __table_args__ = (
         UniqueConstraint("user_id", "asset_code", name="uq_account_user_asset"),
-        CheckConstraint("balance >= 0", name="ck_account_balance_nonneg"),
+        CheckConstraint("balance >= -credit_limit_mg", name="ck_account_balance_with_credit"),
         CheckConstraint("locked_balance >= 0", name="ck_account_locked_nonneg"),
         CheckConstraint("credit_balance >= 0", name="ck_account_credit_nonneg"),
         Index("ix_account_user_asset", "user_id", "asset_code"),
@@ -110,12 +111,12 @@ class Account(Base):
 
     @property
     def available_balance(self) -> int:
-        """Balance minus locked."""
-        return max(0, self.balance - self.locked_balance)
+        """Balance + credit_limit minus locked (dealers can go negative up to credit limit)."""
+        return max(0, self.balance + self.credit_limit_mg - self.locked_balance)
 
     @property
     def withdrawable_balance(self) -> int:
-        """Balance minus locked minus non-withdrawable credit."""
+        """Balance minus locked minus non-withdrawable credit (credit_limit excluded — real money only)."""
         return max(0, self.balance - self.locked_balance - self.credit_balance)
 
     @property

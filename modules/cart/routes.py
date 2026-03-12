@@ -37,6 +37,13 @@ async def view_cart(
     db: Session = Depends(get_db),
     me=Depends(require_login),
 ):
+    # Dealer gold pricing or regular pricing
+    is_dealer = me.is_dealer
+    gold_items = None
+    total_gold_mg = 0
+    if is_dealer:
+        gold_items, total_gold_mg = cart_service.get_cart_items_with_gold_pricing(db, me.id, me)
+
     items, total_price = cart_service.get_cart_items_with_pricing(db, me.id)
 
     # Get active gift boxes for selection dropdown
@@ -58,6 +65,8 @@ async def view_cart(
         "user": me,
         "items": items,
         "total_price": total_price,
+        "gold_items": gold_items,
+        "total_gold_mg": total_gold_mg,
         "cart_count": sum(it["quantity"] for it in items),
         "gold_price": cart_service._gold_price(db),
         "price_stale": not is_price_fresh(db, GOLD_18K),
@@ -241,6 +250,47 @@ async def checkout_page(
     from modules.order.delivery_service import delivery_service
     from common.templating import get_setting_from_db
 
+    # ==========================================
+    # Dealer Gold-for-Gold Checkout Page
+    # ==========================================
+    if me.is_dealer:
+        gold_items, total_gold_mg = cart_service.get_cart_items_with_gold_pricing(db, me.id, me)
+        if not gold_items:
+            return RedirectResponse("/cart", status_code=302)
+
+        # Gold wallet balance
+        from modules.wallet.service import wallet_service
+        from modules.wallet.models import AssetCode
+        gold_bal = wallet_service.get_balance(db, me.id, AssetCode.XAU_MG)
+
+        csrf = new_csrf_token(request)
+        response = templates.TemplateResponse("shop/checkout.html", {
+            "request": request,
+            "user": me,
+            "items": [],
+            "gold_items": gold_items,
+            "total_gold_mg": total_gold_mg,
+            "total_price": 0,
+            "cart_count": sum(it["quantity"] for it in gold_items),
+            "gold_balance": gold_bal,
+            "is_dealer_checkout": True,
+            "provinces": [],
+            "postal_info": {},
+            "postal_stock": 0,
+            "customer_addresses": [],
+            "gold_price": cart_service._gold_price(db),
+            "price_stale": not is_price_fresh(db, GOLD_18K),
+            "shop_disabled": False,
+            "has_disabled_items": False,
+            "csrf_token": csrf,
+        })
+        response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+        return response
+
+    # ==========================================
+    # Regular Customer Checkout Page
+    # ==========================================
+
     # Profile completion check
     if not me.is_profile_complete:
         error = urllib.parse.quote("لطفاً ابتدا پروفایل خود را تکمیل کنید تا بتوانید سفارش ثبت کنید.")
@@ -358,6 +408,25 @@ async def checkout(
 ):
     csrf_check(request, csrf_token)
     from common.templating import get_setting_from_db
+
+    # ==========================================
+    # Dealer Gold-for-Gold Branch
+    # ==========================================
+    if me.is_dealer:
+        try:
+            order = order_service.checkout_dealer(db, me.id)
+            db.commit()
+            msg = urllib.parse.quote(
+                f"سفارش طلایی #{order.id} ثبت و پرداخت شد ({order.gold_total_mg / 1000:.3f} گرم طلا)"
+            )
+            return RedirectResponse(f"/orders/{order.id}?msg={msg}", status_code=303)
+        except ValueError as e:
+            error = urllib.parse.quote(str(e))
+            return RedirectResponse(f"/checkout?error={error}", status_code=303)
+
+    # ==========================================
+    # Regular Customer Branch
+    # ==========================================
 
     # Profile completion check
     if not me.is_profile_complete:

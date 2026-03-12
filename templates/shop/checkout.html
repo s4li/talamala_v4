@@ -60,6 +60,126 @@
 <div class="alert-tm-danger py-2"><i class="bi bi-exclamation-triangle me-1"></i>{{ request.query_params.get('error') }}</div>
 {% endif %}
 
+{% if is_dealer_checkout %}
+{# ============================================================ #}
+{# DEALER GOLD-FOR-GOLD CHECKOUT                                #}
+{# ============================================================ #}
+<form method="POST" action="/cart/checkout" id="checkoutForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+<div class="row g-4">
+    <!-- Main: Gold Order Summary -->
+    <div class="col-lg-8">
+        <h4 class="fw-bold mb-4"><i class="bi bi-gem me-2 text-warning"></i>ثبت سفارش طلایی (نمایندگان)</h4>
+
+        <div class="card-tm no-hover mb-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-box-seam me-1"></i>آیتم‌های سفارش</h6>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0 align-middle">
+                    <thead>
+                        <tr class="text-muted small">
+                            <th>محصول</th>
+                            <th class="text-center">تعداد</th>
+                            <th class="text-center">وزن خالص</th>
+                            <th class="text-center">اجرت</th>
+                            <th class="text-center">جمع (گرم)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for gi in gold_items %}
+                        <tr>
+                            <td>{{ gi.product.name }}</td>
+                            <td class="text-center">{{ gi.quantity }}</td>
+                            <td class="text-center">{{ gi.gold_info.pure_gold_g | persian_number }}</td>
+                            <td class="text-center">{{ gi.gold_info.wage_gold_g | persian_number }}</td>
+                            <td class="text-center fw-bold text-warning">{{ gi.line_gold_g | persian_number }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Delivery Info -->
+        <div class="card-tm no-hover mb-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-shop me-1"></i>تحویل حضوری از انبار مرکزی</h6>
+            <div class="alert-tm-info py-2 small mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                سفارشات نمایندگان از <strong>انبار مرکزی</strong> تحویل داده می‌شود.
+                پس از پرداخت، هماهنگی تحویل از طریق پنل ادمین انجام خواهد شد.
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar: Gold Payment Summary -->
+    <div class="col-lg-4">
+        <div class="card-tm no-hover checkout-summary-sticky">
+            <h6 class="fw-bold mb-3"><i class="bi bi-receipt me-1"></i>خلاصه سفارش طلایی</h6>
+
+            {% for gi in gold_items %}
+            <div class="d-flex justify-content-between small mb-2">
+                <span>{{ gi.product.name }} &times; {{ gi.quantity }}</span>
+                <span class="text-nowrap text-warning fw-bold">{{ gi.line_gold_g | persian_number }} گرم</span>
+            </div>
+            {% endfor %}
+
+            <hr>
+
+            {% set total_gold_g = (total_gold_mg / 1000) if total_gold_mg else 0 %}
+            <div class="d-flex justify-content-between mb-2">
+                <span class="fw-bold fs-5">جمع کل</span>
+                <span class="fw-bold fs-5 text-warning">{{ total_gold_g | persian_number }} <small>گرم طلا</small></span>
+            </div>
+
+            <hr>
+
+            <!-- Gold Wallet Balance -->
+            <div class="small mb-2">
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">موجودی کیف پول طلا</span>
+                    <span>{{ (gold_balance.available / 1000) | persian_number }} <small>گرم</small></span>
+                </div>
+                {% if gold_balance.credit_limit_mg is defined and gold_balance.credit_limit_mg > 0 %}
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">سقف اعتبار</span>
+                    <span>{{ (gold_balance.credit_limit_mg / 1000) | persian_number }} <small>گرم</small></span>
+                </div>
+                {% endif %}
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">قابل خرید</span>
+                    <span class="fw-bold {% if gold_balance.available >= total_gold_mg %}text-success{% else %}text-danger{% endif %}">
+                        {{ (gold_balance.available / 1000) | persian_number }} <small>گرم</small>
+                    </span>
+                </div>
+            </div>
+
+            {% if gold_balance.available < total_gold_mg %}
+            <div class="alert-tm-danger py-2 mt-2 small">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                موجودی کیف پول طلای شما (با احتساب اعتبار) کافی نیست.
+            </div>
+            <button type="button" class="btn btn-tm-primary w-100 mt-2 py-2" disabled>
+                <i class="bi bi-lock me-1"></i> موجودی ناکافی
+            </button>
+            {% else %}
+            <button type="submit" class="btn btn-tm-primary w-100 mt-3 py-2" id="submitBtn">
+                <span class="submit-text"><i class="bi bi-gem me-1"></i> ثبت و پرداخت طلایی</span>
+                <span class="submit-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span> در حال ثبت...</span>
+            </button>
+            {% endif %}
+
+            <a href="/cart" class="btn btn-sm btn-tm-outline w-100 mt-2">
+                <i class="bi bi-arrow-right me-1"></i> بازگشت به سبد خرید
+            </a>
+        </div>
+    </div>
+</div>
+</form>
+
+{% else %}
+{# ============================================================ #}
+{# REGULAR CUSTOMER CHECKOUT                                     #}
+{# ============================================================ #}
 <form method="POST" action="/cart/checkout" id="checkoutForm">
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 <input type="hidden" name="delivery_method" id="deliveryMethodInput" value="">
@@ -314,9 +434,22 @@
     </div>
 </div>
 </form>
+{% endif %}
 {% endblock %}
 
 {% block shop_js %}
+{% if is_dealer_checkout %}
+<script>
+document.getElementById('checkoutForm').addEventListener('submit', function() {
+    var btn = document.getElementById('submitBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.querySelector('.submit-text').classList.add('d-none');
+        btn.querySelector('.submit-loading').classList.remove('d-none');
+    }
+});
+</script>
+{% else %}
 <script>
 (function(){
     const totalPrice = {{ total_price|default(0) }};
@@ -625,4 +758,5 @@
     }
 })();
 </script>
+{% endif %}
 {% endblock %}

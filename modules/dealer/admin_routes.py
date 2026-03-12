@@ -326,6 +326,7 @@ async def dealer_edit_submit(
     is_postal_hub: str = Form("off"),
     can_distribute: str = Form("off"),
     is_central_warehouse: str = Form("off"),
+    custom_credit_limit_grams: str = Form(""),
     csrf_token: str = Form(""),
     user=Depends(require_permission("dealers", level="edit")),
     db: Session = Depends(get_db),
@@ -348,6 +349,23 @@ async def dealer_edit_submit(
         can_distribute=(can_distribute == "on"),
         is_central_warehouse=(is_central_warehouse == "on"),
     )
+
+    # Update custom credit limit
+    from decimal import Decimal, ROUND_HALF_UP
+    credit_str = custom_credit_limit_grams.strip()
+    if credit_str:
+        try:
+            credit_grams = Decimal(credit_str)
+            dealer.custom_credit_limit_mg = int((credit_grams * Decimal("1000")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        except Exception:
+            pass
+    else:
+        dealer.custom_credit_limit_mg = None  # Use tier default
+
+    # Sync credit limit to wallet Account
+    from modules.wallet.service import wallet_service
+    wallet_service.sync_dealer_credit_limit(db, dealer.id)
+
     db.commit()
 
     return RedirectResponse("/admin/dealers", status_code=302)
@@ -548,17 +566,26 @@ async def tier_create_submit(
     sort_order: int = Form(0),
     is_end_customer: str = Form("off"),
     is_active: str = Form("on"),
+    default_credit_limit_grams: str = Form("0"),
     csrf_token: str = Form(""),
     user=Depends(require_permission("dealers", level="create")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
+    from decimal import Decimal, ROUND_HALF_UP
+    try:
+        credit_grams = Decimal(default_credit_limit_grams.strip() or "0")
+        credit_mg = int((credit_grams * Decimal("1000")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    except Exception:
+        credit_mg = 0
+
     tier = DealerTier(
         name=name.strip(),
         slug=slug.strip(),
         sort_order=sort_order,
         is_end_customer=(is_end_customer == "on"),
         is_active=(is_active == "on"),
+        default_credit_limit_mg=max(0, credit_mg),
     )
     db.add(tier)
     db.commit()
@@ -598,20 +625,29 @@ async def tier_edit_submit(
     sort_order: int = Form(0),
     is_end_customer: str = Form("off"),
     is_active: str = Form("on"),
+    default_credit_limit_grams: str = Form("0"),
     csrf_token: str = Form(""),
     user=Depends(require_permission("dealers", level="edit")),
     db: Session = Depends(get_db),
 ):
     csrf_check(request, csrf_token)
+    from decimal import Decimal, ROUND_HALF_UP
     tier = db.query(DealerTier).filter(DealerTier.id == tier_id).first()
     if not tier:
         return RedirectResponse("/admin/dealers/tiers/list", status_code=302)
+
+    try:
+        credit_grams = Decimal(default_credit_limit_grams.strip() or "0")
+        credit_mg = int((credit_grams * Decimal("1000")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    except Exception:
+        credit_mg = 0
 
     tier.name = name.strip()
     tier.slug = slug.strip()
     tier.sort_order = sort_order
     tier.is_end_customer = (is_end_customer == "on")
     tier.is_active = (is_active == "on")
+    tier.default_credit_limit_mg = max(0, credit_mg)
     db.commit()
     return RedirectResponse("/admin/dealers/tiers/list", status_code=302)
 
@@ -1006,3 +1042,83 @@ async def admin_b2b_fulfill(
         f"/admin/dealers/b2b-orders/{order_id}?msg={result['message']}{'&error=1' if not result['success'] else ''}",
         status_code=302,
     )
+
+
+# ==========================================
+# 💰 Gold Settlement (تسویه طلای آبشده)
+# ==========================================
+
+@router.get("/{dealer_id}/gold-settlement", response_class=HTMLResponse)
+async def gold_settlement_page(
+    request: Request,
+    dealer_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("dealers", level="edit")),
+):
+    """Form to deposit gold (XAU_MG) into dealer wallet as molten gold settlement."""
+    from modules.user.models import User
+    from modules.wallet.service import wallet_service
+    from modules.wallet.models import AssetCode
+
+    dealer = db.query(User).filter(User.id == dealer_id, User.is_dealer == True).first()
+    if not dealer:
+        return RedirectResponse("/admin/dealers?msg=نماینده+یافت+نشد&error=1", status_code=302)
+
+    gold_bal = wallet_service.get_balance(db, dealer_id, AssetCode.XAU_MG)
+
+    csrf = new_csrf_token(request)
+    response = templates.TemplateResponse("admin/dealers/gold_settlement.html", {
+        "request": request,
+        "user": user,
+        "dealer": dealer,
+        "gold_balance": gold_bal,
+        "csrf_token": csrf,
+    })
+    response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/{dealer_id}/gold-settlement")
+async def gold_settlement_submit(
+    request: Request,
+    dealer_id: int,
+    amount_grams: str = Form(...),
+    description: str = Form(""),
+    csrf_token: str = Form(None),
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("dealers", level="edit")),
+):
+    """Deposit gold (XAU_MG) into dealer wallet."""
+    csrf_check(request, csrf_token)
+    from modules.user.models import User
+    from modules.wallet.service import wallet_service
+    from modules.wallet.models import AssetCode
+    from decimal import Decimal, ROUND_HALF_UP
+    import urllib.parse
+
+    dealer = db.query(User).filter(User.id == dealer_id, User.is_dealer == True).first()
+    if not dealer:
+        return RedirectResponse("/admin/dealers?msg=نماینده+یافت+نشد&error=1", status_code=302)
+
+    try:
+        grams = Decimal(amount_grams.strip())
+        if grams <= 0:
+            raise ValueError
+        amount_mg = int((grams * Decimal("1000")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    except Exception:
+        msg = urllib.parse.quote("مقدار وارد‌شده نامعتبر است.")
+        return RedirectResponse(f"/admin/dealers/{dealer_id}/gold-settlement?error={msg}", status_code=302)
+
+    desc = description.strip() or f"تسویه طلای آبشده توسط ادمین ({user.full_name})"
+
+    wallet_service.deposit(
+        db, dealer_id, amount_mg,
+        asset_code=AssetCode.XAU_MG,
+        reference_type="gold_settlement",
+        reference_id=f"admin:{user.id}",
+        description=desc,
+    )
+    db.commit()
+
+    msg = urllib.parse.quote(f"✅ {amount_grams} گرم طلا به کیف پول نماینده واریز شد.")
+    return RedirectResponse(f"/admin/dealers/{dealer_id}/gold-settlement?msg={msg}", status_code=302)

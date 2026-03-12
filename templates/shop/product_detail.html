@@ -117,7 +117,29 @@
         {% endif %}
 
         <!-- Price Breakdown -->
-        {% if invoice and not invoice.get('error') %}
+        {% if dealer_gold_info and user and user.is_dealer %}
+        {# Dealer gold-for-gold pricing #}
+        <div class="card-tm no-hover">
+            <h6 class="fw-bold mb-3"><i class="bi bi-gem me-1 text-warning"></i>ریز قیمت طلایی (نماینده)</h6>
+            <table class="table table-tm table-borderless invoice-table mb-0">
+                <tr>
+                    <td class="text-muted">طلای خالص</td>
+                    <td class="text-start">{{ dealer_gold_info.pure_gold_g | persian_number }} گرم</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">اجرت ({{ p.dealer_wage_percent | persian_number }}%)</td>
+                    <td class="text-start">{{ dealer_gold_info.wage_gold_g | persian_number }} گرم</td>
+                </tr>
+                <tr class="total-row">
+                    <td class="text-warning fw-bold">جمع کل</td>
+                    <td class="text-start text-warning fw-bold">{{ dealer_gold_info.total_g | persian_number }} گرم طلا</td>
+                </tr>
+            </table>
+            <div class="text-muted mt-2" style="font-size:0.7rem;">
+                معادل ریالی (مرجع): {{ invoice.total | toman }} تومان
+            </div>
+        </div>
+        {% elif invoice and not invoice.get('error') %}
         <div class="card-tm no-hover">
             <h6 class="fw-bold mb-3"><i class="bi bi-receipt me-1"></i>ریز قیمت</h6>
             <table class="table table-tm table-borderless invoice-table mb-0">

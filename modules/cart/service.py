@@ -13,7 +13,7 @@ from sqlalchemy import func
 from modules.cart.models import Cart, CartItem
 from modules.catalog.models import Product
 from modules.inventory.models import Bar, BarStatus
-from modules.pricing.calculator import calculate_bar_price
+from modules.pricing.calculator import calculate_bar_price, calculate_gold_cost
 from modules.pricing.service import get_end_customer_wage, get_product_pricing
 from common.templating import get_setting_from_db
 
@@ -152,6 +152,63 @@ class CartService:
             })
 
         return items_data, total_price
+
+    def get_cart_items_with_gold_pricing(
+        self, db: Session, customer_id: int, dealer
+    ) -> Tuple[List[dict], int]:
+        """
+        Get cart items with gold-for-gold pricing for dealers.
+        Uses dealer's tier wage from ProductTierWage. Gift box ignored.
+        Returns: (items_data, total_gold_mg)
+        """
+        from modules.catalog.models import ProductTierWage
+
+        cart = db.query(Cart).filter(Cart.customer_id == customer_id).first()
+        if not cart or not cart.items:
+            return [], 0
+
+        # Batch inventory lookup
+        product_ids = [it.product_id for it in cart.items]
+        inv_rows = db.query(Bar.product_id, func.count(Bar.id)).filter(
+            Bar.product_id.in_(product_ids),
+            Bar.status == BarStatus.ASSIGNED,
+            Bar.customer_id.is_(None),
+            Bar.reserved_customer_id.is_(None),
+        ).group_by(Bar.product_id).all()
+        inv_map = {pid: cnt for pid, cnt in inv_rows}
+
+        items_data = []
+        total_gold_mg = 0
+
+        for item in cart.items:
+            # Dealer tier wage
+            tw = None
+            if dealer.tier_id:
+                tw = db.query(ProductTierWage).filter(
+                    ProductTierWage.product_id == item.product_id,
+                    ProductTierWage.tier_id == dealer.tier_id,
+                ).first()
+            dealer_wage = float(tw.wage_percent) if tw else float(item.product.wage)
+
+            gold_info = calculate_gold_cost(
+                weight=item.product.weight,
+                purity=item.product.purity,
+                wage_percent=dealer_wage,
+            )
+            item_gold_mg = gold_info.get("total_mg", 0) * item.quantity
+            total_gold_mg += item_gold_mg
+
+            items_data.append({
+                "product": item.product,
+                "quantity": item.quantity,
+                "gold_cost_info": gold_info,
+                "item_gold_mg": item_gold_mg,
+                "dealer_wage_percent": dealer_wage,
+                "inventory": inv_map.get(item.product_id, 0),
+                "db_item_id": item.id,
+            })
+
+        return items_data, total_gold_mg
 
     def get_cart_map(self, db: Session, customer_id: int) -> Tuple[dict, int]:
         """Get {product_id: quantity} map and total count for shop pages."""

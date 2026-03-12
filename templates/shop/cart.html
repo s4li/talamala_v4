@@ -190,6 +190,13 @@
             <div class="cart-item-info">
                 <h6><a href="/product/{{ item.product.id }}">{{ item.product.name }}</a></h6>
                 <div class="cart-item-specs">{{ item.product.weight }} گرم | عیار {{ item.product.purity|purity }}</div>
+                {% if user and user.is_dealer and gold_items %}
+                {# Dealer: show gold price #}
+                {% set gi = gold_items[loop.index0] if loop.index0 < gold_items|length else none %}
+                {% if gi %}
+                <div class="cart-item-unit-price text-warning">{{ gi.gold_cost_info.total_g | persian_number }} گرم طلا</div>
+                {% endif %}
+                {% else %}
                 <div class="cart-item-unit-price">{{ item.unit_price | toman }} تومان</div>
                 <!-- Gift box selection (AJAX) -->
                 <div class="d-flex align-items-center gap-1 mt-1">
@@ -205,6 +212,7 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% endif %}
             </div>
 
             <!-- Quantity Controls -->
@@ -230,9 +238,17 @@
 
             <!-- Line Total -->
             <div class="cart-item-total">
+                {% if user and user.is_dealer and gold_items %}
+                {% set gi = gold_items[loop.index0] if loop.index0 < gold_items|length else none %}
+                {% if gi %}
+                <div class="price line-total-price text-warning">{{ (gi.item_gold_mg / 1000) | round(3) | persian_number }}</div>
+                <div class="currency text-warning">گرم طلا</div>
+                {% endif %}
+                {% else %}
                 <div class="price line-total-price">{{ item.line_total | toman }}</div>
                 <div class="currency">تومان</div>
                 <div class="text-muted gift-box-label" style="font-size:0.68rem;{% if item.gift_box_price <= 0 %}display:none;{% endif %}">شامل جعبه کادو</div>
+                {% endif %}
             </div>
 
             <!-- Remove -->
@@ -276,10 +292,17 @@
 
                 <div class="d-flex justify-content-between align-items-center pt-3" style="border-top: 2px solid var(--tm-border);">
                     <span class="fw-bold">جمع کل</span>
+                    {% if user and user.is_dealer and total_gold_mg %}
+                    <div class="text-start">
+                        <span class="fw-bold text-warning fs-5">{{ (total_gold_mg / 1000) | round(3) | persian_number }}</span>
+                        <small class="text-warning d-block">گرم طلا</small>
+                    </div>
+                    {% else %}
                     <div class="text-start">
                         <span class="fw-bold text-tm-primary fs-5" id="cart-total-price">{{ total_price | toman }}</span>
                         <small class="text-muted d-block">تومان</small>
                     </div>
+                    {% endif %}
                 </div>
 
                 {% if has_disabled_items %}

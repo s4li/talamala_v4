@@ -34,6 +34,13 @@
                     <input type="number" name="sort_order" class="form-control form-control-tm" value="{{ tier.sort_order if tier else 0 }}">
                 </div>
                 <div class="col-md-4">
+                    <label class="form-label-tm">سقف اعتبار طلا (گرم)</label>
+                    <input type="text" name="default_credit_limit_grams" class="form-control form-control-tm" dir="ltr"
+                           value="{{ (tier.default_credit_limit_mg / 1000) if tier and tier.default_credit_limit_mg else '0' }}"
+                           placeholder="مثال: 100">
+                    <small class="text-muted">سقف اعتبار پیش‌فرض برای نمایندگان این سطح (۰ = بدون اعتبار)</small>
+                </div>
+                <div class="col-md-4">
                     <div class="form-check mt-4">
                         <input type="checkbox" name="is_end_customer" value="on" class="form-check-input"
                                id="is_end_customer" {{ 'checked' if tier and tier.is_end_customer else '' }}>

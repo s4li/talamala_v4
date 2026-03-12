@@ -58,6 +58,10 @@ async def home_page(
 
     cart_map, cart_count = _get_cart_info(db, user)
 
+    # Dealer gold pricing (attach gold_cost_info to each product)
+    if user and user.is_dealer:
+        shop_service.attach_dealer_gold_pricing(db, products, user)
+
     shop_gold_enabled = is_trade_enabled(db, "gold", "shop")
     shop_silver_enabled = is_trade_enabled(db, "silver", "shop")
     shop_disabled = not shop_gold_enabled or not shop_silver_enabled
@@ -105,6 +109,12 @@ async def product_detail(
 
     product, invoice, inventory, gold_price, tax_percent, location_inventory = result
     cart_map, cart_count = _get_cart_info(db, user)
+
+    # Dealer gold pricing for product detail
+    dealer_gold_info = None
+    if user and user.is_dealer:
+        shop_service.attach_dealer_gold_pricing(db, [product], user)
+        dealer_gold_info = getattr(product, 'gold_cost_info', None)
 
     # Calculate buyback amount using separate buyback_wage_percent
     buyback_amount = 0
@@ -173,6 +183,7 @@ async def product_detail(
         "product_comments": product_comments,
         "has_purchased": has_purchased,
         "comment_likes": comment_likes,
+        "dealer_gold_info": dealer_gold_info,
         "csrf_token": csrf,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")

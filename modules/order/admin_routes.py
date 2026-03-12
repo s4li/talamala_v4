@@ -252,3 +252,120 @@ async def confirm_pickup_delivery(
 
     msg = urllib.parse.quote("✅ تحویل تأیید شد. کد تحویل صحیح بود.")
     return RedirectResponse(f"/orders/{order_id}?msg={msg}", status_code=303)
+
+
+# ==========================================
+# 📲 Dealer Gold Order - Delivery OTP
+# ==========================================
+
+@router.post("/admin/orders/{order_id}/send-delivery-otp")
+async def send_delivery_otp(
+    request: Request,
+    order_id: int,
+    csrf_token: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("orders", level="edit")),
+):
+    """Send OTP to dealer for gold order delivery confirmation."""
+    csrf_check(request, csrf_token)
+    from modules.order.models import Order
+    from common.helpers import now_utc
+    import hashlib
+    import secrets
+    from datetime import timedelta
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order or order.status != OrderStatus.PAID:
+        msg = urllib.parse.quote("سفارش قابل تحویل نیست.")
+        return RedirectResponse(f"/orders/{order_id}?msg={msg}", status_code=303)
+
+    if not order.is_gold_order:
+        msg = urllib.parse.quote("OTP تحویل فقط برای سفارشات طلایی نمایندگان است.")
+        return RedirectResponse(f"/orders/{order_id}?msg={msg}", status_code=303)
+
+    # Generate 6-digit OTP
+    otp = f"{secrets.randbelow(900000) + 100000}"
+    otp_hash = hashlib.sha256(otp.encode()).hexdigest()
+    order.delivery_otp_hash = otp_hash
+    order.delivery_otp_expiry = now_utc() + timedelta(minutes=10)
+    db.commit()
+
+    # Send SMS to dealer
+    dealer = order.customer
+    if dealer and dealer.mobile:
+        try:
+            from common.sms import send_sms
+            send_sms(
+                dealer.mobile,
+                f"طلاملا: کد تأیید تحویل سفارش #{order.id}: {otp}\nاعتبار: ۱۰ دقیقه",
+            )
+        except Exception as e:
+            logger.error(f"Failed to send delivery OTP SMS for order #{order_id}: {e}")
+
+    logger.info(f"Delivery OTP sent for gold order #{order_id} to {dealer.mobile if dealer else 'N/A'}")
+    msg = urllib.parse.quote(f"✅ کد تأیید تحویل به موبایل نماینده ارسال شد.")
+    return RedirectResponse(f"/orders/{order_id}?msg={msg}", status_code=303)
+
+
+@router.post("/admin/orders/{order_id}/confirm-delivery-otp")
+async def confirm_delivery_otp(
+    request: Request,
+    order_id: int,
+    otp_code: str = Form(...),
+    csrf_token: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("orders", level="edit")),
+):
+    """Confirm delivery of gold order using OTP from dealer."""
+    csrf_check(request, csrf_token)
+    from modules.order.models import Order
+    from common.helpers import now_utc
+    import hashlib
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order or order.status != OrderStatus.PAID:
+        msg = urllib.parse.quote("سفارش قابل تحویل نیست.")
+        return RedirectResponse(f"/orders/{order_id}?msg={msg}", status_code=303)
+
+    if not order.is_gold_order:
+        msg = urllib.parse.quote("این route فقط برای سفارشات طلایی است.")
+        return RedirectResponse(f"/orders/{order_id}?msg={msg}", status_code=303)
+
+    if not order.delivery_otp_hash:
+        msg = urllib.parse.quote("ابتدا OTP ارسال کنید.")
+        return RedirectResponse(f"/orders/{order_id}?msg={msg}", status_code=303)
+
+    # Check expiry
+    if order.delivery_otp_expiry and now_utc() > order.delivery_otp_expiry:
+        msg = urllib.parse.quote("❌ کد تأیید منقضی شده. لطفاً دوباره ارسال کنید.")
+        return RedirectResponse(f"/orders/{order_id}?msg={msg}", status_code=303)
+
+    # Verify OTP
+    otp_hash = hashlib.sha256(otp_code.strip().encode()).hexdigest()
+    if otp_hash != order.delivery_otp_hash:
+        msg = urllib.parse.quote("❌ کد تأیید نادرست است!")
+        return RedirectResponse(f"/orders/{order_id}?msg={msg}", status_code=303)
+
+    # Mark as delivered
+    old_delivery = order.delivery_status
+    order.delivery_status = DeliveryStatus.DELIVERED
+    order.delivered_at = now_utc()
+    order.delivery_otp_hash = None
+    order.delivery_otp_expiry = None
+
+    # Mark all bars as physically delivered
+    from modules.order.models import OrderItem
+    from modules.inventory.models import Bar
+    bar_ids = [oi.bar_id for oi in db.query(OrderItem.bar_id).filter(OrderItem.order_id == order.id).all() if oi.bar_id]
+    if bar_ids:
+        db.query(Bar).filter(Bar.id.in_(bar_ids)).update({"delivered_at": now_utc()}, synchronize_session=False)
+
+    order_service.log_status_change(
+        db, order_id, "delivery_status",
+        old_value=old_delivery, new_value=DeliveryStatus.DELIVERED,
+        changed_by=user.full_name, description="تأیید تحویل سفارش طلایی با OTP نماینده",
+    )
+
+    db.commit()
+    msg = urllib.parse.quote("✅ تحویل تأیید شد. OTP صحیح بود.")
+    return RedirectResponse(f"/orders/{order_id}?msg={msg}", status_code=303)

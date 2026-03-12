@@ -153,7 +153,8 @@ talamala_v4/
   - **Role flags**: `is_dealer` (bool), `is_admin` (bool) — every user is implicitly a customer; additional roles are opt-in
   - **Identity**: mobile, first_name, last_name, national_id, birth_date
   - **Customer fields**: customer_type (real/legal), company_name, economic_code, postal_code, address, phone, referral_code
-  - **Dealer fields**: tier_id (FK→dealer_tiers), province_id, city_id, district_id, dealer_address, landline_phone, is_warehouse, is_postal_hub, commission_percent, api_key (unique), otp_code, otp_expiry, rasis_sharepoint (Integer, nullable — Rasis POS device mapping)
+  - **Dealer fields**: tier_id (FK→dealer_tiers), province_id, city_id, district_id, dealer_address, landline_phone, is_warehouse, is_postal_hub, commission_percent, api_key (unique), otp_code, otp_expiry, rasis_sharepoint (Integer, nullable — Rasis POS device mapping), custom_credit_limit_mg (BigInteger, nullable — NULL=use tier default)
+  - Property: `effective_credit_limit_mg` → `custom_credit_limit_mg or tier.default_credit_limit_mg or 0`
   - **Admin fields**: admin_role (admin/operator), _permissions (JSON dict: `{"key": "level", ...}` where level is one of: `view`, `create`, `edit`, `full`)
   - Properties: `full_name`, `display_name`, `is_staff` (→ is_admin), `is_profile_complete`, `primary_redirect`, `tier_name`, `type_label`, `type_icon`, `type_color`, `has_permission(perm_key, level="view")` — checks hierarchically (view < create < edit < full)
   - Relationship: `bars_at_location` → list of Bar objects at this dealer
@@ -199,16 +200,19 @@ talamala_v4/
 - **CartItem**: id, cart_id, product_id, quantity, gift_box_id (FK→gift_boxes, nullable)
 
 ### order/models.py
-- **Order**: id, customer_id (FK→users), status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_dealer_id (FK→users), shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at
-- **OrderItem**: id, order_id, product_id, bar_id, applied_metal_price, applied_unit_price, applied_weight, applied_purity, applied_wage_percent, applied_tax_percent, final_gold_amount, final_wage_amount, final_tax_amount, gift_box_id (FK→gift_boxes, nullable), applied_gift_box_price (BigInteger, default=0), line_total (= gold_total + gift_box_price)
+- **Order**: id, customer_id (FK→users), status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_dealer_id (FK→users), shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at, payment_asset_code (String(10), nullable — NULL/IRR=ریالی, XAU_MG=طلایی), gold_total_mg (BigInteger, nullable — total gold cost in mg), delivery_otp_hash (String, nullable — OTP for dealer delivery), delivery_otp_expiry (DateTime(tz), nullable)
+  - Property: `is_gold_order` → `payment_asset_code == "XAU_MG"` (Gold-for-Gold dealer order)
+- **OrderItem**: id, order_id, product_id, bar_id, applied_metal_price, applied_unit_price, applied_weight, applied_purity, applied_wage_percent, applied_tax_percent, final_gold_amount, final_wage_amount, final_tax_amount, gift_box_id (FK→gift_boxes, nullable), applied_gift_box_price (BigInteger, default=0), line_total (= gold_total + gift_box_price), gold_cost_mg (BigInteger, nullable — gold cost for dealer orders), applied_dealer_wage_percent (Numeric(5,2), nullable — dealer tier wage snapshot)
 - **OrderStatusLog**: id, order_id (FK→orders, CASCADE), field ("status"/"delivery_status"), old_value, new_value, changed_by, description, created_at — audit trail for status changes
 
 ### wallet/models.py
 - **AssetCode** (enum values): `IRR`, `XAU_MG` (gold milligrams), `XAG_MG` (silver milligrams)
 - **PRECIOUS_METALS** (dict): Metadata registry for generic metal trading. Keys: `"gold"`, `"silver"`. Each entry contains: `asset_code`, `asset_key` (pricing), `label`, `unit`, `base_purity` (750 for gold, 999 for silver), `fee_customer_key`, `fee_dealer_key`, `fee_customer_default`, `fee_dealer_default`. Used by routes to validate `{asset_type}` path param, drive buy/sell logic generically, and provide base purity for pricing calculations.
-- **Account**: id, user_id (FK→users), asset_code (IRR/XAU_MG/XAG_MG), balance, locked_balance, credit_balance (non-withdrawable store credit)
-  - `available_balance` = balance - locked (for purchases)
-  - `withdrawable_balance` = balance - locked - credit (for bank withdrawals)
+- **Account**: id, user_id (FK→users), asset_code (IRR/XAU_MG/XAG_MG), balance, locked_balance, credit_balance (non-withdrawable store credit), credit_limit_mg (BigInteger, default=0 — allows negative balance up to -credit_limit_mg for dealer XAU_MG accounts)
+  - `available_balance` = max(0, balance + credit_limit_mg - locked) (for purchases — includes credit limit for dealers)
+  - `withdrawable_balance` = balance - locked - credit (for bank withdrawals — credit limit NOT included)
+  - CHECK constraint: `balance >= -credit_limit_mg` (DB-level safety)
+  - Auto-sync: `get_or_create_account()` syncs credit_limit_mg from `User.effective_credit_limit_mg` on every XAU_MG wallet operation
 - **LedgerEntry**: id, account_id, txn_type (Deposit/Withdraw/Payment/Refund/Hold/Release/Commit/Credit), delta_balance, delta_locked, delta_credit, balance_after, locked_after, credit_after, idempotency_key, reference_type, reference_id, description
   - Properties: `is_gold` (bool — XAU_MG account), `is_silver` (bool — XAG_MG account), `is_precious_metal` (bool — any metal account)
 - **WalletTopup**: id, user_id (FK→users), amount_irr, status, ref_number, gateway
@@ -221,7 +225,7 @@ talamala_v4/
 - **CouponUsage**: id, coupon_id, user_id (FK→users), order_id, discount_applied
 
 ### dealer/models.py
-- **DealerTier**: id, name, slug (unique), sort_order, is_end_customer, is_active
+- **DealerTier**: id, name, slug (unique), sort_order, is_end_customer, is_active, default_credit_limit_mg (BigInteger, default=0 — default gold credit limit for dealers in this tier)
 - **DealerSale**: id, dealer_id (FK→users), bar_id, customer_name/mobile/national_id, sale_price, commission_amount, metal_profit_mg, discount_wage_percent (Numeric 5,2 — تخفیف اجرت از سهم نماینده), metal_type (String(20), default="gold"), parent_dealer_id (FK→users, nullable — parent dealer for sub-dealer sales), parent_commission_mg (Numeric 12,4, nullable — parent's share in mg), description, created_at
   - `applied_metal_price` — metal price at time of sale (was `applied_gold_price`)
   - `metal_type` — which metal was sold ("gold", "silver")
@@ -674,6 +678,7 @@ total     = raw_metal + wage + tax
 - `base_purity`: 750 for gold (18K reference), 999 for silver (pure reference) — defined in `PRECIOUS_METALS` dict
 - `metal_price`: per-gram price from `Asset` table (e.g. `gold_18k`, `silver`)
 - تابع: `calculate_bar_price()` در `modules/pricing/calculator.py` — now accepts `base_metal_price` + `base_purity` params
+- تابع: `calculate_gold_cost(weight, purity, wage_percent)` — Gold-for-Gold cost (no tax, no Rial), returns `{pure_gold_g, wage_gold_g, total_g, total_mg, audit}`
 - Helper: `get_product_pricing(db, product)` در `modules/pricing/service.py` — returns `(metal_price, base_purity, tax_percent)` based on product's `metal_type`
 - product.wage = اجرت مشتری نهایی (auto-sync به ProductTierWage)
 - سطوح نمایندگان: هر سطح اجرت کمتری دارد → اختلاف = سود نماینده (به فلز)
@@ -834,6 +839,10 @@ total     = raw_metal + wage + tax
 - `POST /admin/dealers/b2b-orders/{id}/reject` — Reject B2B order
 - `POST /admin/dealers/b2b-orders/{id}/fulfill` — Fulfill (assign bars from warehouse)
 - `/admin/dealers/buybacks` — Buyback approval/rejection
+- `GET /admin/dealers/{id}/gold-settlement` — Gold settlement form (deposit XAU_MG to dealer wallet)
+- `POST /admin/dealers/{id}/gold-settlement` — Execute gold deposit
+- `POST /admin/orders/{id}/send-delivery-otp` — Send delivery OTP to dealer for gold order
+- `POST /admin/orders/{id}/confirm-delivery-otp` — Confirm gold order delivery with OTP
 - `GET /admin/bars/{bar_id}/qr` — Generate and stream high-res QR code PNG on-the-fly (for laser printing)
 - `GET /api/admin/bars/lookup?serial=X` — Bar lookup JSON (scanner)
 - `GET /admin/reconciliation` — Reconciliation session list

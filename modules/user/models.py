@@ -75,6 +75,7 @@ class User(Base):
     api_key = Column(String(64), unique=True, nullable=True, index=True)
     rasis_sharepoint = Column(Integer, nullable=True)  # Rasis POS branch sharepoint ID
     rasis_last_record_version = Column(BigInteger, default=0, nullable=False, server_default="0")  # Last fetched receipt RecordVersion
+    custom_credit_limit_mg = Column(BigInteger, nullable=True)  # سقف اعتبار شخصی (mg) — NULL = از tier default
 
     # === Admin-specific ===
     admin_role = Column(String, nullable=True)           # "admin" | "operator"
@@ -249,6 +250,17 @@ class User(Base):
         if self.is_warehouse:
             return "primary"
         return "success"
+
+    # === Credit Limit ===
+
+    @property
+    def effective_credit_limit_mg(self) -> int:
+        """Effective gold credit limit in milligrams. Custom overrides tier default."""
+        if self.custom_credit_limit_mg is not None:
+            return self.custom_credit_limit_mg
+        if self.tier and hasattr(self.tier, 'default_credit_limit_mg'):
+            return self.tier.default_credit_limit_mg or 0
+        return 0
 
     # === Roles ===
 

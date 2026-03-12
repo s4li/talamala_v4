@@ -12,7 +12,7 @@ from sqlalchemy import func
 
 from modules.catalog.models import Product, ProductCategoryLink
 from modules.inventory.models import Bar, BarStatus
-from modules.pricing.calculator import calculate_bar_price
+from modules.pricing.calculator import calculate_bar_price, calculate_gold_cost
 from modules.pricing.service import get_end_customer_wage, get_price_value, is_price_fresh, get_product_pricing
 from modules.pricing.models import GOLD_18K
 from common.templating import get_setting_from_db
@@ -113,6 +113,27 @@ class ShopService:
         products = products[offset:offset + per_page]
 
         return products, total, gold_price_rial, tax_percent_str
+
+    def attach_dealer_gold_pricing(self, db: Session, products: list, dealer) -> None:
+        """Attach gold_cost_info to each product for dealer display.
+        Reads dealer's tier wage from ProductTierWage.
+        """
+        from modules.catalog.models import ProductTierWage
+        if not dealer or not dealer.is_dealer or not dealer.tier_id:
+            return
+        for product in products:
+            tw = db.query(ProductTierWage).filter(
+                ProductTierWage.product_id == product.id,
+                ProductTierWage.tier_id == dealer.tier_id,
+            ).first()
+            dealer_wage = float(tw.wage_percent) if tw else float(product.wage)
+            gold_info = calculate_gold_cost(
+                weight=product.weight,
+                purity=product.purity,
+                wage_percent=dealer_wage,
+            )
+            product.gold_cost_info = gold_info
+            product.dealer_wage_percent = dealer_wage
 
     def get_product_detail(
         self, db: Session, product_id: int

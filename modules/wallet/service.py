@@ -37,7 +37,9 @@ class WalletService:
         self, db: Session, user_id: int,
         asset_code: str = AssetCode.IRR,
     ) -> Account:
-        """Get existing account or create with zero balance."""
+        """Get existing account or create with zero balance.
+        Auto-syncs credit_limit_mg for XAU_MG dealer accounts (Guardrail 1).
+        """
         acct = (
             db.query(Account)
             .filter(
@@ -56,6 +58,16 @@ class WalletService:
             )
             db.add(acct)
             db.flush()
+
+        # Auto-sync credit limit for XAU_MG dealer accounts
+        if asset_code == AssetCode.XAU_MG:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user and user.is_dealer:
+                effective = user.effective_credit_limit_mg
+                if acct.credit_limit_mg != effective:
+                    acct.credit_limit_mg = effective
+                    db.flush()
+
         return acct
 
     def get_account(
@@ -86,6 +98,7 @@ class WalletService:
             "available": acct.available_balance,
             "credit": acct.credit_balance,
             "withdrawable": acct.withdrawable_balance,
+            "credit_limit_mg": getattr(acct, 'credit_limit_mg', 0),
         }
 
     # ------------------------------------------
@@ -116,9 +129,9 @@ class WalletService:
         account.locked_balance += delta_locked
         account.credit_balance += delta_credit
 
-        # Safety checks
-        if account.balance < 0:
-            raise ValueError(f"موجودی کافی نیست (balance would be {account.balance})")
+        # Safety checks (credit_limit_mg allows negative balance for dealers)
+        if account.balance < -account.credit_limit_mg:
+            raise ValueError(f"موجودی کافی نیست (balance would be {account.balance}, limit: -{account.credit_limit_mg})")
         if account.locked_balance < 0:
             raise ValueError(f"بلوکه منفی (locked would be {account.locked_balance})")
         if account.credit_balance < 0:
@@ -350,6 +363,25 @@ class WalletService:
             description=description,
             delta_credit=amount,
         )
+
+    # ------------------------------------------
+    # Dealer credit limit sync
+    # ------------------------------------------
+
+    def sync_dealer_credit_limit(self, db: Session, user_id: int) -> None:
+        """Explicitly sync Account.credit_limit_mg from User.effective_credit_limit_mg.
+        Called by admin routes when editing tier/user for immediate effect.
+        """
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user or not user.is_dealer:
+            return
+        acct = self.get_account(db, user_id, AssetCode.XAU_MG)
+        if not acct:
+            return
+        effective = user.effective_credit_limit_mg
+        if acct.credit_limit_mg != effective:
+            acct.credit_limit_mg = effective
+            db.flush()
 
     # ------------------------------------------
     # Generic precious metal trading

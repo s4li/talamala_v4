@@ -54,6 +54,7 @@ class DealerTier(Base):
     sort_order = Column(Integer, default=0)
     is_end_customer = Column(Boolean, default=False)          # فلگ ویژه: بالاترین اجرت
     is_active = Column(Boolean, default=True)
+    default_credit_limit_mg = Column(BigInteger, default=0, nullable=False, server_default="0")  # سقف اعتبار پیش‌فرض (mg)
 
     def __repr__(self):
         return f"<DealerTier {self.name} (ec={self.is_end_customer})>"

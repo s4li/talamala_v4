@@ -18,7 +18,7 @@ from modules.order.models import Order, OrderItem, OrderStatus, OrderStatusLog, 
 from modules.cart.models import Cart, CartItem
 from modules.catalog.models import Product
 from modules.inventory.models import Bar, BarStatus, OwnershipHistory
-from modules.pricing.calculator import calculate_bar_price
+from modules.pricing.calculator import calculate_bar_price, calculate_gold_cost
 from modules.pricing.service import get_end_customer_wage, get_product_pricing
 
 logger = logging.getLogger("talamala.order")
@@ -289,6 +289,180 @@ class OrderService:
         return new_order
 
     # ==========================================
+    # Dealer Gold-for-Gold Checkout
+    # ==========================================
+
+    def checkout_dealer(self, db: Session, dealer_id: int) -> Order:
+        """
+        Gold-for-Gold checkout for dealers:
+        1. Calculate gold cost using dealer's tier wage (no tax, no Rial)
+        2. Reserve bars from warehouse only (is_warehouse=True)
+        3. Auto-pay from XAU_MG wallet (supports negative balance via credit_limit)
+        4. Finalize order immediately
+        No coupon, no shipping, no gift box, no payment page redirect.
+        """
+        from modules.catalog.models import ProductTierWage
+        from modules.wallet.service import wallet_service
+        from modules.wallet.models import AssetCode
+        from modules.user.models import User
+        from modules.order.delivery_service import delivery_service
+
+        dealer = db.query(User).filter(User.id == dealer_id).first()
+        if not dealer or not dealer.is_dealer:
+            raise ValueError("فقط نمایندگان مجاز به خرید طلایی هستند")
+
+        cart = db.query(Cart).filter(Cart.customer_id == dealer_id).first()
+        if not cart or not cart.items:
+            raise ValueError("سبد خرید خالی است")
+
+        # Staleness + trade toggle guard
+        from modules.pricing.service import require_fresh_price
+        from modules.pricing.trade_guard import require_trade_enabled
+        checked_metals = set()
+        for item in cart.items:
+            _, _, m_info = get_product_pricing(db, item.product)
+            pc = m_info["pricing_code"]
+            mt = item.product.metal_type or "gold"
+            if pc not in checked_metals:
+                require_fresh_price(db, pc)
+                require_trade_enabled(db, mt, "shop")
+                checked_metals.add(pc)
+
+        reservation_minutes = int(get_setting_from_db(db, "reservation_minutes", "15"))
+        expire_at = now_utc() + timedelta(minutes=reservation_minutes)
+
+        # Warehouse IDs (source of bars for dealer orders)
+        warehouse_ids = [
+            u.id for u in db.query(User).filter(
+                User.is_dealer == True, User.is_warehouse == True, User.is_active == True
+            ).all()
+        ]
+        if not warehouse_ids:
+            raise ValueError("انبار مرکزی تعریف نشده است")
+
+        # Create order
+        new_order = Order(
+            customer_id=dealer_id,
+            total_amount=0,
+            status=OrderStatus.PENDING,
+            delivery_method=DeliveryMethod.PICKUP,
+            delivery_status=DeliveryStatus.WAITING,
+            payment_asset_code="XAU_MG",
+            is_gift=False,
+        )
+        db.add(new_order)
+        db.flush()
+
+        self.log_status_change(
+            db, new_order.id, "status",
+            old_value=None, new_value=OrderStatus.PENDING,
+            changed_by="system", description="ثبت سفارش طلایی نماینده",
+        )
+
+        order_items = []
+        total_gold_mg = 0
+
+        for item in cart.items:
+            # Dealer tier wage
+            tw = None
+            if dealer.tier_id:
+                tw = db.query(ProductTierWage).filter(
+                    ProductTierWage.product_id == item.product_id,
+                    ProductTierWage.tier_id == dealer.tier_id,
+                ).first()
+            dealer_wage = float(tw.wage_percent) if tw else float(item.product.wage)
+
+            # Gold cost calculation
+            gold_info = calculate_gold_cost(
+                weight=item.product.weight,
+                purity=item.product.purity,
+                wage_percent=dealer_wage,
+            )
+            if gold_info.get("error"):
+                raise ValueError(f"خطا در محاسبه قیمت {item.product.name}: {gold_info['error']}")
+
+            unit_gold_mg = gold_info["total_mg"]
+
+            # Rial price for reference (stored in total_amount for backward compat)
+            p_price, p_bp, _ = get_product_pricing(db, item.product)
+            rial_info = calculate_bar_price(
+                weight=item.product.weight, purity=item.product.purity,
+                wage_percent=dealer_wage, base_metal_price=p_price,
+                tax_percent=0, base_purity=p_bp,
+            )
+
+            required_qty = item.quantity
+
+            # Reserve bars from warehouse only
+            available_bars = (
+                db.query(Bar).filter(
+                    Bar.product_id == item.product_id,
+                    Bar.status == BarStatus.ASSIGNED,
+                    Bar.customer_id.is_(None),
+                    Bar.reserved_customer_id.is_(None),
+                    Bar.dealer_id.in_(warehouse_ids),
+                )
+                .with_for_update(skip_locked=True)
+                .limit(required_qty)
+                .all()
+            )
+
+            if len(available_bars) < required_qty:
+                db.rollback()
+                raise ValueError(
+                    f"موجودی «{item.product.name}» در انبار مرکزی کافی نیست "
+                    f"(نیاز: {required_qty}, موجود: {len(available_bars)})"
+                )
+
+            for bar in available_bars:
+                bar.status = BarStatus.RESERVED
+                bar.reserved_customer_id = dealer_id
+                bar.reserved_until = expire_at
+
+                oi = OrderItem(
+                    order_id=new_order.id,
+                    product_id=item.product_id,
+                    bar_id=bar.id,
+                    applied_metal_price=int(p_price),
+                    applied_unit_price=int(rial_info.get("audit", {}).get("unit_price_used", 0)),
+                    applied_weight=item.product.weight,
+                    applied_purity=item.product.purity,
+                    applied_wage_percent=item.product.wage,  # end-customer wage (reference)
+                    applied_tax_percent=0,
+                    final_gold_amount=int(rial_info.get("raw_gold", 0)),
+                    final_wage_amount=int(rial_info.get("wage", 0)),
+                    final_tax_amount=0,
+                    line_total=int(rial_info.get("total", 0)),
+                    gold_cost_mg=unit_gold_mg,
+                    applied_dealer_wage_percent=dealer_wage,
+                )
+                order_items.append(oi)
+                total_gold_mg += unit_gold_mg
+
+        new_order.total_amount = sum(oi.line_total for oi in order_items)
+        new_order.gold_total_mg = total_gold_mg
+
+        for oi in order_items:
+            db.add(oi)
+
+        # Clear cart
+        db.query(CartItem).filter(CartItem.cart_id == cart.id).delete()
+
+        # Auto-pay from XAU_MG wallet
+        wallet_service.withdraw(
+            db, dealer_id, total_gold_mg,
+            reference_type="gold_order", reference_id=str(new_order.id),
+            description=f"پرداخت سفارش طلایی #{new_order.id} ({total_gold_mg / 1000:.3f}g)",
+            asset_code=AssetCode.XAU_MG,
+        )
+
+        # Finalize immediately
+        self.finalize_order(db, new_order.id)
+
+        db.flush()
+        return new_order
+
+    # ==========================================
     # Finalize (mark as Paid)
     # ==========================================
 
@@ -350,23 +524,24 @@ class OrderService:
         # Process referral reward on first purchase (not registration)
         self._process_referral_reward_on_first_purchase(db, order.customer_id)
 
-        # Hedging: record OUT position for each sold bar
-        try:
-            from modules.hedging.service import hedging_service
-            for oi in order.items:
-                if oi.bar_id and oi.applied_weight:
-                    from modules.catalog.models import Product
-                    prod = db.query(Product).filter(Product.id == oi.product_id).first()
-                    metal = (prod.metal_type if prod else None) or "gold"
-                    weight_mg = int(float(oi.applied_weight) * 1000)
-                    hedging_service.record_out(
-                        db, metal, weight_mg,
-                        source_type="order", source_id=str(order.id),
-                        description=f"Order #{order.id}",
-                        involved_user_id=order.customer_id,
-                    )
-        except Exception:
-            pass  # Never block order finalization
+        # Hedging: record OUT — ONLY for Rial orders (Guardrail 2: gold-for-gold excluded)
+        if not order.is_gold_order:
+            try:
+                from modules.hedging.service import hedging_service
+                for oi in order.items:
+                    if oi.bar_id and oi.applied_weight:
+                        from modules.catalog.models import Product
+                        prod = db.query(Product).filter(Product.id == oi.product_id).first()
+                        metal = (prod.metal_type if prod else None) or "gold"
+                        weight_mg = int(float(oi.applied_weight) * 1000)
+                        hedging_service.record_out(
+                            db, metal, weight_mg,
+                            source_type="order", source_id=str(order.id),
+                            description=f"Order #{order.id}",
+                            involved_user_id=order.customer_id,
+                        )
+            except Exception:
+                pass  # Never block order finalization
 
         db.flush()
         return order

@@ -222,7 +222,7 @@
                 <div>
                     <div class="invoice-logo">
                         <i class="bi bi-gem me-1"></i>طلاملا
-                        <small class="d-block">TalaMala Gold — فاکتور فروش</small>
+                        <small class="d-block">TalaMala Gold — {% if order.is_gold_order %}فاکتور طلایی (نمایندگان){% else %}فاکتور فروش{% endif %}</small>
                     </div>
                 </div>
                 <div class="text-start">
@@ -284,6 +284,16 @@
             <div class="d-none d-md-block px-3 pb-1">
                 <table class="invoice-table">
                     <thead>
+                        {% if order.is_gold_order %}
+                        <tr>
+                            <th style="width:36px;">#</th>
+                            <th>محصول</th>
+                            <th class="text-center">وزن</th>
+                            <th class="text-center">عیار</th>
+                            <th class="text-center">اجرت</th>
+                            <th class="text-end">هزینه (گرم طلا)</th>
+                        </tr>
+                        {% else %}
                         <tr>
                             <th style="width:36px;">#</th>
                             <th>محصول</th>
@@ -293,9 +303,25 @@
                             <th class="text-end">مبلغ (تومان)</th>
                             <th style="width:70px;"></th>
                         </tr>
+                        {% endif %}
                     </thead>
                     <tbody>
                         {% for item in order.items %}
+                        {% if order.is_gold_order %}
+                        <tr>
+                            <td class="row-num">{{ loop.index }}</td>
+                            <td>
+                                <div class="fw-bold">{{ item.product.name if item.product else 'محصول حذف‌شده' }}</div>
+                                {% if order.status == 'Paid' and item.bar %}
+                                <small class="text-muted">سریال: <code>{{ item.bar.serial_code }}</code></small>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ item.applied_weight }}g</td>
+                            <td class="text-center">{{ item.applied_purity|purity }}</td>
+                            <td class="text-center">{{ item.applied_dealer_wage_percent or item.applied_wage_percent }}%</td>
+                            <td class="text-end fw-bold text-warning">{{ (item.gold_cost_mg / 1000) | persian_number }} گرم</td>
+                        </tr>
+                        {% else %}
                         <tr>
                             <td class="row-num">{{ loop.index }}</td>
                             <td>
@@ -353,6 +379,7 @@
                                 </div>
                             </td>
                         </tr>
+                        {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>
@@ -367,25 +394,22 @@
                             <span class="text-muted small">{{ loop.index }}.</span>
                             <span class="fw-bold" style="font-size:0.88rem;">{{ item.product.name if item.product else 'محصول حذف‌شده' }}</span>
                         </div>
+                        {% if order.is_gold_order %}
+                        <div class="fw-bold text-warning text-nowrap" style="font-size:0.88rem;">{{ (item.gold_cost_mg / 1000) | persian_number }} <small class="text-muted">گرم</small></div>
+                        {% else %}
                         <div class="fw-bold text-tm-primary text-nowrap" style="font-size:0.88rem;">{{ item.line_total | toman }} <small class="text-muted">ت</small></div>
+                        {% endif %}
                     </div>
                     <div class="d-flex gap-2 small text-muted">
                         <span>{{ item.applied_weight }}g</span>
                         <span>عیار {{ item.applied_purity|purity }}</span>
-                        {% if item.gift_box %}<span>{{ item.gift_box.name }}</span>{% endif %}
+                        {% if not order.is_gold_order and item.gift_box %}<span>{{ item.gift_box.name }}</span>{% endif %}
                     </div>
                     {% if order.status == 'Paid' and item.bar %}
                     <small class="text-muted d-block mt-1">سریال: <code>{{ item.bar.serial_code }}</code></small>
                     {% endif %}
-                    {% if item.gift_box %}
-                    <small class="text-muted d-block">
-                        <i class="bi bi-gift me-1"></i>بسته‌بندی: {{ item.gift_box.name }}
-                        {% if item.applied_gift_box_price > 0 %}
-                        ({{ item.applied_gift_box_price | toman }} تومان)
-                        {% endif %}
-                    </small>
-                    {% endif %}
                 </div>
+                {% if not order.is_gold_order %}
                 <div style="flex:1;" class="text-center">{{ item.applied_weight }}g</div>
                 <div style="flex:1;" class="text-center">{{ item.applied_purity|purity }}</div>
                 <div style="flex:2;" class="text-end">
@@ -445,6 +469,7 @@
                             <span>قیمت فلز پایه</span>
                             <span>{{ item.applied_metal_price | toman }} تومان/گرم</span>
                         </div>
+                {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -454,6 +479,12 @@
             <div class="invoice-totals">
                 <div class="row">
                     <div class="col-sm-6 offset-sm-6">
+                        {% if order.is_gold_order %}
+                        <div class="totals-line total-grand" style="color: #b8860b;">
+                            <span>جمع پرداخت طلایی ({{ order.items|length }} شمش)</span>
+                            <span>{{ (order.gold_total_mg / 1000) | persian_number }} گرم طلا</span>
+                        </div>
+                        {% else %}
                         <div class="totals-line">
                             <span>جمع کالاها ({{ order.items|length }} شمش)</span>
                             <span>{{ order.total_amount | toman }} تومان</span>
@@ -483,6 +514,7 @@
                             <span>جمع قابل پرداخت</span>
                             <span>{{ order.grand_total | toman }} تومان</span>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -613,7 +645,24 @@
     <div class="col-lg-4 order-1 order-lg-2">
         <div class="sticky-top no-print" style="top: 80px; z-index: 1;">
         <div class="card-tm no-hover">
-            {% if order.status == 'Pending' %}
+            {% if order.is_gold_order and order.status == 'Paid' %}
+            <div class="alert-tm-success py-2 small mb-3">
+                <i class="bi bi-gem me-1 text-warning"></i>
+                سفارش طلایی با موفقیت پرداخت شد.
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                <span class="fw-bold">مبلغ پرداخت‌شده</span>
+                <span class="fw-bold fs-5 text-warning">{{ (order.gold_total_mg / 1000) | persian_number }} <small class="text-muted fw-normal">گرم طلا</small></span>
+            </div>
+            <div class="small text-muted mb-2">
+                <div><strong>روش پرداخت:</strong> کیف پول طلا (XAU)</div>
+                {% if order.paid_at %}<div><strong>تاریخ پرداخت:</strong> {{ order.paid_at | jdate }}</div>{% endif %}
+            </div>
+            <button class="btn btn-tm-outline w-100" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> چاپ فاکتور
+            </button>
+
+            {% elif order.status == 'Pending' %}
             <div class="alert-tm-warning py-2 small mb-3">
                 <i class="bi bi-clock me-1"></i>
                 در انتظار پرداخت — شمش‌ها به مدت محدود رزرو شده‌اند.
@@ -795,6 +844,36 @@
             </div>
             {% endif %}
             {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if order.status == 'Paid' and order.is_gold_order and order.delivery_status != 'Delivered' %}
+        <div class="card-tm no-hover mt-3 border-start border-4 border-warning">
+            <div class="border-bottom pb-2 mb-2 fw-bold small">
+                <i class="bi bi-gem me-1 text-warning"></i>تحویل سفارش طلایی — OTP نماینده
+            </div>
+
+            <!-- Step 1: Send OTP -->
+            <form method="POST" action="/admin/orders/{{ order.id }}/send-delivery-otp" class="mb-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-sm btn-tm-warning w-100" type="submit">
+                    <i class="bi bi-send me-1"></i>ارسال کد تأیید تحویل به نماینده
+                </button>
+                <small class="text-muted d-block mt-1">کد ۶ رقمی به موبایل نماینده پیامک می‌شود (اعتبار ۱۰ دقیقه).</small>
+            </form>
+
+            <!-- Step 2: Confirm OTP -->
+            <form method="POST" action="/admin/orders/{{ order.id }}/confirm-delivery-otp">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <label class="form-label-tm small fw-bold">تأیید تحویل با OTP</label>
+                <div class="input-group">
+                    <input type="text" name="otp_code" class="form-control form-control-tm" dir="ltr"
+                           placeholder="کد ۶ رقمی" maxlength="6" required>
+                    <button class="btn btn-tm-success" type="submit">
+                        <i class="bi bi-check-lg me-1"></i>تأیید
+                    </button>
+                </div>
+            </form>
         </div>
         {% endif %}
 

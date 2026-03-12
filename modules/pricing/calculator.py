@@ -5,7 +5,63 @@ Metal bar price calculation: raw metal + wage + tax on wage.
 Supports gold, silver, and any future precious metal via base_purity param.
 """
 
-from decimal import Decimal, ROUND_FLOOR
+from decimal import Decimal, ROUND_FLOOR, ROUND_HALF_UP
+
+
+def calculate_gold_cost(weight, purity, wage_percent) -> dict:
+    """
+    Gold-for-Gold cost calculation (no tax, no Rial).
+
+    Formula:
+        pure_gold = weight × (purity / 1000)
+        wage_gold = pure_gold × (wage% / 100)
+        total     = pure_gold + wage_gold
+
+    Args:
+        weight: Weight in grams (e.g., 100.000)
+        purity: Purity in parts per thousand (e.g., 750 for 18K gold)
+        wage_percent: Manufacturing wage as percentage of pure gold value
+
+    Returns:
+        dict with: pure_gold_g, wage_gold_g, total_g, total_mg, audit
+    """
+    D = lambda x: Decimal(str(x)) if x is not None else Decimal("0")
+
+    d_weight = D(weight).quantize(Decimal("0.001"), rounding=ROUND_FLOOR)
+    d_purity = D(purity)
+    d_wage_pct = D(wage_percent)
+
+    if d_weight <= 0 or d_purity <= 0:
+        return {"error": "ورودی نامعتبر: وزن و عیار باید مثبت باشند.", "total_mg": 0}
+
+    # طلای خالص (گرم)
+    pure_gold_g = d_weight * (d_purity / Decimal("1000"))
+
+    # اجرت (گرم طلا)
+    wage_gold_g = pure_gold_g * (d_wage_pct / Decimal("100"))
+
+    # جمع کل (گرم)
+    total_g = pure_gold_g + wage_gold_g
+
+    # تبدیل به میلی‌گرم (عدد صحیح)
+    total_mg = int((total_g * Decimal("1000")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    pure_mg = int((pure_gold_g * Decimal("1000")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    wage_mg = int((wage_gold_g * Decimal("1000")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+    return {
+        "pure_gold_g": float(pure_gold_g.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)),
+        "wage_gold_g": float(wage_gold_g.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)),
+        "total_g": float(total_g.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)),
+        "pure_gold_mg": pure_mg,
+        "wage_gold_mg": wage_mg,
+        "total_mg": total_mg,
+        "audit": {
+            "weight_used": str(d_weight),
+            "purity_used": str(d_purity),
+            "wage_percent_used": str(d_wage_pct),
+            "rounding": "HALF_UP",
+        },
+    }
 
 
 def calculate_bar_price(

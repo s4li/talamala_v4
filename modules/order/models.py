@@ -79,6 +79,12 @@ class Order(Base):
     payment_ref = Column(String, nullable=True)        # شماره مرجع / ref_number
     paid_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Gold-for-Gold (dealer B2B)
+    payment_asset_code = Column(String(10), nullable=True)  # NULL/IRR = ریالی، XAU_MG = طلایی
+    gold_total_mg = Column(BigInteger, nullable=True)       # جمع کل طلا (میلی‌گرم)
+    delivery_otp_hash = Column(String, nullable=True)       # OTP تحویل فیزیکی
+    delivery_otp_expiry = Column(DateTime(timezone=True), nullable=True)
+
     # Relationships
     customer = relationship("User", foreign_keys=[customer_id])
     pickup_dealer = relationship("User", foreign_keys=[pickup_dealer_id])
@@ -134,6 +140,11 @@ class Order(Base):
         return colors.get(self.delivery_status, "secondary")
 
     @property
+    def is_gold_order(self) -> bool:
+        """True if this is a gold-for-gold dealer order."""
+        return self.payment_asset_code == "XAU_MG"
+
+    @property
     def grand_total(self) -> int:
         """Total including shipping + insurance − discount (cashback doesn't reduce)."""
         base = self.total_amount + (self.shipping_cost or 0) + (self.insurance_cost or 0)
@@ -163,6 +174,10 @@ class OrderItem(Base):
     final_wage_amount = Column(BigInteger, nullable=False)
     final_tax_amount = Column(BigInteger, default=0, nullable=False)
     line_total = Column(BigInteger, nullable=False)
+
+    # Gold-for-Gold fields (dealer B2B)
+    gold_cost_mg = Column(BigInteger, nullable=True)                           # هزینه طلایی آیتم (mg)
+    applied_dealer_wage_percent = Column(Numeric(5, 2), nullable=True)         # اجرت سطح نماینده (snapshot)
 
     # Gift box snapshot
     gift_box_id = Column(Integer, ForeignKey("gift_boxes.id", ondelete="SET NULL"), nullable=True, index=True)
