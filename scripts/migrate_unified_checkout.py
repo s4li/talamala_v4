@@ -69,6 +69,26 @@ def run_migration():
                 print(f"  -> Note ({tbl}.{col}): {e}")
 
         # ==========================================
+        # 3. Set default credit limits for dealer tiers
+        # ==========================================
+        print("\n[3/3] Setting default credit limits for dealer tiers...")
+        tier_credits = [
+            ("distributor", 500000),   # 500g
+            ("wholesaler", 250000),    # 250g
+            ("store", 100000),         # 100g
+            ("end_customer", 0),
+        ]
+        for slug, mg in tier_credits:
+            try:
+                conn.execute(text(f"""
+                    UPDATE dealer_tiers SET default_credit_limit_mg = {mg}
+                    WHERE slug = '{slug}' AND default_credit_limit_mg = 0
+                """))
+                print(f"  -> {slug}: {mg/1000}g")
+            except Exception as e:
+                print(f"  -> Note ({slug}): {e}")
+
+        # ==========================================
         # Commit
         # ==========================================
         print("\nCommitting...")
@@ -82,6 +102,7 @@ def run_migration():
         print("  1. git pull")
         print("  2. python scripts/migrate_unified_checkout.py")
         print("  3. systemctl restart talamala")
+        print("  4. Verify tier credit limits in Admin > Dealers > Tiers")
 
 
 if __name__ == "__main__":

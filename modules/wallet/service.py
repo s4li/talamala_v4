@@ -59,11 +59,16 @@ class WalletService:
             db.add(acct)
             db.flush()
 
-        # Auto-sync credit limit for XAU_MG dealer accounts
-        if asset_code == AssetCode.XAU_MG:
+        # Auto-sync credit limit for dealer accounts
+        if asset_code in (AssetCode.XAU_MG, AssetCode.IRR):
             user = db.query(User).filter(User.id == user_id).first()
             if user and user.is_dealer:
-                effective = user.effective_credit_limit_mg
+                if asset_code == AssetCode.XAU_MG:
+                    # Gold credit: direct from tier (in milligrams)
+                    effective = user.effective_credit_limit_mg
+                else:
+                    # Rial credit: gold credit equivalent at current gold price
+                    effective = self._calc_rial_credit_limit(db, user)
                 if acct.credit_limit_mg != effective:
                     acct.credit_limit_mg = effective
                     db.flush()
@@ -368,20 +373,44 @@ class WalletService:
     # Dealer credit limit sync
     # ------------------------------------------
 
+    def _calc_rial_credit_limit(self, db: Session, user) -> int:
+        """Calculate rial credit limit = gold credit equivalent at current gold price.
+        Returns amount in rials.
+        """
+        gold_credit_mg = user.effective_credit_limit_mg
+        if gold_credit_mg <= 0:
+            return 0
+        from modules.pricing.service import get_price_value
+        from modules.pricing.models import GOLD_18K
+        gold_price_per_gram = get_price_value(db, GOLD_18K)
+        if gold_price_per_gram <= 0:
+            return 0
+        # credit_mg / 1000 = grams, × price_per_gram = rials
+        return int((gold_credit_mg / 1000) * gold_price_per_gram)
+
     def sync_dealer_credit_limit(self, db: Session, user_id: int) -> None:
-        """Explicitly sync Account.credit_limit_mg from User.effective_credit_limit_mg.
+        """Explicitly sync credit limits for both XAU_MG and IRR accounts.
         Called by admin routes when editing tier/user for immediate effect.
         """
         user = db.query(User).filter(User.id == user_id).first()
         if not user or not user.is_dealer:
             return
-        acct = self.get_account(db, user_id, AssetCode.XAU_MG)
-        if not acct:
-            return
-        effective = user.effective_credit_limit_mg
-        if acct.credit_limit_mg != effective:
-            acct.credit_limit_mg = effective
-            db.flush()
+
+        # Sync gold credit
+        acct_gold = self.get_account(db, user_id, AssetCode.XAU_MG)
+        if acct_gold:
+            effective = user.effective_credit_limit_mg
+            if acct_gold.credit_limit_mg != effective:
+                acct_gold.credit_limit_mg = effective
+
+        # Sync rial credit (derived from gold credit × gold price)
+        acct_irr = self.get_account(db, user_id, AssetCode.IRR)
+        if acct_irr:
+            rial_limit = self._calc_rial_credit_limit(db, user)
+            if acct_irr.credit_limit_mg != rial_limit:
+                acct_irr.credit_limit_mg = rial_limit
+
+        db.flush()
 
     # ------------------------------------------
     # Generic precious metal trading

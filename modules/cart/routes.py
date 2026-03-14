@@ -452,6 +452,39 @@ async def checkout(
         else:
             # Regular checkout (Rial) — works for both customers and dealers
             order = order_service.checkout(db, me.id, delivery_data)
+
+            # Dealer rial order: auto-pay from IRR wallet (with credit)
+            if me.is_dealer:
+                from modules.wallet.service import wallet_service
+                from modules.wallet.models import AssetCode
+                try:
+                    pay_amount = order.total_amount
+                    if order.shipping_cost:
+                        pay_amount += order.shipping_cost
+                    if order.insurance_cost:
+                        pay_amount += order.insurance_cost
+                    # Discount coupon reduces payment
+                    if order.promo_choice == "DISCOUNT" and order.promo_amount:
+                        pay_amount = max(0, pay_amount - order.promo_amount)
+
+                    wallet_service.withdraw(
+                        db, me.id, pay_amount,
+                        reference_type="order_payment",
+                        reference_id=str(order.id),
+                        description=f"پرداخت سفارش ریالی #{order.id}",
+                        asset_code=AssetCode.IRR,
+                    )
+                    order.payment_method = "wallet"
+                    order_service.finalize_order(db, order.id)
+                    db.commit()
+                    msg = urllib.parse.quote(
+                        f"سفارش #{order.id} ثبت و از کیف پول پرداخت شد."
+                    )
+                    return RedirectResponse(f"/orders/{order.id}?msg={msg}", status_code=303)
+                except ValueError:
+                    # Insufficient credit — fall through to normal payment
+                    pass
+
             db.commit()
 
             plain_code = getattr(order, "_plain_delivery_code", None)
