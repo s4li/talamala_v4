@@ -1,0 +1,204 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}تسویه حساب - {{ dealer.full_name }}{% endblock %}
+
+{% block admin_content %}
+<nav class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="/admin/dealers" class="text-decoration-none">نمایندگان</a></li>
+        <li class="breadcrumb-item"><a href="/admin/dealers/{{ dealer.id }}/edit" class="text-decoration-none">{{ dealer.full_name }}</a></li>
+        <li class="breadcrumb-item active">تسویه حساب</li>
+    </ol>
+</nav>
+
+{% if request.query_params.get('msg') %}
+<div class="alert-tm-success py-2 mb-3"><i class="bi bi-check-circle me-1"></i>{{ request.query_params.get('msg') }}</div>
+{% endif %}
+{% if request.query_params.get('error') %}
+<div class="alert-tm-danger py-2 mb-3"><i class="bi bi-exclamation-triangle me-1"></i>{{ request.query_params.get('error') }}</div>
+{% endif %}
+
+<div class="row g-4">
+    <!-- Left: Settlement Form -->
+    <div class="col-lg-7">
+        <div class="card-tm no-hover">
+            <h5 class="fw-bold mb-3"><i class="bi bi-cash-stack me-1"></i>ثبت تسویه حساب</h5>
+
+            <!-- Settlement Type Tabs -->
+            <ul class="nav nav-pills mb-3" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#goldTab" type="button">
+                        <i class="bi bi-gem me-1 text-warning"></i>تسویه طلا
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#rialTab" type="button">
+                        <i class="bi bi-bank me-1"></i>تسویه ریال
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <!-- Gold Settlement -->
+                <div class="tab-pane fade show active" id="goldTab">
+                    <form method="POST" action="/admin/dealers/{{ dealer.id }}/settlement"
+                          onsubmit="return confirm('آیا از واریز این مقدار طلا مطمئنید؟')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="settlement_type" value="gold">
+
+                        <div class="mb-3">
+                            <label class="form-label-tm fw-bold">مقدار (گرم)</label>
+                            <input type="text" name="amount" class="form-control form-control-tm" dir="ltr"
+                                   placeholder="مثال: 82.500" required>
+                            <small class="text-muted">تا ۳ رقم اعشار</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-tm fw-bold">نحوه تحویل</label>
+                            <select name="delivery_method" class="form-select form-select-tm">
+                                <option value="physical">تحویل فیزیکی</option>
+                                <option value="hawala">حواله</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-tm fw-bold">شماره رسید / مرجع</label>
+                            <input type="text" name="reference_number" class="form-control form-control-tm" dir="ltr"
+                                   placeholder="اختیاری">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-tm fw-bold">توضیحات</label>
+                            <input type="text" name="description" class="form-control form-control-tm"
+                                   placeholder="اختیاری">
+                        </div>
+
+                        <button type="submit" class="btn btn-tm-primary w-100">
+                            <i class="bi bi-gem me-1"></i> واریز طلا
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Rial Settlement -->
+                <div class="tab-pane fade" id="rialTab">
+                    <form method="POST" action="/admin/dealers/{{ dealer.id }}/settlement"
+                          onsubmit="return confirm('آیا از واریز این مبلغ مطمئنید؟')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="settlement_type" value="rial">
+
+                        <div class="mb-3">
+                            <label class="form-label-tm fw-bold">مبلغ (تومان)</label>
+                            <input type="text" name="amount" class="form-control form-control-tm" dir="ltr"
+                                   placeholder="مثال: 50,000,000" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-tm fw-bold">بانک</label>
+                            <input type="text" name="bank_name" class="form-control form-control-tm"
+                                   placeholder="مثال: ملت">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-tm fw-bold">شماره فیش / پیگیری</label>
+                            <input type="text" name="reference_number" class="form-control form-control-tm" dir="ltr"
+                                   placeholder="شماره فیش بانکی">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-tm fw-bold">توضیحات</label>
+                            <input type="text" name="description" class="form-control form-control-tm"
+                                   placeholder="اختیاری">
+                        </div>
+
+                        <button type="submit" class="btn btn-tm-primary w-100">
+                            <i class="bi bi-bank me-1"></i> واریز ریال
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Balance Summary -->
+    <div class="col-lg-5">
+        <!-- Dealer Info -->
+        <div class="card-tm no-hover mb-3">
+            <h6 class="fw-bold mb-3"><i class="bi bi-person me-1"></i>{{ dealer.full_name }}</h6>
+            <table class="table table-sm mb-0">
+                <tr><td class="text-muted">موبایل</td><td dir="ltr">{{ dealer.mobile }}</td></tr>
+                <tr><td class="text-muted">سطح</td><td>{{ dealer.tier_name }}</td></tr>
+                <tr><td class="text-muted">سقف اعتبار</td><td class="fw-bold">{{ (total_credit_mg / 1000) | persian_number }} گرم</td></tr>
+            </table>
+        </div>
+
+        <!-- Gold Wallet -->
+        <div class="card-tm no-hover mb-3">
+            <h6 class="fw-bold mb-2"><i class="bi bi-gem me-1 text-warning"></i>کیف پول طلا</h6>
+            <table class="table table-sm mb-0">
+                <tr>
+                    <td class="text-muted">موجودی</td>
+                    <td class="fw-bold {% if gold_balance.balance < 0 %}text-danger{% else %}text-warning{% endif %}">
+                        {{ "%.3f" | format(gold_balance.balance / 1000) | persian_number }} گرم
+                    </td>
+                </tr>
+                {% if gold_balance.balance < 0 %}
+                <tr>
+                    <td class="text-muted">بدهی طلا</td>
+                    <td class="text-danger fw-bold">{{ "%.3f" | format(-gold_balance.balance / 1000) | persian_number }} گرم</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td class="text-muted">قابل استفاده</td>
+                    <td>{{ "%.3f" | format(gold_balance.available / 1000) | persian_number }} گرم</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- IRR Wallet -->
+        <div class="card-tm no-hover mb-3">
+            <h6 class="fw-bold mb-2"><i class="bi bi-bank me-1"></i>کیف پول ریال</h6>
+            <table class="table table-sm mb-0">
+                <tr>
+                    <td class="text-muted">موجودی</td>
+                    <td class="fw-bold {% if irr_balance.balance < 0 %}text-danger{% endif %}">
+                        {{ irr_balance.balance | toman }} تومان
+                    </td>
+                </tr>
+                {% if irr_balance.balance < 0 %}
+                <tr>
+                    <td class="text-muted">بدهی ریال</td>
+                    <td class="text-danger fw-bold">{{ (-irr_balance.balance) | toman }} تومان</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td class="text-muted">قابل استفاده</td>
+                    <td>{{ irr_balance.available | toman }} تومان</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Combined Debt -->
+        {% if total_debt_mg > 0 %}
+        <div class="card-tm no-hover border-start border-4 border-danger">
+            <h6 class="fw-bold mb-2 text-danger"><i class="bi bi-exclamation-triangle me-1"></i>بدهی کل</h6>
+            <div class="d-flex justify-content-between">
+                <span>معادل طلا</span>
+                <span class="fw-bold text-danger">{{ "%.3f" | format(total_debt_mg / 1000) | persian_number }} گرم</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span>از سقف اعتبار</span>
+                <span>{{ "%.3f" | format(total_credit_mg / 1000) | persian_number }} گرم</span>
+            </div>
+            <div class="progress mt-2" style="height: 8px;">
+                {% set pct = (total_debt_mg / total_credit_mg * 100) if total_credit_mg > 0 else 0 %}
+                <div class="progress-bar bg-danger" style="width: {{ pct | int }}%"></div>
+            </div>
+            <small class="text-muted">{{ pct | int }}% از سقف اعتبار مصرف شده</small>
+        </div>
+        {% else %}
+        <div class="card-tm no-hover border-start border-4 border-success">
+            <h6 class="fw-bold mb-0 text-success"><i class="bi bi-check-circle me-1"></i>بدون بدهی</h6>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

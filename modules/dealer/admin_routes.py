@@ -857,50 +857,74 @@ async def admin_deactivate_sub_dealer(
 
 
 # ==========================================
-# 💰 Gold Settlement (تسویه طلای آبشده)
+# 💰 Dealer Settlement (تسویه حساب نماینده — طلا + ریال)
 # ==========================================
 
-@router.get("/{dealer_id}/gold-settlement", response_class=HTMLResponse)
-async def gold_settlement_page(
+@router.get("/{dealer_id}/settlement", response_class=HTMLResponse)
+async def dealer_settlement_page(
     request: Request,
     dealer_id: int,
     db: Session = Depends(get_db),
     user=Depends(require_permission("dealers", level="edit")),
 ):
-    """Form to deposit gold (XAU_MG) into dealer wallet as molten gold settlement."""
+    """Unified settlement page: deposit gold or rial into dealer wallet."""
     from modules.user.models import User
     from modules.wallet.service import wallet_service
     from modules.wallet.models import AssetCode
+    from modules.pricing.service import get_price_value
+    from modules.pricing.models import GOLD_18K
 
     dealer = db.query(User).filter(User.id == dealer_id, User.is_dealer == True).first()
     if not dealer:
         return RedirectResponse("/admin/dealers?msg=نماینده+یافت+نشد&error=1", status_code=302)
 
     gold_bal = wallet_service.get_balance(db, dealer_id, AssetCode.XAU_MG)
+    irr_bal = wallet_service.get_balance(db, dealer_id, AssetCode.IRR)
+    gold_price = get_price_value(db, GOLD_18K)
+
+    # Calculate combined debt in grams
+    gold_debt_mg = max(0, -gold_bal["balance"])
+    rial_debt = max(0, -irr_bal["balance"])
+    rial_debt_as_mg = int(rial_debt / gold_price * 1000) if gold_price > 0 else 0
+    total_debt_mg = gold_debt_mg + rial_debt_as_mg
 
     csrf = new_csrf_token(request)
-    response = templates.TemplateResponse("admin/dealers/gold_settlement.html", {
+    response = templates.TemplateResponse("admin/dealers/settlement.html", {
         "request": request,
         "user": user,
         "dealer": dealer,
         "gold_balance": gold_bal,
+        "irr_balance": irr_bal,
+        "gold_price": gold_price,
+        "total_debt_mg": total_debt_mg,
+        "total_credit_mg": dealer.effective_credit_limit_mg,
         "csrf_token": csrf,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
 
 
-@router.post("/{dealer_id}/gold-settlement")
-async def gold_settlement_submit(
+# Backward compat: old URL redirects to new
+@router.get("/{dealer_id}/gold-settlement")
+async def gold_settlement_redirect(dealer_id: int):
+    return RedirectResponse(f"/admin/dealers/{dealer_id}/settlement", status_code=301)
+
+
+@router.post("/{dealer_id}/settlement")
+async def dealer_settlement_submit(
     request: Request,
     dealer_id: int,
-    amount_grams: str = Form(...),
+    settlement_type: str = Form(...),       # "gold" or "rial"
+    amount: str = Form(...),                # grams for gold, toman for rial
+    delivery_method: str = Form(""),        # gold: "physical" / "hawala"
+    bank_name: str = Form(""),              # rial: bank name
+    reference_number: str = Form(""),       # receipt / tracking number
     description: str = Form(""),
     csrf_token: str = Form(None),
     db: Session = Depends(get_db),
     user=Depends(require_permission("dealers", level="edit")),
 ):
-    """Deposit gold (XAU_MG) into dealer wallet."""
+    """Process gold or rial deposit into dealer wallet."""
     csrf_check(request, csrf_token)
     from modules.user.models import User
     from modules.wallet.service import wallet_service
@@ -912,25 +936,54 @@ async def gold_settlement_submit(
     if not dealer:
         return RedirectResponse("/admin/dealers?msg=نماینده+یافت+نشد&error=1", status_code=302)
 
+    base_url = f"/admin/dealers/{dealer_id}/settlement"
+
     try:
-        grams = Decimal(amount_grams.strip())
-        if grams <= 0:
+        val = Decimal(amount.strip().replace(",", ""))
+        if val <= 0:
             raise ValueError
-        amount_mg = int((grams * Decimal("1000")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
     except Exception:
         msg = urllib.parse.quote("مقدار وارد‌شده نامعتبر است.")
-        return RedirectResponse(f"/admin/dealers/{dealer_id}/gold-settlement?error={msg}", status_code=302)
+        return RedirectResponse(f"{base_url}?error={msg}", status_code=302)
 
-    desc = description.strip() or f"تسویه طلای آبشده توسط ادمین ({user.full_name})"
+    # Build description with details
+    ref = reference_number.strip()
+    parts = []
+    if settlement_type == "gold":
+        method_label = "تحویل فیزیکی" if delivery_method == "physical" else "حواله"
+        parts.append(f"تسویه طلا ({method_label})")
+    else:
+        parts.append(f"تسویه ریالی")
+        if bank_name.strip():
+            parts.append(f"بانک: {bank_name.strip()}")
+    if ref:
+        parts.append(f"مرجع: {ref}")
+    if description.strip():
+        parts.append(description.strip())
+    parts.append(f"ثبت: {user.full_name}")
+    desc = " — ".join(parts)
 
-    wallet_service.deposit(
-        db, dealer_id, amount_mg,
-        asset_code=AssetCode.XAU_MG,
-        reference_type="gold_settlement",
-        reference_id=f"admin:{user.id}",
-        description=desc,
-    )
-    db.commit()
+    if settlement_type == "gold":
+        amount_mg = int((val * Decimal("1000")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        wallet_service.deposit(
+            db, dealer_id, amount_mg,
+            asset_code=AssetCode.XAU_MG,
+            reference_type="gold_settlement",
+            reference_id=ref or f"admin:{user.id}",
+            description=desc,
+        )
+        db.commit()
+        msg = urllib.parse.quote(f"{val} گرم طلا به کیف پول نماینده واریز شد.")
+    else:
+        amount_rial = int(val * 10)  # toman to rial
+        wallet_service.deposit(
+            db, dealer_id, amount_rial,
+            asset_code=AssetCode.IRR,
+            reference_type="rial_settlement",
+            reference_id=ref or f"admin:{user.id}",
+            description=desc,
+        )
+        db.commit()
+        msg = urllib.parse.quote(f"{val:,.0f} تومان به کیف پول نماینده واریز شد.")
 
-    msg = urllib.parse.quote(f"✅ {amount_grams} گرم طلا به کیف پول نماینده واریز شد.")
-    return RedirectResponse(f"/admin/dealers/{dealer_id}/gold-settlement?msg={msg}", status_code=302)
+    return RedirectResponse(f"{base_url}?msg={msg}", status_code=302)

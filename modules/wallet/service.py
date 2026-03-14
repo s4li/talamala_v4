@@ -59,16 +59,11 @@ class WalletService:
             db.add(acct)
             db.flush()
 
-        # Auto-sync credit limit for dealer accounts
+        # Auto-sync credit limit for dealer accounts (shared ceiling)
         if asset_code in (AssetCode.XAU_MG, AssetCode.IRR):
             user = db.query(User).filter(User.id == user_id).first()
             if user and user.is_dealer:
-                if asset_code == AssetCode.XAU_MG:
-                    # Gold credit: direct from tier (in milligrams)
-                    effective = user.effective_credit_limit_mg
-                else:
-                    # Rial credit: gold credit equivalent at current gold price
-                    effective = self._calc_rial_credit_limit(db, user)
+                effective = self._calc_shared_credit(db, user, asset_code)
                 if acct.credit_limit_mg != effective:
                     acct.credit_limit_mg = effective
                     db.flush()
@@ -373,6 +368,42 @@ class WalletService:
     # Dealer credit limit sync
     # ------------------------------------------
 
+    def _calc_shared_credit(self, db: Session, user, target_asset: str) -> int:
+        """Calculate credit limit for target_asset considering debt in the OTHER asset.
+
+        Total credit limit (in gold mg) is shared:
+            gold_debt_mg + rial_debt_mg_equivalent <= effective_credit_limit_mg
+
+        So for each asset, the available credit = total_credit - other_asset_debt.
+        """
+        total_credit_mg = user.effective_credit_limit_mg
+        if total_credit_mg <= 0:
+            return 0
+
+        from modules.pricing.service import get_price_value
+        from modules.pricing.models import GOLD_18K
+        gold_price = get_price_value(db, GOLD_18K)
+        if gold_price <= 0:
+            return 0
+
+        # Get debt in OTHER asset (negative balance = debt)
+        if target_asset == AssetCode.XAU_MG:
+            # We're calculating gold credit → subtract rial debt converted to mg
+            irr_acct = self.get_account(db, user.id, AssetCode.IRR)
+            rial_debt = max(0, -(irr_acct.balance if irr_acct else 0))
+            # Convert rial debt to gold mg: debt_rial / price_per_gram * 1000
+            other_debt_mg = int(rial_debt / gold_price * 1000) if gold_price > 0 else 0
+            remaining_mg = max(0, total_credit_mg - other_debt_mg)
+            return remaining_mg
+        else:
+            # We're calculating rial credit → subtract gold debt converted to rial
+            xau_acct = self.get_account(db, user.id, AssetCode.XAU_MG)
+            gold_debt_mg = max(0, -(xau_acct.balance if xau_acct else 0))
+            other_debt_mg = gold_debt_mg
+            remaining_mg = max(0, total_credit_mg - other_debt_mg)
+            # Convert remaining gold mg to rial
+            return int((remaining_mg / 1000) * gold_price)
+
     def _calc_rial_credit_limit(self, db: Session, user) -> int:
         """Calculate rial credit limit = gold credit equivalent at current gold price.
         Returns amount in rials.
@@ -391,24 +422,25 @@ class WalletService:
     def sync_dealer_credit_limit(self, db: Session, user_id: int) -> None:
         """Explicitly sync credit limits for both XAU_MG and IRR accounts.
         Called by admin routes when editing tier/user for immediate effect.
+        Uses shared credit ceiling (gold debt + rial debt ≤ total credit).
         """
         user = db.query(User).filter(User.id == user_id).first()
         if not user or not user.is_dealer:
             return
 
-        # Sync gold credit
+        # Sync gold credit (shared ceiling)
         acct_gold = self.get_account(db, user_id, AssetCode.XAU_MG)
         if acct_gold:
-            effective = user.effective_credit_limit_mg
+            effective = self._calc_shared_credit(db, user, AssetCode.XAU_MG)
             if acct_gold.credit_limit_mg != effective:
                 acct_gold.credit_limit_mg = effective
 
-        # Sync rial credit (derived from gold credit × gold price)
+        # Sync rial credit (shared ceiling)
         acct_irr = self.get_account(db, user_id, AssetCode.IRR)
         if acct_irr:
-            rial_limit = self._calc_rial_credit_limit(db, user)
-            if acct_irr.credit_limit_mg != rial_limit:
-                acct_irr.credit_limit_mg = rial_limit
+            effective = self._calc_shared_credit(db, user, AssetCode.IRR)
+            if acct_irr.credit_limit_mg != effective:
+                acct_irr.credit_limit_mg = effective
 
         db.flush()
 
