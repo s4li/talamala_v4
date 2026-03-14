@@ -453,8 +453,9 @@ async def checkout(
             # Regular checkout (Rial) — works for both customers and dealers
             order = order_service.checkout(db, me.id, delivery_data)
 
-            # Dealer rial order: auto-pay from IRR wallet (with credit)
-            if me.is_dealer:
+            # Auto-pay from IRR wallet for users with credit (dealers + VIP customers)
+            has_credit = me.is_dealer or (me.custom_credit_limit_mg and me.custom_credit_limit_mg > 0)
+            if has_credit:
                 from modules.wallet.service import wallet_service
                 from modules.wallet.models import AssetCode
                 from common.helpers import now_utc

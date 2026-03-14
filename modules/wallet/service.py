@@ -59,11 +59,19 @@ class WalletService:
             db.add(acct)
             db.flush()
 
-        # Auto-sync credit limit for dealer accounts (shared ceiling)
+        # Auto-sync credit limit (dealers: shared ceiling, customers: custom credit)
         if asset_code in (AssetCode.XAU_MG, AssetCode.IRR):
             user = db.query(User).filter(User.id == user_id).first()
-            if user and user.is_dealer:
-                effective = self._calc_shared_credit(db, user, asset_code)
+            if user:
+                effective = 0
+                if user.is_dealer:
+                    effective = self._calc_shared_credit(db, user, asset_code)
+                elif user.custom_credit_limit_mg and user.custom_credit_limit_mg > 0:
+                    # Customer with custom credit (set by admin)
+                    if asset_code == AssetCode.IRR:
+                        effective = self._calc_rial_credit_limit(db, user)
+                    else:
+                        effective = user.custom_credit_limit_mg
                 if acct.credit_limit_mg != effective:
                     acct.credit_limit_mg = effective
                     db.flush()

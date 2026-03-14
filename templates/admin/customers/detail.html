@@ -295,6 +295,16 @@
                     </div>
                 </div>
 
+                <div class="row g-2 mt-2">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold mb-1">سقف اعتبار (گرم طلا)</label>
+                        <input type="text" name="credit_limit_grams" class="form-control form-control-sm" dir="ltr"
+                               value="{{ '%.3f' | format(customer.custom_credit_limit_mg / 1000) if customer.custom_credit_limit_mg else '' }}"
+                               placeholder="خالی = بدون اعتبار">
+                        <small class="text-muted">معادل ریالی بر اساس قیمت روز محاسبه می‌شود.</small>
+                    </div>
+                </div>
+
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <small class="text-muted">
                         <i class="bi bi-calendar3 me-1"></i>عضویت: {{ customer.created_at | jdate if customer.created_at else '—' }}

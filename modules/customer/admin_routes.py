@@ -200,6 +200,7 @@ async def admin_customer_update(
     phone: str = Form(""),
     birth_date: str = Form(""),
     is_active: str = Form("off"),
+    credit_limit_grams: str = Form(""),
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
     user=Depends(require_permission("customers", level="edit")),
@@ -228,6 +229,21 @@ async def admin_customer_update(
             f"/admin/customers/{customer_id}?tab=overview&error={error}",
             status_code=303,
         )
+
+    # Update credit limit (admin-only, not in service layer)
+    from modules.user.models import User
+    from decimal import Decimal, ROUND_HALF_UP
+    cust = db.query(User).filter(User.id == customer_id).first()
+    if cust:
+        credit_str = credit_limit_grams.strip()
+        if credit_str:
+            try:
+                grams = Decimal(credit_str)
+                cust.custom_credit_limit_mg = int((grams * Decimal("1000")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+            except Exception:
+                pass
+        else:
+            cust.custom_credit_limit_mg = None  # No credit
 
     db.commit()
     msg = urllib.parse.quote("اطلاعات مشتری با موفقیت بروزرسانی شد.")

@@ -669,6 +669,35 @@ class OrderService:
             except Exception:
                 pass  # Never block order finalization
 
+        # Send notification + admin alert
+        try:
+            from modules.notification.service import notification_service
+            from modules.notification.models import NotificationType
+
+            # Build admin alert
+            from modules.payment.service import _build_order_admin_alert
+            admin_text = _build_order_admin_alert(db, order)
+
+            if order.is_gold_order:
+                body = f"سفارش طلایی #{order.id} ثبت و پرداخت شد ({order.gold_total_mg / 1000:.3f}g)"
+                sms_text = f"طلاملا: سفارش طلایی #{order.id} پرداخت شد."
+            else:
+                body = f"سفارش #{order.id} با موفقیت پرداخت شد."
+                sms_text = f"طلاملا: سفارش #{order.id} پرداخت شد. talamala.com/orders/{order.id}"
+
+            notification_service.send(
+                db, order.customer_id,
+                notification_type=NotificationType.PAYMENT_SUCCESS,
+                title=f"پرداخت سفارش #{order.id}",
+                body=body,
+                link=f"/orders/{order.id}",
+                sms_text=sms_text,
+                reference_type="order_paid", reference_id=str(order.id),
+                admin_alert_text=admin_text,
+            )
+        except Exception:
+            pass  # Never block order finalization
+
         db.flush()
         return order
 

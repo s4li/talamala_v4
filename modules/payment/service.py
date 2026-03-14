@@ -135,25 +135,7 @@ class PaymentService:
 
         logger.info(f"Order #{order_id} paid from wallet by customer #{customer_id}")
 
-        try:
-            from modules.notification.service import notification_service
-            from modules.notification.models import NotificationType
-
-            # Build admin alert text with weight info
-            admin_text = _build_order_admin_alert(db, order)
-
-            notification_service.send(
-                db, customer_id,
-                notification_type=NotificationType.PAYMENT_SUCCESS,
-                title=f"پرداخت سفارش #{order_id}",
-                body=f"سفارش #{order_id} با موفقیت از کیف پول پرداخت شد.",
-                link=f"/orders/{order_id}",
-                sms_text=f"طلاملا: سفارش #{order_id} پرداخت شد. talamala.com/orders/{order_id}",
-                reference_type="order_paid", reference_id=str(order_id),
-                admin_alert_text=admin_text,
-            )
-        except Exception:
-            pass
+        # Notification is sent by finalize_order() — no need to duplicate here
 
         return {
             "success": True,
@@ -233,24 +215,7 @@ class PaymentService:
 
             finalized = order_service.finalize_order(db, order_id)
             if finalized:
-                try:
-                    from modules.notification.service import notification_service
-                    from modules.notification.models import NotificationType
-
-                    admin_text = _build_order_admin_alert(db, order)
-
-                    notification_service.send(
-                        db, order.customer_id,
-                        notification_type=NotificationType.PAYMENT_SUCCESS,
-                        title=f"پرداخت سفارش #{order_id}",
-                        body=f"سفارش #{order_id} با موفقیت پرداخت شد. مرجع: {result.ref_number}",
-                        link=f"/orders/{order_id}",
-                        sms_text=f"طلاملا: سفارش #{order_id} پرداخت شد. talamala.com/orders/{order_id}",
-                        reference_type="order_paid", reference_id=str(order_id),
-                        admin_alert_text=admin_text,
-                    )
-                except Exception:
-                    pass
+                # Notification is sent by finalize_order()
                 return {"success": True, "message": f"پرداخت موفق! مرجع: {result.ref_number}"}
             return {"success": False, "message": "خطا در نهایی‌سازی سفارش"}
         else:
