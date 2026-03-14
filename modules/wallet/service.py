@@ -72,8 +72,11 @@ class WalletService:
                         effective = self._calc_rial_credit_limit(db, user)
                     else:
                         effective = user.custom_credit_limit_mg
-                if acct.credit_limit_mg != effective:
-                    acct.credit_limit_mg = effective
+                # Never set credit below current debt (would violate DB constraint)
+                min_required = max(0, -acct.balance)
+                safe_effective = max(effective, min_required)
+                if acct.credit_limit_mg != safe_effective:
+                    acct.credit_limit_mg = safe_effective
                     db.flush()
 
         return acct
