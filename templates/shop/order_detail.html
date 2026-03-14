@@ -762,15 +762,25 @@
             </form>
 
             {% elif order.status == 'Paid' %}
-            {% if order.is_gift %}
+            {# Check if any bar has claim_code (gift or dealer order) #}
+            {% set has_claim_codes = order.items | selectattr('bar') | map(attribute='bar') | selectattr('claim_code') | list | length > 0 %}
+
+            {% if has_claim_codes %}
             <div class="alert-tm-success py-2 small mb-3">
-                <i class="bi bi-gift me-1"></i>
-                سفارش هدیه با موفقیت پرداخت شد.
+                {% if order.is_gift %}
+                <i class="bi bi-gift me-1"></i>سفارش هدیه با موفقیت پرداخت شد.
+                {% elif user.is_dealer %}
+                <i class="bi bi-gem me-1"></i>سفارش نمایندگی با موفقیت پرداخت شد.
+                {% endif %}
             </div>
             <div class="card-tm no-hover border border-warning mb-3 p-3">
                 <div class="fw-bold small mb-2">
                     <i class="bi bi-key me-1 text-warning"></i>
+                    {% if user.is_dealer %}
+                    کدهای ثبت مالکیت — داخل بسته‌بندی هر شمش قرار دهید
+                    {% else %}
                     کد ثبت مالکیت — به گیرنده هدیه بدهید
+                    {% endif %}
                 </div>
                 {% for item in order.items %}
                 {% if item.bar and item.bar.claim_code %}
@@ -787,7 +797,11 @@
                 {% endfor %}
                 <div class="mt-2 small text-muted">
                     <i class="bi bi-info-circle me-1"></i>
+                    {% if user.is_dealer %}
+                    مشتری نهایی با سریال + کد بالا از صفحه <strong>ثبت مالکیت</strong> مالک شمش می‌شود.
+                    {% else %}
                     گیرنده با مراجعه به <strong>ثبت مالکیت</strong> و وارد کردن سریال + کد بالا، مالک شمش می‌شود.
+                    {% endif %}
                 </div>
             </div>
             {% else %}
@@ -836,10 +850,12 @@
         </div>
 
         {% if user.is_staff %}
-        {% if order.is_gift and order.status == 'Paid' %}
+        {% if order.status == 'Paid' and has_claim_codes %}
         <div class="card-tm no-hover mt-3 border-start border-4 border-warning">
             <div class="border-bottom pb-2 mb-2 fw-bold small">
-                <i class="bi bi-gift me-1 text-warning"></i>سفارش هدیه — کدهای ثبت مالکیت
+                <i class="bi bi-key me-1 text-warning"></i>
+                {% if order.is_gold_order %}سفارش نمایندگی{% elif order.is_gift %}سفارش هدیه{% else %}سفارش{% endif %}
+                 — کدهای ثبت مالکیت
             </div>
             <p class="small text-muted mb-2">کدهای زیر باید در بسته‌بندی قرار داده شوند:</p>
             {% for item in order.items %}

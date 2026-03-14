@@ -583,10 +583,20 @@ class OrderService:
         """
         Mark order as Paid and transfer bar ownership.
         Called after successful payment (wallet or gateway callback).
+
+        Dealer orders always generate claim_code (like gift orders) —
+        dealers buy for resale, not for themselves.
         """
+        from modules.user.models import User as UserModel
+
         order = db.query(Order).filter(Order.id == order_id).with_for_update().first()
         if not order or order.status != OrderStatus.PENDING:
             return None
+
+        # Dealer orders = always claim_code (dealer buys for resale)
+        buyer = db.query(UserModel).filter(UserModel.id == order.customer_id).first()
+        is_dealer_order = buyer and buyer.is_dealer
+        needs_claim_code = order.is_gift or is_dealer_order
 
         for oi in order.items:
             if oi.bar_id:
@@ -596,15 +606,16 @@ class OrderService:
                     bar.reserved_customer_id = None
                     bar.reserved_until = None
 
-                    if order.is_gift:
-                        # Gift: don't assign to buyer, generate claim code
+                    if needs_claim_code:
+                        # Gift or dealer order: generate claim code, no ownership
                         bar.customer_id = None
                         bar.claim_code = generate_unique_claim_code(db)
+                        desc = f"خرید نمایندگی — سفارش #{order.id}" if is_dealer_order else f"خرید هدیه — سفارش #{order.id}"
                         db.add(OwnershipHistory(
                             bar_id=bar.id,
                             previous_owner_id=None,
                             new_owner_id=None,
-                            description=f"خرید هدیه — سفارش #{order.id}",
+                            description=desc,
                         ))
                     else:
                         # Self-purchase: assign to buyer
