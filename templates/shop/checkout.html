@@ -43,6 +43,20 @@
     }
     .step-section { display: none; }
     .step-section.active { display: block; }
+    .payment-option {
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 14px 18px;
+        cursor: pointer;
+        transition: all var(--tm-duration-fast) var(--tm-ease-out);
+        text-align: center;
+    }
+    .payment-option:hover { border-color: var(--tm-gold); }
+    .payment-option.active {
+        border-color: var(--tm-gold);
+        background: #fffdf5;
+        box-shadow: 0 0 0 3px rgba(212,168,67,0.15);
+    }
 </style>
 {% endblock %}
 
@@ -60,169 +74,88 @@
 <div class="alert-tm-danger py-2"><i class="bi bi-exclamation-triangle me-1"></i>{{ request.query_params.get('error') }}</div>
 {% endif %}
 
-{% if is_dealer_checkout %}
-{# ============================================================ #}
-{# DEALER GOLD-FOR-GOLD CHECKOUT                                #}
-{# ============================================================ #}
-<form method="POST" action="/cart/checkout" id="checkoutForm">
-<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-
-<div class="row g-4">
-    <!-- Main: Gold Order Summary -->
-    <div class="col-lg-8">
-        <h4 class="fw-bold mb-4"><i class="bi bi-gem me-2 text-warning"></i>ثبت سفارش طلایی (نمایندگان)</h4>
-
-        <div class="card-tm no-hover mb-4">
-            <h6 class="fw-bold mb-3"><i class="bi bi-box-seam me-1"></i>آیتم‌های سفارش</h6>
-            <div class="table-responsive">
-                <table class="table table-sm mb-0 align-middle">
-                    <thead>
-                        <tr class="text-muted small">
-                            <th>محصول</th>
-                            <th class="text-center">تعداد</th>
-                            <th class="text-center">وزن خالص</th>
-                            <th class="text-center">اجرت</th>
-                            <th class="text-center">جمع (گرم)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for gi in gold_items %}
-                        <tr>
-                            <td>{{ gi.product.name }}</td>
-                            <td class="text-center">{{ gi.quantity }}</td>
-                            <td class="text-center">{{ gi.gold_info.pure_gold_g | persian_number }}</td>
-                            <td class="text-center">{{ gi.gold_info.wage_gold_g | persian_number }}</td>
-                            <td class="text-center fw-bold text-warning">{{ gi.line_gold_g | persian_number }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Delivery Info -->
-        <div class="card-tm no-hover mb-4">
-            <h6 class="fw-bold mb-3"><i class="bi bi-shop me-1"></i>تحویل حضوری از انبار مرکزی</h6>
-            <div class="alert-tm-info py-2 small mb-0">
-                <i class="bi bi-info-circle me-1"></i>
-                سفارشات نمایندگان از <strong>انبار مرکزی</strong> تحویل داده می‌شود.
-                پس از پرداخت، هماهنگی تحویل از طریق پنل ادمین انجام خواهد شد.
-            </div>
-        </div>
-    </div>
-
-    <!-- Sidebar: Gold Payment Summary -->
-    <div class="col-lg-4">
-        <div class="card-tm no-hover checkout-summary-sticky">
-            <h6 class="fw-bold mb-3"><i class="bi bi-receipt me-1"></i>خلاصه سفارش طلایی</h6>
-
-            {% for gi in gold_items %}
-            <div class="d-flex justify-content-between small mb-2">
-                <span>{{ gi.product.name }} &times; {{ gi.quantity }}</span>
-                <span class="text-nowrap text-warning fw-bold">{{ gi.line_gold_g | persian_number }} گرم</span>
-            </div>
-            {% endfor %}
-
-            <hr>
-
-            {% set total_gold_g = (total_gold_mg / 1000) if total_gold_mg else 0 %}
-            <div class="d-flex justify-content-between mb-2">
-                <span class="fw-bold fs-5">جمع کل</span>
-                <span class="fw-bold fs-5 text-warning">{{ total_gold_g | persian_number }} <small>گرم طلا</small></span>
-            </div>
-
-            <hr>
-
-            <!-- Gold Wallet Balance -->
-            <div class="small mb-2">
-                <div class="d-flex justify-content-between">
-                    <span class="text-muted">موجودی کیف پول طلا</span>
-                    <span>{{ (gold_balance.available / 1000) | persian_number }} <small>گرم</small></span>
-                </div>
-                {% if gold_balance.credit_limit_mg is defined and gold_balance.credit_limit_mg > 0 %}
-                <div class="d-flex justify-content-between">
-                    <span class="text-muted">سقف اعتبار</span>
-                    <span>{{ (gold_balance.credit_limit_mg / 1000) | persian_number }} <small>گرم</small></span>
-                </div>
-                {% endif %}
-                <div class="d-flex justify-content-between">
-                    <span class="text-muted">قابل خرید</span>
-                    <span class="fw-bold {% if gold_balance.available >= total_gold_mg %}text-success{% else %}text-danger{% endif %}">
-                        {{ (gold_balance.available / 1000) | persian_number }} <small>گرم</small>
-                    </span>
-                </div>
-            </div>
-
-            {% if gold_balance.available < total_gold_mg %}
-            <div class="alert-tm-danger py-2 mt-2 small">
-                <i class="bi bi-exclamation-triangle me-1"></i>
-                موجودی کیف پول طلای شما (با احتساب اعتبار) کافی نیست.
-            </div>
-            <button type="button" class="btn btn-tm-primary w-100 mt-2 py-2" disabled>
-                <i class="bi bi-lock me-1"></i> موجودی ناکافی
-            </button>
-            {% else %}
-            <button type="submit" class="btn btn-tm-primary w-100 mt-3 py-2" id="submitBtn">
-                <span class="submit-text"><i class="bi bi-gem me-1"></i> ثبت و پرداخت طلایی</span>
-                <span class="submit-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span> در حال ثبت...</span>
-            </button>
-            {% endif %}
-
-            <a href="/cart" class="btn btn-sm btn-tm-outline w-100 mt-2">
-                <i class="bi bi-arrow-right me-1"></i> بازگشت به سبد خرید
-            </a>
-        </div>
-    </div>
-</div>
-</form>
-
-{% else %}
-{# ============================================================ #}
-{# REGULAR CUSTOMER CHECKOUT                                     #}
-{# ============================================================ #}
 <form method="POST" action="/cart/checkout" id="checkoutForm">
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 <input type="hidden" name="delivery_method" id="deliveryMethodInput" value="">
 <input type="hidden" name="coupon_code" id="couponCodeInput" value="">
 <input type="hidden" name="is_gift" id="isGiftInput" value="0">
+<input type="hidden" name="payment_method" id="paymentMethodInput" value="IRR">
 
 <div class="row g-4">
     <!-- Main Content -->
     <div class="col-lg-8">
+
+        {# ============================================================ #}
+        {# PAYMENT METHOD SELECTOR (dealers only)                        #}
+        {# ============================================================ #}
+        {% if user.is_dealer and gold_items %}
+        <h4 class="fw-bold mb-3"><i class="bi bi-credit-card me-2"></i>نحوه پرداخت</h4>
+        <div class="row g-3 mb-4">
+            <div class="col-6">
+                <div class="payment-option active" id="optPayIRR" onclick="selectPayment('IRR')">
+                    <i class="bi bi-bank fs-4 d-block mb-1"></i>
+                    <div class="fw-bold">پرداخت ریالی</div>
+                    <div class="text-muted small">کیف پول یا درگاه بانکی</div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="payment-option" id="optPayXAU" onclick="selectPayment('XAU_MG')">
+                    <i class="bi bi-gem fs-4 d-block mb-1 text-warning"></i>
+                    <div class="fw-bold">پرداخت طلایی</div>
+                    <div class="text-muted small">از کیف پول طلا</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ============================================================ #}
+        {# DELIVERY METHOD                                               #}
+        {# ============================================================ #}
         <h4 class="fw-bold mb-4"><i class="bi bi-truck me-2"></i>نحوه تحویل</h4>
 
-        <!-- Step 1: Choose delivery method -->
         <div class="row g-3 mb-4">
-            <!-- Pickup Option -->
+            {% if user.is_dealer and warehouse_dealers %}
+            <!-- Warehouse Option (dealers only, pre-selected) -->
+            <div class="col-md-4 tm-animate-fade-in-up tm-delay-1">
+                <div class="delivery-option" id="optWarehouse" onclick="selectWarehouse()">
+                    <div class="text-center mb-2">
+                        <div class="option-icon">🏭</div>
+                    </div>
+                    <h6 class="fw-bold text-center">انبار مرکزی</h6>
+                    <p class="text-muted text-center small mb-0">تحویل از انبار</p>
+                </div>
+            </div>
+            <div class="col-md-4 tm-animate-fade-in-up tm-delay-2">
+            {% else %}
             <div class="col-md-6 tm-animate-fade-in-up tm-delay-1">
+            {% endif %}
+                <!-- Pickup Option -->
                 <div class="delivery-option" id="optPickup" onclick="selectMethod('Pickup')">
                     <div class="text-center mb-2">
                         <div class="option-icon">🏪</div>
                     </div>
-                    <h5 class="fw-bold text-center">تحویل حضوری</h5>
-                    <p class="text-muted text-center small mb-0">سریع و امن • بدون هزینه ارسال</p>
+                    <h6 class="fw-bold text-center">تحویل حضوری</h6>
+                    <p class="text-muted text-center small mb-0">بدون هزینه ارسال</p>
                 </div>
             </div>
 
-            <!-- Postal Option -->
-            <div class="col-md-6 tm-animate-fade-in-up tm-delay-2">
+            <div class="{% if user.is_dealer and warehouse_dealers %}col-md-4{% else %}col-md-6{% endif %} tm-animate-fade-in-up tm-delay-{% if user.is_dealer and warehouse_dealers %}3{% else %}2{% endif %}">
+                <!-- Postal Option -->
                 <div class="delivery-option {% if not postal_info.is_available %}opacity-50{% endif %}"
                      id="optPostal"
                      {% if postal_info.is_available and postal_stock > 0 %}onclick="selectMethod('Postal')"{% endif %}>
                     <div class="text-center mb-2">
                         <div class="option-icon">📦</div>
                     </div>
-                    <h5 class="fw-bold text-center">ارسال پستی</h5>
-                    <p class="text-muted text-center small mb-0">بیمه شده • سراسر ایران</p>
+                    <h6 class="fw-bold text-center">ارسال پستی</h6>
+                    <p class="text-muted text-center small mb-0">بیمه شده</p>
                     {% if not postal_info.is_available %}
                     <div class="alert-tm-warning py-1 px-2 mt-2 small text-center mb-0">
-                        <i class="bi bi-exclamation-triangle me-1"></i>
-                        {{ postal_info.unavailable_reason }}
+                        <i class="bi bi-exclamation-triangle me-1"></i>{{ postal_info.unavailable_reason }}
                     </div>
                     {% elif postal_stock == 0 %}
                     <div class="alert-tm-warning py-1 px-2 mt-2 small text-center mb-0">
-                        <i class="bi bi-exclamation-triangle me-1"></i>
-                        موجودی انبار ارسال پستی تمام شده است.
+                        <i class="bi bi-exclamation-triangle me-1"></i>موجودی انبار ارسال پستی تمام شده است.
                     </div>
                     {% endif %}
                 </div>
@@ -233,8 +166,6 @@
         <div class="step-section" id="pickupSection">
             <div class="card-tm no-hover">
                 <h5 class="fw-bold mb-3"><i class="bi bi-geo-alt me-1"></i>انتخاب نمایندگی</h5>
-
-                <!-- Province -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <label class="form-label-tm">استان</label>
@@ -252,8 +183,6 @@
                         </select>
                     </div>
                 </div>
-
-                <!-- Locations -->
                 <div id="locationsContainer">
                     <div id="locationsLoading" class="text-center py-3 d-none">
                         <div class="spinner-border spinner-border-sm text-warning"></div>
@@ -262,17 +191,14 @@
                     <div id="locationsList" class="row g-2"></div>
                     <div id="noLocations" class="text-center py-3 d-none">
                         <i class="bi bi-info-circle text-warning me-1"></i>
-                        <span class="text-muted">در این شهر نمایندگی فعالی با موجودی نداریم. لطفاً ارسال پستی را انتخاب کنید یا شهر دیگری را امتحان کنید.</span>
+                        <span class="text-muted">نمایندگی فعالی با موجودی نداریم.</span>
                     </div>
                 </div>
-
                 <input type="hidden" name="pickup_dealer_id" id="pickupLocationInput" value="">
-
-                <!-- Commitment -->
                 <div class="form-check mt-3 p-3 bg-light rounded">
                     <input type="checkbox" class="form-check-input" name="commitment" value="yes" id="commitmentCheck">
                     <label class="form-check-label" for="commitmentCheck">
-                        <strong>متعهد می‌شوم</strong> با کارت ملی و کد تحویل، شخصاً به نمایندگی مراجعه کنم.
+                        <strong>متعهد می‌شوم</strong> با کارت ملی و کد تحویل، شخصاً مراجعه کنم.
                     </label>
                 </div>
             </div>
@@ -282,7 +208,6 @@
         <div class="step-section" id="postalSection">
             <div class="card-tm no-hover">
                 <h5 class="fw-bold mb-3"><i class="bi bi-envelope me-1"></i>آدرس ارسال</h5>
-
                 {% if customer_addresses %}
                 <div class="mb-3">
                     <label class="form-label-tm fw-bold">انتخاب آدرس ذخیره‌شده</label>
@@ -294,8 +219,7 @@
                         <label class="form-check-label w-100" for="addr{{ addr.id }}">
                             <strong>{{ addr.title }}</strong>
                             {% if addr.is_default %}<span class="badge-tm badge-tm-success ms-1">پیش‌فرض</span>{% endif %}
-                            <div class="small text-muted">{{ addr.province.name if addr.province else '' }}، {{ addr.city.name if addr.city else '' }}{% if addr.district %}، {{ addr.district.name }}{% endif %} — {{ addr.address }}</div>
-                            {% if addr.postal_code %}<div class="small text-muted" dir="ltr">📮 {{ addr.postal_code }}</div>{% endif %}
+                            <div class="small text-muted">{{ addr.province.name if addr.province else '' }}، {{ addr.city.name if addr.city else '' }} — {{ addr.address }}</div>
                         </label>
                     </div>
                     {% endfor %}
@@ -303,21 +227,29 @@
                 {% else %}
                 <div class="alert-tm-warning py-2 small">
                     <i class="bi bi-info-circle me-1"></i>
-                    هنوز آدرسی ثبت نکرده‌اید.
                     <a href="/addresses?next=/checkout" class="alert-link">ابتدا آدرس خود را ثبت کنید</a>
                 </div>
                 {% endif %}
-
-                <!-- Hidden fields that get filled from selected address -->
                 <input type="hidden" name="shipping_province" id="shippingProvince">
                 <input type="hidden" name="shipping_city" id="shippingCity">
                 <input type="hidden" name="shipping_address" id="shippingAddress">
                 <input type="hidden" name="shipping_postal_code" id="shippingPostalCode">
+            </div>
+        </div>
 
-                <div class="alert-tm-info py-2 mt-3 small">
-                    <i class="bi bi-shield-check me-1"></i>
-                    کالای شما با <strong>بیمه کامل</strong> و بسته‌بندی ایمن ارسال می‌شود.
-                    پس از تحویل به پست، کد رهگیری برایتان پیامک خواهد شد.
+        <!-- Warehouse confirmation (auto Pickup from warehouse) -->
+        <div class="step-section" id="warehouseSection">
+            <div class="card-tm no-hover">
+                <h6 class="fw-bold mb-3"><i class="bi bi-building me-1"></i>تحویل از انبار مرکزی</h6>
+                <div class="alert-tm-info py-2 small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    سفارش شما از <strong>انبار مرکزی</strong> تحویل داده می‌شود.
+                </div>
+                <div class="form-check p-3 bg-light rounded">
+                    <input type="checkbox" class="form-check-input" name="commitment" value="yes" id="warehouseCommitmentCheck">
+                    <label class="form-check-label" for="warehouseCommitmentCheck">
+                        <strong>متعهد می‌شوم</strong> با کارت ملی و کد تحویل مراجعه کنم.
+                    </label>
                 </div>
             </div>
         </div>
@@ -328,59 +260,105 @@
         <div class="card-tm no-hover checkout-summary-sticky">
             <h6 class="fw-bold mb-3"><i class="bi bi-receipt me-1"></i>خلاصه سفارش</h6>
 
-            {% for item in items %}
-            <div class="d-flex justify-content-between small mb-2">
-                <div>
-                    {{ item.product.name }} &times; {{ item.quantity }}
-                    {% if item.gift_box %}
-                    <br><small class="text-muted"><i class="bi bi-gift me-1"></i>{{ item.gift_box.name }}</small>
+            {# ---- Rial Summary (default) ---- #}
+            <div id="summaryRial">
+                {% for item in items %}
+                <div class="d-flex justify-content-between small mb-2">
+                    <div>
+                        {{ item.product.name }} &times; {{ item.quantity }}
+                        {% if item.gift_box %}
+                        <br><small class="text-muted"><i class="bi bi-gift me-1"></i>{{ item.gift_box.name }}</small>
+                        {% endif %}
+                    </div>
+                    <span class="text-nowrap">{{ item.line_total | toman }} تومان</span>
+                </div>
+                {% endfor %}
+
+                <hr>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">جمع کالاها</span>
+                    <span>{{ total_price | toman }} <small>تومان</small></span>
+                </div>
+
+                <div id="shippingCostRow" class="d-none">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">هزینه ارسال</span>
+                        <span id="shippingCostVal">{{ postal_info.shipping_cost|default(0) | toman }} <small>تومان</small></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">بیمه</span>
+                        <span id="insuranceCostVal">{{ postal_info.insurance_cost|default(0) | toman }} <small>تومان</small></span>
+                    </div>
+                </div>
+                <div id="freeDeliveryRow" class="d-none">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">هزینه ارسال</span>
+                        <span class="text-success">رایگان</span>
+                    </div>
+                </div>
+            </div>
+
+            {# ---- Gold Summary (dealers only, hidden by default) ---- #}
+            {% if user.is_dealer and gold_items %}
+            <div id="summaryGold" class="d-none">
+                {% for gi in gold_items %}
+                <div class="d-flex justify-content-between small mb-2">
+                    <span>{{ gi.product.name }} &times; {{ gi.quantity }}</span>
+                    <span class="text-nowrap text-warning fw-bold">
+                        {{ "%.3f" | format(gi.item_gold_mg / 1000) | persian_number }} گرم
+                    </span>
+                </div>
+                {% endfor %}
+
+                <hr>
+
+                {% set total_gold_g = (total_gold_mg / 1000) if total_gold_mg else 0 %}
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="fw-bold">جمع طلا</span>
+                    <span class="fw-bold text-warning">{{ "%.3f" | format(total_gold_g) | persian_number }} <small>گرم</small></span>
+                </div>
+
+                <hr>
+                <div class="small mb-2">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">موجودی کیف پول طلا</span>
+                        <span>{{ "%.3f" | format(gold_balance.available / 1000) | persian_number }} <small>گرم</small></span>
+                    </div>
+                    {% if gold_balance.credit_limit_mg is defined and gold_balance.credit_limit_mg > 0 %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">سقف اعتبار</span>
+                        <span>{{ "%.3f" | format(gold_balance.credit_limit_mg / 1000) | persian_number }} <small>گرم</small></span>
+                    </div>
                     {% endif %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">قابل خرید</span>
+                        <span class="fw-bold {% if gold_balance.available >= total_gold_mg %}text-success{% else %}text-danger{% endif %}">
+                            {{ "%.3f" | format(gold_balance.available / 1000) | persian_number }} <small>گرم</small>
+                        </span>
+                    </div>
                 </div>
-                <span class="text-nowrap">{{ item.line_total | toman }} تومان</span>
-            </div>
-            {% endfor %}
 
-            <hr>
-            <div class="d-flex justify-content-between mb-1">
-                <span class="text-muted">جمع کالاها</span>
-                <span>{{ total_price | toman }} <small>تومان</small></span>
-            </div>
-
-            <!-- Shipping costs (shown for postal) -->
-            <div id="shippingCostRow" class="d-none">
-                <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted">هزینه ارسال</span>
-                    <span id="shippingCostVal">{{ postal_info.shipping_cost | toman }} <small>تومان</small></span>
+                {% if gold_balance.available < total_gold_mg %}
+                <div class="alert-tm-danger py-2 mt-2 small" id="goldInsufficientAlert">
+                    <i class="bi bi-exclamation-triangle me-1"></i>موجودی کیف پول طلای شما کافی نیست.
                 </div>
-                <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted">بیمه</span>
-                    <span id="insuranceCostVal">{{ postal_info.insurance_cost | toman }} <small>تومان</small></span>
-                </div>
+                {% endif %}
             </div>
-
-            <div id="freeDeliveryRow" class="d-none">
-                <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted">هزینه ارسال</span>
-                    <span class="text-success">رایگان</span>
-                </div>
-            </div>
+            {% endif %}
 
             <!-- Coupon -->
-            <div class="mb-2 mt-2">
+            <div class="mb-2 mt-2" id="couponSection">
                 <label class="form-label-tm small fw-bold mb-1">
                     <i class="bi bi-ticket-perforated me-1"></i>کد تخفیف
+                    <span id="couponGoldHint" class="text-muted d-none">(فقط کشبک)</span>
                 </label>
                 <div class="input-group input-group-sm">
                     <input type="text" id="couponInput" class="form-control form-control-tm" dir="ltr"
                            placeholder="مثال: SUMMER2026" style="text-transform:uppercase;">
-                    <button type="button" class="btn btn-tm-outline" id="couponCheckBtn" onclick="checkCoupon()">
-                        اعمال
-                    </button>
+                    <button type="button" class="btn btn-tm-outline" id="couponCheckBtn" onclick="checkCoupon()">اعمال</button>
                 </div>
                 <div id="couponResult" class="mt-1 small"></div>
             </div>
-
-            <!-- Applied coupon row -->
             <div id="couponRow" class="d-none">
                 <div class="d-flex justify-content-between mb-1">
                     <span class="text-muted">
@@ -389,12 +367,12 @@
                             <i class="bi bi-x-circle"></i>
                         </button>
                     </span>
-                    <span class="text-success fw-bold" id="couponAmountVal">−0 تومان</span>
+                    <span class="text-success fw-bold" id="couponAmountVal"></span>
                 </div>
             </div>
 
             <hr>
-            <div class="d-flex justify-content-between">
+            <div class="d-flex justify-content-between" id="grandTotalRow">
                 <span class="fw-bold fs-5">مبلغ قابل پرداخت</span>
                 <span class="fw-bold fs-5 text-tm-primary" id="grandTotalVal">
                     {{ total_price | toman }} <small>تومان</small>
@@ -406,20 +384,16 @@
                 <input type="checkbox" class="form-check-input" id="giftCheck"
                        onchange="document.getElementById('isGiftInput').value = this.checked ? '1' : '0'">
                 <label class="form-check-label" for="giftCheck">
-                    <i class="bi bi-gift me-1"></i>
-                    <strong>این سفارش هدیه است</strong>
-                    <div class="small text-muted mt-1">شمش به نام خریدار ثبت نمی‌شود. کد ثبت مالکیت داخل بسته قرار می‌گیرد.</div>
+                    <i class="bi bi-gift me-1"></i><strong>این سفارش هدیه است</strong>
+                    <div class="small text-muted mt-1">شمش به نام خریدار ثبت نمی‌شود.</div>
                 </label>
             </div>
 
             {% if has_disabled_items %}
             <div class="alert-tm-warning py-2 mt-3 small">
-                <i class="bi bi-lock me-1"></i>
-                برخی محصولات سفارش شما در حال حاضر غیرفعال هستند. لطفاً به سبد خرید برگردید.
+                <i class="bi bi-lock me-1"></i>برخی محصولات غیرفعال هستند.
             </div>
-            <button type="button" class="btn btn-tm-primary w-100 mt-2 py-2" disabled>
-                <i class="bi bi-lock me-1"></i> ثبت سفارش غیرممکن
-            </button>
+            <button type="button" class="btn btn-tm-primary w-100 mt-2 py-2" disabled>ثبت سفارش غیرممکن</button>
             {% else %}
             <button type="submit" class="btn btn-tm-primary w-100 mt-3 py-2" id="submitBtn" disabled>
                 <span class="submit-text"><i class="bi bi-lock me-1"></i> ثبت سفارش و پرداخت</span>
@@ -434,35 +408,104 @@
     </div>
 </div>
 </form>
-{% endif %}
 {% endblock %}
 
 {% block shop_js %}
-{% if is_dealer_checkout %}
-<script>
-document.getElementById('checkoutForm').addEventListener('submit', function() {
-    var btn = document.getElementById('submitBtn');
-    if (btn) {
-        btn.disabled = true;
-        btn.querySelector('.submit-text').classList.add('d-none');
-        btn.querySelector('.submit-loading').classList.remove('d-none');
-    }
-});
-</script>
-{% else %}
 <script>
 (function(){
     const totalPrice = {{ total_price|default(0) }};
     const shippingCost = {{ postal_info.shipping_cost|default(0) }};
     const insuranceCost = {{ postal_info.insurance_cost|default(0) }};
+    const isDealer = {{ 'true' if user.is_dealer else 'false' }};
+    const totalGoldMg = {{ total_gold_mg|default(0) }};
+    const goldAvailable = {{ gold_balance.available|default(0) if gold_balance else 0 }};
+    const warehouseDealerId = {{ warehouse_dealers[0].id if warehouse_dealers else 0 }};
 
     const jsonHeaders = {headers: {'Accept': 'application/json'}, credentials: 'same-origin'};
 
     let selectedMethod = '';
     let selectedLocationId = null;
-    let couponDiscount = 0;  // in rial
+    let selectedPayment = 'IRR';
+    let couponDiscount = 0;
     let couponCode = '';
     let couponIsCashback = false;
+
+    // ==============================
+    // Payment Method (dealers only)
+    // ==============================
+    window.selectPayment = function(method) {
+        selectedPayment = method;
+        document.getElementById('paymentMethodInput').value = method;
+
+        const optIRR = document.getElementById('optPayIRR');
+        const optXAU = document.getElementById('optPayXAU');
+        if (optIRR) optIRR.classList.toggle('active', method === 'IRR');
+        if (optXAU) optXAU.classList.toggle('active', method === 'XAU_MG');
+
+        // Toggle summaries
+        document.getElementById('summaryRial').classList.toggle('d-none', method === 'XAU_MG');
+        const goldSummary = document.getElementById('summaryGold');
+        if (goldSummary) goldSummary.classList.toggle('d-none', method !== 'XAU_MG');
+
+        // Coupon hint for gold
+        const hint = document.getElementById('couponGoldHint');
+        if (hint) hint.classList.toggle('d-none', method !== 'XAU_MG');
+
+        updateGrandTotal();
+        updateSubmitButton();
+    };
+
+    // ==============================
+    // Warehouse (dealers: auto Pickup from warehouse)
+    // ==============================
+    window.selectWarehouse = function() {
+        selectedMethod = 'Pickup';
+        document.getElementById('deliveryMethodInput').value = 'Pickup';
+        document.getElementById('pickupLocationInput').value = warehouseDealerId;
+        selectedLocationId = warehouseDealerId;
+
+        // Toggle delivery options
+        var optW = document.getElementById('optWarehouse');
+        if (optW) optW.classList.add('active');
+        document.getElementById('optPickup').classList.remove('active');
+        document.getElementById('optPostal').classList.remove('active');
+
+        // Show warehouse section, hide others
+        document.getElementById('warehouseSection').classList.add('active');
+        document.getElementById('pickupSection').classList.remove('active');
+        document.getElementById('postalSection').classList.remove('active');
+
+        document.getElementById('shippingCostRow').classList.add('d-none');
+        document.getElementById('freeDeliveryRow').classList.remove('d-none');
+
+        updateGrandTotal();
+        updateSubmitButton();
+    };
+
+    // ==============================
+    // Delivery Method Selection
+    // ==============================
+    window.selectMethod = function(method) {
+        selectedMethod = method;
+        selectedLocationId = null;
+        document.getElementById('deliveryMethodInput').value = method;
+        document.getElementById('pickupLocationInput').value = '';
+
+        var optW = document.getElementById('optWarehouse');
+        if (optW) optW.classList.remove('active');
+        document.getElementById('optPickup').classList.toggle('active', method === 'Pickup');
+        document.getElementById('optPostal').classList.toggle('active', method === 'Postal');
+
+        document.getElementById('pickupSection').classList.toggle('active', method === 'Pickup');
+        document.getElementById('postalSection').classList.toggle('active', method === 'Postal');
+        document.getElementById('warehouseSection').classList.remove('active');
+
+        document.getElementById('shippingCostRow').classList.toggle('d-none', method !== 'Postal');
+        document.getElementById('freeDeliveryRow').classList.toggle('d-none', method !== 'Pickup');
+
+        updateGrandTotal();
+        updateSubmitButton();
+    };
 
     // ==============================
     // Coupon
@@ -473,10 +516,7 @@ document.getElementById('checkoutForm').addEventListener('submit', function() {
         const result = document.getElementById('couponResult');
         const btn = document.getElementById('couponCheckBtn');
 
-        if (!code) {
-            result.innerHTML = '<span class="text-danger">لطفاً کد را وارد کنید</span>';
-            return;
-        }
+        if (!code) { result.innerHTML = '<span class="text-danger">لطفاً کد را وارد کنید</span>'; return; }
 
         btn.disabled = true;
         btn.textContent = '...';
@@ -487,16 +527,21 @@ document.getElementById('checkoutForm').addEventListener('submit', function() {
             const data = await resp.json();
 
             if (data.valid) {
+                // Gold payment: only accept CASHBACK
+                if (selectedPayment === 'XAU_MG' && !data.is_cashback) {
+                    result.innerHTML = '<span class="text-warning"><i class="bi bi-info-circle me-1"></i>کوپن تخفیفی فقط برای پرداخت ریالی معتبر است. کوپن کشبک وارد کنید.</span>';
+                    btn.disabled = false; btn.textContent = 'اعمال';
+                    return;
+                }
+
                 couponDiscount = data.discount_amount;
                 couponCode = data.code;
                 couponIsCashback = data.is_cashback;
 
                 document.getElementById('couponCodeInput').value = data.code;
                 document.getElementById('couponRow').classList.remove('d-none');
-                document.getElementById('couponAmountVal').textContent =
-                    '−' + formatToman(data.discount_amount) + ' تومان';
-                document.getElementById('couponTypeLabel').textContent =
-                    data.is_cashback ? 'کشبک (واریز به کیف پول)' : 'تخفیف';
+                document.getElementById('couponAmountVal').textContent = '−' + formatToman(data.discount_amount) + ' تومان';
+                document.getElementById('couponTypeLabel').textContent = data.is_cashback ? 'کشبک (واریز به کیف پول)' : 'تخفیف';
 
                 result.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${data.title} — ${data.discount_display}</span>`;
                 input.readOnly = true;
@@ -510,62 +555,32 @@ document.getElementById('checkoutForm').addEventListener('submit', function() {
         } catch(e) {
             result.innerHTML = '<span class="text-danger">خطا در بررسی کد</span>';
         }
-
         btn.disabled = false;
         btn.textContent = 'اعمال';
     };
 
     window.removeCoupon = function() {
-        couponDiscount = 0;
-        couponCode = '';
-        couponIsCashback = false;
+        couponDiscount = 0; couponCode = ''; couponIsCashback = false;
         document.getElementById('couponCodeInput').value = '';
         document.getElementById('couponRow').classList.add('d-none');
         document.getElementById('couponResult').innerHTML = '';
-        const input = document.getElementById('couponInput');
-        input.value = '';
-        input.readOnly = false;
-        input.classList.remove('bg-light');
+        var input = document.getElementById('couponInput');
+        input.value = ''; input.readOnly = false; input.classList.remove('bg-light');
         updateGrandTotal();
     };
 
     function updateGrandTotal() {
-        let grand = totalPrice;
-        if (selectedMethod === 'Postal') {
-            grand += shippingCost + insuranceCost;
+        var el = document.getElementById('grandTotalVal');
+        if (selectedPayment === 'XAU_MG') {
+            var goldG = totalGoldMg / 1000;
+            el.innerHTML = formatPersian(goldG.toFixed(3)) + ' <small>گرم طلا</small>';
+        } else {
+            var grand = totalPrice;
+            if (selectedMethod === 'Postal') grand += shippingCost + insuranceCost;
+            if (couponDiscount > 0 && !couponIsCashback) grand = Math.max(0, grand - couponDiscount);
+            el.innerHTML = formatToman(grand) + ' <small>تومان</small>';
         }
-        // Apply discount (cashback doesn't reduce total, only pure discount does)
-        if (couponDiscount > 0 && !couponIsCashback) {
-            grand = Math.max(0, grand - couponDiscount);
-        }
-        document.getElementById('grandTotalVal').innerHTML =
-            formatToman(grand) + ' <small>تومان</small>';
     }
-
-    // ==============================
-    // Method Selection
-    // ==============================
-    window.selectMethod = function(method) {
-        selectedMethod = method;
-        document.getElementById('deliveryMethodInput').value = method;
-
-        // Toggle active class
-        document.getElementById('optPickup').classList.toggle('active', method === 'Pickup');
-        document.getElementById('optPostal').classList.toggle('active', method === 'Postal');
-
-        // Toggle sections
-        document.getElementById('pickupSection').classList.toggle('active', method === 'Pickup');
-        document.getElementById('postalSection').classList.toggle('active', method === 'Postal');
-
-        // Toggle costs
-        document.getElementById('shippingCostRow').classList.toggle('d-none', method !== 'Postal');
-        document.getElementById('freeDeliveryRow').classList.toggle('d-none', method !== 'Pickup');
-
-        // Update total
-        updateGrandTotal();
-
-        updateSubmitButton();
-    };
 
     // ==============================
     // Province / City / Location AJAX
@@ -573,14 +588,8 @@ document.getElementById('checkoutForm').addEventListener('submit', function() {
     async function fetchLocations(params) {
         const url = '/api/delivery/locations?' + new URLSearchParams(params).toString();
         const resp = await fetch(url, jsonHeaders);
-        if (resp.status === 401 || resp.redirected) {
-            window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
-            return null;
-        }
-        if (!resp.ok) {
-            console.error('Delivery API error:', resp.status, resp.statusText);
-            return null;
-        }
+        if (resp.status === 401 || resp.redirected) { window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname); return null; }
+        if (!resp.ok) return null;
         return await resp.json();
     }
 
@@ -588,126 +597,54 @@ document.getElementById('checkoutForm').addEventListener('submit', function() {
         const province = document.getElementById('provinceSelect').value;
         const citySelect = document.getElementById('citySelect');
         const noLoc = document.getElementById('noLocations');
-
-        if (!province) {
-            citySelect.innerHTML = '<option value="">ابتدا استان را انتخاب کنید</option>';
-            citySelect.disabled = true;
-            document.getElementById('locationsList').innerHTML = '';
-            noLoc.classList.add('d-none');
-            return;
-        }
-
-        // Show loading
-        document.getElementById('locationsLoading').classList.remove('d-none');
-        noLoc.classList.add('d-none');
-
+        if (!province) { citySelect.innerHTML = '<option value="">ابتدا استان را انتخاب کنید</option>'; citySelect.disabled = true; document.getElementById('locationsList').innerHTML = ''; noLoc.classList.add('d-none'); return; }
+        document.getElementById('locationsLoading').classList.remove('d-none'); noLoc.classList.add('d-none');
         try {
             const data = await fetchLocations({province});
-            if (!data) {
-                noLoc.innerHTML = '<i class="bi bi-exclamation-triangle text-danger me-1"></i><span class="text-danger">خطا در دریافت اطلاعات. لطفاً صفحه را رفرش کنید.</span>';
-                noLoc.classList.remove('d-none');
-                document.getElementById('locationsLoading').classList.add('d-none');
-                return;
-            }
-
-            // Fill cities
+            if (!data) { noLoc.innerHTML = '<span class="text-danger">خطا</span>'; noLoc.classList.remove('d-none'); document.getElementById('locationsLoading').classList.add('d-none'); return; }
             citySelect.innerHTML = '<option value="">همه شهرها</option>';
-            (data.cities || []).forEach(c => {
-                citySelect.innerHTML += `<option value="${c}">${c}</option>`;
-            });
+            (data.cities||[]).forEach(c => { citySelect.innerHTML += `<option value="${c}">${c}</option>`; });
             citySelect.disabled = false;
-
-            // Show locations
             renderLocations(data.locations || []);
-        } catch(e) {
-            console.error('onProvinceChange error:', e);
-            noLoc.innerHTML = '<i class="bi bi-exclamation-triangle text-danger me-1"></i><span class="text-danger">خطا در دریافت اطلاعات. لطفاً صفحه را رفرش کنید.</span>';
-            noLoc.classList.remove('d-none');
-        }
-
+        } catch(e) { noLoc.innerHTML = '<span class="text-danger">خطا</span>'; noLoc.classList.remove('d-none'); }
         document.getElementById('locationsLoading').classList.add('d-none');
     };
 
     window.onCityChange = async function() {
         const province = document.getElementById('provinceSelect').value;
         const city = document.getElementById('citySelect').value;
-
         document.getElementById('locationsLoading').classList.remove('d-none');
-
-        try {
-            const params = {province};
-            if (city) params.city = city;
-            const data = await fetchLocations(params);
-            if (data) renderLocations(data.locations || []);
-        } catch(e) {
-            console.error('onCityChange error:', e);
-        }
-
+        try { const params = {province}; if (city) params.city = city; const data = await fetchLocations(params); if (data) renderLocations(data.locations||[]); } catch(e) {}
         document.getElementById('locationsLoading').classList.add('d-none');
     };
 
     function renderLocations(locations) {
         const container = document.getElementById('locationsList');
         const noLoc = document.getElementById('noLocations');
-
-        // Show dealers that have real stock OR preorder is available
         const available = locations.filter(loc => loc.stock > 0 || loc.preorder_stock > 0);
-
-        if (!available.length) {
-            container.innerHTML = '';
-            noLoc.classList.remove('d-none');
-            return;
-        }
+        if (!available.length) { container.innerHTML = ''; noLoc.classList.remove('d-none'); return; }
         noLoc.classList.add('d-none');
-
         container.innerHTML = available.map(loc => {
-            const hasRealStock = loc.stock > 0;
-            const hasPreorder = !hasRealStock && loc.preorder_stock > 0;
-            const canSelect = hasRealStock || hasPreorder;
-
-            let badgeHtml = '';
-            let deliveryNote = '';
-            if (hasRealStock) {
-                badgeHtml = `<span class="badge-tm badge-tm-success">${loc.stock} موجود</span>`;
-                deliveryNote = `<div class="small text-success mt-1"><i class="bi bi-lightning-charge me-1"></i>تحویل فوری</div>`;
-            } else if (hasPreorder) {
-                badgeHtml = `<span class="badge-tm badge-tm-warning">پیش‌سفارش</span>`;
-                deliveryNote = `<div class="small text-warning mt-1"><i class="bi bi-clock me-1"></i>تحویل: ${loc.preorder_delivery_days}</div>`;
-            }
-
-            return `
-                <div class="col-md-6">
-                    <div class="location-card ${canSelect ? '' : 'no-stock'} ${selectedLocationId == loc.id ? 'selected' : ''}"
-                         ${canSelect ? `onclick="selectLocation(${loc.id}, this)"` : ''}>
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <div class="fw-bold"><i class="bi bi-shop me-1"></i>${loc.name}</div>
-                                <div class="small text-muted">${loc.city}${loc.province ? ' - ' + loc.province : ''}</div>
-                                ${loc.address ? `<div class="small text-muted mt-1"><i class="bi bi-geo me-1"></i>${loc.address}</div>` : ''}
-                                ${loc.phone ? `<div class="small text-muted" dir="ltr"><i class="bi bi-telephone me-1"></i>${loc.phone}</div>` : ''}
-                                ${deliveryNote}
-                            </div>
-                            ${badgeHtml}
-                        </div>
-                    </div>
-                </div>`;
+            const hasReal = loc.stock > 0, hasPre = !hasReal && loc.preorder_stock > 0, can = hasReal || hasPre;
+            let badge = hasReal ? `<span class="badge-tm badge-tm-success">${loc.stock} موجود</span>` : hasPre ? `<span class="badge-tm badge-tm-warning">پیش‌سفارش</span>` : '';
+            let note = hasReal ? `<div class="small text-success mt-1"><i class="bi bi-lightning-charge me-1"></i>تحویل فوری</div>` : hasPre ? `<div class="small text-warning mt-1"><i class="bi bi-clock me-1"></i>تحویل: ${loc.preorder_delivery_days}</div>` : '';
+            return `<div class="col-md-6"><div class="location-card ${can?'':'no-stock'} ${selectedLocationId==loc.id?'selected':''}" ${can?`onclick="selectLocation(${loc.id}, this)"`:''}>
+                <div class="d-flex justify-content-between align-items-start"><div>
+                    <div class="fw-bold"><i class="bi bi-shop me-1"></i>${loc.name}</div>
+                    <div class="small text-muted">${loc.city}${loc.province?' - '+loc.province:''}</div>
+                    ${loc.address?`<div class="small text-muted mt-1"><i class="bi bi-geo me-1"></i>${loc.address}</div>`:''}
+                    ${note}</div>${badge}</div></div></div>`;
         }).join('');
     }
 
     window.selectLocation = function(id, el) {
         selectedLocationId = id;
         document.getElementById('pickupLocationInput').value = id;
-
-        // Toggle selected class
         document.querySelectorAll('.location-card').forEach(c => c.classList.remove('selected'));
         if (el) el.classList.add('selected');
-
         updateSubmitButton();
     };
 
-    // ==============================
-    // Address Selection (Postal)
-    // ==============================
     window.selectAddress = function(id, province, city, address, postalCode) {
         document.getElementById('shippingProvince').value = province;
         document.getElementById('shippingCity').value = city;
@@ -716,7 +653,6 @@ document.getElementById('checkoutForm').addEventListener('submit', function() {
         updateSubmitButton();
     };
 
-    // Auto-select default address on load
     const defaultAddr = document.querySelector('input[name="selected_address"]:checked');
     if (defaultAddr) { defaultAddr.closest('.form-check').click(); }
 
@@ -725,38 +661,73 @@ document.getElementById('checkoutForm').addEventListener('submit', function() {
     // ==============================
     function updateSubmitButton() {
         const btn = document.getElementById('submitBtn');
+        if (!btn) return;
         let enabled = false;
 
+        // Delivery validation
         if (selectedMethod === 'Pickup') {
-            const committed = document.getElementById('commitmentCheck').checked;
-            enabled = selectedLocationId && committed;
+            const wSection = document.getElementById('warehouseSection');
+            if (wSection && wSection.classList.contains('active')) {
+                // Warehouse mode
+                var wCheck = document.getElementById('warehouseCommitmentCheck');
+                enabled = selectedLocationId && wCheck && wCheck.checked;
+            } else {
+                var cCheck = document.getElementById('commitmentCheck');
+                enabled = selectedLocationId && cCheck && cCheck.checked;
+            }
         } else if (selectedMethod === 'Postal') {
             const addr = document.getElementById('shippingAddress');
             enabled = addr && addr.value.length > 0;
         }
 
+        // Gold payment: check balance
+        if (enabled && selectedPayment === 'XAU_MG') {
+            enabled = goldAvailable >= totalGoldMg;
+        }
+
         btn.disabled = !enabled;
+
+        // Update button text
+        var textEl = btn.querySelector('.submit-text');
+        if (textEl) {
+            if (selectedPayment === 'XAU_MG') {
+                textEl.innerHTML = '<i class="bi bi-gem me-1"></i> ثبت و پرداخت طلایی';
+            } else {
+                textEl.innerHTML = '<i class="bi bi-lock me-1"></i> ثبت سفارش و پرداخت';
+            }
+        }
     }
 
-    // Listen for commitment checkbox
-    document.getElementById('commitmentCheck').addEventListener('change', updateSubmitButton);
+    // Commitment checkbox listeners
+    var cc = document.getElementById('commitmentCheck');
+    if (cc) cc.addEventListener('change', updateSubmitButton);
+    var wc = document.getElementById('warehouseCommitmentCheck');
+    if (wc) wc.addEventListener('change', updateSubmitButton);
 
-    // Show loading state on form submit
+    // Form submit loading
     document.getElementById('checkoutForm').addEventListener('submit', function() {
         var btn = document.getElementById('submitBtn');
-        btn.disabled = true;
-        btn.querySelector('.submit-text').classList.add('d-none');
-        btn.querySelector('.submit-loading').classList.remove('d-none');
+        if (btn) {
+            btn.disabled = true;
+            btn.querySelector('.submit-text').classList.add('d-none');
+            btn.querySelector('.submit-loading').classList.remove('d-none');
+        }
     });
+
+    // Auto-select warehouse for dealers
+    {% if user.is_dealer and warehouse_dealers %}
+    selectWarehouse();
+    {% endif %}
 
     // ==============================
     // Format
     // ==============================
     function formatToman(rial) {
-        const toman = Math.floor(rial / 10);
-        return toman.toLocaleString('fa-IR');
+        return Math.floor(rial / 10).toLocaleString('fa-IR');
+    }
+    function formatPersian(num) {
+        return String(num).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
     }
 })();
 </script>
-{% endif %}
 {% endblock %}

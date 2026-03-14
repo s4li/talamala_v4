@@ -83,6 +83,8 @@ class OrderService:
         5. Clear cart
         6. Return Pending order (payment handled separately)
 
+        If the user is a dealer, their tier wage is used instead of end-customer wage.
+
         delivery_data keys:
             delivery_method: "Pickup" or "Postal"
             pickup_dealer_id: int (for Pickup)
@@ -92,10 +94,24 @@ class OrderService:
         Raises ValueError if insufficient inventory.
         """
         from modules.order.delivery_service import generate_delivery_code, delivery_service
+        from modules.user.models import User
 
         cart = db.query(Cart).filter(Cart.customer_id == customer_id).first()
         if not cart or not cart.items:
             raise ValueError("سبد خرید خالی است")
+
+        # Detect dealer for tier wage pricing
+        user = db.query(User).filter(User.id == customer_id).first()
+        is_dealer = user and user.is_dealer
+        dealer_wage_map = {}
+        if is_dealer and user.tier_id:
+            from modules.catalog.models import ProductTierWage
+            pids = [it.product_id for it in cart.items]
+            tier_wages = db.query(ProductTierWage).filter(
+                ProductTierWage.product_id.in_(pids),
+                ProductTierWage.tier_id == user.tier_id,
+            ).all()
+            dealer_wage_map = {tw.product_id: float(tw.wage_percent) for tw in tier_wages}
 
         tax_percent_str = self._tax_percent(db)
         reservation_minutes = int(get_setting_from_db(db, "reservation_minutes", "15"))
@@ -160,11 +176,17 @@ class OrderService:
         for item in cart.items:
             # Per-product metal pricing
             p_price, p_bp, _ = get_product_pricing(db, item.product)
-            ec_wage = get_end_customer_wage(db, item.product)
+
+            # Use dealer tier wage if available, otherwise end-customer wage
+            if is_dealer and user.tier_id:
+                wage = dealer_wage_map.get(item.product_id, float(item.product.wage))
+            else:
+                wage = get_end_customer_wage(db, item.product)
+
             price_info = calculate_bar_price(
                 weight=item.product.weight,
                 purity=item.product.purity,
-                wage_percent=ec_wage,
+                wage_percent=wage,
                 base_metal_price=p_price,
                 tax_percent=Decimal(tax_percent_str) if tax_percent_str else 0,
                 base_purity=p_bp,
@@ -214,7 +236,6 @@ class OrderService:
                 # Build helpful error message
                 location_name = ""
                 if delivery_method == DeliveryMethod.PICKUP and new_order.pickup_dealer_id:
-                    from modules.user.models import User
                     dlr = db.query(User).filter(User.id == new_order.pickup_dealer_id).first()
                     location_name = f" در {dlr.full_name}" if dlr else ""
                 elif delivery_method == DeliveryMethod.POSTAL:
@@ -230,6 +251,9 @@ class OrderService:
                 oi = build_order_item(item.product, bar, price_info, p_price, tax_percent_str,
                                      gift_box_id=gb_id, gift_box_price=gb_price)
                 oi.order_id = new_order.id
+                # Store dealer wage on OrderItem if applicable
+                if is_dealer:
+                    oi.applied_dealer_wage_percent = wage
                 order_items.append(oi)
                 cart_raw_total += int(price_info.get("total", 0)) + gb_price
 
@@ -292,20 +316,28 @@ class OrderService:
     # Dealer Gold-for-Gold Checkout
     # ==========================================
 
-    def checkout_dealer(self, db: Session, dealer_id: int) -> Order:
+    def checkout_dealer(self, db: Session, dealer_id: int,
+                        delivery_data: dict = None) -> Order:
         """
         Gold-for-Gold checkout for dealers:
-        1. Calculate gold cost using dealer's tier wage (no tax, no Rial)
-        2. Reserve bars from warehouse only (is_warehouse=True)
-        3. Auto-pay from XAU_MG wallet (supports negative balance via credit_limit)
-        4. Finalize order immediately
-        No coupon, no shipping, no gift box, no payment page redirect.
+        1. Calculate gold cost using dealer's tier wage (no tax)
+        2. Reserve bars based on delivery method (warehouse default, or pickup/postal)
+        3. Apply coupon (CASHBACK only — DISCOUNT ignored for gold orders)
+        4. Auto-pay from XAU_MG wallet (supports negative balance via credit_limit)
+        5. Finalize order immediately
+
+        delivery_data keys:
+            delivery_method: "Pickup" or "Postal" (default: Pickup from warehouse)
+            pickup_dealer_id: int (default: first warehouse dealer)
+            shipping_province/city/address/postal_code: str (for Postal)
+            coupon_code: str (optional)
+            is_gift: bool (optional)
         """
         from modules.catalog.models import ProductTierWage
         from modules.wallet.service import wallet_service
         from modules.wallet.models import AssetCode
         from modules.user.models import User
-        from modules.order.delivery_service import delivery_service
+        from modules.order.delivery_service import generate_delivery_code, delivery_service
 
         dealer = db.query(User).filter(User.id == dealer_id).first()
         if not dealer or not dealer.is_dealer:
@@ -331,7 +363,10 @@ class OrderService:
         reservation_minutes = int(get_setting_from_db(db, "reservation_minutes", "15"))
         expire_at = now_utc() + timedelta(minutes=reservation_minutes)
 
-        # Warehouse IDs (source of bars for dealer orders)
+        delivery_data = delivery_data or {}
+        delivery_method = delivery_data.get("delivery_method", DeliveryMethod.PICKUP)
+
+        # Warehouse IDs (central source for dealer orders)
         warehouse_ids = [
             u.id for u in db.query(User).filter(
                 User.is_dealer == True, User.is_warehouse == True, User.is_active == True
@@ -345,11 +380,30 @@ class OrderService:
             customer_id=dealer_id,
             total_amount=0,
             status=OrderStatus.PENDING,
-            delivery_method=DeliveryMethod.PICKUP,
+            delivery_method=delivery_method,
             delivery_status=DeliveryStatus.WAITING,
             payment_asset_code="XAU_MG",
-            is_gift=False,
+            is_gift=bool(delivery_data.get("is_gift", False)),
         )
+
+        # Delivery: Pickup
+        if delivery_method == DeliveryMethod.PICKUP:
+            pickup_loc_id = delivery_data.get("pickup_dealer_id")
+            if not pickup_loc_id:
+                # Default: first warehouse dealer
+                pickup_loc_id = warehouse_ids[0]
+            new_order.pickup_dealer_id = int(pickup_loc_id)
+            plain_code, hashed_code = generate_delivery_code()
+            new_order.delivery_code_hash = hashed_code
+            new_order._plain_delivery_code = plain_code
+
+        # Delivery: Postal
+        elif delivery_method == DeliveryMethod.POSTAL:
+            new_order.shipping_province = delivery_data.get("shipping_province", "")
+            new_order.shipping_city = delivery_data.get("shipping_city", "")
+            new_order.shipping_address = delivery_data.get("shipping_address", "")
+            new_order.shipping_postal_code = delivery_data.get("shipping_postal_code", "")
+
         db.add(new_order)
         db.flush()
 
@@ -359,18 +413,21 @@ class OrderService:
             changed_by="system", description="ثبت سفارش طلایی نماینده",
         )
 
+        # Batch dealer tier wages
+        dealer_wage_map = {}
+        if dealer.tier_id:
+            pids = [it.product_id for it in cart.items]
+            tier_wages = db.query(ProductTierWage).filter(
+                ProductTierWage.product_id.in_(pids),
+                ProductTierWage.tier_id == dealer.tier_id,
+            ).all()
+            dealer_wage_map = {tw.product_id: float(tw.wage_percent) for tw in tier_wages}
+
         order_items = []
         total_gold_mg = 0
 
         for item in cart.items:
-            # Dealer tier wage
-            tw = None
-            if dealer.tier_id:
-                tw = db.query(ProductTierWage).filter(
-                    ProductTierWage.product_id == item.product_id,
-                    ProductTierWage.tier_id == dealer.tier_id,
-                ).first()
-            dealer_wage = float(tw.wage_percent) if tw else float(item.product.wage)
+            dealer_wage = dealer_wage_map.get(item.product_id, float(item.product.wage))
 
             # Gold cost calculation
             gold_info = calculate_gold_cost(
@@ -393,15 +450,33 @@ class OrderService:
 
             required_qty = item.quantity
 
-            # Reserve bars from warehouse only
+            # Reserve bars based on delivery method
+            bar_filter = db.query(Bar).filter(
+                Bar.product_id == item.product_id,
+                Bar.status == BarStatus.ASSIGNED,
+                Bar.customer_id.is_(None),
+                Bar.reserved_customer_id.is_(None),
+            )
+
+            cw_ids = delivery_service.get_central_warehouse_ids(db)
+
+            if delivery_method == DeliveryMethod.PICKUP and new_order.pickup_dealer_id:
+                allowed_ids = [new_order.pickup_dealer_id] + cw_ids
+                bar_filter = bar_filter.filter(Bar.dealer_id.in_(allowed_ids))
+            elif delivery_method == DeliveryMethod.POSTAL:
+                postal_hub = delivery_service.get_postal_hub(db)
+                if not postal_hub:
+                    db.rollback()
+                    raise ValueError("انبار ارسال پستی تنظیم نشده است.")
+                allowed_ids = [postal_hub.id] + cw_ids
+                bar_filter = bar_filter.filter(Bar.dealer_id.in_(allowed_ids))
+            else:
+                # Default: warehouse only
+                bar_filter = bar_filter.filter(Bar.dealer_id.in_(warehouse_ids))
+
             available_bars = (
-                db.query(Bar).filter(
-                    Bar.product_id == item.product_id,
-                    Bar.status == BarStatus.ASSIGNED,
-                    Bar.customer_id.is_(None),
-                    Bar.reserved_customer_id.is_(None),
-                    Bar.dealer_id.in_(warehouse_ids),
-                )
+                bar_filter
+                .order_by(Bar.is_preorder.asc())
                 .with_for_update(skip_locked=True)
                 .limit(required_qty)
                 .all()
@@ -410,7 +485,7 @@ class OrderService:
             if len(available_bars) < required_qty:
                 db.rollback()
                 raise ValueError(
-                    f"موجودی «{item.product.name}» در انبار مرکزی کافی نیست "
+                    f"موجودی «{item.product.name}» کافی نیست "
                     f"(نیاز: {required_qty}, موجود: {len(available_bars)})"
                 )
 
@@ -444,6 +519,44 @@ class OrderService:
 
         for oi in order_items:
             db.add(oi)
+
+        # Shipping costs for postal
+        if delivery_method == DeliveryMethod.POSTAL:
+            shipping_info = delivery_service.calculate_shipping(db, new_order.total_amount)
+            if not shipping_info["is_available"]:
+                db.rollback()
+                raise ValueError(shipping_info["unavailable_reason"])
+            new_order.shipping_cost = shipping_info["shipping_cost"]
+            new_order.insurance_cost = shipping_info["insurance_cost"]
+
+        # Apply coupon (CASHBACK only for gold orders — DISCOUNT ignored)
+        coupon_code = delivery_data.get("coupon_code", "").strip()
+        if coupon_code:
+            try:
+                from modules.coupon.service import coupon_service, CouponValidationError
+                product_ids_list = [oi.product_id for oi in order_items]
+                category_ids_list = list({cid for item in cart.items for cid in item.product.category_ids})
+
+                coupon_result = coupon_service.apply_to_order(
+                    db,
+                    coupon_code=coupon_code,
+                    customer_id=dealer_id,
+                    order_id=new_order.id,
+                    order_amount=new_order.total_amount,
+                    item_count=len(order_items),
+                    product_ids=product_ids_list,
+                    category_ids=category_ids_list,
+                )
+
+                # Gold orders: only accept CASHBACK coupons
+                if coupon_result["is_cashback"]:
+                    new_order.coupon_code = coupon_result["code"]
+                    new_order.promo_choice = "CASHBACK"
+                    new_order.promo_amount = coupon_result["discount_amount"]
+                    new_order.cashback_settled = False
+                # DISCOUNT coupons ignored for gold orders (no rial deduction)
+            except (CouponValidationError, Exception) as e:
+                logger.warning(f"Coupon apply error for gold order #{new_order.id}: {e}")
 
         # Clear cart
         db.query(CartItem).filter(CartItem.cart_id == cart.id).delete()

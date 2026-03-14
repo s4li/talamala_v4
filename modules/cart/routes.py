@@ -250,47 +250,6 @@ async def checkout_page(
     from modules.order.delivery_service import delivery_service
     from common.templating import get_setting_from_db
 
-    # ==========================================
-    # Dealer Gold-for-Gold Checkout Page
-    # ==========================================
-    if me.is_dealer:
-        gold_items, total_gold_mg = cart_service.get_cart_items_with_gold_pricing(db, me.id, me)
-        if not gold_items:
-            return RedirectResponse("/cart", status_code=302)
-
-        # Gold wallet balance
-        from modules.wallet.service import wallet_service
-        from modules.wallet.models import AssetCode
-        gold_bal = wallet_service.get_balance(db, me.id, AssetCode.XAU_MG)
-
-        csrf = new_csrf_token(request)
-        response = templates.TemplateResponse("shop/checkout.html", {
-            "request": request,
-            "user": me,
-            "items": [],
-            "gold_items": gold_items,
-            "total_gold_mg": total_gold_mg,
-            "total_price": 0,
-            "cart_count": sum(it["quantity"] for it in gold_items),
-            "gold_balance": gold_bal,
-            "is_dealer_checkout": True,
-            "provinces": [],
-            "postal_info": {},
-            "postal_stock": 0,
-            "customer_addresses": [],
-            "gold_price": cart_service._gold_price(db),
-            "price_stale": not is_price_fresh(db, GOLD_18K),
-            "shop_disabled": False,
-            "has_disabled_items": False,
-            "csrf_token": csrf,
-        })
-        response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
-        return response
-
-    # ==========================================
-    # Regular Customer Checkout Page
-    # ==========================================
-
     # Profile completion check
     if not me.is_profile_complete:
         error = urllib.parse.quote("لطفاً ابتدا پروفایل خود را تکمیل کنید تا بتوانید سفارش ثبت کنید.")
@@ -301,19 +260,40 @@ async def checkout_page(
         error = urllib.parse.quote("لطفاً ابتدا احراز هویت شاهکار را از صفحه پروفایل انجام دهید.")
         return RedirectResponse(f"/profile?error={error}&return_to=/cart", status_code=302)
 
-    items, total_price = cart_service.get_cart_items_with_pricing(db, me.id)
+    is_dealer = me.is_dealer
+
+    # Rial pricing (with dealer tier wage if dealer)
+    items, total_price = cart_service.get_cart_items_with_pricing(
+        db, me.id, dealer=me if is_dealer else None
+    )
     if not items:
         return RedirectResponse("/cart", status_code=302)
 
     product_ids = [it["product"].id for it in items]
 
-    # Get provinces with available branches
-    provinces = delivery_service.get_provinces_with_branches(db)
+    # Gold pricing + balance (for dealers)
+    gold_items = None
+    total_gold_mg = 0
+    gold_balance = None
+    if is_dealer:
+        gold_items, total_gold_mg = cart_service.get_cart_items_with_gold_pricing(db, me.id, me)
+        from modules.wallet.service import wallet_service
+        from modules.wallet.models import AssetCode
+        gold_balance = wallet_service.get_balance(db, me.id, AssetCode.XAU_MG)
 
-    # Postal availability
+    # Delivery options (for all users)
+    provinces = delivery_service.get_provinces_with_branches(db)
     postal_info = delivery_service.calculate_shipping(db, total_price)
     postal_hub = delivery_service.get_postal_hub(db)
     postal_stock = delivery_service.get_postal_hub_stock(db, product_ids) if postal_hub else 0
+
+    # Warehouse dealers (for dealer "warehouse" delivery option)
+    from modules.user.models import User
+    warehouse_dealers = []
+    if is_dealer:
+        warehouse_dealers = db.query(User).filter(
+            User.is_dealer == True, User.is_warehouse == True, User.is_active == True
+        ).all()
 
     # Customer saved addresses (for postal delivery)
     from modules.customer.address_models import CustomerAddress
@@ -335,10 +315,14 @@ async def checkout_page(
         "user": me,
         "items": items,
         "total_price": total_price,
+        "gold_items": gold_items,
+        "total_gold_mg": total_gold_mg,
+        "gold_balance": gold_balance,
         "cart_count": sum(it["quantity"] for it in items),
         "provinces": provinces,
         "postal_info": postal_info,
         "postal_stock": postal_stock,
+        "warehouse_dealers": warehouse_dealers,
         "customer_addresses": customer_addresses,
         "gold_price": cart_service._gold_price(db),
         "price_stale": not is_price_fresh(db, GOLD_18K),
@@ -402,31 +386,13 @@ async def checkout(
     coupon_code: str = Form(""),
     is_gift: str = Form("0"),
     commitment: str = Form(None),
+    payment_method: str = Form("IRR"),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
     from common.templating import get_setting_from_db
-
-    # ==========================================
-    # Dealer Gold-for-Gold Branch
-    # ==========================================
-    if me.is_dealer:
-        try:
-            order = order_service.checkout_dealer(db, me.id)
-            db.commit()
-            msg = urllib.parse.quote(
-                f"سفارش طلایی #{order.id} ثبت و پرداخت شد ({order.gold_total_mg / 1000:.3f} گرم طلا)"
-            )
-            return RedirectResponse(f"/orders/{order.id}?msg={msg}", status_code=303)
-        except ValueError as e:
-            error = urllib.parse.quote(str(e))
-            return RedirectResponse(f"/checkout?error={error}", status_code=303)
-
-    # ==========================================
-    # Regular Customer Branch
-    # ==========================================
 
     # Profile completion check
     if not me.is_profile_complete:
@@ -438,13 +404,15 @@ async def checkout(
         error = urllib.parse.quote("لطفاً ابتدا احراز هویت شاهکار را از صفحه پروفایل انجام دهید.")
         return RedirectResponse(f"/profile?error={error}", status_code=303)
 
-    # Validate
+    # Only dealers can use gold payment
+    is_gold_payment = me.is_dealer and payment_method == "XAU_MG"
+
+    # Validate delivery
     pickup_loc_id = int(pickup_dealer_id) if pickup_dealer_id.strip().isdigit() else None
     if delivery_method == "Pickup":
         if not pickup_loc_id:
             error = urllib.parse.quote("لطفاً نمایندگی تحویل را انتخاب کنید.")
             return RedirectResponse(f"/checkout?error={error}", status_code=303)
-        # Server-side: verify dealer exists and is active
         from modules.user.models import User
         dlr = db.query(User).filter(User.id == pickup_loc_id, User.is_dealer == True).first()
         if not dlr or not dlr.is_active:
@@ -461,30 +429,38 @@ async def checkout(
         error = urllib.parse.quote("روش تحویل نامعتبر.")
         return RedirectResponse(f"/checkout?error={error}", status_code=303)
 
+    delivery_data = {
+        "delivery_method": delivery_method,
+        "pickup_dealer_id": pickup_loc_id,
+        "shipping_province": shipping_province,
+        "shipping_city": shipping_city,
+        "shipping_address": shipping_address,
+        "shipping_postal_code": shipping_postal_code,
+        "coupon_code": coupon_code.strip() if coupon_code else "",
+        "is_gift": is_gift == "1",
+    }
+
     try:
-        order = order_service.checkout(db, me.id, {
-            "delivery_method": delivery_method,
-            "pickup_dealer_id": pickup_loc_id,
-            "shipping_province": shipping_province,
-            "shipping_city": shipping_city,
-            "shipping_address": shipping_address,
-            "shipping_postal_code": shipping_postal_code,
-            "coupon_code": coupon_code.strip() if coupon_code else "",
-            "is_gift": is_gift == "1",
-        })
-        db.commit()
-
-        # Get plain delivery code (transient) for display
-        plain_code = getattr(order, "_plain_delivery_code", None)
-
-        if delivery_method == "Pickup" and plain_code:
+        if is_gold_payment:
+            # Dealer Gold-for-Gold: auto-pay + finalize
+            order = order_service.checkout_dealer(db, me.id, delivery_data)
+            db.commit()
             msg = urllib.parse.quote(
-                f"سفارش #{order.id} ثبت شد. کد تحویل: {plain_code}"
+                f"سفارش طلایی #{order.id} ثبت و پرداخت شد ({order.gold_total_mg / 1000:.3f} گرم طلا)"
             )
+            return RedirectResponse(f"/orders/{order.id}?msg={msg}", status_code=303)
         else:
-            msg = urllib.parse.quote(f"سفارش #{order.id} ثبت شد. لطفاً پرداخت کنید.")
+            # Regular checkout (Rial) — works for both customers and dealers
+            order = order_service.checkout(db, me.id, delivery_data)
+            db.commit()
 
-        return RedirectResponse(f"/orders/{order.id}?msg={msg}", status_code=303)
+            plain_code = getattr(order, "_plain_delivery_code", None)
+            if delivery_method == "Pickup" and plain_code:
+                msg = urllib.parse.quote(f"سفارش #{order.id} ثبت شد. کد تحویل: {plain_code}")
+            else:
+                msg = urllib.parse.quote(f"سفارش #{order.id} ثبت شد. لطفاً پرداخت کنید.")
+
+            return RedirectResponse(f"/orders/{order.id}?msg={msg}", status_code=303)
 
     except ValueError as e:
         error = urllib.parse.quote(str(e))

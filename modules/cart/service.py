@@ -93,9 +93,12 @@ class CartService:
         db.flush()
         return True
 
-    def get_cart_items_with_pricing(self, db: Session, customer_id: int) -> Tuple[List[dict], int]:
+    def get_cart_items_with_pricing(self, db: Session, customer_id: int,
+                                    dealer=None) -> Tuple[List[dict], int]:
         """
         Get all cart items with calculated prices and inventory.
+        If dealer is provided (User with is_dealer=True), uses dealer's tier wage
+        from ProductTierWage instead of end-customer wage.
         Returns: (items_data, total_cart_price)
         """
         cart = db.query(Cart).filter(Cart.customer_id == customer_id).first()
@@ -114,17 +117,33 @@ class CartService:
         ).group_by(Bar.product_id).all()
         inv_map = {pid: cnt for pid, cnt in inv_rows}
 
+        # Batch dealer tier wages (if dealer)
+        dealer_wage_map = {}
+        if dealer and dealer.tier_id:
+            from modules.catalog.models import ProductTierWage
+            tier_wages = db.query(ProductTierWage).filter(
+                ProductTierWage.product_id.in_(product_ids),
+                ProductTierWage.tier_id == dealer.tier_id,
+            ).all()
+            dealer_wage_map = {tw.product_id: float(tw.wage_percent) for tw in tier_wages}
+
         items_data = []
         total_price = 0
 
         for item in cart.items:
             # Per-product metal pricing
             p_price, p_bp, _ = get_product_pricing(db, item.product)
-            ec_wage = get_end_customer_wage(db, item.product)
+
+            # Use dealer tier wage if available, otherwise end-customer wage
+            if dealer and dealer.tier_id:
+                wage = dealer_wage_map.get(item.product_id, float(item.product.wage))
+            else:
+                wage = get_end_customer_wage(db, item.product)
+
             price_info = calculate_bar_price(
                 weight=item.product.weight,
                 purity=item.product.purity,
-                wage_percent=ec_wage,
+                wage_percent=wage,
                 base_metal_price=p_price,
                 tax_percent=Decimal(tax_percent_str) if tax_percent_str else 0,
                 base_purity=p_bp,
@@ -139,7 +158,7 @@ class CartService:
             line_total = (unit_total + gift_box_price) * item.quantity
             total_price += line_total
 
-            items_data.append({
+            item_data = {
                 "product": item.product,
                 "quantity": item.quantity,
                 "unit_price": unit_total,
@@ -149,7 +168,11 @@ class CartService:
                 "inventory": inv_map.get(item.product_id, 0),
                 "details": price_info,
                 "db_item_id": item.id,
-            })
+            }
+            if dealer:
+                item_data["dealer_wage_percent"] = wage
+
+            items_data.append(item_data)
 
         return items_data, total_price
 
