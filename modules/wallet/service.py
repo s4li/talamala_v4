@@ -96,10 +96,8 @@ class WalletService:
         self, db: Session, user_id: int,
         asset_code: str = AssetCode.IRR,
     ) -> Dict[str, int]:
-        """Return balance summary."""
-        acct = self.get_account(db, user_id, asset_code)
-        if not acct:
-            return {"balance": 0, "locked": 0, "available": 0, "credit": 0, "withdrawable": 0}
+        """Return balance summary. Creates account + syncs credit if needed."""
+        acct = self.get_or_create_account(db, user_id, asset_code)
         return {
             "balance": acct.balance,
             "locked": acct.locked_balance,
