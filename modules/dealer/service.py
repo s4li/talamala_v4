@@ -310,7 +310,6 @@ class DealerService:
             pass  # Never block POS sales
 
         bar.status = BarStatus.SOLD
-        bar.claim_code = generate_unique_claim_code(db)
         bar.delivered_at = now_utc()  # POS = in-person, already delivered
 
         # Link to customer if mobile provided
@@ -319,6 +318,11 @@ class DealerService:
             customer = db.query(User).filter(User.mobile == customer_mobile).first()
             if customer:
                 bar.customer_id = customer.id
+                bar.claim_code = None  # Direct ownership, no claim needed
+            else:
+                bar.claim_code = generate_unique_claim_code(db)  # Unknown customer, generate claim
+        else:
+            bar.claim_code = generate_unique_claim_code(db)  # No mobile, generate claim
 
         # Ownership history
         history = OwnershipHistory(

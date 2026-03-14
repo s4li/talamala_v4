@@ -54,7 +54,9 @@ async def dealer_info(
         "success": True,
         "dealer_id": dealer.id,
         "name": dealer.full_name,
-        "location": dealer.full_name,
+        "mobile": dealer.mobile,
+        "tier": dealer.tier_name,
+        "location": dealer.full_address,
         "is_active": dealer.is_active,
     }
 

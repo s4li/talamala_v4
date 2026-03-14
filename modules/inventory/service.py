@@ -493,6 +493,10 @@ class InventoryService:
 
         db.add(item)
         session.total_scanned = (session.total_scanned or 0) + 1
+        if status == "matched":
+            session.total_matched = (session.total_matched or 0) + 1
+        elif status == "unexpected":
+            session.total_unexpected = (session.total_unexpected or 0) + 1
         db.flush()
 
         return {
