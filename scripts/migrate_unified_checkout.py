@@ -69,9 +69,32 @@ def run_migration():
                 print(f"  -> Note ({tbl}.{col}): {e}")
 
         # ==========================================
-        # 3. Set default credit limits for dealer tiers
+        # 3. Fix account constraints for credit system
         # ==========================================
-        print("\n[3/3] Setting default credit limits for dealer tiers...")
+        print("\n[3/4] Fixing account constraints...")
+        try:
+            conn.execute(text("ALTER TABLE accounts DROP CONSTRAINT IF EXISTS ck_account_balance_nonneg"))
+            print("  -> Dropped old ck_account_balance_nonneg")
+        except Exception as e:
+            print(f"  -> Note: {e}")
+        try:
+            conn.execute(text("ALTER TABLE accounts DROP CONSTRAINT IF EXISTS ck_account_credit_nonneg"))
+            print("  -> Dropped ck_account_credit_nonneg")
+        except Exception as e:
+            print(f"  -> Note: {e}")
+        try:
+            conn.execute(text("""
+                ALTER TABLE accounts ADD CONSTRAINT ck_account_balance_with_credit
+                CHECK (balance >= -credit_limit_mg)
+            """))
+            print("  -> Added: balance >= -credit_limit_mg")
+        except Exception as e:
+            print(f"  -> Note (may already exist): {e}")
+
+        # ==========================================
+        # 4. Set default credit limits for dealer tiers
+        # ==========================================
+        print("\n[4/4] Setting default credit limits for dealer tiers...")
         tier_credits = [
             ("distributor", 500000),   # 500g
             ("wholesaler", 250000),    # 250g
