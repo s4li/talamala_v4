@@ -127,10 +127,11 @@ async def update_settings(
         asset = db.query(Asset).filter(Asset.asset_code == asset_code).first()
         if asset:
             new_price = parse_int(price_val)
-            if new_price != asset.price_per_gram and new_price > 0:
+            if new_price > 0 and new_price != asset.price_per_gram:
                 asset.price_per_gram = new_price
-                asset.updated_at = now_utc()
-                asset.updated_by = f"admin:{user.full_name}"
+            # Always refresh updated_at on save (admin confirms price is valid)
+            asset.updated_at = now_utc()
+            asset.updated_by = f"admin:{user.full_name}"
             asset.auto_update = (auto_update_val == "on")
             asset.stale_after_minutes = parse_int(stale_min) or 15
             asset.update_interval_minutes = parse_int(update_int) or 5
