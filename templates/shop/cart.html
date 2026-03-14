@@ -95,14 +95,27 @@
         opacity: 0.35;
         cursor: not-allowed;
     }
-    .qty-controls .qty-value {
-        width: 36px;
+    .qty-controls .qty-input {
+        width: 48px;
         text-align: center;
         font-weight: 700;
         font-size: 0.95rem;
+        border: none;
         border-right: 1px solid var(--tm-border);
         border-left: 1px solid var(--tm-border);
         line-height: 34px;
+        height: 34px;
+        padding: 0;
+        -moz-appearance: textfield;
+        outline: none;
+    }
+    .qty-controls .qty-input::-webkit-outer-spin-button,
+    .qty-controls .qty-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .qty-controls .qty-input:focus {
+        background: var(--tm-info-900);
     }
     .cart-item-total {
         text-align: left;
@@ -215,25 +228,17 @@
                 {% endif %}
             </div>
 
-            <!-- Quantity Controls -->
-            <div class="qty-controls">
-                <form method="POST" action="/cart/update" style="margin:0;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <input type="hidden" name="product_id" value="{{ item.product.id }}">
-                    <input type="hidden" name="action" value="increase">
-                    <button type="submit" {% if item.quantity >= item.inventory %}disabled{% endif %}>
-                        <i class="bi bi-plus"></i>
-                    </button>
-                </form>
-                <span class="qty-value">{{ item.quantity }}</span>
-                <form method="POST" action="/cart/update" style="margin:0;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <input type="hidden" name="product_id" value="{{ item.product.id }}">
-                    <input type="hidden" name="action" value="decrease">
-                    <button type="submit">
-                        <i class="bi bi-dash"></i>
-                    </button>
-                </form>
+            <!-- Quantity Controls (AJAX) -->
+            <div class="qty-controls" data-product-id="{{ item.product.id }}" data-max="{{ item.inventory }}">
+                <button type="button" class="qty-btn" data-action="increase"
+                        {% if item.quantity >= item.inventory %}disabled{% endif %}>
+                    <i class="bi bi-plus"></i>
+                </button>
+                <input type="number" class="qty-input" value="{{ item.quantity }}"
+                       min="1" max="{{ item.inventory }}" data-product-id="{{ item.product.id }}">
+                <button type="button" class="qty-btn" data-action="decrease">
+                    <i class="bi bi-dash"></i>
+                </button>
             </div>
 
             <!-- Line Total -->
@@ -251,16 +256,11 @@
                 {% endif %}
             </div>
 
-            <!-- Remove -->
+            <!-- Remove (AJAX) -->
             <div class="cart-item-remove">
-                <form method="POST" action="/cart/update" style="margin:0;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <input type="hidden" name="product_id" value="{{ item.product.id }}">
-                    <input type="hidden" name="action" value="remove">
-                    <button type="submit" title="حذف از سبد">
-                        <i class="bi bi-trash3"></i>
-                    </button>
-                </form>
+                <button type="button" class="qty-btn-remove" data-product-id="{{ item.product.id }}" title="حذف از سبد">
+                    <i class="bi bi-trash3"></i>
+                </button>
             </div>
 
         </div>
@@ -344,9 +344,172 @@
 {% block shop_js %}
 {% if items %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+(function(){
     var csrfToken = '{{ csrf_token }}';
+    var updating = {};  // prevent double-click per product
 
+    // ==============================
+    // AJAX cart update (no page refresh)
+    // ==============================
+    function cartUpdate(productId, change, gbId) {
+        if (updating[productId]) return;
+        updating[productId] = true;
+
+        var cartItem = document.querySelector('.cart-item[data-product-id="' + productId + '"]');
+        if (cartItem) cartItem.style.opacity = '0.6';
+
+        fetch('/api/cart/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                product_id: productId,
+                change: change,
+                gift_box_id: gbId || null
+            })
+        })
+        .then(function(r) {
+            if (r.status === 401) { window.location.href = '/auth/login'; return null; }
+            return r.json();
+        })
+        .then(function(data) {
+            if (!data) return;
+            if (data.status === 'success') {
+                if (data.new_quantity <= 0) {
+                    // Item removed — remove DOM element
+                    if (cartItem) cartItem.remove();
+                    // If cart empty, reload
+                    if (!document.querySelector('.cart-item')) {
+                        window.location.reload();
+                        return;
+                    }
+                } else {
+                    // Update quantity display
+                    var input = cartItem.querySelector('.qty-input');
+                    if (input) input.value = data.new_quantity;
+                    // Update +/- disabled state
+                    var maxQty = parseInt(cartItem.querySelector('.qty-controls').dataset.max) || 999;
+                    var incBtn = cartItem.querySelector('[data-action="increase"]');
+                    if (incBtn) incBtn.disabled = data.new_quantity >= maxQty;
+                }
+                // Update cart badge
+                updateCartBadge(data.cart_count);
+                // Reload to update prices (gold/rial totals are server-calculated)
+                // Use a subtle approach: reload prices only
+                reloadCartSummary();
+            }
+        })
+        .catch(function(){})
+        .finally(function() {
+            updating[productId] = false;
+            if (cartItem) cartItem.style.opacity = '';
+        });
+    }
+
+    function setQuantity(productId, newQty, currentQty) {
+        var diff = newQty - currentQty;
+        if (diff === 0) return;
+        cartUpdate(productId, diff);
+    }
+
+    function removeItem(productId) {
+        cartUpdate(productId, -9999);
+    }
+
+    function updateCartBadge(count) {
+        var badges = document.querySelectorAll('.cart-badge, .navbar-cart-count');
+        badges.forEach(function(b) { b.textContent = count; });
+    }
+
+    function reloadCartSummary() {
+        // Fetch current page and extract summary HTML
+        fetch(window.location.href, {credentials: 'same-origin'})
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(html, 'text/html');
+            // Update summary card
+            var newSummary = doc.querySelector('.cart-summary');
+            var oldSummary = document.querySelector('.cart-summary');
+            if (newSummary && oldSummary) {
+                oldSummary.innerHTML = newSummary.innerHTML;
+            }
+            // Update line totals
+            doc.querySelectorAll('.cart-item').forEach(function(newItem) {
+                var pid = newItem.dataset.productId;
+                var oldItem = document.querySelector('.cart-item[data-product-id="' + pid + '"]');
+                if (oldItem) {
+                    var newTotal = newItem.querySelector('.cart-item-total');
+                    var oldTotal = oldItem.querySelector('.cart-item-total');
+                    if (newTotal && oldTotal) oldTotal.innerHTML = newTotal.innerHTML;
+                    // Update unit price
+                    var newUnit = newItem.querySelector('.cart-item-unit-price');
+                    var oldUnit = oldItem.querySelector('.cart-item-unit-price');
+                    if (newUnit && oldUnit) oldUnit.innerHTML = newUnit.innerHTML;
+                }
+            });
+        })
+        .catch(function(){});
+    }
+
+    // ==============================
+    // Event handlers
+    // ==============================
+
+    // +/- buttons
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.qty-btn');
+        if (!btn) return;
+        var controls = btn.closest('.qty-controls');
+        var productId = parseInt(controls.dataset.productId);
+        var change = btn.dataset.action === 'increase' ? 1 : -1;
+        cartUpdate(productId, change);
+    });
+
+    // Remove button
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.qty-btn-remove');
+        if (!btn) return;
+        removeItem(parseInt(btn.dataset.productId));
+    });
+
+    // Direct quantity input (on blur or Enter)
+    document.addEventListener('change', function(e) {
+        if (!e.target.classList.contains('qty-input')) return;
+        var input = e.target;
+        var productId = parseInt(input.dataset.productId);
+        var newQty = parseInt(input.value) || 1;
+        var max = parseInt(input.max) || 999;
+        if (newQty < 1) newQty = 1;
+        if (newQty > max) newQty = max;
+        input.value = newQty;
+
+        // Find current server qty (from before edit)
+        var controls = input.closest('.qty-controls');
+        var currentQty = parseInt(controls.dataset.currentQty || input.defaultValue) || 1;
+        setQuantity(productId, newQty, currentQty);
+        controls.dataset.currentQty = newQty;
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.target.classList.contains('qty-input') && e.key === 'Enter') {
+            e.preventDefault();
+            e.target.blur();
+        }
+    });
+
+    // Init currentQty data
+    document.querySelectorAll('.qty-input').forEach(function(input) {
+        var controls = input.closest('.qty-controls');
+        controls.dataset.currentQty = input.value;
+    });
+
+    // ==============================
+    // Gift box AJAX (existing)
+    // ==============================
     document.querySelectorAll('.gift-box-select').forEach(function(sel) {
         sel.addEventListener('change', function() {
             var productId = parseInt(this.dataset.productId);
@@ -358,43 +521,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
             fetch('/api/cart/set-gift-box', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken
-                },
-                body: JSON.stringify({
-                    product_id: productId,
-                    gift_box_id: gbId
-                })
+                headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken},
+                body: JSON.stringify({product_id: productId, gift_box_id: gbId})
             })
             .then(function(res) { return res.json(); })
             .then(function(data) {
                 if (data.status === 'success') {
-                    // Update line total
                     var priceEl = cartItem.querySelector('.line-total-price');
-                    if (priceEl && data.line_total) {
-                        priceEl.textContent = data.line_total;
-                    }
-                    // Toggle gift box label
+                    if (priceEl && data.line_total) priceEl.textContent = data.line_total;
                     var labelEl = cartItem.querySelector('.gift-box-label');
-                    if (labelEl) {
-                        labelEl.style.display = data.gift_box_price > 0 ? '' : 'none';
-                    }
-                    // Update cart total
+                    if (labelEl) labelEl.style.display = data.gift_box_price > 0 ? '' : 'none';
                     var totalEl = document.getElementById('cart-total-price');
-                    if (totalEl && data.total_price) {
-                        totalEl.textContent = data.total_price;
-                    }
+                    if (totalEl && data.total_price) totalEl.textContent = data.total_price;
                 }
             })
-            .catch(function() {})
-            .finally(function() {
-                sel.disabled = false;
-                sel.style.opacity = '';
-            });
+            .catch(function(){})
+            .finally(function() { sel.disabled = false; sel.style.opacity = ''; });
         });
     });
-});
+})();
 </script>
 {% endif %}
 {% endblock %}
