@@ -343,7 +343,6 @@
                         <th>کیف پول فروش</th>
                         <th>پوز نماینده</th>
                         <th>پوز فروشگاهی</th>
-                        <th>سفارش عمده</th>
                         <th>بازخرید</th>
                     </tr>
                 </thead>
@@ -351,7 +350,7 @@
                     {% for metal, metal_label, metal_color in [('gold', 'طلا', 'warning'), ('silver', 'نقره', 'secondary')] %}
                     <tr>
                         <td class="fw-bold"><span class="badge bg-{{ metal_color }}">{{ metal_label }}</span></td>
-                        {% for channel in ['shop', 'wallet_buy', 'wallet_sell', 'dealer_pos', 'customer_pos', 'b2b_order', 'buyback'] %}
+                        {% for channel in ['shop', 'wallet_buy', 'wallet_sell', 'dealer_pos', 'customer_pos', 'buyback'] %}
                         <td>
                             <div class="form-check form-switch d-flex justify-content-center mb-0">
                                 <input class="form-check-input" type="checkbox"

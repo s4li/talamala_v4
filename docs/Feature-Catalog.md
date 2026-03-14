@@ -1,7 +1,7 @@
 # کاتالوگ قابلیت‌های سیستم طلاملا v4
 
 > این سند تمام ماژول‌ها، قابلیت‌ها، نقش‌های کاربری و فرمول قیمت‌گذاری سیستم TalaMala v4 را شرح می‌دهد.
-> آخرین به‌روزرسانی: فازهای ۱ تا ۱۴، ۲۱ و ۲۲ تکمیل‌شده + قابلیت بازگشت اجرت بازخرید + بهبود سیستم تیکتینگ + صفحات ثابت و فوتر (Static Pages & Footer) + ثبت مالکیت و انتقال شمش (Bar Claim & Gifting + Ownership Transfer) + ساده‌سازی فرمول قیمت‌گذاری + مدیریت کاربران (Customer Management) + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان (Admin POS Sales Report) + سیستم مدیریت دارایی و قیمت‌گذاری خودکار (Asset Price Management + Goldis Auto-fetch) + چند درگاه پرداخت (Multi-Gateway: Zibal/Sepehr/Top/Parsian) + درخواست نمایندگی با بازبینی (Dealer Request with Revision) + پیگیری تحویل فیزیکی شمش و طلای امانی (Bar-level Delivery Tracking & Custodial Gold) + ماژول نظرات و پرسش‌وپاسخ (Review & Comments) + API دستگاه POS مشتری‌محور (Customer-Facing POS API) + یکپارچه‌سازی دستگاه POS راسیس (Rasis POS Integration) + زیرنمایندگان و سفارش عمده B2B (Sub-Dealers & B2B Orders — Phase 21) + انبارگردانی پیشرفته و رهگیری فیزیکی (Advanced Inventory & Physical Tracking — Phase 22) + سیستم دسترسی سلسله‌مراتبی اپراتورها (Hierarchical Permission System + Staff Management) + سطح‌بندی فعال/غیرفعال خرید و فروش (Trade Guard) + تولید QR Code برای شمش‌ها (QR Code Generation for Bars).
+> آخرین به‌روزرسانی: فازهای ۱ تا ۱۴، ۲۱ و ۲۲ تکمیل‌شده + قابلیت بازگشت اجرت بازخرید + بهبود سیستم تیکتینگ + صفحات ثابت و فوتر (Static Pages & Footer) + ثبت مالکیت و انتقال شمش (Bar Claim & Gifting + Ownership Transfer) + ساده‌سازی فرمول قیمت‌گذاری + مدیریت کاربران (Customer Management) + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان (Admin POS Sales Report) + سیستم مدیریت دارایی و قیمت‌گذاری خودکار (Asset Price Management + Goldis Auto-fetch) + چند درگاه پرداخت (Multi-Gateway: Zibal/Sepehr/Top/Parsian) + درخواست نمایندگی با بازبینی (Dealer Request with Revision) + پیگیری تحویل فیزیکی شمش و طلای امانی (Bar-level Delivery Tracking & Custodial Gold) + ماژول نظرات و پرسش‌وپاسخ (Review & Comments) + API دستگاه POS مشتری‌محور (Customer-Facing POS API) + یکپارچه‌سازی دستگاه POS راسیس (Rasis POS Integration) + زیرنمایندگان (Sub-Dealers — Phase 21) + انبارگردانی پیشرفته و رهگیری فیزیکی (Advanced Inventory & Physical Tracking — Phase 22) + سیستم دسترسی سلسله‌مراتبی اپراتورها (Hierarchical Permission System + Staff Management) + سطح‌بندی فعال/غیرفعال خرید و فروش (Trade Guard) + تولید QR Code برای شمش‌ها (QR Code Generation for Bars).
 
 ---
 
@@ -35,7 +35,7 @@
 26. [ماژول نظرات و پرسش‌وپاسخ (Review & Comments)](#26-ماژول-نظرات-و-پرسشوپاسخ-review--comments)
 27. [API دستگاه POS مشتری‌محور (Customer-Facing POS API)](#27-api-دستگاه-pos-مشتریمحور-customer-facing-pos-api)
 28. [یکپارچه‌سازی دستگاه POS راسیس (Rasis POS Integration)](#28-یکپارچهسازی-دستگاه-pos-راسیس-rasis-pos-integration)
-29. [پنل پیشرفته نماینده — زیرنمایندگان و سفارش عمده (Dealer Portal Enhancement — Phase 21)](#29-پنل-پیشرفته-نماینده--زیرنمایندگان-و-سفارش-عمده-dealer-portal-enhancement--phase-21)
+29. [پنل پیشرفته نماینده — زیرنمایندگان (Dealer Portal Enhancement — Phase 21)](#29-پنل-پیشرفته-نماینده--زیرنمایندگان-dealer-portal-enhancement--phase-21)
 30. [انبارگردانی پیشرفته و رهگیری فیزیکی (Advanced Inventory & Physical Tracking — Phase 22)](#30-انبارگردانی-پیشرفته-و-رهگیری-فیزیکی-advanced-inventory--physical-tracking--phase-22)
 31. [سطح‌بندی فعال/غیرفعال خرید و فروش — Trade Guard](#31-سطحبندی-فعالغیرفعال-خرید-و-فروش--trade-guard)
 32. [تولید QR Code برای شمش‌ها (QR Code Generation for Bars)](#32-تولید-qr-code-برای-شمشها-qr-code-generation-for-bars)
@@ -311,7 +311,7 @@ async def delete_product(user=Depends(require_permission("products", level="full
 
 #### DealerTransfer (تاریخچه جابه‌جایی)
 - ثبت هر انتقال شمش بین نمایندگان (from_dealer_id, to_dealer_id — هر دو FK → users)
-- انواع انتقال: `TransferType` enum شامل: MANUAL, B2B_FULFILLMENT, ADMIN_TRANSFER, RECONCILIATION, CUSTODIAL_DELIVERY, RETURN, WAREHOUSE_DISTRIBUTION
+- انواع انتقال: `TransferType` enum شامل: MANUAL, ADMIN_TRANSFER, RECONCILIATION, CUSTODIAL_DELIVERY, RETURN, WAREHOUSE_DISTRIBUTION
 
 #### توزیع از مرکز پخش (Warehouse Distribution)
 - نمایندگان `is_warehouse=True` می‌توانند از پنل خود شمش‌ها را به نمایندگان دیگر انتقال دهند
@@ -686,22 +686,6 @@ async def delete_product(user=Depends(require_permission("products", level="full
 - **مکانیزم تقسیم سود**: هنگام فروش POS توسط زیرنماینده، `metal_profit_mg` تقسیم می‌شود: X% به والد (واریز به کیف پول فلز والد) و بقیه به زیرنماینده
 - **محدودیت**: فقط یک سطح (والد → فرزند). نماینده والد نمی‌تواند خودش زیرنماینده باشد
 
-#### B2BOrder (سفارش عمده نمایندگان — فاز ۲۱)
-- `id`, `dealer_id` (FK → users), `status` (Submitted / Approved / Paid / Fulfilled / Rejected / Cancelled)
-- `total_amount` (BigInteger, ریال): مبلغ کل سفارش بر اساس قیمت‌گذاری سطح نماینده
-- `admin_note` (Text, nullable): یادداشت ادمین (مثلاً دلیل رد)
-- `paid_at`, `fulfilled_at`, `created_at`, `updated_at`
-- **چرخه عمر**: Submitted → Approved (ادمین) → Paid (کیف پول) → Fulfilled (تخصیص شمش) — یا Rejected/Cancelled
-- **پرداخت**: فقط از کیف پول ریالی (IRR wallet). درگاه بانکی پشتیبانی نمی‌شود
-- **تایید ادمین**: الزامی قبل از پرداخت. ادمین قیمت و موجودی را بررسی می‌کند
-
-#### B2BOrderItem (آیتم سفارش عمده — فاز ۲۱)
-- `id`, `b2b_order_id` (FK → b2b_orders, CASCADE), `product_id` (FK → products)
-- `quantity` (int): تعداد شمش درخواستی
-- `unit_price` (BigInteger, ریال): قیمت واحد در لحظه ثبت (بر اساس سطح نماینده)
-- `bar_ids` (JSON, nullable): لیست شناسه شمش‌های تخصیص‌یافته (پر می‌شود در مرحله Fulfill)
-- `line_total` (BigInteger): مبلغ کل آیتم (quantity × unit_price)
-
 ### قابلیت‌های پنل نماینده
 1. **داشبورد**: آمار فروش، کمیسیون، بازخرید
 2. **POS (فروش حضوری)**: انتخاب شمش + ثبت اطلاعات خریدار + مبلغ فروش + تخفیف اختیاری از سهم اجرت نماینده
@@ -710,7 +694,6 @@ async def delete_product(user=Depends(require_permission("products", level="full
 5. **تاریخچه بازخرید**: لیست درخواست‌ها با وضعیت
 6. **موجودی نماینده (فاز ۲۱)**: مشاهده شمش‌های تخصیص‌یافته به نماینده (ASSIGNED) با جزئیات محصول و قیمت
 7. **زیرنمایندگان (فاز ۲۱)**: مشاهده لیست زیرنمایندگان فعال + آمار فروش + درصد تقسیم سود
-8. **سفارش عمده B2B (فاز ۲۱)**: ثبت سفارش عمده شمش از انبار با قیمت‌گذاری سطح نماینده + پرداخت از کیف پول + مشاهده وضعیت سفارشات
 
 ### تخفیف اجرت POS (Dealer Wage Discount)
 - نماینده هنگام فروش حضوری می‌تواند اختیاری بخشی از سهم اجرت خود را تخفیف دهد
@@ -734,12 +717,6 @@ async def delete_product(user=Depends(require_permission("products", level="full
 | GET | `/dealer/buybacks` | تاریخچه بازخرید |
 | GET | `/dealer/inventory` | موجودی شمش نماینده (فاز ۲۱) |
 | GET | `/dealer/sub-dealers` | لیست زیرنمایندگان + آمار فروش (فاز ۲۱) |
-| GET | `/dealer/b2b-orders/new` | فرم ثبت سفارش عمده (فاز ۲۱) |
-| POST | `/dealer/b2b-orders/new` | ثبت سفارش عمده جدید (فاز ۲۱) |
-| GET | `/dealer/b2b-orders` | لیست سفارشات عمده نماینده (فاز ۲۱) |
-| GET | `/dealer/b2b-orders/{id}` | جزئیات سفارش عمده (فاز ۲۱) |
-| POST | `/dealer/b2b-orders/{id}/pay` | پرداخت سفارش عمده از کیف پول (فاز ۲۱) |
-| POST | `/dealer/b2b-orders/{id}/cancel` | لغو سفارش عمده (فقط قبل از پرداخت) (فاز ۲۱) |
 
 ### گزارش فروش نمایندگان (Admin POS Sales Report)
 
@@ -783,11 +760,6 @@ async def delete_product(user=Depends(require_permission("products", level="full
 | GET | `/admin/dealers/{id}/sub-dealers` | لیست زیرنمایندگان یک نماینده (فاز ۲۱) |
 | POST | `/admin/dealers/{id}/sub-dealers/add` | افزودن زیرنماینده به نماینده والد (فاز ۲۱) |
 | POST | `/admin/dealers/{id}/sub-dealers/deactivate` | غیرفعال‌سازی رابطه زیرنمایندگی (فاز ۲۱) |
-| GET | `/admin/dealers/b2b-orders` | لیست سفارشات عمده نمایندگان (فیلتر: نماینده، وضعیت) (فاز ۲۱) |
-| GET | `/admin/dealers/b2b-orders/{id}` | جزئیات سفارش عمده (فاز ۲۱) |
-| POST | `/admin/dealers/b2b-orders/{id}/approve` | تایید سفارش عمده (فاز ۲۱) |
-| POST | `/admin/dealers/b2b-orders/{id}/reject` | رد سفارش عمده (فاز ۲۱) |
-| POST | `/admin/dealers/b2b-orders/{id}/fulfill` | تحویل سفارش عمده — تخصیص شمش به نماینده (فاز ۲۱) |
 
 ---
 
@@ -1260,8 +1232,6 @@ metal_price, base_purity = get_product_pricing(product, db)
 | دسترسی API (POS) | — | ✅ |
 | مشاهده موجودی نماینده (`/dealer/inventory`) | — | ✅ |
 | مشاهده زیرنمایندگان (`/dealer/sub-dealers`) | — | ✅ |
-| ثبت سفارش عمده B2B | — | ✅ |
-| پرداخت/لغو سفارش عمده | — | ✅ |
 | اسکن شمش (Scanner) | — | ✅ |
 | انبارگردانی (شروع/اسکن/نهایی/لغو) | — | ✅ |
 | تایید تحویل امانی | — | ✅ |
@@ -1302,7 +1272,6 @@ metal_price, base_purity = get_product_pricing(product, db)
 | **تایید/رد بازخرید** | `dealers` | `full` | ✅ bypass |
 | **بررسی درخواست‌های نمایندگی (تایید/رد/بازبینی)** | `dealers` | `full` | ✅ bypass |
 | **مدیریت زیرنمایندگان** | `dealers` | `edit` | ✅ bypass |
-| **مدیریت سفارشات عمده B2B (تایید/رد/تحویل)** | `dealers` | `full` | ✅ bypass |
 | **گزارش فروش نمایندگان** | `dealers` | `view` | ✅ bypass |
 | **تیکت‌ها — مشاهده** | `tickets` | `view` | ✅ bypass |
 | **تیکت‌ها — پاسخ/تخصیص** | `tickets` | `edit` | ✅ bypass |
@@ -1942,13 +1911,13 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 
 ---
 
-## 29. پنل پیشرفته نماینده — زیرنمایندگان و سفارش عمده (Dealer Portal Enhancement — Phase 21)
+## 29. پنل پیشرفته نماینده — زیرنمایندگان (Dealer Portal Enhancement — Phase 21)
 
 **مسیر فایل‌ها**: `modules/dealer/`
 
 ### شرح قابلیت
 
-فاز ۲۱ شامل سه قابلیت اصلی برای ارتقای پنل نمایندگان است:
+فاز ۲۱ شامل دو قابلیت اصلی برای ارتقای پنل نمایندگان است:
 
 #### ۱. زیرنمایندگان (Sub-Dealer Hierarchy)
 - نماینده والد می‌تواند زیرنمایندگانی داشته باشد (single-level — فقط یک سطح)
@@ -1959,15 +1928,7 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 - ادمین رابطه زیرنمایندگی را ایجاد و مدیریت می‌کند
 - نماینده والد می‌تواند لیست زیرنمایندگان و آمار فروش آنها را مشاهده کند
 
-#### ۲. سفارش عمده نمایندگان (B2B Orders)
-- نمایندگان می‌توانند سفارش عمده شمش از انبار مرکزی ثبت کنند
-- قیمت‌گذاری بر اساس سطح نماینده (DealerTier) — اجرت کمتر از مشتری نهایی
-- **چرخه عمر سفارش**: Submitted → Approved → Paid → Fulfilled (یا Rejected/Cancelled)
-- **پرداخت**: فقط از کیف پول ریالی (wallet-only). درگاه بانکی پشتیبانی نمی‌شود
-- **تایید ادمین**: الزامی قبل از پرداخت — ادمین موجودی و قیمت را بررسی می‌کند
-- **تحویل (Fulfill)**: ادمین شمش‌ها را به نماینده تخصیص می‌دهد (bar assign)
-
-#### ۳. موجودی نماینده (Dealer Inventory View)
+#### ۲. موجودی نماینده (Dealer Inventory View)
 - نماینده می‌تواند لیست شمش‌های تخصیص‌یافته به خود (وضعیت ASSIGNED) را مشاهده کند
 - نمایش جزئیات محصول، سریال‌کد، وزن، عیار و قیمت لحظه‌ای
 
@@ -1976,8 +1937,6 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 | مدل | جدول | توضیح |
 |------|-------|--------|
 | SubDealerRelation | `sub_dealer_relations` | رابطه والد-فرزند بین نمایندگان + درصد تقسیم سود |
-| B2BOrder | `b2b_orders` | سفارش عمده نماینده (header) |
-| B2BOrderItem | `b2b_order_items` | آیتم‌های سفارش عمده (محصول + تعداد + قیمت واحد) |
 
 ### آدرس‌ها (نماینده)
 
@@ -1985,12 +1944,6 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 |------|------|--------|
 | GET | `/dealer/inventory` | موجودی شمش نماینده |
 | GET | `/dealer/sub-dealers` | لیست زیرنمایندگان + آمار فروش |
-| GET | `/dealer/b2b-orders/new` | فرم ثبت سفارش عمده |
-| POST | `/dealer/b2b-orders/new` | ثبت سفارش عمده جدید |
-| GET | `/dealer/b2b-orders` | لیست سفارشات عمده |
-| GET | `/dealer/b2b-orders/{id}` | جزئیات سفارش عمده |
-| POST | `/dealer/b2b-orders/{id}/pay` | پرداخت از کیف پول |
-| POST | `/dealer/b2b-orders/{id}/cancel` | لغو سفارش (فقط قبل از پرداخت) |
 
 ### آدرس‌ها (ادمین)
 
@@ -1999,19 +1952,14 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 | GET | `/admin/dealers/{id}/sub-dealers` | لیست زیرنمایندگان یک نماینده |
 | POST | `/admin/dealers/{id}/sub-dealers/add` | افزودن زیرنماینده |
 | POST | `/admin/dealers/{id}/sub-dealers/deactivate` | غیرفعال‌سازی رابطه زیرنمایندگی |
-| GET | `/admin/dealers/b2b-orders` | لیست سفارشات عمده (فیلتر: نماینده، وضعیت) |
-| GET | `/admin/dealers/b2b-orders/{id}` | جزئیات سفارش عمده |
-| POST | `/admin/dealers/b2b-orders/{id}/approve` | تایید سفارش عمده |
-| POST | `/admin/dealers/b2b-orders/{id}/reject` | رد سفارش عمده |
-| POST | `/admin/dealers/b2b-orders/{id}/fulfill` | تحویل — تخصیص شمش به نماینده |
 
 ### دسترسی
 
 | نقش | دسترسی |
 |------|--------|
-| Super Admin | مدیریت کامل زیرنمایندگان + سفارشات عمده (تایید/رد/تحویل) |
-| Operator | مدیریت زیرنمایندگان + سفارشات عمده (با مجوز `dealers`) |
-| نماینده | مشاهده موجودی + زیرنمایندگان + ثبت/پرداخت/لغو سفارش عمده |
+| Super Admin | مدیریت کامل زیرنمایندگان |
+| Operator | مدیریت زیرنمایندگان (با مجوز `dealers`) |
+| نماینده | مشاهده موجودی + زیرنمایندگان |
 | مشتری | — |
 
 ---
@@ -2053,7 +2001,6 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 #### ۴. رهگیری نوع انتقال (Transfer Audit Trail)
 - مدل `TransferType` (enum) برای ثبت دلیل هر جابجایی فیزیکی شمش:
   - `Manual`: انتقال دستی ادمین
-  - `B2BFulfillment`: تحویل سفارش عمده
   - `AdminTransfer`: انتقال ادمین
   - `Reconciliation`: تعدیل ناشی از انبارگردانی
   - `CustodialDelivery`: تحویل امانی به مشتری
@@ -2065,7 +2012,7 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 
 | مدل | جدول | توضیح |
 |------|-------|--------|
-| TransferType | — (enum) | دلیل جابجایی فیزیکی شمش (Manual, B2BFulfillment, AdminTransfer, Reconciliation, CustodialDelivery, Return) |
+| TransferType | — (enum) | دلیل جابجایی فیزیکی شمش (Manual, AdminTransfer, Reconciliation, CustodialDelivery, Return, WarehouseDistribution) |
 | ReconciliationSession | `reconciliation_sessions` | جلسه انبارگردانی (نماینده + وضعیت + آمار تجمیعی) |
 | ReconciliationItem | `reconciliation_items` | آیتم‌های اسکن‌شده در جلسه (سریال + وضعیت تطابق + snapshot) |
 | ReconciliationStatus | — (enum) | InProgress / Completed / Cancelled |
@@ -2127,7 +2074,7 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 
 ### شرح قابلیت
 
-سیستم **Trade Guard** به ادمین امکان می‌دهد خرید و فروش هر فلز گرانبها (طلا، نقره) را به‌تفکیک کانال فروش فعال یا غیرفعال کند. این سیستم ۱۴ سوئیچ مستقل (۷ کانال × ۲ فلز) ارائه می‌دهد که از طریق صفحه تنظیمات ادمین قابل مدیریت هستند.
+سیستم **Trade Guard** به ادمین امکان می‌دهد خرید و فروش هر فلز گرانبها (طلا، نقره) را به‌تفکیک کانال فروش فعال یا غیرفعال کند. این سیستم ۱۲ سوئیچ مستقل (۶ کانال × ۲ فلز) ارائه می‌دهد که از طریق صفحه تنظیمات ادمین قابل مدیریت هستند.
 
 **ماژول**: `modules/pricing/trade_guard.py`
 
@@ -2140,7 +2087,6 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 | کیف پول — فروش | `wallet_sell` | تبدیل فلز به ریال (فروش از کیف پول) |
 | پوز نماینده | `dealer_pos` | فروش حضوری توسط نماینده |
 | پوز فروشگاهی (مشتری‌محور) | `customer_pos` | فروش از طریق API دستگاه POS مشتری‌محور |
-| سفارش عمده B2B | `b2b_order` | سفارش عمده نمایندگان |
 | بازخرید | `buyback` | بازخرید شمش توسط نماینده |
 
 ### الگوی کلید تنظیمات (SystemSetting)
@@ -2160,14 +2106,12 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 | `gold_wallet_sell_enabled` | طلا | کیف پول فروش | `true` |
 | `gold_dealer_pos_enabled` | طلا | پوز نماینده | `true` |
 | `gold_customer_pos_enabled` | طلا | پوز فروشگاهی | `true` |
-| `gold_b2b_order_enabled` | طلا | سفارش عمده | `true` |
 | `gold_buyback_enabled` | طلا | بازخرید | `true` |
 | `silver_shop_enabled` | نقره | فروشگاه | `true` |
 | `silver_wallet_buy_enabled` | نقره | کیف پول خرید | `true` |
 | `silver_wallet_sell_enabled` | نقره | کیف پول فروش | `true` |
 | `silver_dealer_pos_enabled` | نقره | پوز نماینده | `true` |
 | `silver_customer_pos_enabled` | نقره | پوز فروشگاهی | `true` |
-| `silver_b2b_order_enabled` | نقره | سفارش عمده | `true` |
 | `silver_buyback_enabled` | نقره | بازخرید | `true` |
 
 > **پیش‌فرض**: در صورت نبود کلید در دیتابیس، تمام کانال‌ها **فعال** (`true`) در نظر گرفته می‌شوند.
@@ -2191,14 +2135,13 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 | `wallet_sell` | `POST /wallet/{asset_type}/sell` | بلاک با خطای ۴۰۳ |
 | `dealer_pos` | `POST /dealer/pos` + `POST /api/dealer/sale` | بلاک با خطای ۴۰۳ |
 | `customer_pos` | `POST /api/pos/reserve` | بلاک با خطای ۴۰۳ |
-| `b2b_order` | `POST /dealer/b2b-orders/new` | بلاک با خطای ۴۰۳ |
 | `buyback` | `POST /dealer/buyback` | بلاک با خطای ۴۰۳ |
 
 ### رابط کاربری ادمین
 
 در صفحه تنظیمات ادمین (`/admin/settings`) یک **ماتریس سوئیچ** نمایش داده می‌شود:
 
-- ردیف‌ها: کانال‌های فروش (۷ کانال)
+- ردیف‌ها: کانال‌های فروش (۶ کانال)
 - ستون‌ها: فلزات (طلا، نقره)
 - هر سلول: یک toggle switch (فعال/غیرفعال)
 - ذخیره‌سازی همراه با سایر تنظیمات سیستم
@@ -2211,7 +2154,7 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 | `modules/admin/routes.py` | صفحه تنظیمات (GET/POST — شامل ماتریس toggle) |
 | `modules/wallet/routes.py` | اعمال guard در خرید/فروش فلز |
 | `modules/cart/routes.py` | اعمال guard در checkout |
-| `modules/dealer/routes.py` | اعمال guard در POS و بازخرید و B2B |
+| `modules/dealer/routes.py` | اعمال guard در POS و بازخرید |
 | `modules/pos/routes.py` | اعمال guard در POS مشتری‌محور |
 | `templates/admin/settings.html` | قالب ماتریس سوئیچ |
 
@@ -2221,7 +2164,7 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 |------|--------|
 | Super Admin | مشاهده و تغییر تمام سوئیچ‌ها در صفحه تنظیمات |
 | Operator | بسته به سطح دسترسی `settings` |
-| نماینده | بدون دسترسی — فقط در زمان عملیات (POS/بازخرید/B2B) بلاک می‌شود |
+| نماینده | بدون دسترسی — فقط در زمان عملیات (POS/بازخرید) بلاک می‌شود |
 | مشتری | بدون دسترسی — فقط در زمان عملیات (فروشگاه/کیف پول) بلاک می‌شود |
 
 ---
@@ -2285,9 +2228,9 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 
 ### مدل‌ها
 
-- **Notification**: id, user_id, notification_type (16 نوع), title, body, link, is_read, channel, reference_type, reference_id, metadata_json (JSONB), created_at
+- **Notification**: id, user_id, notification_type (15 نوع), title, body, link, is_read, channel, reference_type, reference_id, metadata_json (JSONB), created_at
 - **NotificationPreference**: id, user_id, notification_type, sms_enabled, in_app_enabled, email_enabled — UniqueConstraint(user_id, notification_type)
-- **NotificationType** (enum): ORDER_STATUS, ORDER_DELIVERY, PAYMENT_SUCCESS, PAYMENT_FAILED, WALLET_TOPUP, WALLET_WITHDRAW, WALLET_TRADE, OWNERSHIP_TRANSFER, CUSTODIAL_DELIVERY, TICKET_UPDATE, DEALER_SALE, DEALER_BUYBACK, B2B_ORDER, DEALER_REQUEST, REVIEW_REPLY, SYSTEM
+- **NotificationType** (enum): ORDER_STATUS, ORDER_DELIVERY, PAYMENT_SUCCESS, PAYMENT_FAILED, WALLET_TOPUP, WALLET_WITHDRAW, WALLET_TRADE, OWNERSHIP_TRANSFER, CUSTODIAL_DELIVERY, TICKET_UPDATE, DEALER_SALE, DEALER_BUYBACK, DEALER_REQUEST, REVIEW_REPLY, SYSTEM
 
 ### معماری
 
@@ -2309,9 +2252,9 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 | GET | `/admin/notifications/send` | notifications:create | فرم ارسال اعلان |
 | POST | `/admin/notifications/send` | notifications:create | ارسال اعلان گروهی |
 
-### نقاط اتصال بیزینسی (13 hook)
+### نقاط اتصال بیزینسی (12 hook)
 
-پرداخت موفق (کیف پول + درگاه)، لغو سفارش، تغییر وضعیت ارسال، شارژ کیف پول، تأیید/رد برداشت، خرید/فروش فلز، فروش POS نماینده، بازخرید، تأیید/رد/تحویل سفارش B2B، تأیید/اصلاح/رد درخواست نمایندگی، پاسخ تیکت، انتقال مالکیت، تحویل امانی
+پرداخت موفق (کیف پول + درگاه)، لغو سفارش، تغییر وضعیت ارسال، شارژ کیف پول، تأیید/رد برداشت، خرید/فروش فلز، فروش POS نماینده، بازخرید، تأیید/اصلاح/رد درخواست نمایندگی، پاسخ تیکت، انتقال مالکیت، تحویل امانی
 
 ### دسترسی
 
@@ -2385,4 +2328,4 @@ API مشتری‌محور برای دستگاه‌های POS با الگوی **R
 
 ---
 
-> این سند بر اساس کد واقعی پروژه TalaMala v4 (فازهای ۱-۱۴، ۱۷، ۱۷.۵، ۲۱ و ۲۲ + بازگشت اجرت بازخرید + بهبود تیکتینگ + صفحات ثابت و فوتر + ثبت مالکیت و انتقال شمش + مدیریت کاربران + ویرایش مشتری توسط ادمین + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان + مدیریت دارایی و قیمت‌گذاری خودکار + چند درگاه پرداخت + درخواست نمایندگی با بازبینی + نظرات و پرسش‌وپاسخ + API دستگاه POS مشتری‌محور + یکپارچه‌سازی دستگاه POS راسیس + زیرنمایندگان و سفارش عمده B2B + انبارگردانی پیشرفته و رهگیری فیزیکی + سطح‌بندی فعال/غیرفعال خرید و فروش — Trade Guard + تولید QR Code برای شمش‌ها + سیستم اعلان‌ها + پوشش ریسک — هجینگ) تهیه شده و هیچ قابلیت فرضی شامل نشده است.
+> این سند بر اساس کد واقعی پروژه TalaMala v4 (فازهای ۱-۱۴، ۱۷، ۱۷.۵، ۲۱ و ۲۲ + بازگشت اجرت بازخرید + بهبود تیکتینگ + صفحات ثابت و فوتر + ثبت مالکیت و انتقال شمش + مدیریت کاربران + ویرایش مشتری توسط ادمین + اطلاعات خریدار در فاکتور + الزام تکمیل پروفایل + انتخاب بسته‌بندی مشتری + گزارش فروش نمایندگان + مدیریت دارایی و قیمت‌گذاری خودکار + چند درگاه پرداخت + درخواست نمایندگی با بازبینی + نظرات و پرسش‌وپاسخ + API دستگاه POS مشتری‌محور + یکپارچه‌سازی دستگاه POS راسیس + زیرنمایندگان + انبارگردانی پیشرفته و رهگیری فیزیکی + سطح‌بندی فعال/غیرفعال خرید و فروش — Trade Guard + تولید QR Code برای شمش‌ها + سیستم اعلان‌ها + پوشش ریسک — هجینگ) تهیه شده و هیچ قابلیت فرضی شامل نشده است.

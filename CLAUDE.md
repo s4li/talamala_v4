@@ -70,7 +70,7 @@ talamala_v4/
 │   ├── coupon/                  # DISCOUNT/CASHBACK coupons, admin CRUD
 │   ├── customer/                # Profile, CustomerAddress, GeoProvince/City/District
 │   ├── verification/            # QR/serial code authenticity check + on-the-fly QR generation (never saved to disk)
-│   ├── dealer/                  # DealerTier, DealerSale, BuybackRequest, SubDealerRelation, B2BOrder, B2BOrderItem, POS, admin mgmt, REST API
+│   ├── dealer/                  # DealerTier, DealerSale, BuybackRequest, SubDealerRelation, POS, admin mgmt, REST API
 │   │   └── auth_deps.py         # Shared API Key auth dependency (used by dealer + pos)
 │   ├── dealer_request/          # DealerRequest, attachments, admin review (approve/revision/reject)
 │   ├── pos/                     # Customer-facing POS API (reserve→confirm/cancel pattern)
@@ -189,7 +189,7 @@ talamala_v4/
 - **OwnershipHistory**: id, bar_id, previous_owner_id, new_owner_id, transfer_date, description
 - **DealerTransfer**: id, bar_id, from_dealer_id, to_dealer_id, transferred_by, transferred_at, description (table: dealer_location_transfers)
 - **BarTransfer**: id, bar_id, from_customer_id, to_mobile, otp_hash, otp_expiry, status (Pending/Completed/Cancelled/Expired), created_at
-- **TransferType** (enum): MANUAL, B2B_FULFILLMENT, ADMIN_TRANSFER, RECONCILIATION, CUSTODIAL_DELIVERY, RETURN, WAREHOUSE_DISTRIBUTION
+- **TransferType** (enum): MANUAL, ADMIN_TRANSFER, RECONCILIATION, CUSTODIAL_DELIVERY, RETURN, WAREHOUSE_DISTRIBUTION
 - **ReconciliationSession**: id, dealer_id (FK→users), initiated_by, status (InProgress/Completed/Cancelled), total_expected, total_scanned, total_matched, total_missing, total_unexpected, notes, started_at, completed_at
 - **ReconciliationItem**: id, session_id (FK→reconciliation_sessions, CASCADE), bar_id (FK→bars, SET NULL), serial_code, item_status (Matched/Missing/Unexpected), scanned_at, expected_status, expected_product
 - **CustodialDeliveryStatus** (enum): PENDING, COMPLETED, CANCELLED, EXPIRED
@@ -233,13 +233,8 @@ talamala_v4/
 - **SubDealerRelation**: id, parent_dealer_id (FK→users, CASCADE), child_dealer_id (FK→users, CASCADE), commission_split_percent (Numeric 5,2, default=20), is_active, created_at, deactivated_at, admin_note
   - UniqueConstraint(parent_dealer_id, child_dealer_id), CheckConstraint(0-100), CheckConstraint(no self-ref)
   - Properties: `status_label`, `status_color`
-- **B2BOrderStatus** (enum): Submitted / Approved / Paid / Fulfilled / Rejected / Cancelled
-- **B2BOrder**: id, dealer_id (FK→users), status, total_amount (BigInteger), applied_tax_percent, payment_method, payment_ref, paid_at, admin_note, approved_by (FK→users), approved_at, fulfilled_at, created_at, updated_at
-  - Properties: `status_label`, `status_color`, `total_items`
-  - Relationships: dealer, approver, items
-- **B2BOrderItem**: id, order_id (FK→b2b_orders, CASCADE), product_id (FK→products, RESTRICT), quantity, applied_wage_percent, applied_metal_price, unit_price, line_total
-  - CheckConstraint(quantity > 0)
 - Note: Dealer-specific fields (tier, address, api_key, etc.) are on the unified **User** model
+- Note: Dealers order via the regular shop checkout with Gold-for-Gold payment (XAU_MG wallet). The old B2B order system has been removed.
 
 ### ticket/models.py
 - **TicketCategory** (enum): Financial / Technical / Sales / Complaints / Other (دپارتمان)
@@ -277,7 +272,7 @@ talamala_v4/
 - **DealerRequestAttachment**: id, dealer_request_id (FK, CASCADE), file_path, original_filename, created_at
 
 ### notification/models.py
-- **NotificationType** (str enum, 16 types): ORDER_STATUS, ORDER_DELIVERY, PAYMENT_SUCCESS, PAYMENT_FAILED, WALLET_TOPUP, WALLET_WITHDRAW, WALLET_TRADE, OWNERSHIP_TRANSFER, CUSTODIAL_DELIVERY, TICKET_UPDATE, DEALER_SALE, DEALER_BUYBACK, B2B_ORDER, DEALER_REQUEST, REVIEW_REPLY, SYSTEM
+- **NotificationType** (str enum, 15 types): ORDER_STATUS, ORDER_DELIVERY, PAYMENT_SUCCESS, PAYMENT_FAILED, WALLET_TOPUP, WALLET_WITHDRAW, WALLET_TRADE, OWNERSHIP_TRANSFER, CUSTODIAL_DELIVERY, TICKET_UPDATE, DEALER_SALE, DEALER_BUYBACK, DEALER_REQUEST, REVIEW_REPLY, SYSTEM
 - **NotificationChannel** (str enum): SMS, IN_APP, EMAIL
 - **Notification**: id, user_id (FK→users CASCADE), notification_type (String 50), title (String 300), body (Text), link (String 500, nullable), is_read (Boolean default False), channel (String 20), reference_type (String 100, nullable), reference_id (String 100, nullable), metadata_json (JSONB, nullable), created_at (DateTime tz)
   - Indexes: (user_id, is_read), (user_id, created_at), (reference_type, reference_id)
@@ -379,11 +374,11 @@ return response
 ### Trade Guard (Per-metal, per-channel trade toggles)
 - `modules/pricing/trade_guard.py` → `is_trade_enabled()`, `require_trade_enabled()`, `get_all_trade_status()`
 - Settings pattern: `{metal}_{channel}_enabled` (e.g. `gold_shop_enabled`, `silver_wallet_buy_enabled`)
-- Channels: `shop`, `wallet_buy`, `wallet_sell`, `dealer_pos`, `customer_pos`, `b2b_order`, `buyback`
+- Channels: `shop`, `wallet_buy`, `wallet_sell`, `dealer_pos`, `customer_pos`, `buyback`
 - Metals: `gold`, `silver` (from PRECIOUS_METALS registry)
 - Default: all enabled (`"true"`) — admin toggles in Settings page
 - `require_trade_enabled()` raises `ValueError` (same pattern as `require_fresh_price()`)
-- Service-layer checks: wallet buy/sell, checkout, dealer POS, customer POS, B2B orders, buyback
+- Service-layer checks: wallet buy/sell, checkout, dealer POS, customer POS, buyback
 - UI: admin settings matrix + wallet trade page disabled state
 
 ### Verification & QR Generation
@@ -477,7 +472,7 @@ STATIC_VERSION = "1.1"  # ← عدد را افزایش بده
 | 14.5 | Bar Claim & Gifting + Ownership Transfer | ✅ |
 | 15 | Customer-Facing POS API (reserve→confirm/cancel) | ✅ |
 | 16 | Reviews & Comments (star rating, Q&A, likes) | ✅ |
-| 21 | Dealer B2B Dashboard (inventory, analytics, sub-dealer, B2B orders) | ✅ |
+| 21 | Dealer Dashboard (inventory, analytics, sub-dealer, Gold-for-Gold checkout) | ✅ |
 | 22 | Advanced Inventory & Physical Tracking (scanner, reconciliation, custodial delivery, transfer audit) | ✅ |
 | 17 | Notifications (SMS transactional + In-app center + preferences + admin broadcast) | ✅ |
 | 17.5 | Position Management / Hedging (exposure tracking, hedge recording, threshold alerts) | ✅ |
@@ -505,11 +500,11 @@ STATIC_VERSION = "1.1"  # ← عدد را افزایش بده
 - بسته‌بندی کادویی: گسترش PackageType با آپشن‌های کادویی (جعبه چرم، عروسی، نوروزی) + پیام تبریک
 - کمپین‌های مناسبتی (نوروز، ولنتاین، یلدا)
 
-### 📌 Phase 21: Dealer Portal Enhancement — B2B Dashboard (بالا)
+### 📌 Phase 21: Dealer Portal Enhancement — Dealer Dashboard (بالا)
 - داشبورد تحلیلی نماینده: نمودار فروش، مقایسه دوره‌ای، رتبه‌بندی، کمیسیون تجمیعی
 - تسویه سود طلایی: واریز gold_profit_mg به XAU_MG wallet نماینده + تبدیل به ریال + برداشت بانکی
 - زیرمجموعه‌ها (Sub-dealer): نماینده اصلی → زیرنماینده + تقسیم کمیسیون + درخت نمایندگان
-- سفارش عمده نمایندگان (B2B Orders): ثبت سفارش عمده از پنل نماینده + تأیید ادمین
+- خرید نمایندگان از فروشگاه: checkout عادی با پرداخت Gold-for-Gold (کیف پول XAU_MG) + اجرت سطح نمایندگی
 - اعلان‌های اختصاصی نماینده (موجودی کم، محصول جدید، تغییر قیمت)
 
 ### 📌 Phase 23: SEO + Content — ✅ تکمیل شده (بلاگ + Sitemap + SEO)
@@ -759,12 +754,6 @@ total     = raw_metal + wage + tax
 - `GET /dealer/buybacks` — Buyback history
 - `GET /dealer/inventory` — Physical inventory at dealer location
 - `GET /dealer/sub-dealers` — Sub-dealer network (read-only)
-- `GET /dealer/b2b-orders` — B2B bulk order list
-- `GET /dealer/b2b-orders/new` — New B2B order catalog
-- `POST /dealer/b2b-orders/new` — Submit B2B order
-- `GET /dealer/b2b-orders/{id}` — B2B order detail
-- `POST /dealer/b2b-orders/{id}/pay` — Pay via wallet
-- `POST /dealer/b2b-orders/{id}/cancel` — Cancel order
 - `GET /dealer/scan/lookup?serial=X` — Bar lookup (scanner)
 - `GET /dealer/reconciliation` — Reconciliation sessions
 - `POST /dealer/reconciliation/start` — Start session
@@ -833,11 +822,6 @@ total     = raw_metal + wage + tax
 - `GET /admin/dealers/{id}/sub-dealers` — Sub-dealer management
 - `POST /admin/dealers/{id}/sub-dealers/add` — Create sub-dealer relation
 - `POST /admin/dealers/sub-dealers/{rel_id}/deactivate` — Deactivate relation
-- `GET /admin/dealers/b2b-orders` — All B2B orders (filter: dealer, status)
-- `GET /admin/dealers/b2b-orders/{id}` — B2B order detail
-- `POST /admin/dealers/b2b-orders/{id}/approve` — Approve B2B order
-- `POST /admin/dealers/b2b-orders/{id}/reject` — Reject B2B order
-- `POST /admin/dealers/b2b-orders/{id}/fulfill` — Fulfill (assign bars from warehouse)
 - `/admin/dealers/buybacks` — Buyback approval/rejection
 - `GET /admin/dealers/{id}/gold-settlement` — Gold settlement form (deposit XAU_MG to dealer wallet)
 - `POST /admin/dealers/{id}/gold-settlement` — Execute gold deposit

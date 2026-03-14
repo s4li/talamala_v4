@@ -34,7 +34,6 @@ class NotificationType(str, enum.Enum):
     TICKET_UPDATE = "TICKET_UPDATE"
     DEALER_SALE = "DEALER_SALE"
     DEALER_BUYBACK = "DEALER_BUYBACK"
-    B2B_ORDER = "B2B_ORDER"
     DEALER_REQUEST = "DEALER_REQUEST"
     REVIEW_REPLY = "REVIEW_REPLY"
     SYSTEM = "SYSTEM"
@@ -60,7 +59,6 @@ NOTIFICATION_TYPE_LABELS = {
     NotificationType.TICKET_UPDATE: "بروزرسانی تیکت",
     NotificationType.DEALER_SALE: "فروش نماینده",
     NotificationType.DEALER_BUYBACK: "بازخرید",
-    NotificationType.B2B_ORDER: "سفارش عمده",
     NotificationType.DEALER_REQUEST: "درخواست نمایندگی",
     NotificationType.REVIEW_REPLY: "پاسخ به نظر",
     NotificationType.SYSTEM: "سیستمی",
@@ -80,7 +78,6 @@ NOTIFICATION_TYPE_ICONS = {
     NotificationType.TICKET_UPDATE: "bi-headset",
     NotificationType.DEALER_SALE: "bi-receipt",
     NotificationType.DEALER_BUYBACK: "bi-arrow-return-left",
-    NotificationType.B2B_ORDER: "bi-cart4",
     NotificationType.DEALER_REQUEST: "bi-person-plus",
     NotificationType.REVIEW_REPLY: "bi-chat-dots",
     NotificationType.SYSTEM: "bi-megaphone",

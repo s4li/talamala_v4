@@ -2,7 +2,7 @@
 Trade Guard — Per-metal, per-channel trade toggle system.
 ==========================================================
 Allows admin to independently enable/disable trading for each metal type
-across different channels (shop, wallet, POS, B2B, buyback).
+across different channels (shop, wallet, POS, buyback).
 
 Usage:
     from modules.pricing.trade_guard import require_trade_enabled, is_trade_enabled
@@ -23,7 +23,7 @@ from common.templating import get_setting_from_db
 TRADE_CHANNELS = [
     "shop", "wallet_buy", "wallet_sell",
     "dealer_pos", "customer_pos",
-    "b2b_order", "buyback",
+    "buyback",
 ]
 
 # Persian labels for error messages
@@ -33,7 +33,6 @@ _CHANNEL_LABELS = {
     "wallet_sell": "فروش از کیف پول",
     "dealer_pos": "فروش از پوز نماینده",
     "customer_pos": "فروش از پوز فروشگاهی",
-    "b2b_order": "سفارش عمده",
     "buyback": "بازخرید",
 }
 

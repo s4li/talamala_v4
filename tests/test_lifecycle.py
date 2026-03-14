@@ -1234,52 +1234,6 @@ def test_L22_customer_pos_api():
     return suite
 
 
-def test_L23_b2b_orders():
-    """L23: Dealer B2B bulk orders."""
-    suite = TestSuite("L23: سفارشات B2B نمایندگان")
-    print(f"\n{'='*60}\n  {suite.name}\n{'='*60}")
-    d = get_session(DEALER_MOBILE)
-    a = get_session(ADMIN_MOBILE)
-
-    # B2B order list
-    r = _get(d, "/dealer/b2b-orders")
-    suite.add("L23-01", "لیست سفارشات B2B", r.status_code == 200)
-
-    # New B2B order catalog
-    r = _get(d, "/dealer/b2b-orders/new")
-    suite.add("L23-02", "کاتالوگ سفارش جدید", r.status_code == 200)
-
-    # Submit a B2B order (qty_1 = 1 for product_id=1)
-    prod_id = db_scalar("SELECT id FROM products WHERE is_active = true LIMIT 1")
-    if prod_id:
-        _get(d, "/dealer/b2b-orders/new")
-        r = _post_no_redirect(d, "/dealer/b2b-orders/new", {
-            f"qty_{prod_id}": "1",
-        })
-        suite.add("L23-03", "ثبت سفارش B2B",
-                  r.status_code in (200, 302, 303),
-                  f"status={r.status_code}")
-
-        # Check latest B2B order
-        b2b_id = db_scalar("""
-            SELECT id FROM b2b_orders WHERE dealer_id = :did
-            ORDER BY id DESC LIMIT 1
-        """, {"did": get_user_id(DEALER_MOBILE)})
-
-        if b2b_id:
-            # View detail
-            r = _get(d, f"/dealer/b2b-orders/{b2b_id}")
-            suite.add("L23-04", "جزئیات سفارش B2B", r.status_code == 200)
-
-            # Admin view
-            r = _get(a, "/admin/dealers/b2b-orders")
-            suite.add("L23-05", "لیست B2B ادمین", r.status_code == 200)
-
-            r = _get(a, f"/admin/dealers/b2b-orders/{b2b_id}")
-            suite.add("L23-06", "جزئیات B2B ادمین", r.status_code == 200)
-
-    return suite
-
 
 # ═══════════════════════════════════════════════════════════════
 # LIFECYCLE PHASE 7: VERIFICATION & OWNERSHIP
@@ -1861,7 +1815,6 @@ def main():
         test_L20_dealer_pos_web,
         test_L21_dealer_api_pos,
         test_L22_customer_pos_api,
-        test_L23_b2b_orders,
         # Phase 7: Verification & Ownership
         test_L24_verification,
         test_L25_ownership,

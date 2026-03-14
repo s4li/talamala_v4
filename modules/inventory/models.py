@@ -35,7 +35,6 @@ class BarStatus(str, enum.Enum):
 
 class TransferType(str, enum.Enum):
     MANUAL = "Manual"                         # دستی (ادمین)
-    B2B_FULFILLMENT = "B2BFulfillment"        # تحویل سفارش عمده
     ADMIN_TRANSFER = "AdminTransfer"          # انتقال ادمین
     RECONCILIATION = "Reconciliation"         # تعدیل انبارگردانی
     CUSTODIAL_DELIVERY = "CustodialDelivery"  # تحویل امانی به مشتری
@@ -167,7 +166,7 @@ class DealerTransfer(Base):
 
     # Phase 22: structured transfer audit
     transfer_type = Column(String(30), default=TransferType.MANUAL, nullable=False)
-    reference_type = Column(String(50), nullable=True)   # e.g. "b2b_order", "reconciliation_session"
+    reference_type = Column(String(50), nullable=True)   # e.g. "reconciliation_session", "gold_order"
     reference_id = Column(Integer, nullable=True)         # ID of the referenced entity
 
     bar = relationship("Bar", back_populates="transfers")
@@ -178,7 +177,6 @@ class DealerTransfer(Base):
     def transfer_type_label(self) -> str:
         labels = {
             TransferType.MANUAL: "دستی",
-            TransferType.B2B_FULFILLMENT: "تحویل سفارش عمده",
             TransferType.ADMIN_TRANSFER: "انتقال ادمین",
             TransferType.RECONCILIATION: "تعدیل انبارگردانی",
             TransferType.CUSTODIAL_DELIVERY: "تحویل امانی",
@@ -191,7 +189,6 @@ class DealerTransfer(Base):
     def transfer_type_color(self) -> str:
         colors = {
             TransferType.MANUAL: "secondary",
-            TransferType.B2B_FULFILLMENT: "primary",
             TransferType.ADMIN_TRANSFER: "info",
             TransferType.RECONCILIATION: "warning",
             TransferType.CUSTODIAL_DELIVERY: "success",

@@ -668,7 +668,7 @@ def run_ts11_dealer_pos():
 
 
 def run_ts12_to_ts15():
-    suite = TestSuite("TS-12~15: بازخرید/B2B/زیرمجموعه/توزیع")
+    suite = TestSuite("TS-12~15: بازخرید/زیرمجموعه/توزیع")
     print(f"\n{'='*60}\n  {suite.name}\n{'='*60}")
 
     d = get_session(DEALER_MOBILE)
@@ -677,9 +677,6 @@ def run_ts12_to_ts15():
     for path, tid, desc, client in [
         ("/dealer/buybacks", "TS-12-04", "لیست بازخریدها", d),
         ("/admin/dealers/buybacks", "TS-12-05", "بازخریدها (ادمین)", a),
-        ("/dealer/b2b-orders", "TS-13-01", "لیست B2B", d),
-        ("/dealer/b2b-orders/new", "TS-13-02", "سفارش B2B جدید", d),
-        ("/admin/dealers/b2b-orders", "TS-13-07", "B2B ادمین", a),
         ("/dealer/sub-dealers", "TS-14-01", "زیرمجموعه‌ها", d),
         ("/dealer/transfers", "TS-15-01", "صفحه توزیع", d),
         ("/dealer/transfers?tab=history", "TS-15-04", "تاریخچه انتقال", d),
