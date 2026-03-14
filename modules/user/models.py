@@ -59,6 +59,10 @@ class User(Base):
     referred_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     referral_rewarded = Column(Boolean, default=False, server_default="false")
 
+    # === Shahkar Identity Verification ===
+    shahkar_verified = Column(Boolean, default=False, server_default="false", nullable=False)
+    shahkar_verified_at = Column(DateTime(timezone=True), nullable=True)
+
     # === Dealer-specific ===
     tier_id = Column(Integer, ForeignKey("dealer_tiers.id", ondelete="SET NULL"), nullable=True, index=True)
     commission_percent = Column(Numeric(5, 2), default=2.0, nullable=True)
