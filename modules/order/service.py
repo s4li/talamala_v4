@@ -639,6 +639,8 @@ class OrderService:
                         pass  # Never block order finalization
 
         order.status = OrderStatus.PAID
+        if not order.paid_at:
+            order.paid_at = now_utc()
         self.log_status_change(
             db, order.id, "status",
             old_value=OrderStatus.PENDING, new_value=OrderStatus.PAID,

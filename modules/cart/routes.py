@@ -457,24 +457,17 @@ async def checkout(
             if me.is_dealer:
                 from modules.wallet.service import wallet_service
                 from modules.wallet.models import AssetCode
+                from common.helpers import now_utc
                 try:
-                    pay_amount = order.total_amount
-                    if order.shipping_cost:
-                        pay_amount += order.shipping_cost
-                    if order.insurance_cost:
-                        pay_amount += order.insurance_cost
-                    # Discount coupon reduces payment
-                    if order.promo_choice == "DISCOUNT" and order.promo_amount:
-                        pay_amount = max(0, pay_amount - order.promo_amount)
-
                     wallet_service.withdraw(
-                        db, me.id, pay_amount,
+                        db, me.id, order.grand_total,
                         reference_type="order_payment",
                         reference_id=str(order.id),
                         description=f"پرداخت سفارش ریالی #{order.id}",
                         asset_code=AssetCode.IRR,
                     )
                     order.payment_method = "wallet"
+                    order.paid_at = now_utc()
                     order_service.finalize_order(db, order.id)
                     db.commit()
                     msg = urllib.parse.quote(
@@ -482,8 +475,10 @@ async def checkout(
                     )
                     return RedirectResponse(f"/orders/{order.id}?msg={msg}", status_code=303)
                 except ValueError:
-                    # Insufficient credit — fall through to normal payment
-                    pass
+                    # Insufficient credit — rollback partial state, fall through to normal payment
+                    db.rollback()
+                    # Re-create order (rollback undid it)
+                    order = order_service.checkout(db, me.id, delivery_data)
 
             db.commit()
 
