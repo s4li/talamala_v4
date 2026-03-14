@@ -204,6 +204,16 @@
             </div>
         </div>
 
+        <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-receipt me-1"></i> اطلاعات فروشنده (فاکتور)</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-md-8">
+                <label class="form-label-tm">اطلاعات فروشنده در فاکتور</label>
+                <textarea name="invoice_seller_info" class="form-control form-control-tm" rows="5"
+                          placeholder="هر خط یک آیتم — مثال:&#10;شرکت طلاملا (سهامی خاص)&#10;شماره ثبت: ۱۲۳۴۵&#10;شناسه ملی: ۱۴۰۰۱۲۳۴۵۶۷&#10;تهران، خیابان ولیعصر ...&#10;تلفن: ۰۲۱-۱۲۳۴۵۶۷۸">{{ settings.get('invoice_seller_info', {}).value if settings.get('invoice_seller_info') else '' }}</textarea>
+                <div class="form-text">هر خط جداگانه نمایش داده می‌شود.</div>
+            </div>
+        </div>
+
         <h6 class="fw-bold mb-3 text-tm-primary"><i class="bi bi-clock me-1"></i> سفارشات</h6>
         <div class="row g-3 mb-4">
             <div class="col-md-4">

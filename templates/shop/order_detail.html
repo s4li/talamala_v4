@@ -239,16 +239,25 @@
                     <div class="party-label"><i class="bi bi-shop me-1"></i>فروشنده</div>
                     <div class="party-name">{{ get_setting_value('site_name', 'طلاملا') }}</div>
                     <div class="party-detail">
-                        {% set seller_phone = get_setting_value('support_phone', '') %}
-                        {% set seller_telegram = get_setting_value('support_telegram', '') %}
-                        {% if seller_phone %}
-                        <div><i class="bi bi-telephone me-1"></i><span dir="ltr">{{ seller_phone }}</span></div>
-                        {% endif %}
-                        {% if seller_telegram %}
-                        <div><i class="bi bi-send me-1"></i>{{ seller_telegram }}</div>
-                        {% endif %}
-                        {% if not seller_phone and not seller_telegram %}
-                        <div class="text-muted">—</div>
+                        {% set seller_info = get_setting_value('invoice_seller_info', '') %}
+                        {% if seller_info %}
+                            {% for line in seller_info.split('\n') %}
+                                {% if line.strip() %}
+                                <div>{{ line.strip() }}</div>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            {% set seller_phone = get_setting_value('support_phone', '') %}
+                            {% set seller_telegram = get_setting_value('support_telegram', '') %}
+                            {% if seller_phone %}
+                            <div><i class="bi bi-telephone me-1"></i><span dir="ltr">{{ seller_phone }}</span></div>
+                            {% endif %}
+                            {% if seller_telegram %}
+                            <div><i class="bi bi-send me-1"></i>{{ seller_telegram }}</div>
+                            {% endif %}
+                            {% if not seller_phone and not seller_telegram %}
+                            <div class="text-muted">—</div>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
