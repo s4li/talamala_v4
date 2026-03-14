@@ -141,9 +141,9 @@ class WalletService:
         if account.locked_balance < 0:
             raise ValueError(f"بلوکه منفی (locked would be {account.locked_balance})")
         if account.credit_balance < 0:
-            raise ValueError(f"اعتبار منفی (credit would be {account.credit_balance})")
-        # Credit cannot exceed total balance
-        if account.credit_balance > account.balance:
+            account.credit_balance = 0  # credit (store credit) can't go below zero
+        # Credit cannot exceed positive balance (only relevant when balance > 0)
+        if account.balance > 0 and account.credit_balance > account.balance:
             account.credit_balance = account.balance
 
         entry = LedgerEntry(
