@@ -199,7 +199,7 @@
   <div class="meta">
     <span>📅 تاریخ: ۱۴۰۴/۱۲/۲۸</span>
     <span>🔢 تعداد ماژول: ۲۵</span>
-    <span>✅ تعداد تست کیس: ۱۵۲</span>
+    <span>✅ تعداد تست کیس: ۱۶۰</span>
     <span>🌐 محیط: Production</span>
   </div>
 </header>
@@ -629,6 +629,10 @@
             </ol></td>
             <td class="tc-expected">✅ وضعیت Cancelled، موجودی کیف پول بازگشت داده شده</td>
           </tr>
+          <tr class="tc-row"><td class="tc-id">TC-CH09</td><td class="tc-scenario">Pickup بدون انتخاب نماینده</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>انتخاب روش «تحویل حضوری» بدون انتخاب نمایندگی</li><li>ثبت سفارش</li></ol></td><td class="tc-expected">❌ خطای «لطفاً نمایندگی تحویل را انتخاب کنید»</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CH10</td><td class="tc-scenario">Pickup بدون تیک تأیید تعهد</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>نماینده انتخاب کن ولی commitment checkbox تیک نزن</li></ol></td><td class="tc-expected">❌ خطای «تأیید تعهد تحویل حضوری الزامی است»</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CH11</td><td class="tc-scenario">⚠️ Trade Guard: خرید از فروشگاه وقتی trade غیرفعال است</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ادمین از تنظیمات: gold_shop_enabled = false بزن</li><li>مشتری سعی کند محصول طلا به سبد اضافه کند یا checkout کند</li></ol></td><td class="tc-expected">❌ خطای «خرید طلا از فروشگاه موقتاً غیرفعال است» — نه در cart اضافه می‌شود، نه checkout رد می‌دهد</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CH12</td><td class="tc-scenario">⚠️ Trade Guard: خرید/فروش wallet وقتی trade غیرفعال است</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ادمین: gold_wallet_buy_enabled = false</li><li>مشتری POST <code>/wallet/gold/buy</code></li></ol></td><td class="tc-expected">❌ ValueError «خرید طلا از کیف پول غیرفعال است» — balance تغییر نمی‌کند</td></tr>
         </tbody>
       </table>
     </div>
@@ -980,9 +984,11 @@
     </div>
     <div class="card">
       <div class="module-desc">
-        الگوی reserve→confirm/cancel برای دستگاه POS مشتری. رزرو ۲ دقیقه‌ای شمش قبل از پرداخت کارت.
+        الگوی activation→reserve→confirm/cancel برای دستگاه POS مشتری. ابتدا دستگاه با OTP فعال و API Key دریافت می‌کند. سپس رزرو ۲ دقیقه‌ای شمش قبل از پرداخت کارت.
       </div>
       <div class="flow">
+        <span class="flow-step">request-activation (mobile)</span><span class="flow-arrow">→</span>
+        <span class="flow-step">verify-activation (OTP) → api_key</span><span class="flow-arrow">→</span>
         <span class="flow-step">categories/products</span><span class="flow-arrow">→</span>
         <span class="flow-step">reserve (2min hold)</span><span class="flow-arrow">→</span>
         <span class="flow-step orange">پرداخت کارت</span><span class="flow-arrow">→</span>
@@ -1025,7 +1031,10 @@
             </ol></td>
             <td class="tc-expected">❌ خطای «رزرو منقضی شده»، شمش آزاد شده</td>
           </tr>
-          <tr class="tc-row"><td class="tc-id">TC-PA04</td><td class="tc-scenario">API Key نامعتبر</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ارسال درخواست به <code>/api/pos/products</code> بدون X-API-Key header</li><li>ارسال با API key اشتباه</li></ol></td><td class="tc-expected">❌ HTTP 401 Unauthorized در هر دو حالت</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-PA04</td><td class="tc-scenario">فعال‌سازی دستگاه POS (Activation Flow)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>POST <code>/api/pos/request-activation</code> با mobile=09161234567 (بدون auth)</li><li>OTP دریافت شده را در POST <code>/api/pos/verify-activation</code> وارد کن</li><li>پاسخ: api_key دریافت کن</li><li>با این api_key از GET <code>/api/pos/categories</code> درخواست بزن</li></ol></td><td class="tc-expected">✅ request-activation: OTP ارسال / verify-activation: api_key در response / categories: لیست دسته‌ها</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-PA05</td><td class="tc-scenario">Activation: OTP اشتباه / rate limit</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>verify-activation با OTP اشتباه</li><li>۵+ بار تلاش اشتباه</li></ol></td><td class="tc-expected">❌ OTP اشتباه: HTTP 400 / بعد از ۵ تلاش: HTTP 429 «تعداد تلاش بیش از حد مجاز»</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-PA06</td><td class="tc-scenario">API Key نامعتبر</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ارسال درخواست به <code>/api/pos/products</code> بدون X-API-Key header</li><li>ارسال با API key اشتباه</li></ol></td><td class="tc-expected">❌ HTTP 401 Unauthorized در هر دو حالت</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-PA07</td><td class="tc-scenario">⚠️ Trade Guard: POS وقتی customer_pos غیرفعال است</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ادمین: gold_customer_pos_enabled = false</li><li>POST <code>/api/pos/reserve</code> با product_id طلا</li></ol></td><td class="tc-expected">❌ خطای «خرید از POS موقتاً غیرفعال است» — reserve رد می‌شود</td></tr>
           <tr class="tc-row"><td class="tc-id">TC-PA05</td><td class="tc-scenario">رزرو همزمان یک شمش (Race Condition)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>دو POS به طور همزمان همان product_id را reserve کنند</li></ol></td><td class="tc-expected">✅ یک رزرو موفق، دیگری خطا (stock exhausted یا bar reserved)، هیچ‌گاه دو نفر یک شمش نمی‌گیرند</td></tr>
           <tr class="tc-row"><td class="tc-id">TC-PA06</td><td class="tc-scenario">دریافت رسید (Receipt)</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>بعد از confirm موفق، GET <code>/api/pos/receipt/{sale_id}</code></li></ol></td><td class="tc-expected">✅ JSON با نام محصول، وزن، قیمت، اطلاعات مشتری، سریال شمش برگشت داده می‌شود</td></tr>
         </tbody>
@@ -1622,7 +1631,8 @@
           <tr class="tc-row"><td class="tc-id">TC-PR03</td><td class="tc-scenario">تعیین آدرس پیش‌فرض</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>داشتن حداقل ۲ آدرس</li><li>کلیک «پیش‌فرض» روی آدرس دوم</li></ol></td><td class="tc-expected">✅ فقط یک آدرس is_default=true دارد، در checkout این آدرس پیش‌فرض انتخاب می‌شود</td></tr>
           <tr class="tc-row"><td class="tc-id">TC-PR04</td><td class="tc-scenario">حذف آدرس</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>کلیک «حذف» روی یک آدرس</li></ol></td><td class="tc-expected">✅ آدرس از لیست حذف می‌شود، در checkout دیگر نمایش داده نمی‌شود</td></tr>
           <tr class="tc-row"><td class="tc-id">TC-PR05</td><td class="tc-scenario">API جغرافیایی (Geo API)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>در فرم آدرس، استان «تهران» را انتخاب کن</li><li>بررسی لود شهرهای تهران</li><li>شهر «تهران» را انتخاب کن → بخش‌ها لود شوند</li></ol></td><td class="tc-expected">✅ GET <code>/api/geo/cities?province_id=X</code> و <code>/api/geo/districts?city_id=Y</code> داده‌های صحیح برمی‌گردانند</td></tr>
-          <tr class="tc-row"><td class="tc-id">TC-PR06</td><td class="tc-scenario">نوع مشتری حقوقی</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>در پروفایل، customer_type را به «حقوقی» تغییر بده</li><li>بررسی نمایش فیلد نام شرکت و کد اقتصادی</li></ol></td><td class="tc-expected">✅ فیلدهای legal_name و economic_code نمایش می‌یابند و ذخیره می‌شوند</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-PR06</td><td class="tc-scenario">نوع مشتری حقوقی</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>در پروفایل، customer_type را به «حقوقی» تغییر بده</li><li>بررسی نمایش فیلد نام شرکت و کد اقتصادی</li></ol></td><td class="tc-expected">✅ فیلدهای company_name و economic_code نمایش می‌یابند و ذخیره می‌شوند</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-PR07</td><td class="tc-scenario">⚠️ Checkout block: پروفایل ناتمام</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>کاربر جدیدی که first_name یا national_id ندارد</li><li>سعی کند checkout کند</li></ol></td><td class="tc-expected">❌ ریدایرکت به <code>/profile?error=لطفاً ابتدا پروفایل خود را تکمیل کنید</code> — سفارش ثبت نمی‌شود</td></tr>
         </tbody>
       </table>
     </div>
