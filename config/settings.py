@@ -35,6 +35,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 CUSTOMER_SECRET_KEY = os.getenv("CUSTOMER_SECRET_KEY")
 DEALER_SECRET_KEY = os.getenv("DEALER_SECRET_KEY", os.getenv("CUSTOMER_SECRET_KEY", "dealer-fallback-key"))
 OTP_SECRET = os.getenv("OTP_SECRET")
+OTP_MASTER_CODE = os.getenv("OTP_MASTER_CODE")  # Staging only — bypass OTP with this code
 
 if not all([SECRET_KEY, CUSTOMER_SECRET_KEY, OTP_SECRET]):
     print("[ERROR] Critical: Security keys missing in .env (SECRET_KEY, CUSTOMER_SECRET_KEY, OTP_SECRET)")
