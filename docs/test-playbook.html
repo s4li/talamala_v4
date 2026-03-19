@@ -199,7 +199,7 @@
   <div class="meta">
     <span>📅 تاریخ: ۱۴۰۴/۱۲/۲۸</span>
     <span>🔢 تعداد ماژول: ۲۵</span>
-    <span>✅ تعداد تست کیس: ۱۸۵+</span>
+    <span>✅ تعداد تست کیس: ۱۵۲</span>
     <span>🌐 محیط: Production</span>
   </div>
 </header>
@@ -788,14 +788,16 @@
           </tr>
           <tr class="tc-row">
             <td class="tc-id">TC-W08</td>
-            <td class="tc-scenario">تاریخچه تراکنش‌ها</td>
+            <td class="tc-scenario">تاریخچه تراکنش‌ها با فیلتر asset</td>
             <td><span class="badge badge-blue">متوسط</span></td>
             <td class="tc-steps"><ol>
-              <li>رفتن به <code>/wallet/transactions</code></li>
-              <li>فیلتر بر اساس نوع دارایی (ریال/طلا)</li>
+              <li>رفتن به <code>/wallet/transactions</code> — بدون فیلتر</li>
+              <li>رفتن به <code>/wallet/transactions?asset=gold</code> — فقط XAU_MG</li>
+              <li>رفتن به <code>/wallet/transactions?asset=irr</code> — فقط IRR</li>
             </ol></td>
-            <td class="tc-expected">✅ لیست کامل تراکنش‌ها با نوع، مبلغ، موجودی بعد از تراکنش</td>
+            <td class="tc-expected">✅ بدون فیلتر: همه نوع دارایی‌ها / با فیلتر: فقط تراکنش‌های آن دارایی — هر ردیف: نوع تراکنش، delta، balance_after</td>
           </tr>
+          <tr class="tc-row"><td class="tc-id">TC-W09</td><td class="tc-scenario">نقره — خرید و فروش از wallet</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>رفتن به <code>/wallet/silver</code></li><li>خرید نقره با مبلغ ریالی</li><li>بررسی XAG_MG balance + کارمزد</li><li>فروش نقره</li></ol></td><td class="tc-expected">✅ XAG_MG افزایش/کاهش، کارمزد silver_fee_customer_percent کسر، تراکنش در /wallet/transactions?asset=silver</td></tr>
         </tbody>
       </table>
     </div>
@@ -848,14 +850,28 @@
           </tr>
           <tr class="tc-row">
             <td class="tc-id">TC-D04</td>
-            <td class="tc-scenario">درخواست بازخرید</td>
-            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-scenario">بازخرید — فلو کامل OTP (⚠️ ادمین در این فلو نقش ندارد)</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
             <td class="tc-steps"><ol>
               <li>رفتن به <code>/dealer/buyback</code></li>
-              <li>وارد کردن سریال‌کد و اطلاعات مشتری</li>
-              <li>ثبت درخواست</li>
+              <li>اسکن سریال شمش با <code>GET /dealer/buyback/lookup?serial=X</code></li>
+              <li>وارد کردن قیمت بازخرید و کلیک «ارسال کد تأیید»</li>
+              <li>سرور OTP به موبایل مشتری (صاحب شمش) ارسال می‌کند</li>
+              <li>مشتری کد را به نماینده می‌دهد → نماینده در فیلد OTP وارد می‌کند</li>
+              <li>کلیک «تأیید بازخرید» — AJAX POST <code>/dealer/buyback/confirm</code> (JSON + X-CSRF-Token)</li>
+              <li>DB: BuybackRequest.status=COMPLETED، موجودی XAU_MG نماینده افزایش یافته (wage_refund)، PositionLedger ثبت شده</li>
             </ol></td>
-            <td class="tc-expected">✅ درخواست با وضعیت Pending ثبت می‌شود، منتظر تأیید ادمین</td>
+            <td class="tc-expected">✅ بازخرید atomic انجام شده: bar دوباره ASSIGNED، وجه/طلا به wallet نماینده، اعلان ارسال شده</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-D04B</td>
+            <td class="tc-scenario">بازخرید — ارسال مجدد OTP و لغو</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>بعد از send-otp، کلیک «ارسال مجدد» → <code>POST /dealer/buyback/resend-otp</code></li>
+              <li>تست لغو: <code>POST /dealer/buyback/cancel</code></li>
+            </ol></td>
+            <td class="tc-expected">✅ OTP مجدد ارسال می‌شود / درخواست لغو می‌شود و BuybackRequest حذف/cancelled می‌شود</td>
           </tr>
           <tr class="tc-row">
             <td class="tc-id">TC-D05</td>
@@ -1294,13 +1310,15 @@
           </tr>
           <tr class="tc-row">
             <td class="tc-id">TC-V03</td>
-            <td class="tc-scenario">دانلود QR Code ادمین</td>
+            <td class="tc-scenario">دانلود QR Code ادمین (high-res برای چاپ)</td>
             <td><span class="badge badge-blue">متوسط</span></td>
             <td class="tc-steps"><ol>
               <li>ادمین به <code>/admin/bars/{id}/qr</code> برود</li>
             </ol></td>
-            <td class="tc-expected">✅ تصویر PNG با QR Code + سریال + لوگو دانلود می‌شود (on-the-fly، بدون ذخیره)</td>
+            <td class="tc-expected">✅ تصویر PNG با QR Code + سریال + لوگو دانلود می‌شود (on-the-fly، بدون ذخیره در disk)</td>
           </tr>
+          <tr class="tc-row"><td class="tc-id">TC-V04</td><td class="tc-scenario">QR عمومی تأیید اصالت (بدون auth)</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>بدون لاگین، GET <code>/verify/qr/{serial_code}.png</code></li></ol></td><td class="tc-expected">✅ تصویر QR عمومی سرو می‌شود که به <code>/verify?code={serial}</code> لینک دارد</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-V05</td><td class="tc-scenario">API بررسی اصالت (JSON)</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>GET <code>/verify/api/check?code=TSCLM001</code></li></ol></td><td class="tc-expected">✅ JSON با اطلاعات شمش، محصول، وضعیت، مالک (بدون اطلاعات حساس)</td></tr>
         </tbody>
       </table>
     </div>
@@ -1395,9 +1413,11 @@
             </ol></td>
             <td class="tc-expected">✅ <code>bar.delivered_at</code> ست، وضعیت تحویل به Delivered تغییر</td>
           </tr>
-          <tr class="tc-row"><td class="tc-id">TC-AO03</td><td class="tc-scenario">لغو سفارش Pending</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>یک سفارش Pending پیدا کن</li><li>از ادمین لغو کن با دلیل</li><li>DB: order.status و bar.status و balance بررسی شود</li></ol></td><td class="tc-expected">✅ order.status=Cancelled، bar دوباره ASSIGNED، اگر wallet پرداخت شده بود، موجودی برگشت داده شده</td></tr>
-          <tr class="tc-row"><td class="tc-id">TC-AO04</td><td class="tc-scenario">تغییر وضعیت تحویل پستی</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>سفارش با روش تحویل Postal در وضعیت Paid</li><li>از ادمین delivery_status را به «Shipped» و کد رهگیری وارد کن</li><li>سپس به «Delivered» تغییر بده</li></ol></td><td class="tc-expected">✅ وضعیت تحویل تغییر می‌کند، OrderStatusLog ثبت می‌شود، مشتری اعلان دریافت می‌کند</td></tr>
-          <tr class="tc-row"><td class="tc-id">TC-AO05</td><td class="tc-scenario">جستجو و فیلتر پیشرفته</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li><code>/admin/orders</code> با فیلتر: روش تحویل=Pickup، payment_method=wallet</li></ol></td><td class="tc-expected">✅ فقط سفارشات حضوری-کیف‌پولی نمایش داده می‌شوند</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AO03</td><td class="tc-scenario">تأیید دستی سفارش Pending توسط ادمین</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>سفارشی که gateway پرداخت شده اما به خاطر مشکل callback هنوز Pending است</li><li>ادمین: POST <code>/admin/orders/{id}/approve</code></li><li>DB: order.status، bar.customer_id، bar.status بررسی شود</li></ol></td><td class="tc-expected">✅ order.status=Paid، bar.customer_id=user_id، bar.status=SOLD — finalize_order اجرا شده</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AO04</td><td class="tc-scenario">تحویل حضوری با کد تحویل (Pickup + delivery_code)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>سفارش Pickup در وضعیت Paid</li><li>هنگام ثبت سفارش، کد تحویل به مشتری داده شده (در پیام success)</li><li>ادمین: POST <code>/admin/orders/{id}/confirm-pickup</code> با delivery_code</li><li>DB: order.delivery_status=DELIVERED، bar.delivered_at ثبت شده</li></ol></td><td class="tc-expected">✅ تحویل ثبت، bar.delivered_at set، اگر کد اشتباه باشد: ❌ خطای «کد تحویل نادرست»</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AO05</td><td class="tc-scenario">لغو سفارش Pending توسط ادمین</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>یک سفارش Pending پیدا کن</li><li>از ادمین لغو کن: POST <code>/admin/orders/{id}/cancel</code></li><li>DB: order.status، bar.status بررسی شود</li></ol></td><td class="tc-expected">✅ order.status=Cancelled، bar دوباره ASSIGNED، OrderStatusLog ثبت</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AO06</td><td class="tc-scenario">تغییر وضعیت تحویل پستی</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>سفارش Postal در وضعیت Paid</li><li>POST <code>/admin/orders/{id}/delivery-status</code> با delivery_status=Shipped + کد رهگیری</li><li>سپس همان route با delivery_status=Delivered</li></ol></td><td class="tc-expected">✅ delivery_status تغییر می‌کند، OrderStatusLog ثبت، مشتری اعلان دریافت می‌کند</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AO07</td><td class="tc-scenario">مشتری خودش سفارش Pending را لغو می‌کند</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ورود با مشتری 09351234567</li><li>یک سفارش Pending داشته باشد</li><li>از صفحه جزئیات سفارش، POST <code>/orders/{id}/cancel</code></li></ol></td><td class="tc-expected">✅ order.status=Cancelled، bar آزاد، اگر wallet پرداخت شده بود موجودی برگشت</td></tr>
         </tbody>
       </table>
     </div>
