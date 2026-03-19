@@ -1,0 +1,1919 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پلی‌بوک تست — TalaMala v4</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Vazirmatn', Tahoma, Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #1a1a2e;
+    background: #f8f9fa;
+    direction: rtl;
+  }
+
+  /* ===== PRINT ===== */
+  @media print {
+    body { background: white; font-size: 11px; }
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; }
+    .card { box-shadow: none !important; border: 1px solid #dee2e6 !important; }
+    header { background: #1a1a2e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .section-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .tc-row:nth-child(even) { background: #f8f9fa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+
+  /* ===== LAYOUT ===== */
+  header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+    color: white;
+    padding: 40px;
+    text-align: center;
+  }
+  header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
+  header p { font-size: 14px; opacity: 0.8; }
+  header .meta { margin-top: 16px; display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+  header .meta span { background: rgba(255,255,255,0.15); padding: 4px 14px; border-radius: 20px; font-size: 12px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+
+  /* ===== TOC ===== */
+  .toc {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    border-right: 4px solid #e94560;
+  }
+  .toc h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #1a1a2e; }
+  .toc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .toc a { text-decoration: none; color: #0f3460; font-size: 12px; padding: 5px 10px; border-radius: 6px; display: block; transition: background 0.2s; }
+  .toc a:hover { background: #f0f4ff; }
+  .toc a .num { color: #e94560; font-weight: 700; margin-left: 6px; }
+
+  /* ===== MODULE ===== */
+  .module { margin-bottom: 32px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, #0f3460, #16213e);
+    color: white;
+    padding: 14px 20px;
+    border-radius: 10px 10px 0 0;
+  }
+  .section-header .icon { font-size: 22px; }
+  .section-header h2 { font-size: 16px; font-weight: 700; }
+  .section-header .module-id { margin-right: auto; background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 12px; font-size: 11px; }
+
+  .card {
+    background: white;
+    border-radius: 0 0 10px 10px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .module-desc { font-size: 12.5px; color: #555; margin-bottom: 16px; padding: 10px 14px; background: #f8f9fa; border-radius: 8px; border-right: 3px solid #0f3460; }
+
+  /* ===== TEST CASE TABLE ===== */
+  .tc-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .tc-table th {
+    background: #1a1a2e;
+    color: white;
+    padding: 9px 12px;
+    text-align: right;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .tc-table th:first-child { border-radius: 0 6px 0 0; width: 80px; }
+  .tc-table th:last-child { border-radius: 6px 0 0 0; }
+  .tc-row td { padding: 10px 12px; vertical-align: top; font-size: 12px; border-bottom: 1px solid #eef0f3; }
+  .tc-row:nth-child(even) td { background: #fafbfc; }
+  .tc-row:hover td { background: #f0f4ff; }
+
+  .tc-id { font-weight: 700; color: #e94560; white-space: nowrap; font-size: 11px; }
+  .tc-scenario { font-weight: 600; color: #1a1a2e; }
+  .tc-steps { color: #444; }
+  .tc-steps ol { padding-right: 18px; }
+  .tc-steps li { margin-bottom: 3px; }
+  .tc-expected { color: #1a6b2e; }
+  .tc-edge { color: #8b4400; }
+
+  /* ===== BADGES ===== */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-green { background: #d4edda; color: #155724; }
+  .badge-red { background: #f8d7da; color: #721c24; }
+  .badge-blue { background: #cce5ff; color: #004085; }
+  .badge-orange { background: #fff3cd; color: #856404; }
+  .badge-purple { background: #e2d9f3; color: #4a1d96; }
+  .badge-gray { background: #e9ecef; color: #495057; }
+
+  /* ===== PRIORITY LEGEND ===== */
+  .legend {
+    background: white;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .legend strong { font-size: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+
+  /* ===== CREDENTIALS BOX ===== */
+  .creds-box {
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+  }
+  .creds-box h3 { font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #5d4037; }
+  .creds-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px; }
+  .cred-item { font-size: 11.5px; background: white; padding: 6px 10px; border-radius: 6px; border: 1px solid #ffe082; }
+  .cred-item strong { color: #e65100; }
+
+  /* ===== CHECKLIST ===== */
+  .checklist { list-style: none; }
+  .checklist li { padding: 5px 0; font-size: 12px; display: flex; align-items: flex-start; gap: 8px; }
+  .checklist li::before { content: '☐'; color: #e94560; flex-shrink: 0; font-size: 14px; line-height: 1.2; }
+
+  /* ===== FLOW DIAGRAM ===== */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 11.5px;
+    margin: 10px 0;
+    padding: 10px 14px;
+    background: #f8f9fa;
+    border-radius: 8px;
+  }
+  .flow-step { background: #0f3460; color: white; padding: 4px 12px; border-radius: 16px; white-space: nowrap; }
+  .flow-arrow { color: #999; font-size: 16px; }
+  .flow-step.green { background: #1a6b2e; }
+  .flow-step.red { background: #c0392b; }
+  .flow-step.orange { background: #e67e22; }
+
+  .section-note {
+    font-size: 11.5px;
+    color: #666;
+    padding: 8px 12px;
+    background: #fff3cd;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    border-right: 3px solid #ffc107;
+  }
+
+  .col-id { width: 90px; }
+  .col-scenario { width: 160px; }
+  .col-priority { width: 70px; }
+  .col-steps { width: auto; }
+  .col-expected { width: 200px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 پلی‌بوک تست جامع — TalaMala v4</h1>
+  <p>راهنمای تست end-to-end برای تیم QA — سیستم فروش شمش طلا و نقره</p>
+  <div class="meta">
+    <span>📅 تاریخ: ۱۴۰۴/۱۲/۲۸</span>
+    <span>🔢 تعداد ماژول: ۲۵</span>
+    <span>✅ تعداد تست کیس: ۱۸۵+</span>
+    <span>🌐 محیط: Production</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- LEGEND -->
+  <div class="legend no-print">
+    <strong>اولویت:</strong>
+    <div class="legend-item"><span class="badge badge-red">بحرانی</span> باید قبل از هر چیز تست شود</div>
+    <div class="legend-item"><span class="badge badge-orange">بالا</span> مهم برای کسب‌وکار</div>
+    <div class="legend-item"><span class="badge badge-blue">متوسط</span> قابلیت مهم</div>
+    <div class="legend-item"><span class="badge badge-gray">پایین</span> جزئیات UI</div>
+  </div>
+
+  <!-- CREDENTIALS -->
+  <div class="creds-box">
+    <h3>🔑 اطلاعات ورود برای تست (OTP = کد ارسالی SMS)</h3>
+    <div class="creds-grid">
+      <div class="cred-item">👑 <strong>سوپر ادمین:</strong> 09123456789</div>
+      <div class="cred-item">🛠 <strong>اپراتور:</strong> 09121111111</div>
+      <div class="cred-item">👤 <strong>مشتری ۱:</strong> 09351234567 (کیف پول ۱۰M)</div>
+      <div class="cred-item">👤 <strong>مشتری ۲:</strong> 09359876543</div>
+      <div class="cred-item">🏪 <strong>نماینده اصفهان:</strong> 09161234567</div>
+      <div class="cred-item">🏪 <strong>نماینده شیراز:</strong> 09171234567</div>
+      <div class="cred-item">🏪 <strong>نماینده مشهد:</strong> 09181234567</div>
+      <div class="cred-item">🔑 <strong>API Key اصفهان:</strong> test_esfahan_key_0000000000000000</div>
+    </div>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <h2>📑 فهرست ماژول‌ها</h2>
+    <div class="toc-grid">
+      <a href="#auth"><span class="num">M01</span>ورود و احراز هویت</a>
+      <a href="#shop"><span class="num">M02</span>فروشگاه عمومی</a>
+      <a href="#cart"><span class="num">M03</span>سبد خرید</a>
+      <a href="#checkout"><span class="num">M04</span>فرآیند سفارش</a>
+      <a href="#payment"><span class="num">M05</span>پرداخت</a>
+      <a href="#wallet"><span class="num">M06</span>کیف پول</a>
+      <a href="#dealer-panel"><span class="num">M07</span>پنل نمایندگی</a>
+      <a href="#dealer-api"><span class="num">M08</span>API نمایندگی (POS)</a>
+      <a href="#pos-api"><span class="num">M09</span>API مشتری (POS)</a>
+      <a href="#ownership"><span class="num">M10</span>مالکیت و انتقال</a>
+      <a href="#tickets"><span class="num">M11</span>پشتیبانی (تیکت)</a>
+      <a href="#reviews"><span class="num">M12</span>نظرات و بررسی</a>
+      <a href="#notifications"><span class="num">M13</span>اعلان‌ها</a>
+      <a href="#verification"><span class="num">M14</span>احراز اصالت</a>
+      <a href="#blog"><span class="num">M15</span>بلاگ</a>
+      <a href="#admin-orders"><span class="num">M16</span>ادمین - سفارشات</a>
+      <a href="#admin-inventory"><span class="num">M17</span>ادمین - انبار</a>
+      <a href="#admin-dealers"><span class="num">M18</span>ادمین - نمایندگان</a>
+      <a href="#admin-settings"><span class="num">M19</span>ادمین - تنظیمات</a>
+      <a href="#profile"><span class="num">M20</span>پروفایل و آدرس‌ها</a>
+      <a href="#coupon"><span class="num">M21</span>کوپن تخفیف</a>
+      <a href="#custodial"><span class="num">M22</span>تحویل امانی شمش</a>
+      <a href="#dealer-request"><span class="num">M23</span>درخواست نمایندگی</a>
+      <a href="#admin-wallet"><span class="num">M24</span>ادمین - کیف پول</a>
+      <a href="#hedging"><span class="num">M25</span>هجینگ و مدیریت ریسک</a>
+    </div>
+  </div>
+
+  <!-- ===================== M01: AUTH ===================== -->
+  <div class="module page-break" id="auth">
+    <div class="section-header">
+      <span class="icon">🔐</span>
+      <h2>M01 — ورود و احراز هویت (OTP-based)</h2>
+      <span class="module-id">AUTH</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        سیستم ورود مبتنی بر OTP پیامکی. یک کوکی JWT برای همه نقش‌ها (مشتری، نماینده، ادمین). ثبت‌نام خودکار هنگام اولین ورود.
+      </div>
+      <div class="flow">
+        <span class="flow-step">صفحه ورود</span><span class="flow-arrow">→</span>
+        <span class="flow-step">وارد کردن موبایل</span><span class="flow-arrow">→</span>
+        <span class="flow-step">ارسال OTP</span><span class="flow-arrow">→</span>
+        <span class="flow-step">تأیید کد</span><span class="flow-arrow">→</span>
+        <span class="flow-step green">JWT Cookie + Redirect</span>
+      </div>
+      <table class="tc-table">
+        <thead>
+          <tr>
+            <th class="col-id">شناسه</th>
+            <th class="col-scenario">سناریو</th>
+            <th class="col-priority">اولویت</th>
+            <th class="col-steps">مراحل تست</th>
+            <th class="col-expected">نتیجه انتظاری</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-A01</td>
+            <td class="tc-scenario">ورود مشتری موجود</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/auth/login</code></li>
+              <li>وارد کردن موبایل <strong>09351234567</strong></li>
+              <li>کلیک «ارسال کد»</li>
+              <li>وارد کردن OTP دریافتی</li>
+            </ol></td>
+            <td class="tc-expected">✅ ریدایرکت به صفحه اصلی فروشگاه، کوکی <code>auth_token</code> ست شده</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-A02</td>
+            <td class="tc-scenario">ورود نماینده</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>ورود با موبایل <strong>09161234567</strong></li>
+              <li>تأیید OTP</li>
+            </ol></td>
+            <td class="tc-expected">✅ ریدایرکت به <code>/dealer/dashboard</code></td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-A03</td>
+            <td class="tc-scenario">ورود سوپر ادمین</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>ورود با موبایل <strong>09123456789</strong></li>
+              <li>تأیید OTP</li>
+            </ol></td>
+            <td class="tc-expected">✅ ریدایرکت به <code>/admin/dashboard</code></td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-A04</td>
+            <td class="tc-scenario">OTP اشتباه</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>ارسال OTP برای یک موبایل</li>
+              <li>وارد کردن کد اشتباه (مثلاً ۱۲۳۴۵۶)</li>
+            </ol></td>
+            <td class="tc-expected">❌ پیام خطا «کد وارد شده صحیح نیست»، کوکی ست نشده</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-A05</td>
+            <td class="tc-scenario">موبایل نامعتبر</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>وارد کردن موبایل با فرمت اشتباه: <code>0912123</code></li>
+            </ol></td>
+            <td class="tc-expected">❌ پیام خطای validation، OTP ارسال نشده</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-A06</td>
+            <td class="tc-scenario">خروج از حساب</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>بعد از ورود، رفتن به <code>/auth/logout</code></li>
+            </ol></td>
+            <td class="tc-expected">✅ کوکی پاک شده، ریدایرکت به login</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-A07</td>
+            <td class="tc-scenario">دسترسی بدون ورود</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>بدون لاگین رفتن به <code>/wallet</code></li>
+              <li>رفتن به <code>/orders</code></li>
+            </ol></td>
+            <td class="tc-expected">❌ ریدایرکت به <code>/auth/login?next=...</code></td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-A08</td>
+            <td class="tc-scenario">ثبت‌نام خودکار کاربر جدید</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>ورود با شماره‌ای که قبلاً ثبت نشده</li>
+              <li>تأیید OTP</li>
+            </ol></td>
+            <td class="tc-expected">✅ کاربر جدید ساخته می‌شود، ریدایرکت به صفحه تکمیل پروفایل</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M02: SHOP ===================== -->
+  <div class="module" id="shop">
+    <div class="section-header">
+      <span class="icon">🛍</span>
+      <h2>M02 — فروشگاه عمومی (Shop)</h2>
+      <span class="module-id">SHOP</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        نمایش محصولات شمش طلا و نقره با قیمت‌گذاری real-time. فیلتر دسته‌بندی، مرتب‌سازی، و نمایش موجودی. قیمت هر ۱۵ دقیقه تازه می‌شود.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-S01</td>
+            <td class="tc-scenario">نمایش لیست محصولات</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/</code></li>
+              <li>بررسی نمایش محصولات</li>
+            </ol></td>
+            <td class="tc-expected">✅ محصولات نمایش داده می‌شوند، قیمت واقعی (تومان) نشان داده می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-S02</td>
+            <td class="tc-scenario">فیلتر دسته‌بندی</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>کلیک روی یک دسته (مثلاً «شمش گرمی»)</li>
+              <li>بررسی فیلتر شدن محصولات</li>
+            </ol></td>
+            <td class="tc-expected">✅ فقط محصولات همان دسته نمایش داده می‌شوند، URL حاوی <code>?category=...</code></td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-S03</td>
+            <td class="tc-scenario">جزئیات محصول</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>کلیک روی یک محصول</li>
+              <li>بررسی صفحه جزئیات</li>
+            </ol></td>
+            <td class="tc-expected">✅ وزن، عیار، قیمت (طلای خام + اجرت + مالیات + جمع)، بخش نظرات، دکمه «افزودن به سبد»</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-S04</td>
+            <td class="tc-scenario">قیمت قدیمی (stale)</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>از ادمین قیمت طلا را برای بیش از ۱۵ دقیقه آپدیت نکن</li>
+              <li>رفتن به صفحه اصلی</li>
+            </ol></td>
+            <td class="tc-expected">⚠️ پیام هشدار «قیمت به‌روز نیست» نمایش داده می‌شود، دکمه خرید غیرفعال</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-S05</td>
+            <td class="tc-scenario">محصول بدون موجودی</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>محصولی که هیچ شمش ASSIGNED ای ندارد</li>
+            </ol></td>
+            <td class="tc-expected">⚠️ نشان‌دهنده «ناموجود»، دکمه افزودن به سبد غیرفعال</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M03: CART ===================== -->
+  <div class="module" id="cart">
+    <div class="section-header">
+      <span class="icon">🛒</span>
+      <h2>M03 — سبد خرید (Cart)</h2>
+      <span class="module-id">CART</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        مدیریت سبد خرید با قابلیت افزودن، حذف، تغییر تعداد و انتخاب جعبه کادو برای هر آیتم.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-C01</td>
+            <td class="tc-scenario">افزودن محصول به سبد</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>ورود با حساب مشتری</li>
+              <li>رفتن به صفحه محصول</li>
+              <li>کلیک «افزودن به سبد»</li>
+            </ol></td>
+            <td class="tc-expected">✅ تعداد سبد در navbar به‌روز می‌شود، محصول در <code>/cart</code> نمایش داده می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-C02</td>
+            <td class="tc-scenario">افزایش/کاهش تعداد</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>در صفحه سبد، کلیک دکمه + برای افزایش</li>
+              <li>کلیک دکمه - برای کاهش</li>
+              <li>بررسی قیمت کل</li>
+            </ol></td>
+            <td class="tc-expected">✅ تعداد و جمع قیمت آپدیت می‌شود بدون reload کامل صفحه (AJAX)</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-C03</td>
+            <td class="tc-scenario">حذف آیتم از سبد</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>کلیک دکمه حذف روی یک آیتم</li>
+            </ol></td>
+            <td class="tc-expected">✅ آیتم حذف می‌شود، جمع کل آپدیت می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-C04</td>
+            <td class="tc-scenario">انتخاب جعبه کادو</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>در صفحه سبد، انتخاب یک گزینه جعبه کادو برای آیتم</li>
+              <li>بررسی تغییر قیمت</li>
+            </ol></td>
+            <td class="tc-expected">✅ قیمت جعبه کادو به جمع اضافه می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-C05</td>
+            <td class="tc-scenario">سبد خالی</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/cart</code> بدون هیچ آیتمی</li>
+            </ol></td>
+            <td class="tc-expected">✅ پیام «سبد خرید شما خالی است»، دکمه «ادامه خرید» نمایش داده می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-C06</td>
+            <td class="tc-scenario">سبد بدون لاگین</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>بدون لاگین، کلیک «افزودن به سبد»</li>
+            </ol></td>
+            <td class="tc-expected">❌ ریدایرکت به صفحه ورود</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M04: CHECKOUT ===================== -->
+  <div class="module page-break" id="checkout">
+    <div class="section-header">
+      <span class="icon">📦</span>
+      <h2>M04 — فرآیند ثبت سفارش (Checkout)</h2>
+      <span class="module-id">CHECKOUT</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        دو روش تحویل: تحویل حضوری (انتخاب نماینده) یا پستی (آدرس). دو روش پرداخت: ریالی یا طلایی (XAU_MG). پشتیبانی از کوپن تخفیف.
+      </div>
+      <div class="flow">
+        <span class="flow-step">سبد خرید</span><span class="flow-arrow">→</span>
+        <span class="flow-step">انتخاب روش تحویل</span><span class="flow-arrow">→</span>
+        <span class="flow-step">کوپن (اختیاری)</span><span class="flow-arrow">→</span>
+        <span class="flow-step">انتخاب پرداخت</span><span class="flow-arrow">→</span>
+        <span class="flow-step green">ثبت سفارش</span>
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-CH01</td>
+            <td class="tc-scenario">تحویل حضوری + پرداخت ریالی (کیف پول)</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>افزودن محصول به سبد</li>
+              <li>رفتن به checkout</li>
+              <li>انتخاب «تحویل حضوری» و یک نماینده</li>
+              <li>انتخاب پرداخت «کیف پول ریالی»</li>
+              <li>کلیک «ثبت سفارش»</li>
+            </ol></td>
+            <td class="tc-expected">✅ سفارش ثبت، موجودی کیف پول کسر، ریدایرکت به <code>/orders/{id}</code> با وضعیت Paid</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-CH02</td>
+            <td class="tc-scenario">تحویل پستی + پرداخت درگاه</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>انتخاب «ارسال پستی»</li>
+              <li>وارد کردن آدرس کامل</li>
+              <li>انتخاب پرداخت «درگاه بانکی»</li>
+              <li>کلیک «ثبت سفارش»</li>
+            </ol></td>
+            <td class="tc-expected">✅ ریدایرکت به درگاه بانکی. بعد از پرداخت: سفارش Paid، شمش به مشتری اسایند</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-CH03</td>
+            <td class="tc-scenario">پرداخت طلایی (نماینده)</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>ورود با حساب نماینده (09161234567)</li>
+              <li>افزودن شمش به سبد</li>
+              <li>checkout → انتخاب «پرداخت با کیف پول طلا»</li>
+            </ol></td>
+            <td class="tc-expected">✅ مقدار طلا از XAU_MG نماینده کسر، سفارش با <code>payment_asset_code=XAU_MG</code> ثبت</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-CH04</td>
+            <td class="tc-scenario">کوپن تخفیف درصدی</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>در checkout وارد کردن کد <strong>WELCOME10</strong></li>
+              <li>بررسی اعمال تخفیف</li>
+            </ol></td>
+            <td class="tc-expected">✅ ۱۰٪ تخفیف روی جمع سفارش اعمال می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-CH05</td>
+            <td class="tc-scenario">کوپن کشبک</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>وارد کردن کوپن <strong>CASHBACK5</strong></li>
+              <li>ثبت سفارش</li>
+              <li>بررسی کیف پول مشتری بعد از سفارش</li>
+            </ol></td>
+            <td class="tc-expected">✅ ۵٪ به کیف پول مشتری واریز می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-CH06</td>
+            <td class="tc-scenario">موجودی ناکافی کیف پول</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>با حساب بدون موجودی کافی</li>
+              <li>تلاش برای پرداخت با کیف پول</li>
+            </ol></td>
+            <td class="tc-expected">❌ خطای «موجودی کافی نیست»، سفارش ثبت نمی‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-CH07</td>
+            <td class="tc-scenario">پروفایل ناقص</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>با حساب بدون نام/کد ملی به checkout بروید</li>
+            </ol></td>
+            <td class="tc-expected">❌ ریدایرکت به <code>/profile</code> با پیام «لطفاً پروفایل را تکمیل کنید»</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-CH08</td>
+            <td class="tc-scenario">لغو سفارش توسط مشتری</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>یک سفارش در وضعیت Pending ایجاد کن</li>
+              <li>در صفحه سفارش، کلیک «لغو سفارش»</li>
+            </ol></td>
+            <td class="tc-expected">✅ وضعیت Cancelled، موجودی کیف پول بازگشت داده شده</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M05: PAYMENT ===================== -->
+  <div class="module" id="payment">
+    <div class="section-header">
+      <span class="icon">💳</span>
+      <h2>M05 — درگاه پرداخت (Payment Gateway)</h2>
+      <span class="module-id">PAYMENT</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        چندین درگاه بانکی (Zibal, Sepehr, Top, Parsian) با لایه abstraction. یک درگاه فعال از تنظیمات ادمین.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-P01</td>
+            <td class="tc-scenario">پرداخت موفق از درگاه</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>ثبت سفارش → انتخاب «درگاه بانکی»</li>
+              <li>در صفحه درگاه، پرداخت موفق</li>
+              <li>بررسی callback</li>
+            </ol></td>
+            <td class="tc-expected">✅ سفارش به Paid تغییر وضعیت، شمش به مشتری اسایند می‌شود، ریدایرکت به سفارش</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-P02</td>
+            <td class="tc-scenario">لغو از درگاه</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>در صفحه درگاه، کلیک «انصراف»</li>
+            </ol></td>
+            <td class="tc-expected">❌ سفارش در وضعیت Pending باقی می‌ماند، ریدایرکت به سفارش با پیام خطا</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-P03</td>
+            <td class="tc-scenario">جلوگیری از پرداخت مضاعف</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>یک سفارش Paid را باز کن</li>
+              <li>تلاش برای کلیک دوباره «پرداخت»</li>
+            </ol></td>
+            <td class="tc-expected">❌ خطای «سفارش قبلاً پرداخت شده»، موجودی مضاعف کسر نمی‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-P04</td>
+            <td class="tc-scenario">استرداد (Refund) توسط ادمین</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>ادمین به <code>/admin/orders/{id}</code> رود</li>
+              <li>کلیک «استرداد» برای سفارش Paid</li>
+            </ol></td>
+            <td class="tc-expected">✅ موجودی کیف پول مشتری بازگشت داده می‌شود، شمش آزاد می‌شود</td>
+          </tr>
+          <tr class="tc-row"><td class="tc-id">TC-P05</td><td class="tc-scenario">شارژ کیف پول از درگاه (Topup Callback)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>مشتری در <code>/wallet</code> کلیک «شارژ» می‌کند</li><li>درگاه فعال را انتخاب و پرداخت موفق انجام می‌دهد</li><li>بررسی callback: <code>/wallet/topup/{gateway}/callback</code></li></ol></td><td class="tc-expected">✅ WalletTopup.status=PAID، موجودی IRR افزایش یافته، در تاریخچه Deposit ثبت شده</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-P06</td><td class="tc-scenario">callback تکراری (idempotency)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>مشتری پرداخت موفق انجام داده (Paid)</li><li>دوباره همان callback URL فراخوانی می‌شود (re-call)</li></ol></td><td class="tc-expected">✅ موجودی دوبار افزایش نمی‌یابد، idempotency_key تکراری رد می‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-P07</td><td class="tc-scenario">پرداخت سفارش از کیف پول (Wallet Pay)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>مشتری با کیف پول شارژ شده سفارش ثبت کرده</li><li>در صفحه سفارش «پرداخت از کیف پول» را کلیک کن</li><li>DB را بررسی کن: balance، order.status، bar.customer_id</li></ol></td><td class="tc-expected">✅ موجودی IRR کاهش، order.status=PAID، bar.customer_id=user_id، تراکنش Payment در ledger</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M06: WALLET ===================== -->
+  <div class="module page-break" id="wallet">
+    <div class="section-header">
+      <span class="icon">👛</span>
+      <h2>M06 — کیف پول (Wallet)</h2>
+      <span class="module-id">WALLET</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        دفتر کل دوطرفه (double-entry ledger). موجودی IRR (ریال)، XAU_MG (طلا-میلی‌گرم)، XAG_MG (نقره). خرید/فروش فلز، شارژ از درگاه، برداشت بانکی. اعتبار طلایی برای نمایندگان.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-W01</td>
+            <td class="tc-scenario">نمایش موجودی</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>ورود با مشتری 09351234567</li>
+              <li>رفتن به <code>/wallet</code></li>
+            </ol></td>
+            <td class="tc-expected">✅ موجودی ریالی، طلا (گرم/ریال)، نقره (گرم/ریال) نمایش داده می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-W02</td>
+            <td class="tc-scenario">شارژ کیف پول از درگاه</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/wallet</code></li>
+              <li>کلیک «شارژ کیف پول»</li>
+              <li>وارد کردن مبلغ (مثلاً ۱,۰۰۰,۰۰۰ تومان)</li>
+              <li>انتخاب درگاه و پرداخت</li>
+            </ol></td>
+            <td class="tc-expected">✅ بعد از callback موفق، موجودی ریالی افزایش یافته، در تاریخچه ثبت شده</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-W03</td>
+            <td class="tc-scenario">خرید طلا از کیف پول</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/wallet/gold</code></li>
+              <li>وارد کردن مبلغ ریالی</li>
+              <li>کلیک «خرید طلا»</li>
+            </ol></td>
+            <td class="tc-expected">✅ موجودی ریالی کاهش، XAU_MG افزایش، کارمزد کسر شده، تراکنش در تاریخچه</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-W04</td>
+            <td class="tc-scenario">فروش طلا از کیف پول</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/wallet/gold</code></li>
+              <li>وارد کردن مقدار طلا (گرم)</li>
+              <li>کلیک «فروش طلا»</li>
+            </ol></td>
+            <td class="tc-expected">✅ XAU_MG کاهش، موجودی ریالی افزایش، کارمزد کسر</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-W05</td>
+            <td class="tc-scenario">درخواست برداشت بانکی</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/wallet/withdraw</code></li>
+              <li>وارد کردن شماره شبا و مبلغ</li>
+              <li>ثبت درخواست</li>
+            </ol></td>
+            <td class="tc-expected">✅ درخواست با وضعیت PENDING ثبت، موجودی lock شده تا تأیید ادمین</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-W06</td>
+            <td class="tc-scenario">برداشت بیش از موجودی</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>تلاش برای برداشت بیشتر از موجودی واقعی</li>
+            </ol></td>
+            <td class="tc-expected">❌ خطای «موجودی کافی نیست» (credit_limit شامل برداشت نمی‌شود)</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-W07</td>
+            <td class="tc-scenario">اعتبار طلایی نماینده (Credit)</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>ورود با نماینده‌ای که credit_limit دارد</li>
+              <li>رفتن به <code>/wallet</code></li>
+              <li>بررسی «اعتبار» نمایش داده شده</li>
+              <li>انجام سفارش بیشتر از موجودی ولی در محدوده credit</li>
+            </ol></td>
+            <td class="tc-expected">✅ سفارش ثبت می‌شود، XAU_MG منفی می‌شود اما از credit_limit بیشتر نمی‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-W08</td>
+            <td class="tc-scenario">تاریخچه تراکنش‌ها</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/wallet/transactions</code></li>
+              <li>فیلتر بر اساس نوع دارایی (ریال/طلا)</li>
+            </ol></td>
+            <td class="tc-expected">✅ لیست کامل تراکنش‌ها با نوع، مبلغ، موجودی بعد از تراکنش</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M07: DEALER PANEL ===================== -->
+  <div class="module" id="dealer-panel">
+    <div class="section-header">
+      <span class="icon">🏪</span>
+      <h2>M07 — پنل نمایندگی (Dealer Panel)</h2>
+      <span class="module-id">DEALER</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        پنل مدیریتی نمایندگان: ثبت فروش POS، درخواست بازخرید، موجودی فیزیکی، تسویه، انتقال شمش، reconciliation انبار.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-D01</td>
+            <td class="tc-scenario">داشبورد نماینده</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>ورود با نماینده</li>
+              <li>رفتن به <code>/dealer/dashboard</code></li>
+            </ol></td>
+            <td class="tc-expected">✅ آمار: موجودی فیزیکی، فروش این ماه، کمیسیون، لینک سریع POS</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-D02</td>
+            <td class="tc-scenario">فروش POS با مشتری شناخته‌شده</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/dealer/pos</code></li>
+              <li>انتخاب شمش از موجودی</li>
+              <li>وارد کردن موبایل مشتری (09351234567)</li>
+              <li>ثبت فروش</li>
+            </ol></td>
+            <td class="tc-expected">✅ شمش SOLD، مالکیت به مشتری، claim_code = NULL (مشتری شناخته‌شده)، سود نماینده محاسبه</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-D03</td>
+            <td class="tc-scenario">فروش POS با مشتری ناشناس</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>ثبت فروش بدون وارد کردن موبایل مشتری</li>
+            </ol></td>
+            <td class="tc-expected">✅ شمش SOLD، claim_code تولید شده (برای ادعای بعدی مالکیت)</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-D04</td>
+            <td class="tc-scenario">درخواست بازخرید</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/dealer/buyback</code></li>
+              <li>وارد کردن سریال‌کد و اطلاعات مشتری</li>
+              <li>ثبت درخواست</li>
+            </ol></td>
+            <td class="tc-expected">✅ درخواست با وضعیت Pending ثبت می‌شود، منتظر تأیید ادمین</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-D05</td>
+            <td class="tc-scenario">موجودی فیزیکی نماینده</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/dealer/inventory</code></li>
+            </ol></td>
+            <td class="tc-expected">✅ لیست شمش‌های ASSIGNED که dealer_id = نماینده جاری، با سریال، محصول، وضعیت</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-D06</td>
+            <td class="tc-scenario">شروع Reconciliation</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/dealer/reconciliation</code></li>
+              <li>کلیک «شروع تطبیق»</li>
+              <li>اسکن سریال‌کدها</li>
+              <li>کلیک «تأیید نهایی»</li>
+            </ol></td>
+            <td class="tc-expected">✅ گزارش نهایی: تطبیق‌شده، غایب، غیرمنتظره با آمار دقیق</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-D07</td>
+            <td class="tc-scenario">تحویل امانی توسط نماینده</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>مشتری درخواست تحویل امانی ثبت کرده</li>
+              <li>نماینده به <code>/dealer/deliveries/{id}</code> برود</li>
+              <li>تأیید تحویل با OTP</li>
+            </ol></td>
+            <td class="tc-expected">✅ <code>bar.delivered_at</code> ست می‌شود، وضعیت COMPLETED</td>
+          </tr>
+          <tr class="tc-row"><td class="tc-id">TC-D08</td><td class="tc-scenario">خرید نماینده از فروشگاه با کیف پول طلا (Gold-for-Gold)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ورود با نماینده 09161234567</li><li>محصول به سبد اضافه کن</li><li>در checkout روش «پرداخت با کیف پول طلا (XAU_MG)» را انتخاب کن</li><li>سفارش ثبت و پرداخت کن</li><li>DB: XAU_MG balance، order.payment_asset_code، gold_total_mg بررسی شود</li></ol></td><td class="tc-expected">✅ XAU_MG کاهش یافته، order.payment_asset_code=XAU_MG، gold_total_mg با اجرت نمایندگی محاسبه شده</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-D09</td><td class="tc-scenario">انتقال شمش بین نمایندگان (Warehouse)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ورود با نماینده is_warehouse=true</li><li>رفتن به <code>/dealer/transfers</code></li><li>انتخاب شمش و نماینده مقصد و ثبت</li></ol></td><td class="tc-expected">✅ bar.dealer_id تغییر کرده، DealerTransfer در تاریخچه ثبت شده، هر دو نماینده در inventory خود می‌بینند</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-D10</td><td class="tc-scenario">اعتبار طلایی نماینده (Credit Limit)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>موجودی XAU_MG نماینده را به صفر برسان</li><li>از فروشگاه با Gold-for-Gold بخر (اما زیر credit_limit)</li></ol></td><td class="tc-expected">✅ سفارش موفق (balance منفی تا -credit_limit_mg مجاز)، CHECK constraint رعایت می‌شود</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M08: DEALER API ===================== -->
+  <div class="module page-break" id="dealer-api">
+    <div class="section-header">
+      <span class="icon">🔌</span>
+      <h2>M08 — API نمایندگی (Dealer REST API)</h2>
+      <span class="module-id">DEALER-API</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        REST API برای سیستم POS نمایندگی. احراز هویت با API Key در هدر <code>X-API-Key</code>. خروجی JSON.
+      </div>
+      <div class="section-note">🔑 API Key اصفهان: <code>test_esfahan_key_0000000000000000</code></div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست (curl/Postman)</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-DA01</td>
+            <td class="tc-scenario">اطلاعات نماینده</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li><code>GET /api/dealer/info</code></li>
+              <li>هدر: <code>X-API-Key: test_esfahan_key_0000000000000000</code></li>
+            </ol></td>
+            <td class="tc-expected">✅ JSON با <code>name, mobile, tier, location, is_active</code></td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-DA02</td>
+            <td class="tc-scenario">لیست محصولات با قیمت</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li><code>GET /api/dealer/products</code></li>
+            </ol></td>
+            <td class="tc-expected">✅ لیست محصولات با قیمت واقعی و سریال‌های موجود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-DA03</td>
+            <td class="tc-scenario">ثبت فروش از طریق API</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li><code>POST /api/dealer/sale</code></li>
+              <li>Body: <code>{"serial_code": "...", "sale_price": 50000000, "customer_mobile": "09351234567"}</code></li>
+            </ol></td>
+            <td class="tc-expected">✅ <code>{"success": true, "sale_id": ..., "metal_profit_mg": ...}</code></td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-DA04</td>
+            <td class="tc-scenario">API Key نامعتبر</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>فراخوانی با API Key اشتباه</li>
+            </ol></td>
+            <td class="tc-expected">❌ HTTP 401 با پیام خطا</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M09: POS API ===================== -->
+  <div class="module" id="pos-api">
+    <div class="section-header">
+      <span class="icon">📲</span>
+      <h2>M09 — API مشتری POS (Customer-Facing POS)</h2>
+      <span class="module-id">POS-API</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        الگوی reserve→confirm/cancel برای دستگاه POS مشتری. رزرو ۲ دقیقه‌ای شمش قبل از پرداخت کارت.
+      </div>
+      <div class="flow">
+        <span class="flow-step">categories/products</span><span class="flow-arrow">→</span>
+        <span class="flow-step">reserve (2min hold)</span><span class="flow-arrow">→</span>
+        <span class="flow-step orange">پرداخت کارت</span><span class="flow-arrow">→</span>
+        <span class="flow-step green">confirm</span>
+        <span class="flow-arrow">یا</span>
+        <span class="flow-step red">cancel</span>
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-PA01</td>
+            <td class="tc-scenario">جریان کامل reserve → confirm</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li><code>GET /api/pos/products</code></li>
+              <li><code>POST /api/pos/reserve</code> با product_id</li>
+              <li><code>POST /api/pos/confirm</code> با bar_id و اطلاعات پرداخت</li>
+            </ol></td>
+            <td class="tc-expected">✅ شمش SOLD، claim_code تولید (اگر ناشناس)، رسید قابل پرینت</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-PA02</td>
+            <td class="tc-scenario">reserve → cancel (پرداخت ناموفق)</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>reserve یک شمش</li>
+              <li><code>POST /api/pos/cancel</code> با bar_id</li>
+            </ol></td>
+            <td class="tc-expected">✅ شمش به ASSIGNED برمی‌گردد، reservation پاک می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-PA03</td>
+            <td class="tc-scenario">رزرو منقضی‌شده</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>reserve یک شمش</li>
+              <li>صبر کردن بیش از ۲ دقیقه</li>
+              <li>تلاش برای confirm</li>
+            </ol></td>
+            <td class="tc-expected">❌ خطای «رزرو منقضی شده»، شمش آزاد شده</td>
+          </tr>
+          <tr class="tc-row"><td class="tc-id">TC-PA04</td><td class="tc-scenario">API Key نامعتبر</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ارسال درخواست به <code>/api/pos/products</code> بدون X-API-Key header</li><li>ارسال با API key اشتباه</li></ol></td><td class="tc-expected">❌ HTTP 401 Unauthorized در هر دو حالت</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-PA05</td><td class="tc-scenario">رزرو همزمان یک شمش (Race Condition)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>دو POS به طور همزمان همان product_id را reserve کنند</li></ol></td><td class="tc-expected">✅ یک رزرو موفق، دیگری خطا (stock exhausted یا bar reserved)، هیچ‌گاه دو نفر یک شمش نمی‌گیرند</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-PA06</td><td class="tc-scenario">دریافت رسید (Receipt)</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>بعد از confirm موفق، GET <code>/api/pos/receipt/{sale_id}</code></li></ol></td><td class="tc-expected">✅ JSON با نام محصول، وزن، قیمت، اطلاعات مشتری، سریال شمش برگشت داده می‌شود</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M10: OWNERSHIP ===================== -->
+  <div class="module page-break" id="ownership">
+    <div class="section-header">
+      <span class="icon">🔗</span>
+      <h2>M10 — مالکیت و انتقال شمش</h2>
+      <span class="module-id">OWNERSHIP</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        ادعای مالکیت با claim_code، انتقال P2P با OTP، درخواست تحویل فیزیکی از امانت.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-O01</td>
+            <td class="tc-scenario">ادعای مالکیت با claim_code صحیح</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/claim-bar</code></li>
+              <li>وارد کردن سریال <strong>TSCLM001</strong> و کد <strong>ABC123</strong></li>
+            </ol></td>
+            <td class="tc-expected">✅ شمش به مشتری اسایند، claim_code پاک، در <code>/my-bars</code> نمایش داده می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-O02</td>
+            <td class="tc-scenario">claim_code اشتباه</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>وارد کردن سریال <strong>TSCLM002</strong> و کد اشتباه</li>
+            </ol></td>
+            <td class="tc-expected">❌ خطای «کد اشتباه است»، مالکیت تغییر نمی‌کند</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-O03</td>
+            <td class="tc-scenario">انتقال مالکیت P2P</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>با حساب مالک (09351234567) به <code>/my-bars</code> برو</li>
+              <li>کلیک «انتقال» روی شمش TSTRF001</li>
+              <li>وارد کردن موبایل گیرنده</li>
+              <li>تأیید با OTP</li>
+            </ol></td>
+            <td class="tc-expected">✅ مالکیت منتقل، در تاریخچه ثبت، OwnershipHistory آپدیت</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-O04</td>
+            <td class="tc-scenario">درخواست تحویل فیزیکی (از امانت)</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>در <code>/my-bars</code> روی شمش امانی (TSCST001) کلیک «درخواست تحویل»</li>
+              <li>انتخاب نماینده مربوطه</li>
+              <li>تأیید با OTP</li>
+            </ol></td>
+            <td class="tc-expected">✅ CustodialDeliveryRequest با وضعیت PENDING ثبت</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M11: TICKETS ===================== -->
+  <div class="module" id="tickets">
+    <div class="section-header">
+      <span class="icon">🎫</span>
+      <h2>M11 — پشتیبانی (Ticketing)</h2>
+      <span class="module-id">TICKET</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        سیستم تیکت برای مشتریان، نمایندگان و ادمین‌ها. دسته‌بندی، اولویت، یادداشت داخلی، پیوست فایل.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-T01</td>
+            <td class="tc-scenario">ایجاد تیکت توسط مشتری</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/tickets/new</code></li>
+              <li>انتخاب دسته «مالی»</li>
+              <li>وارد کردن موضوع و متن</li>
+              <li>ارسال</li>
+            </ol></td>
+            <td class="tc-expected">✅ تیکت با وضعیت Open، در <code>/tickets</code> نمایش داده می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-T02</td>
+            <td class="tc-scenario">پاسخ ادمین به تیکت</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>ادمین به <code>/admin/tickets/{id}</code> برود</li>
+              <li>وارد کردن پاسخ</li>
+              <li>ارسال</li>
+            </ol></td>
+            <td class="tc-expected">✅ پیام ادمین در مکالمه نمایش، وضعیت به Answered تغییر، اعلان به مشتری</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-T03</td>
+            <td class="tc-scenario">یادداشت داخلی (Internal Note)</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>ادمین در تیکت، تب «یادداشت داخلی» را انتخاب کند</li>
+              <li>ارسال یادداشت</li>
+            </ol></td>
+            <td class="tc-expected">✅ یادداشت فقط برای ادمین‌ها نمایش داده می‌شود (مشتری نمی‌بیند)</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-T04</td>
+            <td class="tc-scenario">بستن تیکت</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>کلیک «بستن تیکت» توسط مشتری یا ادمین</li>
+            </ol></td>
+            <td class="tc-expected">✅ وضعیت به Closed تغییر، امکان ارسال پیام جدید وجود ندارد</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M12: REVIEWS ===================== -->
+  <div class="module page-break" id="reviews">
+    <div class="section-header">
+      <span class="icon">⭐</span>
+      <h2>M12 — نظرات و بررسی محصول (Reviews)</h2>
+      <span class="module-id">REVIEW</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        نظر ستاره‌ای (۱-۵) فقط برای خریداران تأیید شده. سوال و جواب عمومی. لایک کامنت.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-R01</td>
+            <td class="tc-scenario">ثبت نظر ستاره‌ای</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/orders/{id}</code> (سفارش Paid)</li>
+              <li>کلیک «ثبت نظر»</li>
+              <li>انتخاب ۵ ستاره و نوشتن متن</li>
+            </ol></td>
+            <td class="tc-expected">✅ نظر ثبت، در صفحه محصول نمایش داده می‌شود، میانگین ستاره آپدیت</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-R02</td>
+            <td class="tc-scenario">نظر بدون خرید تأیید شده</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>با حسابی که این محصول را نخریده، تلاش برای نظر ستاره‌ای</li>
+            </ol></td>
+            <td class="tc-expected">❌ خطای «فقط خریداران می‌توانند نظر ثبت کنند»</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-R03</td>
+            <td class="tc-scenario">سوال در صفحه محصول</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>در صفحه محصول، بخش سوالات</li>
+              <li>وارد کردن سوال و ارسال</li>
+            </ol></td>
+            <td class="tc-expected">✅ سوال نمایش داده می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-R04</td>
+            <td class="tc-scenario">پاسخ ادمین به نظر</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>ادمین به <code>/admin/reviews</code> برود</li>
+              <li>انتخاب نظر و ارسال پاسخ</li>
+            </ol></td>
+            <td class="tc-expected">✅ پاسخ ادمین در صفحه محصول نمایش داده می‌شود</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M13: NOTIFICATIONS ===================== -->
+  <div class="module" id="notifications">
+    <div class="section-header">
+      <span class="icon">🔔</span>
+      <h2>M13 — اعلان‌ها (Notifications)</h2>
+      <span class="module-id">NOTIF</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        اعلان‌های In-App و SMS برای رویدادهای سیستم. مرکز اعلان، علامت‌گذاری خوانده‌شده، تنظیمات.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-N01</td>
+            <td class="tc-scenario">اعلان بعد از سفارش موفق</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>ثبت یک سفارش موفق</li>
+              <li>رفتن به <code>/notifications</code></li>
+            </ol></td>
+            <td class="tc-expected">✅ اعلان «سفارش شما با موفقیت ثبت شد» نمایش داده می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-N02</td>
+            <td class="tc-scenario">شمارنده اعلان خوانده‌نشده</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>بررسی badge عدد در navbar</li>
+              <li>رفتن به notifications</li>
+              <li>کلیک «همه را خواندم»</li>
+            </ol></td>
+            <td class="tc-expected">✅ badge صفر می‌شود، همه اعلان‌ها خوانده‌شده نمایش</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-N03</td>
+            <td class="tc-scenario">ارسال broadcast توسط ادمین</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>ادمین به <code>/admin/notifications/send</code> برود</li>
+              <li>نوع: همه مشتریان</li>
+              <li>ارسال اعلان</li>
+            </ol></td>
+            <td class="tc-expected">✅ اعلان در حساب تمام مشتریان نمایش داده می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-N04</td>
+            <td class="tc-scenario">تنظیمات اعلان (opt-out)</td>
+            <td><span class="badge badge-gray">پایین</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/notifications/settings</code></li>
+              <li>غیرفعال کردن SMS برای یک نوع اعلان</li>
+            </ol></td>
+            <td class="tc-expected">✅ تنظیمات ذخیره، SMS برای آن نوع ارسال نمی‌شود</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M14: VERIFICATION ===================== -->
+  <div class="module page-break" id="verification">
+    <div class="section-header">
+      <span class="icon">🔍</span>
+      <h2>M14 — احراز اصالت شمش (Verification)</h2>
+      <span class="module-id">VERIFY</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        بررسی اصالت شمش با سریال‌کد یا اسکن QR. عمومی (بدون نیاز به ورود). QR با لوگو برای لیزر.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-V01</td>
+            <td class="tc-scenario">بررسی با سریال‌کد معتبر</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/verify</code></li>
+              <li>وارد کردن یک سریال‌کد شمش واقعی</li>
+            </ol></td>
+            <td class="tc-expected">✅ اطلاعات شمش (محصول، وزن، عیار، وضعیت) نمایش داده می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-V02</td>
+            <td class="tc-scenario">سریال نامعتبر</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>وارد کردن سریال تصادفی</li>
+            </ol></td>
+            <td class="tc-expected">❌ پیام «این شمش در سیستم ثبت نشده است»</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-V03</td>
+            <td class="tc-scenario">دانلود QR Code ادمین</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>ادمین به <code>/admin/bars/{id}/qr</code> برود</li>
+            </ol></td>
+            <td class="tc-expected">✅ تصویر PNG با QR Code + سریال + لوگو دانلود می‌شود (on-the-fly، بدون ذخیره)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M15: BLOG ===================== -->
+  <div class="module" id="blog">
+    <div class="section-header">
+      <span class="icon">📝</span>
+      <h2>M15 — بلاگ و محتوا (Blog)</h2>
+      <span class="module-id">BLOG</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        مقالات آموزشی با ویرایشگر TinyMCE. دسته‌بندی، تگ، کامنت (پس از تأیید). SEO: OG tags، JSON-LD، Sitemap.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-B01</td>
+            <td class="tc-scenario">نمایش لیست مقالات</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol><li>رفتن به <code>/blog</code></li></ol></td>
+            <td class="tc-expected">✅ مقالات Published نمایش داده می‌شوند</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-B02</td>
+            <td class="tc-scenario">ایجاد مقاله توسط ادمین</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>ادمین به <code>/admin/blog/new</code> برود</li>
+              <li>نوشتن متن با TinyMCE</li>
+              <li>Publish کردن</li>
+            </ol></td>
+            <td class="tc-expected">✅ مقاله در <code>/blog/{slug}</code> قابل دسترس</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-B03</td>
+            <td class="tc-scenario">کامنت و تأیید</td>
+            <td><span class="badge badge-gray">پایین</span></td>
+            <td class="tc-steps"><ol>
+              <li>ارسال کامنت روی مقاله</li>
+              <li>ادمین تأیید کند</li>
+            </ol></td>
+            <td class="tc-expected">✅ بعد از تأیید در مقاله نمایش داده می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-B04</td>
+            <td class="tc-scenario">Sitemap</td>
+            <td><span class="badge badge-gray">پایین</span></td>
+            <td class="tc-steps"><ol><li>رفتن به <code>/sitemap.xml</code></li></ol></td>
+            <td class="tc-expected">✅ XML معتبر با لینک مقالات Published</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M16: ADMIN ORDERS ===================== -->
+  <div class="module page-break" id="admin-orders">
+    <div class="section-header">
+      <span class="icon">📋</span>
+      <h2>M16 — ادمین: مدیریت سفارشات</h2>
+      <span class="module-id">ADMIN-ORDER</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        مدیریت کامل سفارشات: تأیید، لغو، تغییر وضعیت تحویل، OTP برای تحویل سفارشات طلایی.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-AO01</td>
+            <td class="tc-scenario">لیست و فیلتر سفارشات</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/admin/orders</code></li>
+              <li>فیلتر بر اساس وضعیت «در انتظار»</li>
+            </ol></td>
+            <td class="tc-expected">✅ فقط سفارشات Pending نمایش داده می‌شوند</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-AO02</td>
+            <td class="tc-scenario">تحویل سفارش طلایی با OTP</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>سفارش Gold-for-Gold با وضعیت Paid</li>
+              <li>کلیک «ارسال OTP تحویل» به نماینده</li>
+              <li>وارد کردن OTP در <code>/admin/orders/{id}/confirm-delivery-otp</code></li>
+            </ol></td>
+            <td class="tc-expected">✅ <code>bar.delivered_at</code> ست، وضعیت تحویل به Delivered تغییر</td>
+          </tr>
+          <tr class="tc-row"><td class="tc-id">TC-AO03</td><td class="tc-scenario">لغو سفارش Pending</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>یک سفارش Pending پیدا کن</li><li>از ادمین لغو کن با دلیل</li><li>DB: order.status و bar.status و balance بررسی شود</li></ol></td><td class="tc-expected">✅ order.status=Cancelled، bar دوباره ASSIGNED، اگر wallet پرداخت شده بود، موجودی برگشت داده شده</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AO04</td><td class="tc-scenario">تغییر وضعیت تحویل پستی</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>سفارش با روش تحویل Postal در وضعیت Paid</li><li>از ادمین delivery_status را به «Shipped» و کد رهگیری وارد کن</li><li>سپس به «Delivered» تغییر بده</li></ol></td><td class="tc-expected">✅ وضعیت تحویل تغییر می‌کند، OrderStatusLog ثبت می‌شود، مشتری اعلان دریافت می‌کند</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AO05</td><td class="tc-scenario">جستجو و فیلتر پیشرفته</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li><code>/admin/orders</code> با فیلتر: روش تحویل=Pickup، payment_method=wallet</li></ol></td><td class="tc-expected">✅ فقط سفارشات حضوری-کیف‌پولی نمایش داده می‌شوند</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M17: ADMIN INVENTORY ===================== -->
+  <div class="module" id="admin-inventory">
+    <div class="section-header">
+      <span class="icon">🏭</span>
+      <h2>M17 — ادمین: مدیریت انبار و شمش</h2>
+      <span class="module-id">ADMIN-INV</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        تولید شمش، اسایند به نماینده، ویرایش وضعیت، QR، Reconciliation.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-AI01</td>
+            <td class="tc-scenario">تولید شمش جدید</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/admin/bars/generate</code></li>
+              <li>انتخاب محصول، تعداد، نماینده</li>
+              <li>تولید</li>
+            </ol></td>
+            <td class="tc-expected">✅ شمش‌ها با سریال‌کد یکتا تولید، وضعیت ASSIGNED، اسایند به نماینده</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-AI02</td>
+            <td class="tc-scenario">جستجو و فیلتر شمش</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/admin/bars</code></li>
+              <li>جستجو با سریال‌کد</li>
+              <li>فیلتر بر اساس وضعیت/نماینده</li>
+            </ol></td>
+            <td class="tc-expected">✅ نتایج دقیق نمایش داده می‌شوند</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-AI03</td>
+            <td class="tc-scenario">Reconciliation ادمین</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li><code>/admin/reconciliation</code> → شروع جلسه</li>
+              <li>انتخاب نماینده</li>
+              <li>اسکن چند سریال</li>
+              <li>نهایی کردن</li>
+            </ol></td>
+            <td class="tc-expected">✅ گزارش: تطبیق‌شده، غایب، غیرمنتظره</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M18: ADMIN DEALERS ===================== -->
+  <div class="module page-break" id="admin-dealers">
+    <div class="section-header">
+      <span class="icon">👔</span>
+      <h2>M18 — ادمین: مدیریت نمایندگان</h2>
+      <span class="module-id">ADMIN-DEALER</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">
+        مدیریت نمایندگان: ویرایش، تیر، API Key، تسویه طلایی، sub-dealer، بازخرید، gزارش فروش.
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-AD01</td>
+            <td class="tc-scenario">تسویه طلایی نماینده</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>ادمین به <code>/admin/dealers/{id}/gold-settlement</code> برود</li>
+              <li>وارد کردن مقدار طلا (mg)</li>
+              <li>تأیید</li>
+            </ol></td>
+            <td class="tc-expected">✅ XAU_MG نماینده افزایش، در ledger ثبت</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-AD02</td>
+            <td class="tc-scenario">ایجاد/تمدید API Key</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>در صفحه نماینده، کلیک «تولید API Key جدید»</li>
+            </ol></td>
+            <td class="tc-expected">✅ API Key قدیمی باطل، جدید نمایش داده می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-AD03</td>
+            <td class="tc-scenario">تأیید درخواست نمایندگی</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>مشتری درخواست نمایندگی ثبت کند</li>
+              <li>ادمین به <code>/admin/dealer-requests/{id}</code> برود</li>
+              <li>کلیک «تأیید»</li>
+            </ol></td>
+            <td class="tc-expected">✅ is_dealer=True، دسترسی پنل نماینده، اعلان ارسال</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-AD04</td>
+            <td class="tc-scenario">گزارش فروش نمایندگان</td>
+            <td><span class="badge badge-blue">متوسط</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/admin/dealers/sales</code></li>
+              <li>فیلتر بر اساس نماینده و بازه تاریخ</li>
+            </ol></td>
+            <td class="tc-expected">✅ لیست فروش‌ها با سود، کمیسیون، آمار تجمیعی</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-AD05</td>
+            <td class="tc-scenario">تأیید/رد بازخرید</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/admin/dealers/buybacks</code></li>
+              <li>کلیک «تأیید» برای درخواست Pending</li>
+            </ol></td>
+            <td class="tc-expected">✅ وضعیت Approved، شمش آزاد می‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-AD06</td>
+            <td class="tc-scenario">مدیریت Hedging</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/admin/hedging</code></li>
+              <li>بررسی موقعیت فعلی (long/short)</li>
+              <li>ثبت معامله پوشش‌دهی در <code>/admin/hedging/record</code></li>
+            </ol></td>
+            <td class="tc-expected">✅ موقعیت آپدیت، در ledger ثبت</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== SETTINGS ===================== -->
+  <div class="module" id="admin-settings">
+    <div class="section-header">
+      <span class="icon">⚙️</span>
+      <h2>M19 — ادمین: تنظیمات سیستم</h2>
+      <span class="module-id">ADMIN-CFG</span>
+    </div>
+    <div class="card">
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-CF01</td>
+            <td class="tc-scenario">آپدیت قیمت طلا</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>رفتن به <code>/admin/settings</code></li>
+              <li>وارد کردن قیمت جدید طلا</li>
+              <li>ذخیره</li>
+              <li>بررسی قیمت در صفحه فروشگاه</li>
+            </ol></td>
+            <td class="tc-expected">✅ قیمت جدید در تمام صفحات منعکس شده، freshness timer reset</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-CF02</td>
+            <td class="tc-scenario">غیرفعال کردن خرید طلا (Trade Guard)</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>در تنظیمات، toggle «خرید طلا از فروشگاه» را غیرفعال کن</li>
+              <li>در صفحه فروشگاه بررسی</li>
+            </ol></td>
+            <td class="tc-expected">⚠️ دکمه «افزودن به سبد» غیرفعال، پیام «فروش موقتاً متوقف شده»</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-CF03</td>
+            <td class="tc-scenario">تغییر درگاه فعال</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>از Zibal به Sepehr تغییر بده</li>
+              <li>یک سفارش جدید ثبت کن</li>
+            </ol></td>
+            <td class="tc-expected">✅ به درگاه Sepehr ریدایرکت می‌شود</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M20: PROFILE ===================== -->
+  <div class="module page-break" id="profile">
+    <div class="section-header">
+      <span class="icon">👤</span>
+      <h2>M20 — پروفایل مشتری و آدرس‌ها</h2>
+      <span class="module-id">PROFILE</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">ویرایش اطلاعات شخصی (نام، کد ملی، تاریخ تولد)، مدیریت کتاب آدرس (افزودن/حذف/پیش‌فرض)، و API جغرافیایی استان/شهر/بخش.</div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row"><td class="tc-id">TC-PR01</td><td class="tc-scenario">ویرایش نام و مشخصات پایه</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ورود با 09351234567</li><li>رفتن به <code>/profile</code></li><li>ویرایش نام و نام خانوادگی و ذخیره</li></ol></td><td class="tc-expected">✅ اطلاعات در DB ذخیره شده، صفحه رفرش می‌شود و تغییر نمایش داده می‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-PR02</td><td class="tc-scenario">افزودن آدرس جدید</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>رفتن به <code>/addresses</code></li><li>کلیک «افزودن آدرس»</li><li>انتخاب استان → شهر → بخش (API واکشی کند)</li><li>تکمیل فرم و ذخیره</li></ol></td><td class="tc-expected">✅ آدرس جدید ساخته می‌شود، در لیست نمایش داده می‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-PR03</td><td class="tc-scenario">تعیین آدرس پیش‌فرض</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>داشتن حداقل ۲ آدرس</li><li>کلیک «پیش‌فرض» روی آدرس دوم</li></ol></td><td class="tc-expected">✅ فقط یک آدرس is_default=true دارد، در checkout این آدرس پیش‌فرض انتخاب می‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-PR04</td><td class="tc-scenario">حذف آدرس</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>کلیک «حذف» روی یک آدرس</li></ol></td><td class="tc-expected">✅ آدرس از لیست حذف می‌شود، در checkout دیگر نمایش داده نمی‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-PR05</td><td class="tc-scenario">API جغرافیایی (Geo API)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>در فرم آدرس، استان «تهران» را انتخاب کن</li><li>بررسی لود شهرهای تهران</li><li>شهر «تهران» را انتخاب کن → بخش‌ها لود شوند</li></ol></td><td class="tc-expected">✅ GET <code>/api/geo/cities?province_id=X</code> و <code>/api/geo/districts?city_id=Y</code> داده‌های صحیح برمی‌گردانند</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-PR06</td><td class="tc-scenario">نوع مشتری حقوقی</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>در پروفایل، customer_type را به «حقوقی» تغییر بده</li><li>بررسی نمایش فیلد نام شرکت و کد اقتصادی</li></ol></td><td class="tc-expected">✅ فیلدهای legal_name و economic_code نمایش می‌یابند و ذخیره می‌شوند</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M21: COUPON ===================== -->
+  <div class="module page-break" id="coupon">
+    <div class="section-header">
+      <span class="icon">🎟</span>
+      <h2>M21 — سیستم کوپن تخفیف</h2>
+      <span class="module-id">COUPON</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">کوپن‌های DISCOUNT (کسر از سفارش) و CASHBACK (واریز به کیف پول). حالت‌های PERCENT/FIXED. محدودیت: اولین خرید، ماکزیمم تخفیف، scope دسته/محصول، whitelist موبایل.</div>
+      <div class="flow">
+        <span class="flow-step">کوپن ادمین می‌سازد</span><span class="flow-arrow">→</span>
+        <span class="flow-step">مشتری در checkout کد وارد می‌کند</span><span class="flow-arrow">→</span>
+        <span class="flow-step">validate (scope/limit/first_purchase)</span><span class="flow-arrow">→</span>
+        <span class="flow-step green">تخفیف اعمال یا cashback به wallet</span>
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row"><td class="tc-id">TC-CP01</td><td class="tc-scenario">کوپن WELCOME10 — تخفیف ۱۰٪ اولین خرید</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>با یک مشتری که سفارش قبلی ندارد وارد شو</li><li>یک محصول به سبد اضافه کن</li><li>در checkout کد <strong>WELCOME10</strong> وارد کن</li><li>بررسی مبلغ تخفیف</li></ol></td><td class="tc-expected">✅ ۱۰٪ از مبلغ کسر شده، نوع DISCOUNT، در خلاصه سفارش نمایش دارد</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CP02</td><td class="tc-scenario">کوپن CASHBACK5 — کشبک ۵٪ به کیف پول</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>سفارش با کوپن <strong>CASHBACK5</strong></li><li>پرداخت کامل</li><li>بررسی کیف پول بعد از پرداخت</li></ol></td><td class="tc-expected">✅ مبلغ کشبک (۵٪ سفارش) به IRR wallet واریز شده، در تاریخچه نوع «Credit» ثبت شده</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CP03</td><td class="tc-scenario">کوپن FIXED500 — حداقل سفارش ۵M تومان</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>سبد خرید با مبلغ زیر ۵M تومان</li><li>وارد کردن کد <strong>FIXED500</strong></li></ol></td><td class="tc-expected">❌ پیام خطا «حداقل مبلغ سفارش رعایت نشده»</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CP04</td><td class="tc-scenario">کوپن VIP2026 — whitelist موبایل</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ورود با مشتری ۰۹۳۵۱۲۳۴۵۶۷ (در لیست سفید)</li><li>استفاده از کد <strong>VIP2026</strong></li><li>ورود با مشتری دیگر و اجرای همان کد</li></ol></td><td class="tc-expected">✅ برای مشتری مجاز اعمال می‌شود / ❌ برای مشتری خارج از لیست خطای «غیرمجاز»</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CP05</td><td class="tc-scenario">WELCOME10 دوبار توسط یک مشتری</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>مشتری که قبلاً WELCOME10 استفاده کرده</li><li>تلاش برای استفاده مجدد</li></ol></td><td class="tc-expected">❌ خطای «این کوپن فقط برای اولین خرید است»</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CP06</td><td class="tc-scenario">کوپن منقضی‌شده</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>از ادمین یک کوپن با تاریخ انقضای گذشته بساز</li><li>کد آن را در checkout وارد کن</li></ol></td><td class="tc-expected">❌ خطای «کوپن منقضی شده»</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CP07</td><td class="tc-scenario">ادمین: ساخت و غیرفعال کردن کوپن</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>از <code>/admin/coupons/new</code> کوپن جدید بساز</li><li>از <code>/admin/coupons/{id}/toggle</code> غیرفعالش کن</li><li>مشتری تلاش کند آن را استفاده کند</li></ol></td><td class="tc-expected">✅ کوپن ساخته می‌شود / ❌ بعد از غیرفعال‌سازی، استفاده رد می‌شود</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M22: CUSTODIAL DELIVERY ===================== -->
+  <div class="module page-break" id="custodial">
+    <div class="section-header">
+      <span class="icon">📦</span>
+      <h2>M22 — تحویل فیزیکی شمش امانی (Custodial Delivery)</h2>
+      <span class="module-id">CUSTODIAL</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">شمش‌های خریداری‌شده که هنوز فیزیکاً تحویل نشده‌اند (delivered_at=NULL) در نزد نماینده «امانت» هستند. مشتری می‌تواند درخواست تحویل فیزیکی بدهد. جریان: OTP تأیید مشتری → نماینده تحویل می‌دهد.</div>
+      <div class="flow">
+        <span class="flow-step">مشتری درخواست می‌دهد</span><span class="flow-arrow">→</span>
+        <span class="flow-step">OTP ارسال به مشتری</span><span class="flow-arrow">→</span>
+        <span class="flow-step">مشتری OTP را به نماینده می‌دهد</span><span class="flow-arrow">→</span>
+        <span class="flow-step">نماینده تأیید می‌کند</span><span class="flow-arrow">→</span>
+        <span class="flow-step green">delivered_at ثبت می‌شود</span>
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row"><td class="tc-id">TC-CD01</td><td class="tc-scenario">مشاهده شمش‌های امانی مشتری</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ورود با 09351234567</li><li>رفتن به <code>/my-bars</code></li><li>بررسی شمش TSCST001</li></ol></td><td class="tc-expected">✅ شمش با وضعیت «امانی نزد نماینده» نمایش دارد، delivered_at=NULL</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CD02</td><td class="tc-scenario">ایجاد درخواست تحویل</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>از <code>/my-bars</code> روی شمش TSCST001 کلیک «درخواست تحویل»</li><li>رفتن به <code>/my-bars/{id}/delivery</code></li><li>فرم را ثبت کن</li></ol></td><td class="tc-expected">✅ CustodialDeliveryRequest با status=PENDING ساخته می‌شود، نماینده اطلاع می‌گیرد</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CD03</td><td class="tc-scenario">ارسال OTP تحویل</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>بعد از ایجاد درخواست، کلیک «ارسال کد تأیید»</li><li>POST <code>/my-bars/{id}/delivery/{req_id}/send-otp</code></li></ol></td><td class="tc-expected">✅ OTP برای مشتری ارسال می‌شود، otp_hash و otp_expiry در DB ذخیره می‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CD04</td><td class="tc-scenario">نماینده تحویل را تأیید می‌کند</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ورود با نماینده 09161234567</li><li>رفتن به <code>/dealer/deliveries</code></li><li>باز کردن درخواست</li><li>وارد کردن سریال شمش + OTP و تأیید</li></ol></td><td class="tc-expected">✅ status=COMPLETED، bar.delivered_at ثبت می‌شود، شمش دیگر «امانی» نیست</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CD05</td><td class="tc-scenario">لغو درخواست توسط مشتری</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>بعد از ایجاد درخواست PENDING</li><li>POST <code>/my-bars/{id}/delivery/{req_id}/cancel</code></li></ol></td><td class="tc-expected">✅ status=CANCELLED، شمش هنوز امانی است (delivered_at=NULL)</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CD06</td><td class="tc-scenario">OTP اشتباه در تأیید نماینده</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>نماینده کد اشتباه وارد می‌کند</li></ol></td><td class="tc-expected">❌ خطای «کد تأیید نادرست است»، delivered_at تغییر نمی‌کند</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M23: DEALER REQUEST ===================== -->
+  <div class="module page-break" id="dealer-request">
+    <div class="section-header">
+      <span class="icon">📋</span>
+      <h2>M23 — درخواست نمایندگی (Dealer Request)</h2>
+      <span class="module-id">DEALER-REQ</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">مشتریان عادی می‌توانند درخواست نمایندگی ارائه دهند. چرخه: PENDING → APPROVED/REJECTED/REVISION_NEEDED. در صورت APPROVED، is_dealer=true می‌شود.</div>
+      <div class="flow">
+        <span class="flow-step">مشتری فرم پر می‌کند</span><span class="flow-arrow">→</span>
+        <span class="flow-step">PENDING</span><span class="flow-arrow">→</span>
+        <span class="flow-step">ادمین بررسی</span><span class="flow-arrow">→</span>
+        <span class="flow-step green">APPROVED (is_dealer=true)</span>
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row"><td class="tc-id">TC-DR01</td><td class="tc-scenario">ارسال درخواست نمایندگی</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ورود با مشتری (09359876543)</li><li>رفتن به <code>/dealer-request</code></li><li>تکمیل فرم (نام، کد ملی، استان، شهر، پیوست مدارک)</li><li>ثبت</li></ol></td><td class="tc-expected">✅ DealerRequest با status=PENDING ساخته می‌شود، صفحه وضعیت نمایش داده می‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-DR02</td><td class="tc-scenario">ادمین: تأیید درخواست</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ادمین به <code>/admin/dealer-requests/{id}</code> می‌رود</li><li>POST approve</li></ol></td><td class="tc-expected">✅ status=APPROVED، user.is_dealer=true، کاربر پنل نماینده دارد، اعلان ارسال می‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-DR03</td><td class="tc-scenario">ادمین: نیاز به بازبینی (Revision)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ادمین کلیک «نیاز به اصلاح» با توضیح</li><li>مشتری دوباره به <code>/dealer-request</code> می‌رود</li></ol></td><td class="tc-expected">✅ status=REVISION_NEEDED + admin_note نمایش دارد، لینک «?edit=1» فرم پر شده نمایش می‌دهد</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-DR04</td><td class="tc-scenario">ادمین: رد درخواست</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ادمین POST reject با دلیل</li></ol></td><td class="tc-expected">✅ status=REJECTED، user.is_dealer همچنان false، مشتری پیام رد دریافت می‌کند</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-DR05</td><td class="tc-scenario">ارسال مجدد بعد از Revision</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>مشتری فرم ویرایش را تکمیل می‌کند</li><li>ثبت مجدد</li></ol></td><td class="tc-expected">✅ درخواست موجود بروزرسانی می‌شود (نه duplicate)، status=PENDING</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M24: ADMIN WALLET ===================== -->
+  <div class="module page-break" id="admin-wallet">
+    <div class="section-header">
+      <span class="icon">🏦</span>
+      <h2>M24 — ادمین: مدیریت کیف پول و برداشت‌ها</h2>
+      <span class="module-id">ADMIN-WALLET</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">مشاهده موجودی همه حساب‌ها (IRR/XAU_MG/XAG_MG). بررسی و تأیید/رد درخواست‌های برداشت بانکی. تعدیل دستی موجودی.</div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row"><td class="tc-id">TC-AW01</td><td class="tc-scenario">لیست حساب‌های کیف پول</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ورود با ادمین</li><li>رفتن به <code>/admin/wallets</code></li><li>فیلتر: asset_code=XAU_MG</li></ol></td><td class="tc-expected">✅ لیست حساب‌های طلا با موجودی milligram نمایش دارد</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AW02</td><td class="tc-scenario">تأیید درخواست برداشت بانکی</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>مشتری درخواست برداشت با شبا ثبت کند</li><li>ادمین به <code>/admin/wallets/withdrawals/list</code></li><li>کلیک «تأیید پرداخت»</li></ol></td><td class="tc-expected">✅ status=PAID، موجودی مشتری کاهش یافته، تراکنش Withdraw در ledger ثبت شده</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AW03</td><td class="tc-scenario">رد درخواست برداشت</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ادمین کلیک «رد» با دلیل</li></ol></td><td class="tc-expected">✅ status=REJECTED، موجودی مشتری برگردانده می‌شود (Release از locked)، اعلان ارسال می‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AW04</td><td class="tc-scenario">مشاهده جزئیات wallet مشتری توسط ادمین</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>رفتن به <code>/admin/wallets/customer/{user_id}</code></li></ol></td><td class="tc-expected">✅ موجودی IRR + طلا + نقره + تاریخچه تراکنش‌ها نمایش دارد</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AW05</td><td class="tc-scenario">برداشت با موجودی ناکافی (مشتری)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>مشتری مبلغی بیش از موجودی درخواست می‌دهد</li></ol></td><td class="tc-expected">❌ خطای «موجودی کافی نیست»، WithdrawalRequest ثبت نمی‌شود</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== M25: HEDGING ===================== -->
+  <div class="module page-break" id="hedging">
+    <div class="section-header">
+      <span class="icon">📊</span>
+      <h2>M25 — هجینگ و مدیریت ریسک (Hedging)</h2>
+      <span class="module-id">HEDGING</span>
+    </div>
+    <div class="card">
+      <div class="module-desc">ردیابی position خالص فلزات (طلا/نقره). هر فروش → OUT، هر خرید از بازار → HEDGE. موازنه منفی=short (ریسک)، مثبت=long (safe). ادمین می‌تواند hedge trade ثبت کند.</div>
+      <div class="flow">
+        <span class="flow-step">مشتری شمش خریداری می‌کند (OUT)</span><span class="flow-arrow">→</span>
+        <span class="flow-step">balance_mg منفی می‌شود (short)</span><span class="flow-arrow">→</span>
+        <span class="flow-step">ادمین hedge ثبت می‌کند (IN)</span><span class="flow-arrow">→</span>
+        <span class="flow-step green">balance_mg به صفر نزدیک می‌شود</span>
+      </div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row"><td class="tc-id">TC-HG01</td><td class="tc-scenario">داشبورد موقعیت فعلی</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ادمین به <code>/admin/hedging</code> می‌رود</li></ol></td><td class="tc-expected">✅ position طلا و نقره (mg و گرم)، وضعیت short/long/hedged، نمودار تاریخچه نمایش دارد</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-HG02</td><td class="tc-scenario">ثبت hedge trade (خرید از بازار)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ادمین به <code>/admin/hedging/record</code></li><li>فلز: طلا، جهت: IN (خرید از بازار)، مقدار: ۱۰۰۰۰۰mg، قیمت: ×× ریال</li><li>ثبت</li></ol></td><td class="tc-expected">✅ PositionLedger با direction=HEDGE ثبت، balance_mg در MetalPosition بروز می‌شود، idempotency_key یکتا</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-HG03</td><td class="tc-scenario">تعدیل اولیه موجودی</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ادمین به <code>/admin/hedging/adjust</code></li><li>تنظیم balance اولیه برای نقره</li></ol></td><td class="tc-expected">✅ PositionLedger با direction=ADJUST ثبت، MetalPosition.balance_mg بروزرسانی</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-HG04</td><td class="tc-scenario">تاریخچه کامل (Ledger)</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>رفتن به <code>/admin/hedging/ledger</code></li><li>فیلتر: metal_type=gold، direction=OUT</li></ol></td><td class="tc-expected">✅ لیست فیلتر شده، source_type (sale/transfer/hedge/manual) نمایش دارد، pagination کار می‌کند</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-HG05</td><td class="tc-scenario">API موقعیت لحظه‌ای (AJAX)</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>GET <code>/admin/hedging/api/position</code></li></ol></td><td class="tc-expected">✅ JSON با balance_mg و status هر فلز برگشت داده می‌شود</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== EDGE CASES ===================== -->
+  <div class="module page-break" id="edge-cases">
+    <div class="section-header">
+      <span class="icon">⚠️</span>
+      <h2>سناریوهای بحرانی — Edge Cases</h2>
+      <span class="module-id">EDGE</span>
+    </div>
+    <div class="card">
+      <div class="section-note">این سناریوها احتمال کمتری دارند اما از نظر مالی بسیار مهم هستند. حتماً تست شوند!</div>
+      <table class="tc-table">
+        <thead><tr><th>شناسه</th><th>سناریو</th><th>اولویت</th><th>مراحل تست</th><th>نتیجه انتظاری</th></tr></thead>
+        <tbody>
+          <tr class="tc-row">
+            <td class="tc-id">TC-E01</td>
+            <td class="tc-scenario">ثبت سفارش با موجودی صفر (Race Condition)</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>دو مشتری همزمان روی آخرین شمش موجود سفارش ثبت کنند</li>
+            </ol></td>
+            <td class="tc-expected">✅ فقط یک سفارش موفق، دیگری خطای «موجودی تمام شد»</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-E02</td>
+            <td class="tc-scenario">انتقال شمشی که فروخته شده</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>تلاش برای انتقال شمش با وضعیت SOLD از نماینده</li>
+            </ol></td>
+            <td class="tc-expected">❌ خطای «این شمش قابل انتقال نیست»</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-E03</td>
+            <td class="tc-scenario">بیشتر از credit_limit نماینده</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>نماینده‌ای با اعتبار ۲۵۰گرم</li>
+              <li>سفارش به ارزش ۳۰۰گرم با کیف پول خالی</li>
+            </ol></td>
+            <td class="tc-expected">❌ خطای «موجودی + اعتبار کافی نیست»، DB constraint نقض نشده</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-E04</td>
+            <td class="tc-scenario">CSRF Attack Simulation</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>ارسال POST بدون csrf_token یا با توکن اشتباه</li>
+            </ol></td>
+            <td class="tc-expected">❌ HTTP 403 Forbidden</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-E05</td>
+            <td class="tc-scenario">OTP منقضی‌شده</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>دریافت OTP، صبر کردن بیشتر از زمان انقضا</li>
+              <li>تلاش برای ورود</li>
+            </ol></td>
+            <td class="tc-expected">❌ خطای «کد منقضی شده»، باید مجدداً OTP بگیرد</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-E06</td>
+            <td class="tc-scenario">دسترسی نماینده به پنل ادمین</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>با حساب نماینده رفتن به <code>/admin/dashboard</code></li>
+            </ol></td>
+            <td class="tc-expected">❌ HTTP 401 یا ریدایرکت به login</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-E07</td>
+            <td class="tc-scenario">مشتری به سفارش دیگری دسترسی ندارد</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>با حساب مشتری A رفتن به <code>/orders/{id_of_customer_B}</code></li>
+            </ol></td>
+            <td class="tc-expected">❌ HTTP 404 یا 403</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-E08</td>
+            <td class="tc-scenario">callback درگاه تکراری</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>ارسال callback موفق برای یک سفارش که قبلاً پرداخت شده</li>
+            </ol></td>
+            <td class="tc-expected">✅ سفارش دوبار Paid نمی‌شود، موجودی دوبار کسر نمی‌شود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-E09</td>
+            <td class="tc-scenario">قیمت ۰ (staleness critical)</td>
+            <td><span class="badge badge-red">بحرانی</span></td>
+            <td class="tc-steps"><ol>
+              <li>قیمت طلا را بیشتر از ۱۵ دقیقه آپدیت نکن</li>
+              <li>تلاش برای ثبت سفارش</li>
+            </ol></td>
+            <td class="tc-expected">❌ خطای «قیمت به‌روز نیست»، checkout مسدود</td>
+          </tr>
+          <tr class="tc-row">
+            <td class="tc-id">TC-E10</td>
+            <td class="tc-scenario">SQL Injection در جستجو</td>
+            <td><span class="badge badge-orange">بالا</span></td>
+            <td class="tc-steps"><ol>
+              <li>در جستجو وارد کردن: <code>' OR 1=1 --</code></li>
+            </ol></td>
+            <td class="tc-expected">✅ نتایج نرمال (SQLAlchemy ORM محافظت می‌کند)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== CHECKLIST ===================== -->
+  <div class="module" id="checklist">
+    <div class="section-header">
+      <span class="icon">✅</span>
+      <h2>چک‌لیست نهایی قبل از تأیید Production</h2>
+      <span class="module-id">FINAL</span>
+    </div>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div>
+          <h3 style="font-size:13px;font-weight:700;margin-bottom:10px;color:#0f3460;">🔐 امنیت</h3>
+          <ul class="checklist">
+            <li>CSRF در تمام POST routes کار می‌کند</li>
+            <li>دسترسی نقش‌ها به درستی محدود است</li>
+            <li>API Key برای POS صحیح validate می‌شود</li>
+            <li>OTP منقضی‌شده رد می‌شود</li>
+            <li>مشتری به سفارش دیگران دسترسی ندارد</li>
+          </ul>
+        </div>
+        <div>
+          <h3 style="font-size:13px;font-weight:700;margin-bottom:10px;color:#0f3460;">💰 مالی</h3>
+          <ul class="checklist">
+            <li>پرداخت مضاعف جلوگیری می‌شود</li>
+            <li>موجودی ناکافی بلوک می‌کند</li>
+            <li>credit_limit constraint رعایت می‌شود</li>
+            <li>callback درگاه ایدمپوتنت است</li>
+            <li>تراکنش‌ها atomic هستند (rollback صحیح)</li>
+          </ul>
+        </div>
+        <div>
+          <h3 style="font-size:13px;font-weight:700;margin-bottom:10px;color:#0f3460;">📦 موجودی</h3>
+          <ul class="checklist">
+            <li>شمش فروخته‌شده قابل فروش مجدد نیست</li>
+            <li>رزرو POS بعد از ۲ دقیقه منقضی می‌شود</li>
+            <li>Reconciliation آمار صحیح دارد</li>
+            <li>تحویل امانی با OTP تأیید می‌شود</li>
+            <li>QR Code on-the-fly تولید می‌شود (ذخیره نمی‌شود)</li>
+          </ul>
+        </div>
+        <div>
+          <h3 style="font-size:13px;font-weight:700;margin-bottom:10px;color:#0f3460;">🎯 کیفیت UI</h3>
+          <ul class="checklist">
+            <li>اعداد فارسی صحیح نمایش داده می‌شوند</li>
+            <li>تاریخ جلالی صحیح است</li>
+            <li>اعلان‌های خطا واضح هستند</li>
+            <li>صفحات RTL درست رندر می‌شوند</li>
+            <li>Mobile responsive کار می‌کند</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:40px;padding:20px;color:#888;font-size:11px;border-top:1px solid #eee;">
+    TalaMala v4 — Test Playbook | تهیه‌شده: ۱۴۰۴/۱۲/۲۸ | برای استفاده داخلی تیم QA
+  </div>
+
+</div><!-- /container -->
+
+</body>
+</html>
