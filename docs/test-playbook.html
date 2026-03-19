@@ -197,9 +197,9 @@
   <h1>📋 پلی‌بوک تست جامع — TalaMala v4</h1>
   <p>راهنمای تست end-to-end برای تیم QA — سیستم فروش شمش طلا و نقره</p>
   <div class="meta">
-    <span>📅 تاریخ: ۱۴۰۴/۱۲/۲۸</span>
+    <span>📅 تاریخ: ۱۴۰۴/۱۲/۲۹</span>
     <span>🔢 تعداد ماژول: ۲۵</span>
-    <span>✅ تعداد تست کیس: ۱۷۴</span>
+    <span>✅ تعداد تست کیس: ۱۸۴</span>
     <span>🌐 محیط: Production</span>
   </div>
 </header>
@@ -363,14 +363,18 @@
           </tr>
           <tr class="tc-row">
             <td class="tc-id">TC-A08</td>
-            <td class="tc-scenario">ثبت‌نام خودکار کاربر جدید</td>
+            <td class="tc-scenario">ثبت‌نام خودکار کاربر جدید (Login mode)</td>
             <td><span class="badge badge-orange">بالا</span></td>
             <td class="tc-steps"><ol>
-              <li>ورود با شماره‌ای که قبلاً ثبت نشده</li>
+              <li>رفتن به <code>/auth/login</code> — تب «ورود»</li>
+              <li>ورود با موبایل که قبلاً ثبت نشده</li>
               <li>تأیید OTP</li>
             </ol></td>
-            <td class="tc-expected">✅ کاربر جدید ساخته می‌شود، ریدایرکت به صفحه تکمیل پروفایل</td>
+            <td class="tc-expected">✅ کاربر جدید ساخته می‌شود، چون پروفایل ناقص است ریدایرکت به <code>/profile</code></td>
           </tr>
+          <tr class="tc-row"><td class="tc-id">TC-A09</td><td class="tc-scenario">ثبت‌نام با فرم کامل (Register mode)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>رفتن به <code>/auth/login</code> — تب «ثبت نام»</li><li>پر کردن: نام، نام خانوادگی، موبایل، کد ملی، کد پستی، آدرس</li><li>کلیک «ارسال کد» — OTP ارسال می‌شود</li><li>تأیید OTP</li></ol></td><td class="tc-expected">✅ کاربر با کد ملی، کد پستی و آدرس ساخته می‌شود، بعد از verify ریدایرکت به صفحه اصلی (پروفایل کامل است)</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-A10</td><td class="tc-scenario">ثبت‌نام با کد ملی تکراری</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>در Register mode، کد ملی یک کاربر موجود را وارد کن</li><li>کلیک «ارسال کد»</li></ol></td><td class="tc-expected">❌ پیام خطا «این کد ملی قبلاً ثبت شده است»، OTP ارسال نمی‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-A11</td><td class="tc-scenario">ثبت‌نام با موبایل تکراری (Register mode)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>در Register mode، موبایل کاربر موجود (مثلاً 09351234567) را وارد کن</li></ol></td><td class="tc-expected">❌ پیام «این شماره قبلاً ثبت نام شده است. لطفاً از بخش ورود استفاده کنید»</td></tr>
         </tbody>
       </table>
     </div>
@@ -852,6 +856,7 @@
             </ol></td>
             <td class="tc-expected">✅ شمش SOLD، claim_code تولید شده (برای ادعای بعدی مالکیت)</td>
           </tr>
+          <tr class="tc-row"><td class="tc-id">TC-D03B</td><td class="tc-scenario">فروش POS — شمش پیش‌سفارش (Preorder) رد می‌شود</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>انتخاب شمشی که <code>is_preorder=True</code> است در فرم POS</li><li>تلاش برای ثبت فروش</li></ol></td><td class="tc-expected">❌ خطای «شمش پیش‌سفارش قابل فروش حضوری نیست»، bar.status تغییر نمی‌کند</td></tr>
           <tr class="tc-row">
             <td class="tc-id">TC-D04</td>
             <td class="tc-scenario">بازخرید — فلو کامل OTP (⚠️ ادمین در این فلو نقش ندارد)</td>
@@ -1159,6 +1164,8 @@
             </ol></td>
             <td class="tc-expected">✅ وضعیت به Closed تغییر، امکان ارسال پیام جدید وجود ندارد</td>
           </tr>
+          <tr class="tc-row"><td class="tc-id">TC-T05</td><td class="tc-scenario">ادمین: تغییر دپارتمان/دسته تیکت</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>ادمین در صفحه تیکت، دپارتمان را تغییر می‌دهد</li><li>POST <code>/admin/tickets/{id}/category</code> با new_category</li></ol></td><td class="tc-expected">✅ دسته تیکت تغییر می‌کند، لاگ تغییر ثبت می‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-T06</td><td class="tc-scenario">ادمین: پاسخ باعث auto-assign می‌شود</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>تیکتی که assigned_to = NULL است</li><li>ادمین A پاسخ می‌دهد (POST <code>/admin/tickets/{id}/reply</code>)</li><li>DB: ticket.assigned_to بررسی شود</li></ol></td><td class="tc-expected">✅ ticket.assigned_to = ادمین A (auto-assign هنگام اولین پاسخ)</td></tr>
         </tbody>
       </table>
     </div>
@@ -1218,6 +1225,8 @@
             </ol></td>
             <td class="tc-expected">✅ پاسخ ادمین در صفحه محصول نمایش داده می‌شود</td>
           </tr>
+          <tr class="tc-row"><td class="tc-id">TC-R05</td><td class="tc-scenario">آپلود تصویر در کامنت — فقط خریداران</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>کاربری که این محصول را نخریده وارد صفحه محصول می‌شود</li><li>تلاش برای ارسال کامنت با فایل تصویری</li></ol></td><td class="tc-expected">✅ کامنت ثبت می‌شود اما فایل تصویری نادیده گرفته می‌شود (سرور has_purchased را چک می‌کند، فایل‌های غیرخریدار ذخیره نمی‌شوند)</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-R06</td><td class="tc-scenario">لایک/آنلایک کامنت (AJAX)</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>در صفحه محصول، کلیک آیکون لایک روی یک کامنت</li><li>دوباره کلیک (toggle)</li></ol></td><td class="tc-expected">✅ اولین کلیک: لایک + counter++، دومین کلیک: unlike + counter--، request از نوع AJAX (X-CSRF-Token header)</td></tr>
         </tbody>
       </table>
     </div>
@@ -1448,14 +1457,15 @@
         <tbody>
           <tr class="tc-row">
             <td class="tc-id">TC-AI01</td>
-            <td class="tc-scenario">تولید شمش جدید</td>
+            <td class="tc-scenario">تولید شمش جدید (RAW)</td>
             <td><span class="badge badge-red">بحرانی</span></td>
             <td class="tc-steps"><ol>
-              <li>رفتن به <code>/admin/bars/generate</code></li>
-              <li>انتخاب محصول، تعداد، نماینده</li>
-              <li>تولید</li>
+              <li>رفتن به <code>/admin/bars</code></li>
+              <li>در فرم «تولید شمش جدید»، تعداد (حداکثر ۵۰۰) را وارد کن</li>
+              <li>POST به <code>/admin/bars/generate</code></li>
+              <li>DB: شمش‌های RAW با serial_code یکتا بررسی شوند</li>
             </ol></td>
-            <td class="tc-expected">✅ شمش‌ها با سریال‌کد یکتا تولید، وضعیت ASSIGNED، اسایند به نماینده</td>
+            <td class="tc-expected">✅ شمش‌ها با سریال‌کد یکتا و status=RAW تولید می‌شوند (هنوز به نماینده اسایند نشده‌اند)</td>
           </tr>
           <tr class="tc-row">
             <td class="tc-id">TC-AI02</td>
@@ -1480,6 +1490,8 @@
             </ol></td>
             <td class="tc-expected">✅ گزارش: تطبیق‌شده، غایب، غیرمنتظره</td>
           </tr>
+          <tr class="tc-row"><td class="tc-id">TC-AI04</td><td class="tc-scenario">تولید شمش پیش‌سفارش (Preorder)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>اطمینان از وجود نماینده با <code>is_central_warehouse=True</code></li><li>POST <code>/admin/bars/generate-preorder</code> با product_id و count</li><li>DB: bar.is_preorder=True، bar.dealer_id=انبار مرکزی، bar.status=ASSIGNED</li></ol></td><td class="tc-expected">✅ شمش‌های preorder تولید، به انبار مرکزی اسایند، در POS فروش آن‌ها مسدود است</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AI05</td><td class="tc-scenario">تولید claim_code برای شمش</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>پیدا کردن شمشی که claim_code=NULL است</li><li>POST <code>/admin/bars/{id}/generate-claim-code</code></li><li>DB: bar.claim_code بررسی شود</li></ol></td><td class="tc-expected">✅ claim_code یکتا تولید شده، برای اهدا/هدیه می‌توان از آن استفاده کرد</td></tr>
         </tbody>
       </table>
     </div>
