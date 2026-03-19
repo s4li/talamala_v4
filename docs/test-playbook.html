@@ -199,7 +199,7 @@
   <div class="meta">
     <span>📅 تاریخ: ۱۴۰۴/۱۲/۲۸</span>
     <span>🔢 تعداد ماژول: ۲۵</span>
-    <span>✅ تعداد تست کیس: ۱۶۰</span>
+    <span>✅ تعداد تست کیس: ۱۷۴</span>
     <span>🌐 محیط: Production</span>
   </div>
 </header>
@@ -1501,15 +1501,18 @@
         <tbody>
           <tr class="tc-row">
             <td class="tc-id">TC-AD01</td>
-            <td class="tc-scenario">تسویه طلایی نماینده</td>
+            <td class="tc-scenario">تسویه طلایی نماینده (Gold Settlement)</td>
             <td><span class="badge badge-red">بحرانی</span></td>
             <td class="tc-steps"><ol>
-              <li>ادمین به <code>/admin/dealers/{id}/gold-settlement</code> برود</li>
-              <li>وارد کردن مقدار طلا (mg)</li>
+              <li>ادمین به <code>/admin/dealers/{id}/settlement</code> برود (URL جدید — /gold-settlement قدیمی ریدایرکت می‌کند)</li>
+              <li>انتخاب settlement_type=gold</li>
+              <li>وارد کردن مقدار (گرم)، روش تحویل (physical/hawala)، شماره مرجع</li>
               <li>تأیید</li>
+              <li>DB: XAU_MG balance نماینده + ledger ثبت</li>
             </ol></td>
-            <td class="tc-expected">✅ XAU_MG نماینده افزایش، در ledger ثبت</td>
+            <td class="tc-expected">✅ XAU_MG نماینده به میزان گرم×۱۰۰۰ mg افزایش، LedgerEntry با txn_type=Deposit و reference_type=gold_settlement ثبت</td>
           </tr>
+          <tr class="tc-row"><td class="tc-id">TC-AD01B</td><td class="tc-scenario">تسویه ریالی نماینده (Rial Settlement)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>همان صفحه <code>/admin/dealers/{id}/settlement</code></li><li>settlement_type=rial، مبلغ (تومان)، نام بانک، شماره مرجع</li><li>DB: IRR balance نماینده + ledger</li></ol></td><td class="tc-expected">✅ IRR balance افزایش (مبلغ×۱۰)، LedgerEntry با reference_type=rial_settlement ثبت</td></tr>
           <tr class="tc-row">
             <td class="tc-id">TC-AD02</td>
             <td class="tc-scenario">ایجاد/تمدید API Key</td>
@@ -1540,27 +1543,13 @@
             </ol></td>
             <td class="tc-expected">✅ لیست فروش‌ها با سود، کمیسیون، آمار تجمیعی</td>
           </tr>
-          <tr class="tc-row">
-            <td class="tc-id">TC-AD05</td>
-            <td class="tc-scenario">تأیید/رد بازخرید</td>
-            <td><span class="badge badge-orange">بالا</span></td>
-            <td class="tc-steps"><ol>
-              <li>رفتن به <code>/admin/dealers/buybacks</code></li>
-              <li>کلیک «تأیید» برای درخواست Pending</li>
-            </ol></td>
-            <td class="tc-expected">✅ وضعیت Approved، شمش آزاد می‌شود</td>
-          </tr>
-          <tr class="tc-row">
-            <td class="tc-id">TC-AD06</td>
-            <td class="tc-scenario">مدیریت Hedging</td>
-            <td><span class="badge badge-orange">بالا</span></td>
-            <td class="tc-steps"><ol>
-              <li>رفتن به <code>/admin/hedging</code></li>
-              <li>بررسی موقعیت فعلی (long/short)</li>
-              <li>ثبت معامله پوشش‌دهی در <code>/admin/hedging/record</code></li>
-            </ol></td>
-            <td class="tc-expected">✅ موقعیت آپدیت، در ledger ثبت</td>
-          </tr>
+          <tr class="tc-row"><td class="tc-id">TC-AD05</td><td class="tc-scenario">مشاهده لیست بازخریدها توسط ادمین (Read-only)</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>رفتن به <code>/admin/dealers/buybacks</code></li></ol></td><td class="tc-expected">✅ لیست همه BuybackRequest ها نمایش داده می‌شود — ⚠️ هیچ دکمه تأیید/رد وجود ندارد: بازخرید instant توسط نماینده+OTP مشتری انجام می‌شود (approve/reject حذف شده)</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AD06</td><td class="tc-scenario">غیرفعال کردن نماینده (Toggle Active)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ادمین POST <code>/admin/dealers/{id}/toggle-active</code></li><li>نماینده تلاش کند لاگین و به پنل دسترسی داشته باشد</li></ol></td><td class="tc-expected">✅ is_active=false → نماینده به صفحه login ریدایرکت می‌شود، API calls با 401 رد می‌شوند</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AD07</td><td class="tc-scenario">حذف نقش نمایندگی (Remove Role)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ادمین POST <code>/admin/dealers/{id}/remove-role</code></li><li>DB: user.is_dealer بررسی شود</li><li>همان کاربر تلاش کند به /dealer/dashboard برود</li></ol></td><td class="tc-expected">✅ user.is_dealer=false، کاربر دیگر به پنل نماینده دسترسی ندارد اما حساب کاربری حفظ است</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AD08</td><td class="tc-scenario">اجرت پلکانی نمایندگان (Tier Wages)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ادمین به <code>/admin/dealers/tier-wages/{product_id}</code></li><li>برای هر سطح (tier) یک wage_percent وارد کن (کمتر از wage محصول)</li><li>ذخیره</li><li>نماینده آن tier با POS فروش انجام دهد و metal_profit_mg بررسی شود</li></ol></td><td class="tc-expected">✅ ProductTierWage ذخیره / در فروش POS: سود نماینده = (wage_product - wage_tier) × weight_g × price / اگر wage_tier > wage_product: ❌ خطای validation</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AD09</td><td class="tc-scenario">مدیریت سطوح نمایندگی (Dealer Tiers CRUD)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ادمین به <code>/admin/dealers/tiers/list</code></li><li>POST <code>/admin/dealers/tiers/new</code> با name، default_credit_limit_grams=10</li><li>ویرایش سطح موجود: تغییر credit limit</li></ol></td><td class="tc-expected">✅ DealerTier ساخته می‌شود / credit_limit در گرم ذخیره و ×۱۰۰۰ به mg تبدیل می‌شود / Account.credit_limit_mg نمایندگان آن tier sync می‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AD10</td><td class="tc-scenario">مدیریت زیرنمایندگان (Sub-dealer)</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>ادمین به <code>/admin/dealers/{id}/sub-dealers</code></li><li>POST add: نماینده فرزند + درصد تقسیم کمیسیون</li><li>POST deactivate: غیرفعال کردن رابطه</li></ol></td><td class="tc-expected">✅ SubDealerRelation ساخته / در فروش POS نماینده فرزند: parent_commission_mg محاسبه و به والد واریز می‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AD11</td><td class="tc-scenario">مدیریت کاربران (Admin Customer)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ادمین به <code>/admin/customers/{id}</code> با tab=wallet بره</li><li>tab=orders را بررسی کند</li><li>POST <code>/admin/customers/{id}</code>: تغییر نام و کد ملی</li></ol></td><td class="tc-expected">✅ tab=wallet: موجودی IRR + XAU_MG + تاریخچه / tab=orders: سفارشات کاربر / POST: اطلاعات در DB ذخیره</td></tr>
         </tbody>
       </table>
     </div>
@@ -1609,6 +1598,11 @@
             </ol></td>
             <td class="tc-expected">✅ به درگاه Sepehr ریدایرکت می‌شود</td>
           </tr>
+          <tr class="tc-row"><td class="tc-id">TC-CF04</td><td class="tc-scenario">تغییر کارمزد خرید/فروش فلز (Fee Percent)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ادمین: gold_fee_customer_percent=3، gold_fee_dealer_percent=1 ذخیره کن</li><li>مشتری عادی از /wallet/gold خرید کند</li><li>نماینده از /wallet/gold خرید کند</li><li>مقدار کارمزد واقعی در تراکنش بررسی شود</li></ol></td><td class="tc-expected">✅ مشتری ۳٪ کارمزد / نماینده ۱٪ کارمزد — LedgerEntry delta_balance دقیق است</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CF05</td><td class="tc-scenario">فعال/غیرفعال کردن شاهکار (Shahkar)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ادمین shahkar_enabled=true ذخیره کند</li><li>کاربر بدون تأیید شاهکار سعی کند checkout کند</li></ol></td><td class="tc-expected">❌ ریدایرکت به /profile با پیام «ابتدا احراز هویت شاهکار را انجام دهید»</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CF06</td><td class="tc-scenario">بروزرسانی خودکار قیمت (Auto-Update + Fetch)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ادمین gold_auto_update=true با gold_update_interval=5 ذخیره</li><li>POST <code>/admin/settings/fetch-price</code> برای دریافت فوری قیمت از goldis.ir</li></ol></td><td class="tc-expected">✅ Asset.auto_update=true ذخیره / fetch-price: قیمت جدید از API خارجی واکشی و در Asset.price_per_gram ذخیره شده، updated_at reset</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CF07</td><td class="tc-scenario">تنظیم هشدار SMS ادمین</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>admin_alert_enabled=true، admin_alert_mobiles=09123456789، types=[DEALER_SALE] ذخیره</li><li>یک فروش POS انجام شود</li></ol></td><td class="tc-expected">✅ SMS هشدار به ادمین ارسال می‌شود — فرمت: «[هشدار] فروش POS شمش X گرم | hedging balance: ±Y گرم»</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-CF08</td><td class="tc-scenario">لاگ درخواست‌ها و retention</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>رفتن به <code>/admin/logs</code></li><li>فیلتر: method=POST، status=4xx</li><li>log_retention_days=30 ذخیره کن</li></ol></td><td class="tc-expected">✅ RequestLog های فیلتر شده نمایش / لاگ‌های قدیمی‌تر از retention_days حذف می‌شوند</td></tr>
         </tbody>
       </table>
     </div>
@@ -1743,6 +1737,9 @@
           <tr class="tc-row"><td class="tc-id">TC-AW03</td><td class="tc-scenario">رد درخواست برداشت</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ادمین کلیک «رد» با دلیل</li></ol></td><td class="tc-expected">✅ status=REJECTED، موجودی مشتری برگردانده می‌شود (Release از locked)، اعلان ارسال می‌شود</td></tr>
           <tr class="tc-row"><td class="tc-id">TC-AW04</td><td class="tc-scenario">مشاهده جزئیات wallet مشتری توسط ادمین</td><td><span class="badge badge-blue">متوسط</span></td><td class="tc-steps"><ol><li>رفتن به <code>/admin/wallets/customer/{user_id}</code></li></ol></td><td class="tc-expected">✅ موجودی IRR + طلا + نقره + تاریخچه تراکنش‌ها نمایش دارد</td></tr>
           <tr class="tc-row"><td class="tc-id">TC-AW05</td><td class="tc-scenario">برداشت با موجودی ناکافی (مشتری)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>مشتری مبلغی بیش از موجودی درخواست می‌دهد</li></ol></td><td class="tc-expected">❌ خطای «موجودی کافی نیست»، WithdrawalRequest ثبت نمی‌شود</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AW06</td><td class="tc-scenario">⚠️ تعدیل دستی موجودی IRR (Wallet Adjust — Deposit)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>ادمین به <code>/admin/wallets/customer/{user_id}</code></li><li>POST <code>/admin/wallets/adjust</code>: user_id، direction=deposit، asset=IRR، amount=500000 (تومان)</li><li>DB: Account.balance و LedgerEntry بررسی شود</li></ol></td><td class="tc-expected">✅ balance افزایش ۵٬۰۰۰٬۰۰۰ ریال (×۱۰)، LedgerEntry با txn_type=Deposit ثبت، idempotency_key یکتا</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AW07</td><td class="tc-scenario">⚠️ تعدیل دستی موجودی XAU_MG (Wallet Adjust — Withdraw)</td><td><span class="badge badge-red">بحرانی</span></td><td class="tc-steps"><ol><li>POST <code>/admin/wallets/adjust</code>: asset=XAU_MG، direction=withdraw، amount=2.5 (گرم)</li><li>DB: Account.balance و LedgerEntry بررسی</li></ol></td><td class="tc-expected">✅ balance کاهش ۲۵۰۰mg (گرم×۱۰۰۰)، LedgerEntry با txn_type=Withdraw ثبت / اگر موجودی ناکافی: ValueError</td></tr>
+          <tr class="tc-row"><td class="tc-id">TC-AW08</td><td class="tc-scenario">مشاهده wallet نماینده (IRR + XAU_MG + credit_limit)</td><td><span class="badge badge-orange">بالا</span></td><td class="tc-steps"><ol><li>ادمین به <code>/admin/wallets/dealer/{user_id}</code></li></ol></td><td class="tc-expected">✅ موجودی IRR + XAU_MG + XAG_MG + credit_limit_mg + available_balance (شامل credit) + withdrawable_balance (بدون credit) نمایش می‌یابد</td></tr>
         </tbody>
       </table>
     </div>
