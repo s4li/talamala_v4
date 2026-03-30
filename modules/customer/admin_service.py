@@ -7,7 +7,7 @@ Queries for admin customer management: list, search, stats, detail aggregation.
 from typing import Optional, Tuple, List, Dict, Any
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func as sa_func, or_
+from sqlalchemy import func as sa_func, or_, literal
 
 from modules.user.models import User
 from modules.order.models import Order
@@ -39,13 +39,19 @@ class CustomerAdminService:
             q = q.filter(User.is_dealer == False, User.is_admin == False)
 
         if search:
-            term = f"%{search}%"
+            term = f"%{search.strip()}%"
+            full_name_expr = sa_func.concat(
+                sa_func.coalesce(User.first_name, ''),
+                ' ',
+                sa_func.coalesce(User.last_name, ''),
+            )
             q = q.filter(
                 or_(
                     User.mobile.ilike(term),
                     User.national_id.ilike(term),
                     User.first_name.ilike(term),
                     User.last_name.ilike(term),
+                    full_name_expr.ilike(term),
                 )
             )
         if status == "active":
