@@ -15,7 +15,7 @@ from common.helpers import safe_int, safe_decimal
 from modules.dealer.models import DealerTier
 from modules.catalog.models import (
     ProductTierWage,
-    Product, ProductImage, ProductCategoryLink,
+    Product, ProductImage, ProductCategoryLink, ProductPackageLink,
     PackageType, PackageTypeImage,
     GiftBox, GiftBoxImage,
     Batch, BatchImage,
@@ -132,6 +132,12 @@ class ProductService:
         if data.get("category_ids"):
             db.flush()
 
+        # M2M package types
+        for pkg_id in (data.get("package_type_ids") or []):
+            db.add(ProductPackageLink(product_id=product.id, package_type_id=int(pkg_id)))
+        if data.get("package_type_ids"):
+            db.flush()
+
         # Auto-sync end_customer tier wage from product wage
         ec_tier = db.query(DealerTier).filter(DealerTier.is_end_customer == True, DealerTier.is_active == True).first()
         if ec_tier:
@@ -170,6 +176,12 @@ class ProductService:
             db.query(ProductCategoryLink).filter(ProductCategoryLink.product_id == p.id).delete()
             for cat_id in (data["category_ids"] or []):
                 db.add(ProductCategoryLink(product_id=p.id, category_id=int(cat_id)))
+
+        # Sync M2M package types
+        if "package_type_ids" in data:
+            db.query(ProductPackageLink).filter(ProductPackageLink.product_id == p.id).delete()
+            for pkg_id in (data["package_type_ids"] or []):
+                db.add(ProductPackageLink(product_id=p.id, package_type_id=int(pkg_id)))
 
         db.flush()
 

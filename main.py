@@ -98,7 +98,7 @@ from modules.user.models import User  # noqa: F401 — unified user model
 from modules.admin.models import SystemSetting, RequestLog, Testimonial  # noqa: F401
 from modules.customer.address_models import GeoProvince, GeoCity, GeoDistrict, CustomerAddress  # noqa: F401
 from modules.catalog.models import (  # noqa: F401
-    ProductCategory, ProductCategoryLink, Product, ProductImage,
+    ProductCategory, ProductCategoryLink, ProductPackageLink, Product, ProductImage,
     PackageType, PackageTypeImage, GiftBox, GiftBoxImage,
     Batch, BatchImage, ProductTierWage,
 )

@@ -62,13 +62,21 @@
                         <small class="text-muted">مبلغ بازخرید = ارزش خام × این درصد</small>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label-tm">بسته‌بندی</label>
-                        <select name="package_type_id" class="form-select form-select-tm">
-                            <option value="">بدون بسته‌بندی</option>
+                        <label class="form-label-tm">بسته‌بندی‌های مجاز</label>
+                        <div class="border rounded p-2" style="max-height:150px; overflow-y:auto;">
                             {% for pkg in packages %}
-                            <option value="{{ pkg.id }}" {% if p.package_type_id == pkg.id %}selected{% endif %}>{{ pkg.name }}</option>
+                            <div class="form-check">
+                                <input type="checkbox" name="package_type_ids" value="{{ pkg.id }}"
+                                       class="form-check-input" id="pkg_{{ pkg.id }}"
+                                       {% if pkg.id in p.allowed_package_ids %}checked{% endif %}>
+                                <label class="form-check-label" for="pkg_{{ pkg.id }}">
+                                    {{ pkg.name }}
+                                    {% if pkg.price %}<small class="text-muted">({{ pkg.price | toman }} ت)</small>{% endif %}
+                                </label>
+                            </div>
                             {% endfor %}
-                        </select>
+                        </div>
+                        <small class="text-muted">بسته‌بندی‌هایی که برای این محصول قابل ارائه هستند</small>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label-tm">وضعیت</label>

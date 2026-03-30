@@ -49,7 +49,7 @@
                         <td>{{ p.weight }}</td>
                         <td>{{ p.purity|purity }}</td>
                         <td>{{ p.wage }}%</td>
-                        <td><small>{{ p.package_type.name if p.package_type else '—' }}</small></td>
+                        <td><small>{% if p.allowed_packages %}{% for pkg in p.allowed_packages %}{{ pkg.name }}{% if not loop.last %}، {% endif %}{% endfor %}{% else %}—{% endif %}</small></td>
                         <td>
                             {% if p.is_active %}
                             <span class="badge-tm badge-tm-success">فعال</span>
@@ -128,13 +128,19 @@
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label-tm">بسته‌بندی</label>
-                            <select name="package_type_id" class="form-select form-select-tm">
-                                <option value="">بدون بسته‌بندی</option>
+                            <label class="form-label-tm">بسته‌بندی‌های مجاز</label>
+                            <div class="border rounded p-2" style="max-height:150px; overflow-y:auto;">
                                 {% for pkg in packages %}
-                                <option value="{{ pkg.id }}">{{ pkg.name }}</option>
+                                <div class="form-check">
+                                    <input type="checkbox" name="package_type_ids" value="{{ pkg.id }}"
+                                           class="form-check-input" id="addpkg_{{ pkg.id }}">
+                                    <label class="form-check-label" for="addpkg_{{ pkg.id }}">
+                                        {{ pkg.name }}
+                                        {% if pkg.price %}<small class="text-muted">({{ pkg.price | toman }} ت)</small>{% endif %}
+                                    </label>
+                                </div>
                                 {% endfor %}
-                            </select>
+                            </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label-tm">وضعیت</label>

@@ -64,10 +64,12 @@ async def add_product(
     csrf_check(request, csrf_token)
     form = await request.form()
     category_ids = [int(v) for v in form.getlist("category_ids") if str(v).isdigit()]
+    package_type_ids = [int(v) for v in form.getlist("package_type_ids") if str(v).isdigit()]
     pt_id = int(package_type_id) if package_type_id.strip().isdigit() else None
     product_service.create(db, {
         "name": name, "weight": weight, "purity": purity,
         "category_ids": category_ids, "package_type_id": pt_id,
+        "package_type_ids": package_type_ids,
         "wage": wage,
         "is_active": is_active,
     }, files)
@@ -104,12 +106,14 @@ async def update_product(
     description = form.get("description", "")
     buyback_wage_percent = str(form.get("buyback_wage_percent", "0")).strip()
     category_ids = [int(v) for v in form.getlist("category_ids") if str(v).isdigit()]
+    package_type_ids = [int(v) for v in form.getlist("package_type_ids") if str(v).isdigit()]
     pt_id = int(package_type_id) if package_type_id.strip().isdigit() else None
 
     product_service.update(db, p_id, {
         "name": name, "weight": weight, "purity": purity,
         "description": description,
         "category_ids": category_ids, "package_type_id": pt_id,
+        "package_type_ids": package_type_ids,
         "wage": wage,
         "buyback_wage_percent": buyback_wage_percent,
         "is_active": is_active,

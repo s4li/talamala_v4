@@ -52,6 +52,25 @@ class ProductCategoryLink(Base):
 
 
 # ==========================================
+# 🔗 Product ↔ PackageType (M2M Junction)
+# ==========================================
+
+class ProductPackageLink(Base):
+    __tablename__ = "product_package_links"
+
+    id = Column(Integer, primary_key=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
+    package_type_id = Column(Integer, ForeignKey("package_types.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    product = relationship("Product", back_populates="package_links")
+    package_type = relationship("PackageType")
+
+    __table_args__ = (
+        UniqueConstraint("product_id", "package_type_id", name="uq_product_package_link"),
+    )
+
+
+# ==========================================
 # 📦 Product
 # ==========================================
 
@@ -80,6 +99,7 @@ class Product(Base):
     # Relationships
     category_links = relationship("ProductCategoryLink", back_populates="product", cascade="all, delete-orphan")
     package_type = relationship("PackageType", foreign_keys=[package_type_id])
+    package_links = relationship("ProductPackageLink", back_populates="product", cascade="all, delete-orphan")
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
     tier_wages = relationship("ProductTierWage", back_populates="product", cascade="all, delete-orphan")
 
@@ -92,6 +112,16 @@ class Product(Base):
     def category_ids(self):
         """Get list of category IDs for this product."""
         return [link.category_id for link in self.category_links]
+
+    @property
+    def allowed_packages(self):
+        """Get list of PackageType objects allowed for this product."""
+        return [link.package_type for link in self.package_links]
+
+    @property
+    def allowed_package_ids(self):
+        """Get list of allowed package type IDs."""
+        return [link.package_type_id for link in self.package_links]
 
     @property
     def default_image(self):
