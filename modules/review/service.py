@@ -97,9 +97,11 @@ class ReviewService:
             if not parent or parent.product_id != product_id:
                 return {"success": False, "message": "نظر والد معتبر نیست"}
 
+        auto_approve = (sender_type == CommentSenderType.ADMIN)
         comment = ProductComment(
             product_id=product_id, user_id=customer_id,
             parent_id=parent_id, body=body.strip(),
+            is_approved=auto_approve,
             sender_type=sender_type, sender_name=sender_name,
         )
         db.add(comment)
@@ -135,7 +137,11 @@ class ReviewService:
         return (
             db.query(ProductComment)
             .options(joinedload(ProductComment.images), joinedload(ProductComment.user))
-            .filter(ProductComment.product_id == product_id, ProductComment.parent_id == None)
+            .filter(
+                ProductComment.product_id == product_id,
+                ProductComment.parent_id == None,
+                ProductComment.is_approved == True,
+            )
             .order_by(ProductComment.created_at.desc())
             .all()
         )

@@ -6,7 +6,7 @@ Product reviews (star rating from order page) and comments/Q&A (from product pag
 
 import enum
 from sqlalchemy import (
-    Column, Integer, String, DateTime, ForeignKey, Text, Index, UniqueConstraint, CheckConstraint,
+    Column, Integer, String, Boolean, DateTime, ForeignKey, Text, Index, UniqueConstraint, CheckConstraint,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -70,6 +70,7 @@ class ProductComment(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     parent_id = Column(Integer, ForeignKey("product_comments.id", ondelete="CASCADE"), nullable=True)
     body = Column(Text, nullable=False)
+    is_approved = Column(Boolean, default=False, nullable=False)
     sender_type = Column(String, default=CommentSenderType.CUSTOMER, nullable=False)
     sender_name = Column(String(200), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

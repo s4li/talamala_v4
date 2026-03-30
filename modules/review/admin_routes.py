@@ -209,6 +209,27 @@ async def admin_reply_review(
 
 
 # ==========================================
+# Approve Comment
+# ==========================================
+
+@router.post("/comment/{comment_id}/approve")
+async def admin_approve_comment(
+    request: Request,
+    comment_id: int,
+    csrf_token: str = Form(""),
+    user=Depends(require_operator_or_admin),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    comment = db.query(ProductComment).filter(ProductComment.id == comment_id).first()
+    if not comment:
+        return RedirectResponse("/admin/reviews?error=نظر+یافت+نشد", status_code=302)
+    comment.is_approved = True
+    db.commit()
+    return RedirectResponse(f"/admin/reviews/comment/{comment_id}?msg=نظر+تأیید+شد", status_code=302)
+
+
+# ==========================================
 # Delete Comment
 # ==========================================
 

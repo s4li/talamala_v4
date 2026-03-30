@@ -298,7 +298,14 @@
     <div class="card-tm no-hover mb-4">
         <h5 class="fw-bold mb-3"><i class="bi bi-chat-dots me-2"></i>نظرات و دیدگاه‌ها</h5>
 
-        {% if user and not user.is_staff %}
+        {% set msg_param = request.query_params.get('msg', '') %}
+        {% if msg_param %}
+        <div class="alert-tm-success py-2 small mb-3">
+            <i class="bi bi-check-circle me-1"></i>{{ msg_param }}
+        </div>
+        {% endif %}
+
+        {% if user %}
         <form method="POST" action="/reviews/comment" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input type="hidden" name="product_id" value="{{ p.id }}">

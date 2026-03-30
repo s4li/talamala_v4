@@ -87,6 +87,7 @@
                     <td>
                         <span class="badge-tm badge-tm-{{ c.sender_badge_color }} me-1">{{ c.sender_type_label }}</span>
                         {{ c.sender_name }}
+                        {% if c.is_approved %}<span class="badge bg-success ms-1">تأیید</span>{% else %}<span class="badge bg-warning text-dark ms-1">در انتظار</span>{% endif %}
                     </td>
                     <td style="max-width:300px;">
                         <div class="text-truncate">{{ c.body }}</div>
@@ -153,6 +154,7 @@
                     <td>
                         <span class="badge-tm badge-tm-{{ c.sender_badge_color }} me-1">{{ c.sender_type_label }}</span>
                         {{ c.sender_name }}
+                        {% if c.is_approved %}<span class="badge bg-success ms-1">تأیید</span>{% else %}<span class="badge bg-warning text-dark ms-1">در انتظار</span>{% endif %}
                     </td>
                     <td style="max-width:300px;">
                         <div class="text-truncate">{{ c.body }}</div>

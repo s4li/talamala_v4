@@ -85,6 +85,9 @@ async def add_product_comment(
 
     if result["success"]:
         db.commit()
+        import urllib.parse
+        msg = urllib.parse.quote("نظر شما ثبت شد و پس از تأیید مدیر نمایش داده می‌شود.")
+        return RedirectResponse(f"/product/{product_id}?msg={msg}#comments", status_code=302)
     else:
         db.rollback()
 
