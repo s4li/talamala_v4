@@ -174,6 +174,11 @@ async def admin_wallet_adjust(
         else:
             adj_amount = int(float(amount) * 1000)  # gram → mg
 
+        admin_name = user.full_name or user.mobile
+        if not description:
+            desc_label = "واریز دستی" if direction == "deposit" else "برداشت دستی"
+            description = f"{desc_label} توسط {admin_name}"
+
         wallet_service.admin_adjust(
             db, user_id, adj_amount, direction,
             description=description, admin_id=user.id,
