@@ -13,7 +13,7 @@ from common.templating import templates
 from common.security import new_csrf_token, csrf_check
 from modules.auth.deps import require_operator_or_admin
 from modules.review.service import review_service
-from modules.review.models import CommentSenderType
+from modules.review.models import CommentSenderType, ProductComment
 
 router = APIRouter(prefix="/admin/reviews", tags=["admin-reviews"])
 
