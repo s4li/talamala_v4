@@ -21,25 +21,37 @@
 
 <!-- Stats Cards -->
 <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-1">
+    <div class="col-6 col-lg-2 tm-animate-fade-in-up tm-delay-1">
         <div class="card-tm no-hover text-center p-3">
             <div class="text-muted small">کل کاربران</div>
             <div class="fw-bold fs-4">{{ stats.total | persian_number }}</div>
         </div>
     </div>
-    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-2">
+    <div class="col-6 col-lg-2 tm-animate-fade-in-up tm-delay-2">
         <div class="card-tm no-hover text-center p-3">
             <div class="text-muted small">فعال</div>
             <div class="fw-bold fs-4 text-success">{{ stats.active | persian_number }}</div>
         </div>
     </div>
-    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-3">
+    <div class="col-6 col-lg-2 tm-animate-fade-in-up tm-delay-3">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">ادمین‌ها</div>
+            <div class="fw-bold fs-4 text-danger">{{ stats.admins | persian_number }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2 tm-animate-fade-in-up tm-delay-4">
+        <div class="card-tm no-hover text-center p-3">
+            <div class="text-muted small">نمایندگان</div>
+            <div class="fw-bold fs-4 text-info">{{ stats.dealers | persian_number }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2 tm-animate-fade-in-up tm-delay-5">
         <div class="card-tm no-hover text-center p-3">
             <div class="text-muted small">ثبت‌نام امروز</div>
             <div class="fw-bold fs-4 text-primary">{{ stats.today_registered | persian_number }}</div>
         </div>
     </div>
-    <div class="col-6 col-lg-3 tm-animate-fade-in-up tm-delay-4">
+    <div class="col-6 col-lg-2 tm-animate-fade-in-up tm-delay-6">
         <div class="card-tm no-hover text-center p-3">
             <div class="text-muted small">دارای سفارش</div>
             <div class="fw-bold fs-4 text-tm-primary">{{ stats.with_orders | persian_number }}</div>
@@ -48,8 +60,16 @@
 </div>
 
 <!-- Search & Filter -->
-<div class="card-tm no-hover mb-3 tm-animate-fade-in-up tm-delay-5">
+{% set _qs_parts = [] %}
+{% if search_query %}{% set _ = _qs_parts.append("search=" ~ search_query) %}{% endif %}
+{% if status_filter %}{% set _ = _qs_parts.append("status=" ~ status_filter) %}{% endif %}
+{% if role_filter %}{% set _ = _qs_parts.append("role=" ~ role_filter) %}{% endif %}
+{% set _base_qs = "?" ~ _qs_parts|join("&") if _qs_parts else "" %}
+
+<div class="card-tm no-hover mb-3 tm-animate-fade-in-up">
     <form method="GET" action="/admin/customers" class="d-flex flex-wrap gap-2 align-items-center">
+        {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+        {% if role_filter %}<input type="hidden" name="role" value="{{ role_filter }}">{% endif %}
         <div class="input-group" style="max-width:350px;">
             <input type="text" name="search" class="form-control form-control-tm"
                    placeholder="جستجو: نام، موبایل، کد ملی..."
@@ -58,15 +78,30 @@
                 <i class="bi bi-search"></i>
             </button>
         </div>
+
+        <!-- Role filter -->
         <div class="btn-group">
-            <a href="/admin/customers{% if search_query %}?search={{ search_query }}{% endif %}"
+            <a href="/admin/customers{% if search_query %}?search={{ search_query }}{% endif %}{% if status_filter %}{{'&' if search_query else '?'}}status={{ status_filter }}{% endif %}"
+               class="btn btn-sm {{ 'btn-tm-primary' if not role_filter else 'btn-tm-outline' }}">همه نقش‌ها</a>
+            <a href="/admin/customers?role=customer{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+               class="btn btn-sm {{ 'btn-tm-primary' if role_filter == 'customer' else 'btn-tm-outline' }}">مشتری</a>
+            <a href="/admin/customers?role=dealer{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+               class="btn btn-sm {{ 'btn-tm-primary' if role_filter == 'dealer' else 'btn-tm-outline' }}">نماینده</a>
+            <a href="/admin/customers?role=admin{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+               class="btn btn-sm {{ 'btn-tm-primary' if role_filter == 'admin' else 'btn-tm-outline' }}">ادمین</a>
+        </div>
+
+        <!-- Status filter -->
+        <div class="btn-group">
+            <a href="/admin/customers{% if search_query %}?search={{ search_query }}{% endif %}{% if role_filter %}{{'&' if search_query else '?'}}role={{ role_filter }}{% endif %}"
                class="btn btn-sm {{ 'btn-tm-primary' if not status_filter else 'btn-tm-outline' }}">همه</a>
-            <a href="/admin/customers?status=active{% if search_query %}&search={{ search_query }}{% endif %}"
+            <a href="/admin/customers?status=active{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}"
                class="btn btn-sm {{ 'btn-tm-primary' if status_filter == 'active' else 'btn-tm-outline' }}">فعال</a>
-            <a href="/admin/customers?status=inactive{% if search_query %}&search={{ search_query }}{% endif %}"
+            <a href="/admin/customers?status=inactive{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}"
                class="btn btn-sm {{ 'btn-tm-primary' if status_filter == 'inactive' else 'btn-tm-outline' }}">غیرفعال</a>
         </div>
-        {% if search_query or status_filter %}
+
+        {% if search_query or status_filter or role_filter %}
         <a href="/admin/customers" class="btn btn-sm btn-light"><i class="bi bi-x-lg"></i> پاک</a>
         {% endif %}
     </form>
@@ -84,6 +119,7 @@
                         <th>نام</th>
                         <th>موبایل</th>
                         <th>کد ملی</th>
+                        <th>نقش</th>
                         <th>وضعیت</th>
                         <th>تاریخ عضویت</th>
                         <th style="width:80px;"></th>
@@ -96,6 +132,17 @@
                         <td><strong>{{ c.full_name }}</strong></td>
                         <td><code dir="ltr">{{ c.mobile }}</code></td>
                         <td class="text-muted">{{ c.national_id or '—' }}</td>
+                        <td>
+                            {% if c.is_admin %}
+                            <span class="badge-tm badge-tm-danger">ادمین</span>
+                            {% endif %}
+                            {% if c.is_dealer %}
+                            <span class="badge-tm badge-tm-info">نماینده</span>
+                            {% endif %}
+                            {% if not c.is_admin and not c.is_dealer %}
+                            <span class="badge-tm badge-tm-secondary">مشتری</span>
+                            {% endif %}
+                        </td>
                         <td>
                             {% if c.is_active %}
                             <span class="badge-tm badge-tm-success">فعال</span>
@@ -115,7 +162,7 @@
             </table>
         </div>
 
-        {% set qs %}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% endset %}
+        {% set qs %}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% endset %}
         {% from "components/pagination.html" import pagination %}
         {{ pagination(page, total_pages, '/admin/customers', qs) }}
 

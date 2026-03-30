@@ -30,12 +30,13 @@ async def admin_customer_list(
     page: int = 1,
     search: str = Query(None),
     status: str = Query(None),
+    role: str = Query(None),
     db: Session = Depends(get_db),
     user=Depends(require_permission("customers")),
 ):
     per_page = 30
     customers, total = customer_admin_service.list_customers(
-        db, page=page, per_page=per_page, search=search, status=status,
+        db, page=page, per_page=per_page, search=search, status=status, role=role,
     )
     total_pages = max(1, (total + per_page - 1) // per_page)
     stats = customer_admin_service.get_customer_stats(db)
@@ -51,6 +52,7 @@ async def admin_customer_list(
         "stats": stats,
         "search_query": search or "",
         "status_filter": status or "",
+        "role_filter": role or "",
         "active_page": "customers",
         "csrf_token": csrf,
         "error": request.query_params.get("error", ""),
