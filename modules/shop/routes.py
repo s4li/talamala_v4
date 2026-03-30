@@ -129,9 +129,15 @@ async def product_detail(
         )
         buyback_amount = bb_info.get("wage", 0)
 
-    # Get active gift boxes for selection
+    # Get active gift boxes — filtered by product's allowed packages
     from modules.catalog.models import GiftBox
-    gift_boxes = db.query(GiftBox).filter(GiftBox.is_active == True).order_by(GiftBox.sort_order, GiftBox.id).all()
+    allowed_ids = product.allowed_package_ids
+    if allowed_ids:
+        gift_boxes = db.query(GiftBox).filter(
+            GiftBox.is_active == True, GiftBox.id.in_(allowed_ids)
+        ).order_by(GiftBox.sort_order, GiftBox.id).all()
+    else:
+        gift_boxes = db.query(GiftBox).filter(GiftBox.is_active == True).order_by(GiftBox.sort_order, GiftBox.id).all()
 
     # Reviews & Comments
     from modules.review.service import review_service
