@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from config.database import get_db
-from config.settings import OTP_EXPIRE_MINUTES
+from config.settings import OTP_EXPIRE_MINUTES, DEBUG
 from common.security import generate_otp, hash_otp, check_otp_rate_limit, check_otp_verify_rate_limit
 from common.sms import sms_sender
 from modules.user.models import User
@@ -109,7 +109,7 @@ async def pos_request_activation(
         template_name="OTP",
     )
 
-    if not sms_sent:
+    if not sms_sent and not DEBUG:
         raise HTTPException(502, {"success": False, "error": "خطا در ارسال پیامک. لطفا دقایقی بعد تلاش کنید."})
 
     return {
