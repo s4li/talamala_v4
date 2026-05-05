@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from config.database import get_db
-from config.settings import OTP_EXPIRE_MINUTES, DEBUG
+from config.settings import OTP_EXPIRE_MINUTES, DEBUG, POS_TEST_MOBILE, POS_TEST_OTP  # noqa: F401  (DEBUG kept for other handlers)
 from common.security import generate_otp, hash_otp, check_otp_rate_limit, check_otp_verify_rate_limit
 from common.sms import sms_sender
 from modules.user.models import User
@@ -145,15 +145,26 @@ async def pos_verify_activation(
     if not dealer:
         raise HTTPException(404, {"success": False, "error": "نمایندگی یافت نشد"})
 
-    # Verify OTP
-    if not dealer.otp_code or not dealer.otp_expiry:
-        raise HTTPException(400, {"success": False, "error": "ابتدا درخواست کد تایید بدهید"})
+    # Configured test bypass: a single configured mobile may use a fixed OTP.
+    # Activated only when BOTH env vars are set AND the input matches exactly.
+    # Why: lets the bank evaluator activate the POS app without coordinating live SMS.
+    test_bypass = (
+        bool(POS_TEST_MOBILE)
+        and bool(POS_TEST_OTP)
+        and mobile == POS_TEST_MOBILE
+        and code == POS_TEST_OTP
+    )
 
-    if dealer.otp_expiry < now_utc():
-        raise HTTPException(400, {"success": False, "error": "کد تایید منقضی شده. دوباره درخواست بدهید."})
+    if not test_bypass:
+        # Verify OTP
+        if not dealer.otp_code or not dealer.otp_expiry:
+            raise HTTPException(400, {"success": False, "error": "ابتدا درخواست کد تایید بدهید"})
 
-    if dealer.otp_code != hash_otp(mobile, code):
-        raise HTTPException(400, {"success": False, "error": "کد تایید اشتباه است"})
+        if dealer.otp_expiry < now_utc():
+            raise HTTPException(400, {"success": False, "error": "کد تایید منقضی شده. دوباره درخواست بدهید."})
+
+        if dealer.otp_code != hash_otp(mobile, code):
+            raise HTTPException(400, {"success": False, "error": "کد تایید اشتباه است"})
 
     # OTP valid — clear it
     dealer.otp_code = None

@@ -107,6 +107,13 @@ OTP_EXPIRE_MINUTES = 5
 OTP_MAX_ATTEMPTS = 3
 OTP_RATE_LIMIT_WINDOW = 10  # minutes
 
+# POS test bypass — fixed OTP for a single test mobile.
+# Set both env vars to enable; leave either empty to disable.
+# Bypass triggers ONLY when input mobile + OTP both match these values exactly,
+# so non-test mobiles always go through normal SMS-based OTP regardless of DEBUG.
+POS_TEST_MOBILE = os.getenv("POS_TEST_MOBILE", "").strip()
+POS_TEST_OTP = os.getenv("POS_TEST_OTP", "").strip()
+
 # Reservation
 RESERVATION_EXPIRE_MINUTES = 15
 

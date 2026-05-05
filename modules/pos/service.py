@@ -87,8 +87,9 @@ class PosService:
             return {"products": [], "gold_price_18k": 0, "tax_percent": "10"}
 
         from common.templating import get_setting_from_db
-        from modules.pricing.models import GOLD_18K
+        from modules.pricing.models import GOLD_18K, SILVER
         gold_price = get_price_value(db, GOLD_18K)  # default display price
+        silver_price = get_price_value(db, SILVER)
         tax_percent = float(get_setting_from_db(db, "tax_percent", "10"))
 
         # Count available bars per product at this dealer (exclude preorder)
@@ -105,7 +106,12 @@ class PosService:
         stock_map = {row.product_id: row.cnt for row in stock_query.all()}
 
         if not stock_map:
-            return {"products": [], "gold_price_18k": gold_price, "tax_percent": str(tax_percent)}
+            return {
+                "products": [],
+                "gold_price_18k": gold_price,
+                "silver_price": silver_price,
+                "tax_percent": str(tax_percent),
+            }
 
         products_query = (
             db.query(Product)
@@ -161,6 +167,7 @@ class PosService:
 
         return {
             "gold_price_18k": gold_price,
+            "silver_price": silver_price,
             "tax_percent": str(tax_percent),
             "products": sorted(result, key=lambda x: float(x["weight"])),
         }
