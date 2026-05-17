@@ -2428,7 +2428,7 @@ systemd unit `talamala-workers.service` → `python -m app.workers`.
    - یا: بعد از cutover با تماس manual reconciliation
    - این تصمیم تجاری/حقوقی است — خارج از scope architectural
 
-2. **چه می‌شود با dealer ها و sub-dealer ها؟**
+2. **چه می‌شود با dealer ها؟** (sub-dealer حذف شد — D-73)
    - باید قبل از v5 launch، در پنل v5 ثبت‌نام مجدد شوند
    - manual onboarding
 
