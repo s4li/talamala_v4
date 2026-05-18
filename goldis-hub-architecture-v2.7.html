@@ -225,7 +225,7 @@
 <table>
 <thead>
 <tr>
-  <th>دسته‌بندی</th>
+  <th style="min-width: 120px; white-space: nowrap;">دسته‌بندی</th>
   <th>ویژگی</th>
 </tr>
 </thead>
@@ -896,7 +896,7 @@ CREATE TABLE treasury_position_snapshots (
 
 <table>
 <thead>
-<tr><th>Direction</th><th>Asset</th><th>Amount</th><th>معنی</th></tr>
+<tr><th style="min-width: 90px; white-space: nowrap;">Direction</th><th>Asset</th><th>Amount</th><th>معنی</th></tr>
 </thead>
 <tbody>
 <tr><td><code>TalaMala → Goldis</code></td><td>ریال</td><td><code>raw_gold_price_per_mg × weight_mg</code></td><td>TalaMala باید بهای معادل وزن خام را به Goldis بپردازد (تسویه روزانه)</td></tr>
@@ -1382,7 +1382,7 @@ CREATE TABLE pos_transactions (
 
 <table>
 <thead>
-<tr><th>#</th><th>Context</th><th>Global/Per-Company</th><th>مسئولیت</th></tr>
+<tr><th style="min-width: 40px; white-space: nowrap;">#</th><th>Context</th><th>Global/Per-Company</th><th>مسئولیت</th></tr>
 </thead>
 <tbody>
 <tr><td>1</td><td><strong>platform</strong></td><td>Global</td><td>Companies، Brands، SalesChannels، PaymentAccounts، InventoryLocations</td></tr>
@@ -2452,7 +2452,7 @@ CREATE INDEX ix_pos_request_expires ON pos_pending_requests (expires_at);
 
 <table>
 <thead>
-<tr><th>حالت</th><th>شرایط</th><th>تأیید</th></tr>
+<tr><th style="min-width: 90px; white-space: nowrap;">حالت</th><th>شرایط</th><th>تأیید</th></tr>
 </thead>
 <tbody>
 <tr><td>(a) <strong>بازخرید تحویل‌نشده</strong></td><td>bar.status=SOLD، <code>delivered_at IS NULL</code> (شمش هنوز در خزانه‌ی ماست)</td><td>اتومات (آنلاین)</td></tr>
@@ -3143,7 +3143,7 @@ EVENT_HANDLERS: dict[str, list[Callable]] = {
 
 <table>
 <thead>
-<tr><th>Worker</th><th>فرکانس</th><th>تنظیم</th></tr>
+<tr><th style="min-width: 90px; white-space: nowrap;">Worker</th><th>فرکانس</th><th>تنظیم</th></tr>
 </thead>
 <tbody>
 <tr><td><code>outbox_publisher</code></td><td>continuous (poll 1s)</td><td>parallelism=2</td></tr>
@@ -3384,7 +3384,7 @@ POST /admin/migration/import-bars-from-csv
 
 <table>
 <thead>
-<tr><th>Q</th><th>حلشده در</th><th>Q</th><th>حلشده در</th></tr>
+<tr><th style="min-width: 40px; white-space: nowrap;">Q</th><th>حلشده در</th><th>Q</th><th>حلشده در</th></tr>
 </thead>
 <tbody>
 <tr><td>Q-01 split payment</td><td>۱۲.۵</td><td>Q-06 سطوح KYC</td><td>D-61</td></tr>
