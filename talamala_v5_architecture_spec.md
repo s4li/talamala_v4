@@ -4,7 +4,7 @@
 > **نسخه قبل:** 2.6 (DeepSeek P0 fixes + ۸ BLOCKER issues — 2026-05-18)
 > **تاریخ:** 2026-05-18
 > **وضعیت:** ✅✅✅ آماده برای پیاده‌سازی — implementation-safe (۴ subsystem D-96–D-99 برای امنیتِ مالیِ تولید)
-> **منبع:** سه دور Q&A با تیم Goldis Ops + ادغام ChatGPT + DeepSeek review (۲ بار) + Gemini analysis (۳ خطرِ مالی) + ۳۹ تصمیمِ اصلاحیِ بازبینی (D-46…D-93) + ۱۲ اصلاحِ P0/P1 schema + ۴ subsystemِ بحرانی (D-90–D-93)
+> **منبع:** سه دور Q&A با تیم Goldis Ops + ادغام ChatGPT + DeepSeek review (۲ بار) + Gemini analysis (۳ خطرِ مالی) + ۳۹ تصمیمِ اصلاحیِ بازبینی (D-46…D-99) + ۱۲ اصلاحِ P0/P1 schema + ۴ subsystemِ بحرانی (D-96–D-99)
 
 ---
 
