@@ -723,7 +723,7 @@ CREATE TABLE wallet_ledger_entries (
     balance_after_minor BIGINT NOT NULL,
     locked_after_minor BIGINT NOT NULL,
     reference_type VARCHAR(50) NOT NULL,
-    -- order | trade | withdrawal | buyback | adjustment | lock | release | commit | settlement
+    -- order | trade | withdrawal | buyback | adjustment | lock | release | commit | settlement | topup
     reference_id VARCHAR(100) NOT NULL,
     idempotency_key VARCHAR(100) NOT NULL,
     description TEXT NULL,
@@ -940,7 +940,7 @@ CREATE TABLE inter_company_ledger (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     debtor_company_id BIGINT NOT NULL REFERENCES companies(id),
     creditor_company_id BIGINT NOT NULL REFERENCES companies(id),
-    asset_type VARCHAR(10) NOT NULL,  -- &#x27;gold&#x27; | &#x27;rial&#x27;
+    asset_type VARCHAR(10) NOT NULL,  -- &#x27;XAU_MG&#x27; | &#x27;IRR&#x27;
     amount_minor BIGINT NOT NULL CHECK (amount_minor &gt; 0),
     -- mg برای gold، rial برای rial
     settled_amount_minor BIGINT NOT NULL DEFAULT 0,
@@ -952,6 +952,7 @@ CREATE TABLE inter_company_ledger (
     -- در صورت buyback یا cancel، این entry می‌تواند یک entry قبلی را معکوس کند
     reverses_ledger_id UUID NULL REFERENCES inter_company_ledger(id),
     notes TEXT NULL,
+    idempotency_key VARCHAR(100) NULL UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     settled_at TIMESTAMPTZ NULL,
     settled_by BIGINT NULL REFERENCES users(id),
@@ -989,8 +990,8 @@ CREATE TABLE inter_company_settle_actions (
 
 <pre><code>
 1. order saved (status=Paid)
-2. weight_mg = sum(order_items.pure_gold_mg)
-   # pure_gold_mg = weight × (purity / 1000) — وزن خالص طلا
+2. pure_gold_mg = sum(order_items.pure_gold_mg)
+   # وزن خالص طلا
 3. raw_hedge_rial = sum(order_items.raw_hedge_price_rial)
    # D-65: raw_hedge_price = P_hedge_per_mg × pure_gold_mg
    #   P_hedge = قیمت عمده‌ی Goldis (= P0 + حداقلمارجین Goldis، شامل مالیات)
@@ -998,10 +999,10 @@ CREATE TABLE inter_company_settle_actions (
    # snapshot در لحظه‌ی فروش، ذخیره در order_item.raw_hedge_price_rial
 4. INSERT inter_company_ledger (دو ردیف):
    a. (debtor=payment_receiver, creditor=Goldis,
-       asset=&#x27;rial&#x27;, amount=raw_hedge_rial,
+       asset=&#x27;IRR&#x27;, amount=raw_hedge_rial,
        source=&#x27;sale&#x27;, source_order_id=order.id)
    b. (debtor=Goldis, creditor=payment_receiver,
-       asset=&#x27;gold&#x27;, amount=weight_mg,
+       asset=&#x27;XAU_MG&#x27;, amount=pure_gold_mg,
        source=&#x27;sale&#x27;, source_order_id=order.id)
 5. treasury_positions.update(...)  # Goldis exposure +weight_mg
 6. Outbox: InterCompanyObligationCreated × 2
@@ -1912,7 +1913,7 @@ CREATE TABLE payment_providers (
 
 CREATE TABLE payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id BIGINT NULL REFERENCES orders(id),        -- nullable برای topup/wallet charge (بدون order)
+    order_id UUID NULL REFERENCES orders(id),          -- nullable برای topup/wallet charge (بدون order)
     user_id BIGINT NOT NULL REFERENCES users(id),
     payment_account_id BIGINT NOT NULL REFERENCES payment_accounts(id),
     payment_receiver_company_id BIGINT NOT NULL REFERENCES companies(id),
@@ -2034,11 +2035,19 @@ CREATE INDEX ix_scpa_channel_prio
 -- موقع پرداخت: اولین payment_account enabled و سالم؛ اگر down → بعدی.
 -- هر بار درگاهی خطا/down داد (حتی اگر fallback پوشش داد) → notification+audit (D-63).
 
+-- جدول پایه‌ی سطوح نمایندگان (پیشنیاز D-65 و D-94)
+CREATE TABLE dealer_tiers (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- D-94 (اصلاح‌شده): فروش نمایندهای (POS یا دیگر) — سند مرجع برای کمیسیون
 CREATE TABLE dealer_sales (
     id BIGSERIAL PRIMARY KEY,
     dealer_user_id BIGINT NOT NULL REFERENCES users(id),    -- نماینده‌ی فروشنده
-    order_id BIGINT NOT NULL REFERENCES orders(id),         -- سفارش پشتیبان
+    order_id UUID NOT NULL REFERENCES orders(id),           -- سفارش پشتیبان
     bar_id BIGINT NULL REFERENCES bars(id),                 -- شمش فروختهشده (اختیاری — برای سفارشهای دیجیتالی)
     pure_gold_mg BIGINT NOT NULL CHECK (pure_gold_mg &gt; 0),  -- مقدار طلای خالص
     metal_profit_mg BIGINT NOT NULL DEFAULT 0,              -- سود نماینده در طلا (مبنای کمیسیون)
@@ -2135,7 +2144,7 @@ CREATE UNIQUE INDEX uq_iti_doc_bar ON inventory_transfer_items (document_id, bar
 CREATE TABLE payment_reconciliations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     payment_id UUID NOT NULL REFERENCES payments(id),
-    order_id BIGINT NOT NULL REFERENCES orders(id),
+    order_id UUID NOT NULL REFERENCES orders(id),
     authorized_amount_rial BIGINT NOT NULL,           -- مبلغ auth شده
     actual_price_at_payment_rial BIGINT NOT NULL,     -- قیمت new
     variance_rial BIGINT NOT NULL,                     -- تفاوت (signed)
@@ -2155,7 +2164,7 @@ CREATE INDEX ix_payment_recon_status ON payment_reconciliations (reconciliation_
 -- D-97: Pending Reserves برای Checkout (D-97)
 CREATE TABLE inventory_pending_holds (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id BIGINT NOT NULL REFERENCES orders(id),
+    order_id UUID NOT NULL REFERENCES orders(id),
     wallet_scope VARCHAR(20) NOT NULL,
     pure_gold_mg_reserved NUMERIC(12,4) NOT NULL,
     reserved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -2386,7 +2395,7 @@ CREATE INDEX ix_pos_request_expires ON pos_pending_requests (expires_at);
 11. if irr_from_gateway &gt; 0:
     # ترتیب مهم برای رعایت CHECK constraint:
     # اول Payment ساخته می‌شود، بعد allocation که payment_id الزامی است
-    a. payment = Payment.create(amount=irr_from_gateway, status=created)
+    a. payment = Payment.create(amount=irr_from_gateway, payment_state='pending')
     b. INSERT order_payment_allocation(
          allocation_type=gateway_rial, asset=IRR, amount=irr_from_gateway,
          payment_id=payment.id, status=pending
@@ -3599,7 +3608,7 @@ POST /admin/migration/import-bars-from-csv
 CREATE TABLE payment_reconciliations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     payment_id UUID NOT NULL REFERENCES payments(id),
-    order_id BIGINT NOT NULL REFERENCES orders(id),
+    order_id UUID NOT NULL REFERENCES orders(id),
     authorized_amount_rial BIGINT NOT NULL,           -- مبلغ auth شده
     actual_price_at_payment_rial BIGINT NOT NULL,     -- قیمت new
     variance_rial BIGINT NOT NULL,                     -- تفاوت (signed)
@@ -3657,7 +3666,7 @@ CREATE TABLE payment_reconciliations (
 -- Pending reserves (locked before payment)
 CREATE TABLE inventory_pending_holds (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id BIGINT NOT NULL REFERENCES orders(id),
+    order_id UUID NOT NULL REFERENCES orders(id),
     wallet_scope VARCHAR(20) NOT NULL,
     pure_gold_mg_reserved NUMERIC(12,4) NOT NULL,
     reserved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
