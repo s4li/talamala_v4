@@ -719,15 +719,14 @@ Body: { creditor_company_id: TalaMala, debtor_company_id: Goldis, amount_mg, not
 3. Goldis هر هفته/ماه مجموع طلای خامی که برای hedging TalaMala خریده را فیزیکی به انبار TalaMala تحویل می‌دهد → اپراتور `settle-gold` می‌زند → gold obligation به ۰ می‌رسد
 4. این طلای خام تحویلی برای hedging موجودی TalaMala یا تولید شمش بعدی استفاده می‌شود (نه refill همان شمش فروخته‌شده)
 
-### ۶.۷. Reverse در صورت Buyback یا Cancel
+### ۶.۷. Buyback و اثرش بر دفترِ بین‌شرکتی
 
-اگر سفارش قبل از تحویل cancel شود یا physical buyback انجام شود، باید obligation های قبلی reverse شوند:
+**بازخرید هرگز فروشِ اصلی را reverse نمی‌کند.** «لغو» وجود ندارد؛ فروشِ اول همیشه معتبر می‌ماند و بازخرید یک تراکنشِ **مستقلِ روبه‌جلو** است:
 
-- ~~**cancel_before_delivery**: reverse جفتِ ledger~~ — **منسوخ (D-58/D-59):** «لغو» وجود ندارد؛ بازخریدِ تحویل‌نشده یک تراکنشِ مستقل است و فروشِ اصلی reverse نمی‌شود (خنثیِ خزانه، فقط هزینه‌ی ریالی).
-- **physical_buyback**: مشابه — TalaMala شمش را پس می‌گیرد و طلای خام به Goldis برمی‌گردد (در عمل)، پس obligation ها معکوس می‌شوند
-- ~~**digital_buyback** از wallet~~ — **منسوخ (D-68): = همان `digital_trade sell`؛ مدلِ بین‌شرکتی‌اش طبق D-70**
+- **بازخریدِ تحویل‌نشده / حضوری:** تبدیلِ physical↔digital است → اثرِ خزانه ≈ **خنثی** (دو پای متقابل)، **هیچ جفتِ تعهدِ طلاییِ تازه‌ای** ساخته نمی‌شود؛ فقط `buyback_credit_rial` به‌عنوان هزینه‌ی ریالی ثبت می‌شود.
+- **بازخریدِ دیجیتال** = همان `digital_trade sell` (مسیرِ جدا ندارد). در scope غیر-Goldis یک **جفتِ تازه‌ی مخالف** می‌سازد: `seller→Goldis طلا amount_mg` + `Goldis→seller ریال P_hedge×amount_mg`. در scope=Goldis هیچ تعهدِ بین‌شرکتی، فقط خزانه‌ی `−`.
 
-جزئیات flow در بخش Buyback (بعد).
+جزئیاتِ کاملِ flow در بخش Buyback (§۱۲.۵.۲).
 
 ### ۶.۸. Future (در v1 پیاده‌سازی نمی‌شود)
 
@@ -759,19 +758,14 @@ Body: { creditor_company_id: TalaMala, debtor_company_id: Goldis, amount_mg, not
 
 **جریان معکوس (Goldis → TalaMala برای شمش):** در v1 وجود ندارد. TalaMala تنها از تولید کارخانه‌ی خودش تأمین می‌شود. آنچه از Goldis به TalaMala می‌رسد فقط طلای **خام** برای settle obligation های hedging است (بخش ۶.۵).
 
-### ۷.۲. ⚠️ Supplier Purchase — override شد به «داخل scope» (D-48)
+### ۷.۲. Supplier Purchase — خرید از کارخانه (داخل scope v1)
 
-> **⚠️ این بخش با D-48 override شد.** خرید از کارخانه **داخل scope v1** است: جریانِ **فقط-طلا** روی همان batch preorder (Goldis اصل‌طلا + اجرت‌طلا می‌دهد، شمش حک‌شده می‌گیرد؛ تعهد روی `inter_company_ledger` با `asset='gold'`, `source_type='supplier_purchase'`). `purchase_wage_percent` عملیاتی است؛ طلای اجرت = هزینه‌ی حسابداری بدون اثر خزانه. متن قدیمی زیر فقط برای تاریخچه نگه داشته شده.
+خرید از کارخانه‌ها (AminZar و TalaMala-as-supplier) **داخل سامانه** است، به‌صورت یک جریانِ **فقط-طلا (بدون ریال)** روی همان batch preorder:
 
-تصمیم قبلی (**override شده** — دیگر معتبر نیست): **فرآیند خرید Goldis از کارخانه‌ها (AminZar و TalaMala) داخل سامانه پیاده‌سازی نمی‌شود.** این تسویه‌ها بیرون از پلتفرم (به‌صورت دستی/توافقی) انجام می‌شوند.
-
-این یعنی:
-- هیچ context `supplier_purchase` در v1 نداریم
-- هیچ `inter_company_ledger` entry با `source_type='supplier_purchase'` ساخته نمی‌شود
-- در v1، شمش‌ها صرفاً به‌صورت یک **intake event** ساده وارد سامانه می‌شوند (status `preorder` → `in_stock`)، بدون اثر مالی روی ledger
-- `purchase_wage_percent` فقط به‌عنوان **metadata** روی product نگه داشته می‌شود (برای reporting و آینده)
-
-این تصمیم scope را خیلی ساده‌تر می‌کند. در v2+، اگر تیم نیاز ببیند، context supplier_purchase اضافه می‌شود.
+- Goldis به کارخانه می‌دهد: **اصلِ طلا** (وزنِ خالصِ شمش‌ها) + **معادلِ اجرت به‌صورتِ طلا** (`purchase_wage_percent` — عملیاتی، نه metadata). کارخانه شمشِ حک‌شده/پلمب‌شده برمی‌گرداند.
+- تعهدِ طلاییِ Goldis↔کارخانه روی همان `inter_company_ledger` با `asset='gold'`, `source_type='supplier_purchase'` رصد می‌شود (جدولِ جدا لازم نیست؛ کارخانه یک طرفِ تعهد، Goldis طرفِ دیگر).
+- **طلای اجرت = هزینه‌ی حسابداری**، **بدون** اثر روی exposure/سقفِ خزانه (سقف معیارِ ریسکِ هج‌نشده است، نه هزینه‌ی تولید).
+- جریانِ ورودِ سریال‌ها (preorder → in_stock) در §۷.۳.
 
 ### ۷.۳. مدل Preorder Bar — سریال‌ها از پیش تولید می‌شوند
 
