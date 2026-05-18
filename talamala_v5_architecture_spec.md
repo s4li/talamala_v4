@@ -1,9 +1,9 @@
 # سند معماری TalaMala v5 — پلتفرم متمرکز چندبرندی فروش، خرید و مدیریت دارایی طلا
 
-> **نسخه:** 2.5 (نهایی — cleanup نهایی بعد از ChatGPT review — 2026-05-18)
+> **نسخه:** 2.6 (نهایی implementation-ready — DeepSeek P0 fixes — 2026-05-18)
 > **نسخه قبل:** 2.3 (بازبینیِ خارجی دوم + اصلاحاتِ P0 تکمیلی — 2026-05-18)
 > **تاریخ:** 2026-05-18
-> **وضعیت:** ✅ آماده برای پیاده‌سازی — implementation-safe (تمام P0/P1 + ۸ BLOCKER issue fixed)
+> **وضعیت:** ✅✅ آماده برای پیاده‌سازی — implementation-ready (P0 issues + P1 gaps fixed، ۶ تصمیمِ جدید D-90–D-95)
 > **منبع:** سه دور Q&A با تیم Goldis Ops + ادغام ChatGPT + DeepSeek review (۲ بار) + ۳۵ تصمیمِ اصلاحیِ بازبینی (D-46…D-80) + ۱۰ اصلاحِ P0/P1 schema
 
 ---
