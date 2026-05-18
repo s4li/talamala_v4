@@ -15,22 +15,22 @@
 1. **متن اصلی سند قطعی و تمیز است** — مستقیما مدل نهایی را می‌گوید (بدون متن خط‌خورده/منسوخ). آن را معتبر بخوان.
 2. **۲.۵ «دفتر تصمیمات» (D-46…D-80) غیرقطعی است** — فقط *چرایی* تغییرات برای حسابرسی. برای ساخت سیستم به بدنه نگاه کن، نه این جدول.
 3. همه‌ی `Q-01…Q-10` و نقاط `A-1…A-13` / `F-1…F-4` **حل شده‌اند** (نگاشتشان در بخش ۲۰ (ابهامات — وضعیت) و بخش ۲.۵ (تصمیمهای معماری)).
-4. **تمرکز بازبینی روی ۰.۱ (موارد باز) باشد** — تصمیمات ۲.۵ با تیم نهایی شده‌اند؛ بازنکن مگر یک **باگ مالی/همزمانی/تفکیکوظایف اثبات‌پذیر** نشان دهی.
+4. **تمرکز بازبینی روی ۰.۱ (موارد باز) باشد** — تصمیمات ۲.۵ با تیم نهایی شده‌اند؛ بازنکن مگر یک **باگ مالی/همزمانی/تفکیک وظایف اثبات‌پذیر** نشان دهی.
 
 ## ۰.۱ موارد باز / بازبینی‌نشده (تمرکز داور اینجا)
 
 اینها هنوز عمیق بازبینی **نشده‌اند** و بیشترین ارزش بازبینی بیرونی را دارند:
 
-- **عملیات چندنقشی بازبینی‌نشده:** state machine بازخرید حضوری (۱۲.۵.۲ب)، عملیات تسویه‌ی بین‌شرکتی (۶.۵)، intake شمش از کارخانه (۷.۳ + D-48)، برداشت ریال (۱۲.۶)، تسویه تراکنش POS (۹) — از منظر تفکیکوظایف و درگیری واحدهای مختلف.
+- **عملیات چندنقشی بازبینی‌نشده:** state machine بازخرید حضوری (۱۲.۵.۲ب)، عملیات تسویه‌ی بین‌شرکتی (۶.۵)، intake شمش از کارخانه (۷.۳ + D-48)، برداشت ریال (۱۲.۶)، تسویه تراکنش POS (۹) — از منظر تفکیک وظایف و درگیری واحدهای مختلف.
 - **هشدار scope (P۵ در ۲.۵):** زیرسیستم قیمت(D-65/72)+دفترکل(۶)+خزانه(D-47/67)+نماینده(D-73) سنگین‌ترین و پرریسک‌ترین بخش است؛ تخمین ۱۲ هفته دیگر واقع‌بینانه نیست.
 - **موارد تصمیم‌گرفته ولی فقط پیشنویسی (نیازمند طراحی تفصیلی پیاده‌سازی):** موتور resolution نردبان قیمت + کمیسیون (D-65/73)، fallback درگاه (D-63)، پیاده‌سازی چک inline خزانه (D-47)، محاسبهی دقیق گردکردن/منبعقیمت تعهدات بین‌شرکتی.
 - ابهامات سطح۲ باز سند: `Q-05`(جزئیات ریز)، و هر چیزی که در بخش ۲۰ (ابهامات — وضعیت) هنوز ✅ نخورده.
 
-> **سؤال پیشنهادی به داور:** «با فرض اینکه ۲.۵ قطعی است، فقط روی بخش ۰.۱ (موارد باز / بازبینی‌نشده (تمرکز داور اینجا)) و باگهای مالی/همزمانی/تفکیکوظایف کشفنشده تمرکز کن. تصمیمات ۲.۵ را بازنکن مگر باگ مالی اثبات‌پذیر نشان دهی.»
+> **سؤال پیشنهادی به داور:** «با فرض اینکه ۲.۵ قطعی است، فقط روی بخش ۰.۱ (موارد باز / بازبینی‌نشده (تمرکز داور اینجا)) و باگهای مالی/همزمانی/تفکیک وظایف کشفنشده تمرکز کن. تصمیمات ۲.۵ را بازنکن مگر باگ مالی اثبات‌پذیر نشان دهی.»
 
 ---
 
-## ۰. راهنمای استفاده از این سند
+## ۰.۲ راهنمای استفاده از این سند
 
 این سند **ورودی فاز پیاده‌سازی** است. هنگام استفاده با یک LLM بهعنوان مهندس پیاده‌ساز:
 
@@ -122,14 +122,14 @@
   <td>شمش فیزیکی</td>
 </tr>
 <tr>
-  <td>طلای دیجیتال (کیفپول)</td>
+  <td>طلای دیجیتال (کیف‌پول)</td>
 </tr>
 <tr>
   <td>بازار چندکاناله (Multi-channel marketplace)</td>
 </tr>
 <tr>
   <td rowspan="5"><strong>سیستمهای مالی</strong></td>
-  <td>کیفپول چنددارایی، ایزوله به ازای هر scope (D-46: سه کیف جداگانهٔ Goldis / AminZar / TalaMala)</td>
+  <td>کیف‌پول چنددارایی، ایزوله به ازای هر scope (D-46: سه کیف جداگانهٔ Goldis / AminZar / TalaMala)</td>
 </tr>
 <tr>
   <td>خزانهٔ مرکزی و مدیریت تعهدات طلا (Central Treasury & Hedging)</td>
@@ -141,7 +141,7 @@
   <td>برداشت ریالی دو‌مرحله‌ای (Two-stage rial withdrawal)</td>
 </tr>
 <tr>
-  <td>خرید فیزیکی از کیفپول (Physical purchase from wallet — جایگزین برداشت طلا)</td>
+  <td>خرید فیزیکی از کیف‌پول (Physical purchase from wallet — جایگزین برداشت طلا)</td>
 </tr>
 <tr>
   <td rowspan="4"><strong>عملیات</strong></td>
@@ -175,7 +175,7 @@
 
 | ویژگی | جایگزین یا وضعیت |
 |---|---|
-| **برداشت طلا** (Gold withdrawal) | جایگزین: خرید فیزیکی از کیفپول |
+| **برداشت طلا** (Gold withdrawal) | جایگزین: خرید فیزیکی از کیف‌پول |
 | **بازپرداخت** (Refund) | جایگزین: بازخرید شمش |
 | **تقسیم سود / کمیسیون** (Profit sharing & settlement) | نسخهٔ آینده |
 | **DCA دورهای** (Dollar-Cost Averaging) | فیچر سرمایهگذاری |
@@ -199,7 +199,7 @@
 <tr><td>D-01</td><td>سبک معماری</td><td>**Modular Monolith** با مرزهای bounded context صریح، آماده برای استخراج سرویس در آینده</td><td>تیم</td></tr>
 <tr><td>D-02</td><td>مدل multi-company</td><td>**One Platform / Multi Brand / Multi Company / Centralized Ops by Goldis**</td><td>تیم</td></tr>
 <tr><td>D-03</td><td>Operator مرکزی</td><td>همیشه Goldis در فاز ۱ — یک admin panel برای همه برندها</td><td>تیم</td></tr>
-<tr><td>D-04</td><td>Wallet scope</td><td>**سه کیف کاملا ایزوله به ازای هر کیفپول-scope** (goldis/aminzar/talamala) — جزئیات: D-46، ۴</td><td>تیم</td></tr>
+<tr><td>D-04</td><td>Wallet scope</td><td>**سه کیف کاملا ایزوله به ازای هر کیف‌پول-scope** (goldis/aminzar/talamala) — جزئیات: D-46، ۴</td><td>تیم</td></tr>
 <tr><td>D-05</td><td>KYC scope</td><td>**مشترک** — یک KYC، اسناد شاهکار یکبار، هر دو شرکت قبول می‌کنند</td><td>تیم</td></tr>
 <tr><td>D-06</td><td>Treasury scope</td><td>**مرکزی Goldis = Central Hedging Desk**. هر فروش (هر شرکت) trigger میزند به hedging: فروشنده اتومات از Goldis طلای خام معادل می‌خرد، و Goldis مسئول است از بازار خام بخرد و فیزیکی تحویل دهد. هر خرید Goldis از بازار → exposure کاهش.</td><td>تیم</td></tr>
 <tr><td>D-06b</td><td>**Inter-Company Ledger (Hub-and-Spoke)**</td><td>هر فروش غیر-Goldis (payment به TalaMala/AminZar رفت) **دو obligation همزمان** ایجاد میکند: ۱) `Seller → Goldis: rial` به اندازه‌ی قیمت طلای خام در لحظه‌ی فروش، ۲) `Goldis → Seller: gold mg` به اندازه‌ی وزن خالص. یک طرف ledger همیشه Goldis است (Hub). تسویه دستی توسط اپراتور Goldis، rial سریع/روزانه و gold دورهای فیزیکی. فروشهای خود Goldis هیچ inter-company entry ندارند، فقط treasury exposure را افزا‌یش میدهند.</td><td>تیم</td></tr>
@@ -239,8 +239,8 @@
 <tr><td>D-28</td><td>Price lock TTL</td><td>**۲ دقیقه default**، قابل بازنویسی تا حداکثر ۵ دقیقه به ازای هر کانال/formula (`channel_pricing_formulas.lock_ttl_seconds`). متعادل با ریسک نوسان طلا</td></tr>
 <tr><td>D-29</td><td>AminZar wallet</td><td>**scope=aminzar کاملا جدا و ایزوله** (در Goldis merge نمی‌شود) — D-46</td></tr>
 <tr><td>D-30</td><td>Decimal precision</td><td>Standard: `rate=NUMERIC(20,2)`، `percent=NUMERIC(6,3)`، `coefficient=NUMERIC(8,4)`، `wage_value=NUMERIC(12,4)`</td></tr>
-<tr><td>D-31</td><td>**برداشت طلا**</td><td>**حذف کامل** — کاربر نمی‌تواند طلای دیجیتال را بهصورت فیزیکی برداشت کند. بهجای آن: فروش به ریال (digital_trade sell) یا خرید کالای فیزیکی با wallet XAU_MG</td></tr>
-<tr><td>D-32</td><td>**Refund/Buyback model**</td><td>**Refund نداریم. «cancel» نداریم.** Buyback فقط **۲ حالت**: (a) بازخرید تحویل‌نشده (آنلاین مستقل؛ فروش اصلی reverse نمی‌شود)، (b) بازخرید حضوری. «بازخرید دیجیتال» = همان `digital_trade sell`. در هر دو: وزن خالص طلا → wallet XAU_MG؛ `buyback_credit_rial` → wallet IRR فقط با ثبتمالکیت+OTP؛ اجرت/مالیات/سود می‌سوزد. جزئیات: D-53/D-58/D-59/D-68/D-70</td><td>تیم</td></tr>
+<tr><td>D-31</td><td>**برداشت طلا**</td><td>**حذف کامل** — کاربر نمی‌تواند طلای دیجیتال را به‌صورت فیزیکی برداشت کند. بهجای آن: فروش به ریال (digital_trade sell) یا خرید کالای فیزیکی با wallet XAU_MG</td></tr>
+<tr><td>D-32</td><td>**Refund/Buyback model**</td><td>**Refund نداریم. «cancel» نداریم.** Buyback فقط **۲ حالت**: (a) بازخرید تحویل‌نشده (آنلاین مستقل؛ فروش اصلی reverse نمی‌شود)، (b) بازخرید حضوری. «بازخرید دیجیتال» = همان `digital_trade sell`. در هر دو: وزن خالص طلا → wallet XAU_MG؛ `buyback_credit_rial` → wallet IRR فقط با ثبت مالکیت+OTP؛ اجرت/مالیات/سود می‌سوزد. جزئیات: D-53/D-58/D-59/D-68/D-70</td><td>تیم</td></tr>
 <tr><td>D-33</td><td>Conversion mismatch</td><td>افزوده در wallet باقی میماند (no auto-conversion)</td></tr>
 <tr><td>D-34</td><td>POS payment_account</td><td>**per-device** — هر دستگاه POS یک payment_account با terminal_id جدا</td></tr>
 <tr><td>D-35</td><td>Gift box</td><td>modifier جدا (جدول `gift_boxes` با FK به `order_items`)</td></tr>
@@ -266,22 +266,22 @@
 <tr><th>#</th><th>تصمیم</th><th>انتخاب نهایی</th><th>اثر روی</th></tr>
 </thead>
 <tbody>
-<tr><td>D-46</td><td>**Wallet scope** (بازنویسی D-04/D-29)</td><td>کیفپول per **wallet-scope** نه به ازای هر شخصیت حقوقی. سه scope: `goldis` / `aminzar` / `talamala`. هر سه **کاملا ایزوله، بدون انتقال مستقیم** (AminZar حقوقا زیر شرکت گلدیس ولی برای کاربر کیف جدا). کلید `asset_balances` و `wallet_ledger_entries` و `wallet_locks` بعد `wallet_scope` میگیرد؛ `company_id` حفظ می‌شود (مشتق: goldis/aminzar→شرکت گلدیس، talamala→شرکت طلاملا) برای حسابداری/دفترکل بین‌شرکتی. گزارش حسابداری باید بدهی scope=aminzar را از scope=goldis تفکیک کند. هجینگ بدون تغییر (فروش AminZar هنوز Goldis-side).</td><td>Wallet، Accounting، ۴</td></tr>
+<tr><td>D-46</td><td>**Wallet scope** (بازنویسی D-04/D-29)</td><td>کیف‌پول per **wallet-scope** نه به ازای هر شخصیت حقوقی. سه scope: `goldis` / `aminzar` / `talamala`. هر سه **کاملا ایزوله، بدون انتقال مستقیم** (AminZar حقوقا زیر شرکت گلدیس ولی برای کاربر کیف جدا). کلید `asset_balances` و `wallet_ledger_entries` و `wallet_locks` بعد `wallet_scope` میگیرد؛ `company_id` حفظ می‌شود (مشتق: goldis/aminzar→شرکت گلدیس، talamala→شرکت طلاملا) برای حسابداری/دفترکل بین‌شرکتی. گزارش حسابداری باید بدهی scope=aminzar را از scope=goldis تفکیک کند. هجینگ بدون تغییر (فروش AminZar هنوز Goldis-side).</td><td>Wallet، Accounting، ۴</td></tr>
 <tr><td>D-47</td><td>**Treasury سد سخت + سقف دوطرفه**</td><td>علاوه بر worker ۳۰s (که فقط هشدار/پشتیبان است)، در لحظه‌ی **هر** تراکنش (فروش+خرید، فیزیکی+دیجیتال+POS، بدون استثنا) یک چک inline همگام: اگر از سقف رد شود تراکنش **رد می‌شود**. سقف **دوطرفه per فلز**: `max_open_exposure_mg` (سمت فروش) + `max_short_exposure_mg` (سمت خرید/بازخرید/فروش کاربر). اپراتور هر دو را per فلز هر زمان تغییر می‌دهد، با audit_log.</td><td>Treasury، ۵</td></tr>
-<tr><td>D-48</td><td>**Supplier purchase داخل scope** (بازنویسی D-7.2)</td><td>خرید از کارخانه داخل سامانه است، بهصورت جریان **فقط-طلا (بدون ریال)** روی همان batch preorder. Goldis به کارخانه می‌دهد: اصل طلا + معادل اجرت به طلا؛ کارخانه شمش حکشده/پلمبشده برمی‌گرداند. تعهد طلایی Goldis↔کارخانه روی همان `inter_company_ledger` با `asset='gold'`, `source_type='supplier_purchase'` رصد می‌شود (جدول جدید لازم نیست). `purchase_wage_percent` عملیاتی می‌شود (دیگر صرفا metadata نیست). طلای اجرت = هزینهی حسابداری، **بدون** اثر روی exposure/سقف خزانه.</td><td>Inventory، Inter-Company، Catalog، ۷.۲</td></tr>
+<tr><td>D-48</td><td>**Supplier purchase داخل scope** (بازنویسی D-7.2)</td><td>خرید از کارخانه داخل سامانه است، به‌صورت جریان **فقط-طلا (بدون ریال)** روی همان batch preorder. Goldis به کارخانه می‌دهد: اصل طلا + معادل اجرت به طلا؛ کارخانه شمش حکشده/پلمبشده برمی‌گرداند. تعهد طلایی Goldis↔کارخانه روی همان `inter_company_ledger` با `asset='gold'`, `source_type='supplier_purchase'` رصد می‌شود (جدول جدید لازم نیست). `purchase_wage_percent` عملیاتی می‌شود (دیگر صرفا metadata نیست). طلای اجرت = هزینهی حسابداری، **بدون** اثر روی exposure/سقف خزانه.</td><td>Inventory، Inter-Company، Catalog، ۷.۲</td></tr>
 <tr><td>D-49</td><td>**امانی = شمش مشخص allocated** (شفافسازی مدل امانی — مستقل از Q-10 سند)</td><td>طلای امانی یعنی شمش مشخص سریالدار که از **لحظه‌ی خرید** به مشتری تخصیص و قفل می‌شود (allocated، نه pooled). عملیات کنترلشدهی **«تعویض شمش»** (سریال قدیم→جدید هم‌وزن/هم‌عیار) برای موارد گم/آسیب، فقط اپراتور، با ثبت در `ownership_history` + `audit_logs`.</td><td>Fulfillment، Inventory، ۸</td></tr>
 <tr><td>D-50</td><td>**Price-lock TTL** (بازنویسی D-28)</td><td>بازهی مجاز ۶۰–۳۰۰ ثانیه (CHECK از `BETWEEN 30 AND 300` به `BETWEEN 60 AND 300`)، پیش‌فرض ۱۲۰s. کف ۱ دقیقه برای شرایط پرنوسان.</td><td>Pricing، ۱۱.۴</td></tr>
 <tr><td>D-51</td><td>**قرارداد عیار**</td><td>عیار همیشه **parts-per-1000** (عدد صحیح ۰..۱۰۰۰؛ ۱۸ع=۷۵۰، ۲۴ع=۹۹۹). فرمول وزن خالص همیشه `weight_mg × purity / 1000`. نمونههای `9999` در سند غلطاند و اصلاح میشوند.</td><td>Catalog، Pricing، همه‌ی محاسبات طلا</td></tr>
 <tr><td>D-52</td><td>**برداشت ریال** (تأکید)</td><td>در v1 **همه‌ی** برداشتهای ریالی نیاز به تأیید دستی اپراتور دارند — هیچ آستانه‌ی auto-approve نیست.</td><td>Withdrawal، ۱۲.۶</td></tr>
-<tr><td>D-53</td><td>**گیت مزیت بازخرید** (اصلاح D-32)</td><td>اجرت/مالیات/سود **همیشه** می‌سوزد. وزن طلای خالص **همیشه** به wallet XAU_MG برمیگردد (طلای واقعی اصالت‌سنجیشده — کاربر همیشه می‌تواند بفروشد). ولی `buyback_credit_rial` **فقط** وقتی پرداخت می‌شود که شمش در لحظه‌ی بازخرید به نام همان کاربر **ثبت مالکیت** شده باشد و با **OTP** واقعیت‌سنجی شود. ثبتنشده→صفر (می‌سوزد). ثبت تأخیری اگر قبل/حین بازخرید انجام و OTP تأیید شود، مزیت برقرار است.</td><td>Order/Buyback، ۱۲.۵.۲</td></tr>
-<tr><td>D-54</td><td>**ثبت مالکیت per کانال**</td><td>آنلاین: خودکار در لحظه‌ی خرید (کد در پنل). POS: **موبایلمحور** — نماینده موبایل (+کد ملی) را وارد میکند، کاربر پیدا/ساخته می‌شود، شمش به نامش ثبت، کد در پنل فعال؛ موبایل ندهد→ثبتنشده. Marketplace: **هرگز** ثبت نمی‌شود. **کارت هدیه: کاملا بیرون از سیستم claim/ثبت** — نه `claim_code`، نه ثبت مالکیت، نه مزیت ریالی؛ حامل فیزیکی = مالک (ولی همچنان می‌تواند برای ارزش طلای خالص بازخرید حضوری کند).</td><td>Inventory، Order، POS</td></tr>
+<tr><td>D-53</td><td>**گیت مزیت بازخرید** (اصلاح D-32)</td><td>اجرت/مالیات/سود **همیشه** می‌سوزد. وزن طلای خالص **همیشه** به wallet XAU_MG برمیگردد (طلای واقعی اصالت‌سنجیشده — کاربر همیشه می‌تواند بفروشد). ولی `buyback_credit_rial` **فقط** وقتی پرداخت می‌شود که شمش در لحظه‌ی بازخرید به نام همان کاربر **ثبت مالکیت** شده باشد و با **OTP** واقعیت‌سنجی شود. ثبت‌نشده→صفر (می‌سوزد). ثبت تأخیری اگر قبل/حین بازخرید انجام و OTP تأیید شود، مزیت برقرار است.</td><td>Order/Buyback، ۱۲.۵.۲</td></tr>
+<tr><td>D-54</td><td>**ثبت مالکیت per کانال**</td><td>آنلاین: خودکار در لحظه‌ی خرید (کد در پنل). POS: **موبایلمحور** — نماینده موبایل (+کد ملی) را وارد میکند، کاربر پیدا/ساخته می‌شود، شمش به نامش ثبت، کد در پنل فعال؛ موبایل ندهد→ثبت‌نشده. Marketplace: **هرگز** ثبت نمی‌شود. **کارت هدیه: کاملا بیرون از سیستم claim/ثبت** — نه `claim_code`، نه ثبت مالکیت، نه مزیت ریالی؛ حامل فیزیکی = مالک (ولی همچنان می‌تواند برای ارزش طلای خالص بازخرید حضوری کند).</td><td>Inventory، Order، POS</td></tr>
 <tr><td>D-55</td><td>**انتقال مالکیت**</td><td>برای شمشهای ثبتشده، هر مالک می‌تواند به موبایل دیگری منتقل کند، با تأیید **OTP** + ثبت در `ownership_history` + `audit_logs`. مزیت `buyback_credit_rial` (از snapshot سفارش اول) **همراه شمش** به مالک جدید ثبتشده منتقل می‌شود.</td><td>Inventory، Order</td></tr>
 <tr><td>D-56</td><td>**Marketplace انحصارا Goldis** (حل خلأ ۱۲.۸)</td><td>Goldis **انحصارا** همه‌ی فروش در بازارهای ثالث آنلاین (دیجیکالا/باسلام/…) را برای **همه‌ی** برندها در دست دارد؛ برندها حق ورود مستقیم به این بازارها ندارند. در marketplace همیشه `seller_company=Goldis` و `payment_receiver=Goldis`؛ هیچ ردیف بین‌شرکتی marketplace. سایت اختصاصی هر برند مستثناست (talamala.ir همچنان برند TalaMala با پول به TalaMala).</td><td>Marketplace، ۱۲.۸</td></tr>
 <tr><td>D-57</td><td>**POS فقط انبار خود نماینده** (تأکید)</td><td>نماینده با POS فقط کالاهایی را که از قبل برای او تعریف و به انبار خودش ورود خورده می‌فروشد (نه pool مرکزی).</td><td>POS، ۱۲.۷</td></tr>
 <tr><td>D-58</td><td>**«لغو» حذف — همهچیز Buyback** (بازنویسی D-32 زیرflow a)</td><td>مفهوم cancel وجود ندارد. فروش اول **همیشه معتبر و کامل** میماند (سود پیش فروشنده). اگر مشتری پشیمان شد، یک تراکنش **بازخرید مستقل روبهجلو** رخ می‌دهد (نه باطلکردن فروش). اقتصاد همیشه یکسان: اجرت/مالیات/سود می‌سوزد، وزن خالص→کیف XAU_MG، `buyback_credit_rial`→کیف IRR (با شرط D-53)، در scope برند فروش. سه **حالت عملیاتی** (نه مدل مالی متفاوت): (۱) تحویل‌نشده=آنلاین/اتومات، شمش بهحالت قابل‌فروش، بدون state machine؛ (۲) تحویل‌شده=حضوری با state machine + اصالت‌سنجی؛ (۳) دیجیتال=فروش طلای دیجیتال کیف. زیرflow `cancel_before_delivery` با `Order.status=Cancelled` **منسوخ** است.</td><td>Order/Buyback، ۱۲.۵.۲</td></tr>
-<tr><td>D-60</td><td>**حل Q-10 — منبع شمش physical_purchase_from_wallet**</td><td>شمش فیزیکی از موجودی **همان scope/برند کیفپول** برداشته می‌شود (نه انبار مرکزی Goldis). این جریان از نظر پول/برند/فروشنده دقیقا مثل یک خرید فیزیکی عادی است؛ فقط ابزار پرداخت بهجای ریال/درگاه، طلای کیف است → `seller_company`=همان scope، تعهد بین‌شرکتی طبق قاعدهی فروش غیر-Goldis. اگر شمش هم‌وزن در آن scope موجود نبود، خرید انجام نمی‌شود (سازگار با O-03). **مبنا:** طلای دیجیتال کاغذی نیست — هر خرید دیجیتال scope غیر-Goldis یک تعهد طلای واقعی از Goldis میسازد که Goldis دورهای فیزیکی تحویل می‌دهد؛ پس انبار آن scope از همین مسیر پر می‌شود.</td><td>Inventory، Treasury، ۱۲.۵، ۲۰</td></tr>
-<tr><td>D-61</td><td>**حل Q-06 — مدل سطوح KYC در v1**</td><td>سه سطح: **L0** (فقط موبایل+OTP) → **هیچ تراکنش مالی** (فقط مرور/سبد/مشاهده قیمت؛ نه خرید، نه کیفپول، نه شارژ). **L1** (شاهکار موبایل↔کدملی منطبق + نام/کدملی) → سطح پایهی معامله با سقفهای محتاطانه. **L2** (L1 + احراز مالکیت حساب بانکی: تطبیق شبا↔کدملی + تأیید دستی اپراتور اختیاری) → سقفهای بالاتر/سفارشی. اعداد سقفها (۴ بعد×روزانه/ماهانه) در `user_level_defaults` **اپراتور-تنظیم با audit**، نه hard-code در سند. آستانه‌های پیشرفتهی AML همان «فیچر بعدی» D-24 باقی میماند.</td><td>KYC، ۱۱.۲، ۲۰</td></tr>
-<tr><td>D-62</td><td>**حل Q-07 + انتقال انبار دو‌مرحله‌ای**</td><td>**(الف)** هیچ TTL/بازتخصیص خودکار روی طلا نیست — فقط گزارش/هشدار **سن‌خوردگی** (شمشهای راکد در یک کانال) و ابزار دستی اپراتور برای برداشتن/تغییر `assigned_channel_id` (با `inventory_movement`+audit). **(ب) انتقال بین انبارها = سند انتقال دو‌مرحله‌ای** (الگو‌ی WMS/ERP): `DRAFT → DISPATCHED (Goods Issue، اسکن سریال خروج، مبدأ کم) → RECEIVED (Goods Receipt، اسکن سریال ورود در مقصد) → COMPLETED`، شاخهی `DISCREPANCY` برای مغایرت. موجودی در راه = **`inventory_location` مجازی با `location_type='in_transit'`** و پرچم غیرقابل‌فروش (هیچجا reserve/فروش نمی‌شود تا رسید). **تفکیکوظایف:** فرستنده ≠ گیرنده؛ هر مرحله audit + `inventory_movement` per شمش. **v1:** اسکن دوطرفه + تفکیکوظایف + audit + **OTP تحویل اجباری** بین مبدأ/مقصد + هشدار «گیرکرده در راه»؛ بارنامه/پیک/بیمه = metadata اختیاری. آستانه‌های سن‌خوردگی/گیرکرده **اپراتور-تنظیم با audit**. ارتقا‌ی `DealerTransfer`/`ReconciliationSession` v4.</td><td>Inventory، Fulfillment، ۱۱.۵، ۲۰</td></tr>
+<tr><td>D-60</td><td>**حل Q-10 — منبع شمش physical_purchase_from_wallet**</td><td>شمش فیزیکی از موجودی **همان scope/برند کیف‌پول** برداشته می‌شود (نه انبار مرکزی Goldis). این جریان از نظر پول/برند/فروشنده دقیقا مثل یک خرید فیزیکی عادی است؛ فقط ابزار پرداخت بهجای ریال/درگاه، طلای کیف است → `seller_company`=همان scope، تعهد بین‌شرکتی طبق قاعدهی فروش غیر-Goldis. اگر شمش هم‌وزن در آن scope موجود نبود، خرید انجام نمی‌شود (سازگار با O-03). **مبنا:** طلای دیجیتال کاغذی نیست — هر خرید دیجیتال scope غیر-Goldis یک تعهد طلای واقعی از Goldis میسازد که Goldis دورهای فیزیکی تحویل می‌دهد؛ پس انبار آن scope از همین مسیر پر می‌شود.</td><td>Inventory، Treasury، ۱۲.۵، ۲۰</td></tr>
+<tr><td>D-61</td><td>**حل Q-06 — مدل سطوح KYC در v1**</td><td>سه سطح: **L0** (فقط موبایل+OTP) → **هیچ تراکنش مالی** (فقط مرور/سبد/مشاهده قیمت؛ نه خرید، نه کیف‌پول، نه شارژ). **L1** (شاهکار موبایل↔کدملی منطبق + نام/کدملی) → سطح پایهی معامله با سقفهای محتاطانه. **L2** (L1 + احراز مالکیت حساب بانکی: تطبیق شبا↔کدملی + تأیید دستی اپراتور اختیاری) → سقفهای بالاتر/سفارشی. اعداد سقفها (۴ بعد×روزانه/ماهانه) در `user_level_defaults` **اپراتور-تنظیم با audit**، نه hard-code در سند. آستانه‌های پیشرفتهی AML همان «فیچر بعدی» D-24 باقی میماند.</td><td>KYC، ۱۱.۲، ۲۰</td></tr>
+<tr><td>D-62</td><td>**حل Q-07 + انتقال انبار دو‌مرحله‌ای**</td><td>**(الف)** هیچ TTL/بازتخصیص خودکار روی طلا نیست — فقط گزارش/هشدار **سن‌خوردگی** (شمشهای راکد در یک کانال) و ابزار دستی اپراتور برای برداشتن/تغییر `assigned_channel_id` (با `inventory_movement`+audit). **(ب) انتقال بین انبارها = سند انتقال دو‌مرحله‌ای** (الگو‌ی WMS/ERP): `DRAFT → DISPATCHED (Goods Issue، اسکن سریال خروج، مبدأ کم) → RECEIVED (Goods Receipt، اسکن سریال ورود در مقصد) → COMPLETED`، شاخهی `DISCREPANCY` برای مغایرت. موجودی در راه = **`inventory_location` مجازی با `location_type='in_transit'`** و پرچم غیرقابل‌فروش (هیچجا reserve/فروش نمی‌شود تا رسید). **تفکیک وظایف:** فرستنده ≠ گیرنده؛ هر مرحله audit + `inventory_movement` per شمش. **v1:** اسکن دوطرفه + تفکیک وظایف + audit + **OTP تحویل اجباری** بین مبدأ/مقصد + هشدار «گیرکرده در راه»؛ بارنامه/پیک/بیمه = metadata اختیاری. آستانه‌های سن‌خوردگی/گیرکرده **اپراتور-تنظیم با audit**. ارتقا‌ی `DealerTransfer`/`ReconciliationSession` v4.</td><td>Inventory، Fulfillment، ۱۱.۵، ۲۰</td></tr>
 <tr><td>D-63</td><td>**حل Q-08 — انتخاب درگاه (به ازای کانال، بدون انتخاب کاربر در v1)**</td><td>هر `sales_channel` یک **لیست اولویت‌دار از `payment_account`ها** دارد. موقع پرداخت، اولین درگاه **فعال و سالم** خودکار انتخاب می‌شود؛ اگر down بود **fallback خودکار** روی درگاه بعدی لیست. کاربر هیچ انتخابی نمیبیند (multi-PSP UX به v2 موکول؛ مدل طوری بماند که بعدا بدون تغییر اضافه شود). اپراتور می‌تواند per `payment_account` «موقتا غیرفعال» کند. **الزامی:** هر بار درگاهی خطا/down تشخیص داده شد (حتی اگر fallback پوشش داد) → **اطلاع‌رسانی به اپراتور/ادمین** (notification + audit) که کدام PSP مشکل دارد.</td><td>Payment، ۱۱.۷، ۲۰</td></tr>
 <tr><td>D-64</td><td>**حل Q-09 — برداشت فقط به حساب خود کاربر**</td><td>برداشت ریال **فقط** به حساب بانکی متعلق به همان کاربر مجاز است: نام صاحب شبا باید با کد ملی KYC تطبیق داده شود (`user_bank_accounts.is_verified=TRUE` از طریق استعلام بانکی/شاهکار). برداشت به حساب شخص دیگر **ممنوع** — شرط صریح سازمان مبارزه با پولشویی (ضد الگو‌ی واریز-کارت-A / برداشت-حساب-B). دولایه با D-52 (احراز سیستمی + تأیید اپراتور). اشخاص حقوقی (حساب بهنام شرکت) **خارج از scope v1**، موکول به v2/onboarding دستی.</td><td>Withdrawal، Compliance، ۱۱.۱، ۲۰</td></tr>
 <tr><td>D-65</td><td>**نردبان قیمت + بعد سطح (حل A-1/A-2، اصلاح تفسیر D-39)**</td><td>**نقاط قیمتی نامدار per فلز در لحظه:** `P0`=`internal_base_price` (هزینهی مرجع خام، داخلی، بی‌سود) → `P_hedge`=قیمت عمدهی Goldis = P0 + حداقلمارجین Goldis که **تضمینا ≥ مالیات دولت + حداقل سود** → `P_partner(tier)` (هر `DealerTier` یک عدد، همیشه ≥ P_hedge) → `P_retail` (مشتری نهایی پیش‌فرض، بالاترین). **هیچکس زیر P_hedge نمی‌خرد؛ Goldis هرگز بی‌سود/زیرمالیات نمی‌فروشد. بعد سطح:** ستون `dealer_tier_id BIGINT NULL` به `channel_pricing_formulas` (رزولوشن با همان `priority`؛ `NULL`=مشتری نهایی). v1 فقط مشتری نهایی + سطوح همکار/نماینده (VIP خرده به v2). برای **طلای دیجیتال** (بدون اجرت) تمایز سطح کاملا در مارجین متال فرمول است (شکاف مدل اجرت‌محور v4 رفع شد). **Invariant:** هم موقع ذخیرهی فرمول هم موقع ساخت price_lock باید خروجی ≥ P_hedge ≥ (P0+مالیات+حداقلمارجین)؛ نقض ⇒ رد/clamp + هشدار اپراتور. P_hedge **یک نقطهی per-فلز در سطح شرکت Goldis** (نه per کانال) تا ریاضی بین‌شرکتی یکدست بماند. **حل A-1:** تنها مبنای `inter_company_ledger` = `order_items.raw_hedge_price_rial` = `P_hedge_per_mg(لحظه‌ی فروش) × pure_gold_mg`؛ ۱۲.۱ گام d/e اصلاح، خطوط «cost transfer reverse» منسوخ. **`cost_price_rial` → نام/تعریف `raw_hedge_price_rial`؛ `supplier_price_rial` حذف** (بیمصرف بعد از D-48). **اصلاح تفسیر D-39 (نه نقض):** «بابت فروش profit-share نیست» سرجایش است؛ ولی قیمت عمدهی طلای Goldis ذاتا مارجین خود Goldis (پوشش مالیات+حداقلسود) را دارد — این دو سازگارند.</td><td>Pricing، Inter-Company، Catalog، ۵، ۶.۴، ۱۱.۴، ۱۱.۶، ۱۲.۱</td></tr>
@@ -292,14 +292,14 @@
 <tr><td>D-77</td><td>**حل F-1 — fulfillment_task: شمش مشخص + trigger=درخواست تحویل**</td><td>(۱) `fulfillment_tasks` ستون `bar_id` میگیرد (به شمش تخصیص‌یافتهی D-49 اشاره میکند؛ برای چند شمش، چند ردیف). انبار‌دار **همان سریال** را برمیدارد؛ **اسکن سریال pick اجباری** و باید با `bar_id` بخواند وگرنه خطا — تضمین بستن «تخصیصدهندهی فروش» و «انبار‌دار» به یک سریال واحد. (۲) trigger ساخت task = **«درخواست تحویل»** است، نه «پرداخت سفارش». فروش امانی (`delivered_at=NULL`) **هیچ taskی نمیسازد** (شمش در خزانه قفل). فقط با درخواست تحویل مشتری یا تحویل فوری POS/فروشگاه task ساخته می‌شود (برگشت مفهوم `CustodialDeliveryRequest` v4 که در ۸ گم بود).</td><td>Fulfillment، Inventory، ۸، ۱۲.۱</td></tr>
 <tr><td>D-76</td><td>**حل A-12 — تاپآپ به scope درست (ایزوله)**</td><td>`wallet_topup` بعد `wallet_scope` میگیرد؛ از **فرانت/کانال** resolve می‌شود (talamala→talamala، goldis→goldis، aminzar→**aminzar**) و کیف ریالی همان scope شارژ می‌شود. سه فرانت کاملا **ایزوله** (D-46): امینزر در goldis merge **نمی‌شود**، هرچند legal entity هر دو شرکت گلدیس و درگاه شارژش Goldis IPG است (`company_id` مشتق از scope فقط برای حسابداری). متن قدیمی ۱۲.۵.۴ که «گلدیس/امینزر → wallet Goldis» میگفت اصلاح شد. **یادآوری کلی:** هر فرانت (فعلا ۳ تا) همهچیزش — کیف، تاپآپ، بازخرید، گزارش — ایزولهٔ همان scope است.</td><td>Wallet، Payment، ۱۱.۷، ۱۲.۵.۴</td></tr>
 <tr><td>D-74</td><td>**حل A-13 — نقره (XAG) خارج از scope v1**</td><td>در v1 **هیچ ورودی به نقره** نداریم: نه محصول نقره، نه قیمتگذاری/فرمول نقره، نه trade/POS/بازخرید نقره. اول کل زنجیرهی **طلا** بینقص نهایی شود؛ سپس **عینا همان روال** برای نقره تکرار می‌شود. **ساختار باید metal-generic بماند** (asset `XAG_MG`، `metal_type`، `PRECIOUS_METALS`، خزانه/قیمت به ازای فلز فقط بهعنوان نقطهی توسعه نگه داشته شوند — حذف نشوند)، ولی هیچ مسیر فعال نقره در v1 ساخته/seed/نمایش داده نشود. همه‌ی D-46…D-73 metal-genericاند و موقع افزودن نقره بدون بازطراحی اعمال میشوند.</td><td>Catalog، Pricing، Treasury، Wallet، سراسری</td></tr>
-<tr><td>D-73</td><td>**مدل نهایی نماینده (تخت، بدون شبکه) + اصلاحات P۱–P۴**</td><td>**۱)** POS = فروش برند TalaMala (v1 همه TalaMala)؛ پول→TalaMala (نه نماینده)؛ هج خودکار با Goldis مبنای P_hedge (۶/D-69). **۲)** نماینده = فقط مکان/اپراتور (نه مالک موجودی، نه دریافتکنندهی پول). **۳)** پاداش نماینده = کمیسیون طلایی جدا از TalaMala (از حاشیه‌ی خودش)، دو نرخ: فروش و بازخرید — نه gap نردبان (A-10 حل). **۴)** جدول `dealer_commission_rates` (محصول/نوع، `dealer_tier_id` NULL=همه، `trade_side` sale</td><td>buyback) → درصد طلایی؛ پیش‌فرض محصول + override سطح؛ رزولوشن مثل D-65. **۵)** مبنای درصد = `pure_gold_mg` تراکنش در لحظه‌ی فروش (Gold-for-Gold)، نه ریال. **۶)** نگهبان فروش: Σکمیسیون ≤ `P_retail−P_hedge`. **۶ب (P۲):** نگهبان بازخرید جدا: کمیسیون بازخرید ≤ اسپرد بازخرید؛ نقض → رد/هشدار اپراتور. **۷)** کمیسیون بازخرید فقط بعد از `AuthenticityVerified` (D-53)، نه قبلش. **۸ (P۱ اصلاح‌شده):** تسویه روی **`dealer_commission_ledger` جدا** (بدهی طلایی TalaMala→نماینده، Gold-for-Gold، دورهای) — **نه** روی `inter_company_ledger` (آن شرکت↔شرکت است و نماینده کاربر است؛ آلودن گزارش هجینگ ممنوع). رکورد روی `DealerSale`+`metal_profit_mg`. **۹)** `SubDealerRelation` و هر مفهوم زیرنماینده/شبکهای/MLM/ارتقا‌ی‌تیمی **از کل scope v5 حذف** (نه v1 نه v2 نه زیرساخت)؛ شبکه تخت. **۱۰ (P۴):** `P_partner`/`dealer_tier_id` (D-65) در v1 فقط **زیرساخت خالی** است — مسیر فعال «همکار برای خودش می‌خرد» نداریم؛ فعالشدن=آینده. **P۳:** کمیسیون طلایی واریزی به کیف نماینده = طلای دیجیتال جدید ⇒ یک پای خزانهای `+pure_gold_mg` میسازد و تابع سقفهای D-47 است.</td><td>Dealer، Pricing، Treasury، ۹، ۱۱.۵، ۱۲.۷، context۱۵</td></tr>
-<tr><td>D-72</td><td>**حل A-9 — کارمزد معاملهی دیجیتال = مارجین نردبان + spread دوطرفه**</td><td>(الف) «کارمزد معاملهی دیجیتال نقشمحور v4» (`gold_fee_customer/dealer_percent`…) مفهوم جدا **نیست** — همان فاصلهی نردبان D-65 است (`P_retail−P_hedge` مشتری، `P_partner−P_hedge` همکار). افزونگی مدل v4 حذف. (ب) `channel_pricing_formulas` بعد `trade_side VARCHAR(10) NULL` (buy</td><td>sell</td><td>NULL) میگیرد تا **spread دوطرفه** ممکن شود: قیمت خرید (کاربر می‌خرد) و قیمت فروش (کاربر می‌فروشد) مارجین مستقل دارند؛ رزولوشن با همان `priority`. Invariant D-65 هر دو سمت: قیمت خرید ≥ P_hedge؛ قیمتی که به فروشنده‌ی کاربر میدهیم ≤ P_hedge (حاشیه منفی نشود). قیمت `digital_trade sell` (= همان «بازخرید دیجیتال» D-68) از فرمول `trade_side=sell` میآید.</td><td>Pricing، Wallet، ۱۱.۴</td></tr>
-<tr><td>D-71</td><td>**حل A-8 — برچسب scope روی شمش (`sale_wallet_scope`)**</td><td>`bars` ستون `sale_wallet_scope VARCHAR(20) NULL` میگیرد: در لحظه‌ی فروش از scope سفارش (goldis/aminzar/talamala) پر و IMMUTABLE **تا زمان status=SOLD** (انتقال مالکیت — D-55 — عوضش نمیکند، چون حساب به فروش اول گره خورده). هنگام بازخرید (status برمیگردد به ASSIGNED)، `sale_wallet_scope=NULL` می‌شود تا شمش دوباره در هر scope فروخته شود (D-92). همه‌ی مسیرهای بازخرید/انتقال/گزارش تفکیکی D-46 از این برچسب تصمیم میگیرند، نه استنتاج ضمنی. شمش فروش‌نرفته=`NULL` (مالکیت شرکتی). برای کارت هدیه/مارکت‌پلیس (بدون ثبتمالکیت — D-54): `sale_wallet_scope` پر می‌شود (برای خزانه/بین‌شرکتی) ولی `customer_id=NULL` — دو بعد مستقل. **قاعده:** بازخرید آنلاین فقط در همان scope/وبسایتی که خرید انجام شده مجاز است.</td><td>Inventory، Wallet، Buyback، ۱۱.۵</td></tr>
+<tr><td>D-73</td><td>**مدل نهایی نماینده (تخت، بدون شبکه) + اصلاحات P۱–P۴**</td><td>**۱)** POS = فروش برند TalaMala (v1 همه TalaMala)؛ پول→TalaMala (نه نماینده)؛ هج خودکار با Goldis مبنای P_hedge (۶/D-69). **۲)** نماینده = فقط مکان/اپراتور (نه مالک موجودی، نه دریافتکنندهی پول). **۳)** پاداش نماینده = کمیسیون طلایی جدا از TalaMala (از حاشیه‌ی خودش)، دو نرخ: فروش و بازخرید — نه gap نردبان (A-10 حل). **۴)** جدول `dealer_commission_rates` (محصول/نوع، `dealer_tier_id` NULL=همه، `trade_side` میگیرد: `sale` یا `buyback`) → درصد طلایی؛ پیش‌فرض محصول + override سطح؛ رزولوشن مثل D-65. **۵)** مبنای درصد = `pure_gold_mg` تراکنش در لحظه‌ی فروش (Gold-for-Gold)، نه ریال. **۶)** نگهبان فروش: Σکمیسیون ≤ `P_retail−P_hedge`. **۶ب (P۲):** نگهبان بازخرید جدا: کمیسیون بازخرید ≤ اسپرد بازخرید؛ نقض → رد/هشدار اپراتور. **۷)** کمیسیون بازخرید فقط بعد از `AuthenticityVerified` (D-53)، نه قبلش. **۸ (P۱ اصلاح‌شده):** تسویه روی **`dealer_commission_ledger` جدا** (بدهی طلایی TalaMala→نماینده، Gold-for-Gold، دورهای) — **نه** روی `inter_company_ledger` (آن شرکت↔شرکت است و نماینده کاربر است؛ آلودن گزارش هجینگ ممنوع). رکورد روی `DealerSale`+`metal_profit_mg`. **۹)** `SubDealerRelation` و هر مفهوم زیرنماینده/شبکهای/MLM/ارتقا‌ی‌تیمی **از کل scope v5 حذف** (نه v1 نه v2 نه زیرساخت)؛ شبکه تخت. **۱۰ (P۴):** `P_partner`/`dealer_tier_id` (D-65) در v1 فقط **زیرساخت خالی** است — مسیر فعال «همکار برای خودش می‌خرد» نداریم؛ فعالشدن=آینده. **P۳:** کمیسیون طلایی واریزی به کیف نماینده = طلای دیجیتال جدید ⇒ یک پای خزانهای `+pure_gold_mg` میسازد و تابع سقفهای D-47 است.</td><td>Dealer، Pricing، Treasury، ۹، ۱۱.۵، ۱۲.۷، context۱۵</td></tr>
+<tr><td>D-72</td><td>**حل A-9 — کارمزد معاملهی دیجیتال = مارجین نردبان + spread دوطرفه**</td><td>(الف) «کارمزد معاملهی دیجیتال نقشمحور v4» (`gold_fee_customer/dealer_percent`…) مفهوم جدا **نیست** — همان فاصلهی نردبان D-65 است (`P_retail−P_hedge` مشتری، `P_partner−P_hedge` همکار). افزونگی مدل v4 حذف. (ب) `channel_pricing_formulas` بعد `trade_side VARCHAR(10) NULL` میگیرد (مقادیر: `buy` یا `sell` یا `NULL`) تا **spread دوطرفه** ممکن شود: قیمت خرید (کاربر می‌خرد) و قیمت فروش (کاربر می‌فروشد) مارجین مستقل دارند؛ رزولوشن با همان `priority`. Invariant D-65 هر دو سمت: قیمت خرید ≥ P_hedge؛ قیمتی که به فروشنده‌ی کاربر میدهیم ≤ P_hedge (حاشیه منفی نشود). قیمت `digital_trade sell` (= همان «بازخرید دیجیتال» D-68) از فرمول `trade_side=sell` میآید.</td><td>Pricing، Wallet، ۱۱.۴</td></tr>
+<tr><td>D-71</td><td>**حل A-8 — برچسب scope روی شمش (`sale_wallet_scope`)**</td><td>`bars` ستون `sale_wallet_scope VARCHAR(20) NULL` میگیرد: در لحظه‌ی فروش از scope سفارش (goldis/aminzar/talamala) پر و IMMUTABLE **تا زمان status=SOLD** (انتقال مالکیت — D-55 — عوضش نمیکند، چون حساب به فروش اول گره خورده). هنگام بازخرید (status برمیگردد به ASSIGNED)، `sale_wallet_scope=NULL` می‌شود تا شمش دوباره در هر scope فروخته شود (D-92). همه‌ی مسیرهای بازخرید/انتقال/گزارش تفکیکی D-46 از این برچسب تصمیم میگیرند، نه استنتاج ضمنی. شمش فروش‌نرفته=`NULL` (مالکیت شرکتی). برای کارت هدیه/مارکت‌پلیس (بدون ثبت مالکیت — D-54): `sale_wallet_scope` پر می‌شود (برای خزانه/بین‌شرکتی) ولی `customer_id=NULL` — دو بعد مستقل. **قاعده:** بازخرید آنلاین فقط در همان scope/وبسایتی که خرید انجام شده مجاز است.</td><td>Inventory، Wallet، Buyback، ۱۱.۵</td></tr>
 <tr><td>D-70</td><td>**حل A-7 — تعهد بین‌شرکتی digital_trade sell غیر-Goldis**</td><td>جملهی مبهم ۱۲.۴ («Settlement: Goldis طلب از TalaMala») با مدل صریح جایگزین شد. scope غیر-Goldis: جفت تازهی مخالف فروش → `TalaMala→Goldis طلا amount_mg` + `Goldis→TalaMala ریال P_hedge_per_mg×amount_mg`. scope=Goldis: هیچ تعهد بین‌شرکتی، فقط خزانه‌ی `−` تکپایی `digital_sell` (D-67). آینهٔ دقیق ۱۲.۳/D-69 و همان مسیر یکتای D-68. مابه‌التفاوت (P_hedge − پرداختی به کاربر) حاشیه‌ی scope فروشنده.</td><td>Inter-Company، Treasury، ۱۲.۴</td></tr>
 <tr><td>D-69</td><td>**حل A-6 — یکدستی digital_trade buy غیر-Goldis با ۱۲.۱**</td><td>۱۲.۳ اصلاح: مبنای تعهد بین‌شرکتی خرید دیجیتال scope غیر-Goldis = **`P_hedge_per_mg × amount_mg`** (D-65)، نه `internal_base_price` و نه قیمتی که کاربر پرداخت. صریح: خرید دیجیتال scope غیر-Goldis از نظر خزانه/بین‌شرکتی **همسنگ فروش فیزیکی غیر-Goldis** است (همان مدل ۱۲.۱)؛ تنها تفاوت: شمش/اجرت ندارد و خزانهاش تکپایی `digital_buy` است (D-67). مابه‌التفاوت (قیمت کاربر − P_hedge) سود scope فروشنده. ۱۲.۲ (AminZar، Goldis-side) بدون تعهد بین‌شرکتی — تأیید شد.</td><td>Inter-Company، Treasury، ۱۲.۲، ۱۲.۳</td></tr>
 <tr><td>D-68</td><td>**حل A-5 — یکیسازی digital_buyback با digital_trade sell**</td><td>«بازخرید دیجیتال» یک مسیر فنی جدا **نیست** — صرفا همان **`digital_trade` با `trade_side=sell`** است (نام بازاریابی). زیرflow (c) `digital_buyback` **حذف** می‌شود. در نتیجه Buyback فقط **۲ حالت** دارد (نه ۳): تحویل‌نشده + حضوری — هر دو مرتبط با شمش فیزیکی (D-58/D-59). منسوخها: `order_type=buyback` فقط برای فیزیکی؛ endpointهای `/buyback/quote` و `/buyback/digital` حذف → استفاده از `/wallet/trades/sell`؛ رویداد `DigitalBuybackCompleted` حذف = `DigitalGoldSold`؛ در ۵.۲ مدخل `digital_buyback` صرفا **مترادف `digital_sell`** است؛ بند «(c)» در D-32/۱۲.۵.۲/Q-03/roadmap منسوخ. قیمت فروش دیجیتال از نردبان D-65 سمت فروش میآید (همان نقشی که `buyback_quote` ادعا میکرد).</td><td>Order، Wallet، Treasury، ۵.۲، ۱۲.۴، ۱۲.۵.۲، ۱۳، ۱۴</td></tr>
 <tr><td>D-67</td><td>**حل A-4 — بازنویسی ۵.۲ به مدل تکپایی/دوپایی**</td><td>`treasury_positions` per **پای** ثبت می‌شود نه per تراکنش؛ علامت از پای میآید نه `source_type`. تکپایی: `+`=`order_physical`/`pos_sale`/`marketplace_sale`/`digital_buy`؛ `−`=`hedge_buy`/`digital_sell`/`digital_buyback`. دوپایی (net≈صفر): `buyback` تحویل‌نشده/حضوری (D-59) و `physical_purchase_from_wallet` (D-66). برچسب ثابت `−` برای `buyback`/`physical_purchase_from_wallet` در ۵.۲ قدیمی **همان باگ تکپایی** بود که پیاده‌ساز به آن استناد میکرد.</td><td>Treasury، ۵.۲</td></tr>
-<tr><td>D-66</td><td>**حل A-3 — physical_purchase_from_wallet دوپایی** (آینهٔ D-59)</td><td>خرید کالای فیزیکی با کیف = تبدیل digital→physical. دو پای مستقل: پای۱ `−gold_part_mg` (مصرف طلای دیجیتال کیف)، پای۲ `+pure_gold_mg` (خروج شمش فیزیکی = فروش فیزیکی). **خزانه‌ی خالص** = `−gold_part_mg + pure_gold_mg = −wage_gold_mg` (if `gold_part_mg = pure_gold_mg + wage_gold_mg`). اگر wage بهصورت طلا refund شود، net=صفر؛ درغیر صورت net=−wage_gold_mg (هزینهای به treasury). اگر فروش غیر-Goldis بود، تعهد بین‌شرکتی پای۲ مثل هر فروش فیزیکی با مبنای P_hedge (D-65). متن ۱۲.۵ که فقط `delta=-gold_part_mg` داشت **باگ** بود (شمش هجنشده از سیستم خارج و exposure گم میشد).</td><td>Treasury، Inter-Company، ۱۲.۵</td></tr>
+<tr><td>D-66</td><td>**حل A-3 — physical_purchase_from_wallet دوپایی** (آینهٔ D-59)</td><td>خرید کالای فیزیکی با کیف = تبدیل digital→physical. دو پای مستقل: پای۱ `−gold_part_mg` (مصرف طلای دیجیتال کیف)، پای۲ `+pure_gold_mg` (خروج شمش فیزیکی = فروش فیزیکی). **خزانه‌ی خالص** = `−gold_part_mg + pure_gold_mg = −wage_gold_mg` (if `gold_part_mg = pure_gold_mg + wage_gold_mg`). اگر wage به‌صورت طلا refund شود، net=صفر؛ درغیر صورت net=−wage_gold_mg (هزینهای به treasury). اگر فروش غیر-Goldis بود، تعهد بین‌شرکتی پای۲ مثل هر فروش فیزیکی با مبنای P_hedge (D-65). متن ۱۲.۵ که فقط `delta=-gold_part_mg` داشت **باگ** بود (شمش هجنشده از سیستم خارج و exposure گم میشد).</td><td>Treasury، Inter-Company، ۱۲.۵</td></tr>
 <tr><td>D-59</td><td>**حل Q-05 — بازخرید فروش را معکوس نمیکند**</td><td>بازخرید **هرگز** تعهدهای بین‌شرکتی فروش اصلی را معکوس نمیکند (`reverses_ledger_id` برای فروش استفاده نمی‌شود). هر بازخرید **دو پای مستقل** دارد: پای۱ طلا به کیف کاربر (+pure_gold_mg)، پای۲ منبع (شمش فیزیکی برمیگردد یا طلای کیف مصرف می‌شود، −pure_gold_mg). نتیجه: **تحویل‌نشده/حضوری = تبدیل physical↔digital ⇒ خزانه ≈ صفر، هیچ جفت تعهد طلایی تازهای، فقط `buyback_credit_rial` بهعنوان هزینهی ریالی ثبت می‌شود. دیجیتال = خروج واقعی طلا ⇒ خزانه −pure_gold_mg + یک جفت تعهد تازهی مخالف (TalaMala→Goldis طلا، Goldis→TalaMala ریال) به قیمت خام لحظه‌ی بازخرید.** این، باگ ضمنی «buyback → −pure_gold_mg» در ۵.۲/۱۲.۵.۲ را برای حالتهای فیزیکی/تحویل‌نشده تصحیح میکند (دوبار-حساب). جزئیات گردکردن/منبعقیمت به فاز پیاده‌سازی.</td><td>Inter-Company، Treasury، ۵.۲، ۱۲.۵.۲</td></tr>
 <tr><td>D-81</td><td>**P0-1.1 — اصلاح wallet_topups idempotency constraint**</td><td>`wallet_topups` UNIQUE constraint نادرست بود: `UNIQUE (company_id, idempotency_key)`. دلیل نادرستی: scope aminzar و scope goldis هر دو به شرکت گلدیس نقشه میشوند (legal entity یکسان)؛ اگر دو کاربر از scopes متفاوت با idempotency_key یکسان شارژ کنند، یکی reject می‌شود (نادرست). **اصلاح:** `UNIQUE (wallet_scope, user_id, idempotency_key)` — هر کاربر در هر scope یک فضای idempotency جدا دارد.</td><td>Wallet، P0-1.1</td></tr>
 <tr><td>D-82</td><td>**P0-7 — Hedge Buy flow (خرید طلای خام از بازار)**</td><td>Goldis Central Hedging Desk در پاسخ به فروشهای غیر-Goldis (scope=TalaMala یا aminzar)، طلای خام از بازار می‌خرد و دورهای تحویل می‌دهد. این flow با bulk_gold_inventory (P0-8) و inter-company settlement مرتبط است. **موارد:** ۱) API `/admin/treasury/hedge-buy/request` برای تسجیل خرید. ۲) وزن و پرایس ثبت می‌شود. ۳) Treasury exposure نسبت به سقفهای D-47 چک می‌شود. ۴) Settlement دورهای: operator تحویل طلا به creditor company را آپروو میکند. ۵) هر settlement یک inter_company_ledger entry میسازد (`source_type='hedge_buy_settlement'`).</td><td>Treasury، Inventory، Inter-Company، ۱۲.۵.۳ الف، D-47</td></tr>
@@ -314,7 +314,7 @@
 </tbody>
 </table>
 
-> **⚠️ اثر روی scope/تخمین:** D-47، D-48 و D-53 scope را سنگینتر کردهاند (supplier_purchase داخل؛ سقف دوطرفه؛ گیت ثبتمالکیت). D-58/D-59 و حذف SubDealer/MLM (D-73) برعکس **سادهتر** کردهاند. **هشدار P۵:** زیرسیستم **قیمت(D-65/72) + دفترکل(۶) + خزانه(D-47/67) + نماینده(D-73)** الان سنگین‌ترین و پرریسک‌ترین بخش پروژه است (باگ = ضرر مالی مستقیم). توصیه: در پیاده‌سازی **اول یک پروتوتایپ end-to-end از همین زنجیره با تستهای پولی واقعی** ساخته شود، نه CRUDهای ساده. تخمین ۱۲ هفتهی بخش ۲۲ دیگر واقع‌بینانه نیست و باید بازبینی شود.
+> **⚠️ اثر روی scope/تخمین:** D-47، D-48 و D-53 scope را سنگینتر کردهاند (supplier_purchase داخل؛ سقف دوطرفه؛ گیت ثبت مالکیت). D-58/D-59 و حذف SubDealer/MLM (D-73) برعکس **سادهتر** کردهاند. **هشدار P۵:** زیرسیستم **قیمت(D-65/72) + دفترکل(۶) + خزانه(D-47/67) + نماینده(D-73)** الان سنگین‌ترین و پرریسک‌ترین بخش پروژه است (باگ = ضرر مالی مستقیم). توصیه: در پیاده‌سازی **اول یک پروتوتایپ end-to-end از همین زنجیره با تستهای پولی واقعی** ساخته شود، نه CRUDهای ساده. تخمین ۱۲ هفتهی بخش ۲۲ دیگر واقع‌بینانه نیست و باید بازبینی شود.
 
 ## ۲.۶. اصلاحات P0 — Schema Implementation Fixes (نسخه ۲.۳)
 
@@ -365,7 +365,7 @@
 <tr><td>FIX-4</td><td>**BLOCKER:** Mensoukh API endpoints در 13</td><td>**مشکل:** `/orders/{id}/cancel` و `/orders/{order_id}/cancel-before-delivery` هنوز فهرست شده (D-58: cancel منسوخ). Buyback header "۳ زیرflow" (نادرست: فقط ۲ — تحویل‌نشده و حضوری). **اصلاح:** ۱) endpoint cancel حذف. ۲) endpoint cancel-before-delivery حذف. ۳) header به "۲ حالت" تغییر (D-58). ۴) labels (a)/(b) renumber. ۵) (c) digital_buyback = /wallet/trades/sell annotation</td></tr>
 <tr><td>FIX-5</td><td>**HIGH:** Wallet API company_code vs wallet_scope</td><td>**مشکل:** `/wallet/balances?company_code=X` و `/wallet/ledger?company_code=X` (D-46 violation: scope نه company_code). **اصلاح:** تمام `company_code` → `wallet_scope` (۳ جا در 13). اضافه: `locked_balance` و `credit_balance` فیلدها به response</td></tr>
 <tr><td>FIX-6</td><td>**HIGH:** D-62 schema missing from 11.9</td><td>**مشکل:** D-62 تصمیم دو‌مرحله‌ای انتقال تولید شده (DRAFT→DISPATCHED→RECEIVED→COMPLETED) ولی جدول ندارد. **اصافه:** `inventory_transfer_documents` و `inventory_transfer_items` tables + all fields (reference_code, status enum, OTP, locations, movements) + indexes</td></tr>
-<tr><td>FIX-7</td><td>**HIGH:** bars.status insufficient enum برای D-79</td><td>**مشکل:** `bars.status` فقط `RAW</td><td>ASSIGNED</td><td>RESERVED</td><td>SOLD` (D-79 نیاز: DAMAGED, LOST, IN_INSPECTION). **اصلاح:** Enum توسیع + مستند: DAMAGED (packing damaged)، LOST (loss event)، IN_INSPECTION (buyback/damage inspection)</td></tr>
+<tr><td>FIX-7</td><td>**HIGH:** bars.status insufficient enum برای D-79</td><td>**مشکل:** `bars.status` فقط ۴ مقدار (`RAW`، `ASSIGNED`، `RESERVED`، `SOLD`) دارد اما D-79 نیاز به موارد اضافی دارد: `DAMAGED`, `LOST`, `IN_INSPECTION`. **اصلاح:** Enum توسیع + مستند: DAMAGED (پلمب‌شکسته)، LOST (رویداد زیان)، IN_INSPECTION (بازرسی بازخرید/آسیب)</td></tr>
 </tbody>
 </table>
 
@@ -380,7 +380,7 @@
 <tr><td>D-86</td><td>Marketplace = Goldis-exclusive (D-56 قطعی)</td><td>D-56 در تمام جاها (diagram، comments، note) apply شد. هیچ TalaMala marketplace income. منطق: Goldis infrastructure/payment منیجر = حق انحصار</td></tr>
 <tr><td>D-87</td><td>Supplier purchase ledger at intake (D-48 override)</td><td>7.3 اصلاح: inter_company_ledger ✅ (نه ❌). debtor=Goldis, creditor=AminZar, amount=pure+wage_mg. هدف: Goldis↔AminZar obligation tracking از محل تولید</td></tr>
 <tr><td>D-88</td><td>bars.status enum extended (D-79 support)</td><td>DAMAGED, LOST, IN_INSPECTION اضافه شدند تا edge cases پوشش داده شوند (damaged goods, loss tracking, buyback inspection)</td></tr>
-<tr><td>D-89</td><td>D-62 Two-stage transfer schema</td><td>inventory_transfer_documents (DRAFT→DISPATCHED→RECEIVED→COMPLETED</td><td>DISCREPANCY) + items. OTP + audit. warehouse-to-warehouse distribution via virtual in-transit location</td></tr>
+<tr><td>D-89</td><td>D-62 Two-stage transfer schema</td><td>جداول `inventory_transfer_documents` و `inventory_transfer_items` برای دو‌مرحله‌ای انتقالِ بین‌انبار. وضعیت‌ها: DRAFT → DISPATCHED → RECEIVED → COMPLETED (یا DISCREPANCY در صورت عدم تطابق). شامل OTP، حسابرسی و مکان مجازی در‌حال‌انتقال (virtual in-transit location) برای توزیع نمایندگان</td></tr>
 <tr><td>D-96</td><td>**Price Lock Reconciliation** — قفل قیمت ۵دقیقهای</td><td>بین checkout و پرداخت اگر قیمت تغییر کند (شبکه/تأخیر)، سیستم پول را تو خلأ نندازد. **راهحل:** `payment_reconciliations` جدول → تطابق خودکار ±۲٪، treasury rebalancing، manual dashboard برای admin.</td></tr>
 <tr><td>D-97</td><td>**Pending Reserves** — رزرو طلا بر روی checkout</td><td>سقف خزانه (treasury exposure cap) در checkout checkedشود، سپس در submit order رزرو شود. دو customer همزمان هم نتوانند سقف را نقض کنند. **راهحل:** `inventory_pending_holds` جدول → reserve on checkout، finalize on payment.</td></tr>
 <tr><td>D-98</td><td>**Payment State Machine** — منع پول یتیم</td><td>اگر سیستم بعد از gateway verification crash کند، دوباره مدار شود. **راهحل:** `payment_states` enum = `verified_pending` (state جدید) → recovery job on startup replays. idempotency + alerts.</td></tr>
@@ -656,11 +656,11 @@ CREATE TABLE wallet_locks (
 >
 > `treasury_positions.delta_amount_mg` بر اساس نگاه **Goldis**:
 >
-> **تراکنشهای تکپایی (علامت ثابت):**
+> **تراکنش‌های تکپایی (علامت ثابت):**
 > - + (exposure باز — Goldis بدهکار طلا شد): `order_physical`، `pos_sale`، `marketplace_sale`، `digital_buy` (در هر brand، شامل فروشهای خود Goldis — چون Goldis باید خام بخرد)
 > - − (exposure بسته): `hedge_buy`، `digital_sell` (فروش طلای دیجیتال — «بازخرید دیجیتال» همین است)
 >
-> **تراکنشهای دوپایی (net ≈ صفر):**
+> **تراکنش‌های دوپایی (net ≈ صفر):**
 > - `buyback` تحویل‌نشده/حضوری: پای `+pure_gold_mg` (طلا به کیف) و پای `−pure_gold_mg` (شمش برگشتی/مصرف) ⇒ خنثی
 > - `physical_purchase_from_wallet`: پای `−gold_part_mg` (مصرف طلای دیجیتال کیف) و پای `+pure_gold_mg` (خروج شمش فیزیکی) ⇒ خنثی
 >
@@ -732,7 +732,7 @@ CREATE TABLE treasury_position_snapshots (
 
 اصل اساسی بازار طلا: **هر کسی طلا بفروشد، باید بلافاصله معادل وزن خام آن طلا را از بازار بخرد** — وگرنه با بالا رفتن قیمت ضرر میکند (open exposure). این کار را hedging میگویند.
 
-در پلتفرم ما، **Goldis نقش Central Hedging Desk** را برای همه‌ی برندها بازی میکند. یعنی هر فروشگاهی (TalaMala، AminZar، یا حتی خود Goldis) که شمش می‌فروشد، **بهصورت اتوماتیک از Goldis طلای خام معادل آن را می‌خرد**، و Goldis مسئول است که از بازار خام تهیه کند و دورهای فیزیکی به آن فروشنده تحویل دهد.
+در پلتفرم ما، **Goldis نقش Central Hedging Desk** را برای همه‌ی برندها بازی میکند. یعنی هر فروشگاهی (TalaMala، AminZar، یا حتی خود Goldis) که شمش می‌فروشد، **به‌صورت اتوماتیک از Goldis طلای خام معادل آن را می‌خرد**، و Goldis مسئول است که از بازار خام تهیه کند و دورهای فیزیکی به آن فروشنده تحویل دهد.
 
 > **مالکیت شمشها قبل از فروش:** شمشهایی که هماکنون در انبار / فروشگاه / POS هر برند هستند، **مال خود همان برند** هستند (قبلا خریداری/تولید شده‌اند). این **مدل consignment نیست** — هیچ مالکیت معلق وجود ندارد. مدل تأمین و توزیع شمشها (چرخه‌ی تولید) در بخش بعدی توضیح داده می‌شود؛ این بخش فقط **سمت فروش و hedging** را پوشش می‌دهد.
 
@@ -770,7 +770,7 @@ CREATE TABLE treasury_position_snapshots (
 
 ### ۶.۲. چرا Real-Time Ledger و نه Settlement Worker روزانه
 
-> **توضیح**: در نسخه‌ی قبلی این سند، Settlement بهعنوان worker روزانهای طراحی شده بود که batch تسویه میساخت. **این رویکرد اشتباه بود** — مدل واقعی این است که هر فروش **بلافاصله** یک obligation real-time ایجاد میکند (چون hedging باید سریع باشد)، و اپراتور Goldis در پایان روز / دوره بهصورت دستی settle میکند.
+> **توضیح**: در نسخه‌ی قبلی این سند، Settlement بهعنوان worker روزانهای طراحی شده بود که batch تسویه میساخت. **این رویکرد اشتباه بود** — مدل واقعی این است که هر فروش **بلافاصله** یک obligation real-time ایجاد میکند (چون hedging باید سریع باشد)، و اپراتور Goldis در پایان روز / دوره به‌صورت دستی settle میکند.
 
 **اصلاح**: حالا Settlement context عملا تبدیل می‌شود به **Inter-Company Ledger management**:
 - ledger entries در لحظه‌ی هر sale ساخته میشوند (real-time)
@@ -879,7 +879,7 @@ Body: { creditor_company_id: Goldis, debtor_company_id: TalaMala, amount_rial, n
 
 #### Settle gold (Goldis طلای خام را به فروشنده تحویل داد)
 
-سناریو: Goldis در پایان هفته (یا هر دوره) معادل وزن خام طلا را فیزیکی به TalaMala تحویل می‌دهد (بهصورت گرانول/شمش بزرگ/هر فرم خام). اپراتور Goldis تحویل را در سیستم ثبت میکند.
+سناریو: Goldis در پایان هفته (یا هر دوره) معادل وزن خام طلا را فیزیکی به TalaMala تحویل می‌دهد (به‌صورت گرانول/شمش بزرگ/هر فرم خام). اپراتور Goldis تحویل را در سیستم ثبت میکند.
 
 ```
 POST /api/v1/admin/inter-company/settle-gold
@@ -949,9 +949,9 @@ Body: { creditor_company_id: TalaMala, debtor_company_id: Goldis, amount_mg, not
 
 ### ۷.۲. Supplier Purchase — خرید از کارخانه (داخل scope v1)
 
-خرید از کارخانهها (AminZar و TalaMala-as-supplier) **داخل سامانه** است، بهصورت یک جریان **فقط-طلا (بدون ریال)** روی همان batch preorder:
+خرید از کارخانهها (AminZar و TalaMala-as-supplier) **داخل سامانه** است، به‌صورت یک جریان **فقط-طلا (بدون ریال)** روی همان batch preorder:
 
-- Goldis به کارخانه می‌دهد: **اصل طلا** (وزن خالص شمشها) + **معادل اجرت بهصورت طلا** (`purchase_wage_percent` — عملیاتی، نه metadata). کارخانه شمش حکشده/پلمبشده برمی‌گرداند.
+- Goldis به کارخانه می‌دهد: **اصل طلا** (وزن خالص شمشها) + **معادل اجرت به‌صورت طلا** (`purchase_wage_percent` — عملیاتی، نه metadata). کارخانه شمش حکشده/پلمبشده برمی‌گرداند.
 - تعهد طلایی Goldis↔کارخانه روی همان `inter_company_ledger` با `asset='gold'`, `source_type='supplier_purchase'` رصد می‌شود (جدول جدا لازم نیست؛ کارخانه‌ایک طرف تعهد، Goldis طرف دیگر).
 - **طلای اجرت = هزینهی حسابداری**، **بدون** اثر روی exposure/سقف خزانه (سقف معیار ریسک هجنشده است، نه هزینهی تولید).
 - جریان ورود سریالها (preorder → in_stock) در ۷.۳.
@@ -1024,7 +1024,7 @@ products
 
 - TalaMala فقط نقش **brand owner + factory + payment receiver** را دارد
 - Goldis تمام operationهای فنی و فیزیکی برای برند طلاملا را انجام می‌دهد:
-  - نرمافزار (سایت، اپ POS، API)
+  - نرم‌افزار (سایت، اپ POS، API)
   - مدیریت انبار و fulfillment
   - ارسال و دریافت (logistics)
   - مدیریت دستگاه POS (device management)
@@ -1229,7 +1229,7 @@ CREATE TABLE pos_transactions (
 2. هر تغییر دادهی حساس (wallet، treasury، order status، price، kyc، dealer commission، settlement) → audit_logs entry.
 3. هر event حیاتی → outbox_events entry در همان transaction.
 4. SQLModel layer split: `Table` models (DB) / `Create` / `Update` / `Read` / `Internal DTO`. هیچ Table model مستقیم به API response نمی‌رود.
-5. تراکنشهای دیتابیس per-request scope با commit در پایان operation.
+5. تراکنش‌های دیتابیس per-request scope با commit در پایان operation.
 
 ---
 
@@ -2253,7 +2253,7 @@ Refund نداریم؛ «لغو» هم نداریم. **فروش اصلی همیش
 
 **در هر دو حالت:**
 - وزن خالص (`weight × purity / 1000`) → wallet **XAU_MG** (همیشه).
-- `order_items.buyback_credit_rial` (snapshot موقع خرید) → wallet **IRR** — **فقط اگر** شمش در لحظه‌ی بازخرید به نام کاربر ثبتمالکیت شده باشد و با **OTP** تأیید شود؛ وگرنه ۰.
+- `order_items.buyback_credit_rial` (snapshot موقع خرید) → wallet **IRR** — **فقط اگر** شمش در لحظه‌ی بازخرید به نام کاربر ثبت مالکیت شده باشد و با **OTP** تأیید شود؛ وگرنه ۰.
 - اجرت + مالیات + سود + هزینههای اضافه **می‌سوزد**.
 - هر دو واریز به **scope برند فروش همان شمش** (`bars.sale_wallet_scope`).
 - خزانه: تبدیل physical↔digital ⇒ **خنثی** (پای `+pure_gold_mg` به کیف، پای `−pure_gold_mg` شمش برگشتی)؛ **هیچ تعهد بین‌شرکتی تازهای** ساخته نمی‌شود؛ فقط `buyback_credit_rial` هزینهی ریالی است.
@@ -2272,7 +2272,7 @@ Refund نداریم؛ «لغو» هم نداریم. **فروش اصلی همیش
    - bar.status = ASSIGNED, customer_id = NULL, sale_wallet_scope = NULL  (شمش به خزانه برمیگردد، قابل فروش دوباره در هر scope — D-92)
    - اگر fulfillment_task باز بود → بسته/کنسل می‌شود
    - Wallet.credit(user, bars.sale_wallet_scope, XAU_MG, order_item.pure_gold_mg)
-   - اگر ثبتمالکیت+OTP: Wallet.credit(user, scope, IRR, order_item.buyback_credit_rial)
+   - اگر ثبت مالکیت+OTP: Wallet.credit(user, scope, IRR, order_item.buyback_credit_rial)
    - Treasury: دو پای متقابل ⇒ خالص ≈ صفر (physical→digital)
    - Audit log + Outbox: BuybackCompleted + Notification
 ```
@@ -2327,7 +2327,7 @@ Completed                (bar.location update شد + treasury/settlement)
    → status=Approved
 8. سیستم در DB transaction (فقط بعد از Approved):
    - Wallet.credit(user, bars.sale_wallet_scope, XAU_MG, order_item.pure_gold_mg)
-   - اگر ثبتمالکیت+OTP تأیید شد: Wallet.credit(user, scope, IRR, order_item.buyback_credit_rial)
+   - اگر ثبت مالکیت+OTP تأیید شد: Wallet.credit(user, scope, IRR, order_item.buyback_credit_rial)
    - bar.status = ASSIGNED, customer_id = NULL, delivered_at = NULL, sale_wallet_scope = NULL  (D-92: ready for resale in any scope)
    - bar.current_location_id = target_location_id  (location تغییر میکند)
    - INSERT inventory_movement (type=transfer_in, to=target_location)
@@ -2504,7 +2504,7 @@ Completed                (bar.location update شد + treasury/settlement)
      - Treasury.record(source=pos_sale, delta=+pure_gold_mg)  # D-91: pure weight
      - چون POS برای TalaMala است → payment_receiver=TalaMala:
        INSERT inter_company_ledger × 2 (rial + gold per بخش ۶.۴)
-     - DealerSale (commission for dealer بهصورت Gold-for-Gold)
+     - DealerSale (commission for dealer به‌صورت Gold-for-Gold)
      - **D-99:** UPDATE `pos_pending_requests` SET request_state='server_confirmed', server_confirmed_at=now()
      - Audit + Outbox + Notification
 
@@ -2675,7 +2675,7 @@ worker هر ۳۰ ثانیه:
 ### Buyback (بهجای refund) — ۲ حالت در v1 (D-58)
 
 **(a) بازخرید تحویل‌نشده** (آنلاین، اتومات):
-- POST `/buyback/undelivered` { order_id } — بازخرید فوری سفارش تحویل‌نشده، wallet credit بافاصله
+- POST `/buyback/undelivered` { order_id } — بازخرید فوری سفارش تحویل‌نشده، wallet credit بلافاصله
 
 **(b) بازخرید حضوری** (حضوری، state machine):
 - POST `/buyback/physical/request` { bar_id, target_location_id }
@@ -2908,7 +2908,7 @@ systemd unit `talamala-workers.service` → `python -m app.workers`.
 - یک endpoint: `GET /api/v1/realtime/stream`
 - یک in-process broadcaster که به outbox publisher subscribe می‌شود
 - topics پیشنهادی:
-  - `wallet.{user_id}.{company_code}` — تغییر balance
+  - `wallet.{user_id}.{wallet_scope}` — تغییر balance
   - `order.{user_id}` — تغییر status
   - `pricing.channel.{channel_id}` — تغییر قیمت
   - `treasury.alert` — admin only
@@ -3090,7 +3090,7 @@ POST /admin/migration/import-bars-from-csv
 9. KYC (با Shahkar stub اولیه)
 10. Catalog
 11. Pricing (Source + Config + Internal Base + Channel Formula + PriceLock)
-12. Wallet (به ازای کیفپول multi-asset ledger — D-46: goldis/aminzar/talamala ایزوله)
+12. Wallet (به ازای کیف‌پول multi-asset ledger — D-46: goldis/aminzar/talamala ایزوله)
 
 ### فاز ۲ — Transactional (هفته ۴-۵)
 13. Inventory
@@ -3178,7 +3178,7 @@ POST /admin/migration/import-bars-from-csv
 ### توثیق برای v1
 
 اگر در v1 automation نباشد (تنها manual settlement):
-- **Runbook برای اپراتور**: ماهانه هفتم روز، این endpoint را اجرا کن
+- **Runbook برای اپراتور**: روز هفتم هر ماه، این endpoint را اجرا کن
 - **Alert**: اگر تعهدات offset نشده ۳۰ روز بیشتر باقی بماند، warning
 - **در فاز ۵**: worker automated منتشر شود (schedule: ماهانه یکم)
 
@@ -3226,7 +3226,7 @@ POST /admin/migration/import-bars-from-csv
 ### قواعد مخصوص migration
 
 - هیچ change ای روی DB پروداکشن v4 بدون تأیید
-- ETL scripts را بهصورت idempotent بنویس (قابل re-run)
+- ETL scripts را به‌صورت idempotent بنویس (قابل re-run)
 - Dry-run همیشه قبل از run واقعی
 
 ---
@@ -3573,6 +3573,6 @@ async def pos_confirm(
 
 پیاده‌سازی این پروژه با رعایت این سند، حدود **۱۲ هفته** برای فاز ۰ تا ۷ تخمین زده می‌شود (با فرض ۲-۳ مهندس async-experienced).
 
-برای start، LLM پیاده‌ساز را با این prompt کوتاه shoot کنید:
+برای start، LLM پیاده‌ساز را با این prompt کوتاه ارسال کنید:
 
 > «این سند معماری گلدیس هاب است. آن را بهطور کامل بخوان. قبل از کدنویسی، فایلهای talamala_v4/CLAUDE.md و talamala_pos/CLAUDE.md را هم بخوان. سپس فاز ۰ از بخش ۲۱ (Infrastructure) را مرحلهبهمرحله کد بزن. بعد از هر مرحله توقف کن و تأیید بگیر. ابهامات بخش ۲۰ که به فاز فعلی مربوط است را اول از من بپرس.»
