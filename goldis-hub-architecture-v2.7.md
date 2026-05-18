@@ -109,23 +109,65 @@
 
 #### شامل این پروژه:
 
-| دسته‌بندی | ویژگی |
-|---|---|
-| **محصولات و فروش** | شمش فیزیکی |
-| **محصولات و فروش** | طلای دیجیتال (کیف‌پول) |
-| **محصولات و فروش** | بازار چندکاناله (Multi-channel marketplace) |
-| **سیستم‌های مالی** | کیف‌پول چند‌دارایی، ایزوله به ازای هر scope (D-46: سه کیف جداگانهٔ Goldis / AminZar / TalaMala) |
-| **سیستم‌های مالی** | خزانهٔ مرکزی و مدیریتِ تعهدات طلا (Central Treasury & Hedging) |
-| **سیستم‌های مالی** | دفترکلِ بین‌شرکتی (Inter-Company Ledger) — پیگیری تعهداتِ ریالی و طلایی میان شرکت‌ها |
-| **سیستم‌های مالی** | برداشتِ ریالی دومرحله‌ای (Two-stage rial withdrawal) |
-| **سیستم‌های مالی** | خریدِ فیزیکی از کیف‌پول (Physical purchase from wallet — جایگزین برداشتِ طلا) |
-| **عملیات** | شبکهٔ نمایندگان (Dealer network) |
-| **عملیات** | فرایند تحویل کالا |
-| **عملیات** | بازخرید (Buyback) — شمش تحویل‌داده و تحویل‌نشده |
-| **عملیات** | قیمت‌گذاری مرکزی (Centralized pricing) |
-| **سیستم‌های پشتیبان** | اطلاع‌رسانی (Notifications) |
-| **سیستم‌های پشتیبان** | حسابرسیِ کامل (Audit trail) |
-| **سیستم‌های پشتیبان** | پردازش real-time |
+<table>
+<thead>
+<tr>
+  <th>دسته‌بندی</th>
+  <th>ویژگی</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td rowspan="3"><strong>محصولات و فروش</strong></td>
+  <td>شمش فیزیکی</td>
+</tr>
+<tr>
+  <td>طلای دیجیتال (کیف‌پول)</td>
+</tr>
+<tr>
+  <td>بازار چندکاناله (Multi-channel marketplace)</td>
+</tr>
+<tr>
+  <td rowspan="5"><strong>سیستم‌های مالی</strong></td>
+  <td>کیف‌پول چند‌دارایی، ایزوله به ازای هر scope (D-46: سه کیف جداگانهٔ Goldis / AminZar / TalaMala)</td>
+</tr>
+<tr>
+  <td>خزانهٔ مرکزی و مدیریتِ تعهدات طلا (Central Treasury & Hedging)</td>
+</tr>
+<tr>
+  <td>دفترکلِ بین‌شرکتی (Inter-Company Ledger) — پیگیری تعهداتِ ریالی و طلایی میان شرکت‌ها</td>
+</tr>
+<tr>
+  <td>برداشتِ ریالی دومرحله‌ای (Two-stage rial withdrawal)</td>
+</tr>
+<tr>
+  <td>خریدِ فیزیکی از کیف‌پول (Physical purchase from wallet — جایگزین برداشتِ طلا)</td>
+</tr>
+<tr>
+  <td rowspan="4"><strong>عملیات</strong></td>
+  <td>شبکهٔ نمایندگان (Dealer network)</td>
+</tr>
+<tr>
+  <td>فرایند تحویل کالا</td>
+</tr>
+<tr>
+  <td>بازخرید (Buyback) — شمش تحویل‌داده و تحویل‌نشده</td>
+</tr>
+<tr>
+  <td>قیمت‌گذاری مرکزی (Centralized pricing)</td>
+</tr>
+<tr>
+  <td rowspan="3"><strong>سیستم‌های پشتیبان</strong></td>
+  <td>اطلاع‌رسانی (Notifications)</td>
+</tr>
+<tr>
+  <td>حسابرسیِ کامل (Audit trail)</td>
+</tr>
+<tr>
+  <td>پردازش real-time</td>
+</tr>
+</tbody>
+</table>
 
 ---
 

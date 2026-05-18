@@ -131,19 +131,19 @@ hr {
 <li><strong>talamala_pos</strong> — Android/Kotlin frontend دستگاه POS</li>
 </ul>
 <p>### ۱.۲. شخصیت‌های حقوقی (Companies)</p>
-<p><table></p>
-<p><thead></p>
-<p><tr><th>Company</th><th>نوع</th><th>نقش‌ها</th></tr></p>
-<p></thead></p>
-<p><tbody></p>
-<p><tr><td><strong>Goldis</strong></td><td>اپراتور + میز hedging مرکزی + فروشنده چندبرندی</td><td>مدیریت مرکزی پلتفرم (تیم فنی، حسابداری، نظارت)، <strong>مرکز hedging</strong> برای فروش‌های TalaMala (طلای خام را از بازار یا از مشتریان می‌خرد و دوره‌ای به TalaMala تحویل می‌دهد)، <strong>فروشنده‌ی واقعی</strong> در brand های Goldis و AminZar (سایت <code>aminzar.com</code> را با اجازه‌ی شرکت امین زر به‌عنوان brand بازاریابی می‌گرداند — مدیریت، فروش، سود مال Goldis است)</td></tr></p>
-<p><tr><td><strong>TalaMala</strong></td><td>کارخانه + فروشنده مستقل + مالک برند</td><td>کارخانه‌ی تولید شمش (با برند طلاملا)، فروشنده‌ی مستقل از طریق سایت/POS/marketplace، گیرنده‌ی پول از فروش برند طلاملا به حساب خود، طرف hedging با Goldis (rial→Goldis ، gold از Goldis)</td></tr></p>
+<table>
+<thead>
+<tr><th>Company</th><th>نوع</th><th>نقش‌ها</th></tr>
+</thead>
+<tbody>
+<tr><td>**Goldis**</td><td>اپراتور + میز hedging مرکزی + فروشنده چندبرندی</td><td>مدیریت مرکزی پلتفرم (تیم فنی، حسابداری، نظارت)، **مرکز hedging** برای فروش‌های TalaMala (طلای خام را از بازار یا از مشتریان می‌خرد و دوره‌ای به TalaMala تحویل می‌دهد)، **فروشنده‌ی واقعی** در brand های Goldis و AminZar (سایت `aminzar.com` را با اجازه‌ی شرکت امین زر به‌عنوان brand بازاریابی می‌گرداند — مدیریت، فروش، سود مال Goldis است)</td></tr>
+<tr><td>**TalaMala**</td><td>کارخانه + فروشنده مستقل + مالک برند</td><td>کارخانه‌ی تولید شمش (با برند طلاملا)، فروشنده‌ی مستقل از طریق سایت/POS/marketplace، گیرنده‌ی پول از فروش برند طلاملا به حساب خود، طرف hedging با Goldis (rial→Goldis ، gold از Goldis)</td></tr>
 <p><tr><td><strong>AminZar</strong></td><td>کارخانه تنها (تأمین‌کننده)</td><td>فقط کارخانه‌ی تولید شمش (با برند امین زر). شمش‌ها را با حاشیه‌ی سود به Goldis می‌فروشد. <strong>هیچ کانال فروش مستقیم ندارد</strong> — سایت <code>aminzar.com</code> را Goldis می‌گرداند (با اجازه). سود امین زر فقط از طریق حاشیه‌ی درصد اجرت است (مثلاً اگر امین زر اجرت ۲ درصد تعیین کند، Goldis آن را با ۲.۲ درصد می‌فروشد).</td></tr></p>
 <p></tbody></p>
 <p></table></p>
 <p>### ۱.۳. برندها (Brands)</p>
-<p><table></p>
-<p><thead></p>
+<table>
+<thead>
 <p><tr><th>Brand</th><th>brand_owner</th><th>operator</th><th>payment_receiver (default)</th><th>seller_company (default)</th><th>producer (default)</th></tr></p>
 <p></thead></p>
 <p><tbody></p>
@@ -163,13 +163,13 @@ hr {
 </ul>
 <p>### ۱.۴. ابعاد یک سفارش</p>
 <p>هر سفارش باید به این سؤال‌ها قطعی جواب بدهد:</p>
-<p><table></p>
-<p><thead></p>
-<p><tr><th>بُعد</th><th>پاسخ‌گو</th></tr></p>
-<p></thead></p>
-<p><tbody></p>
-<p><tr><td>از کدام brand فروخته شد؟</td><td><code>order.brand_id</code></td></tr></p>
-<p><tr><td>از کدام channel؟</td><td><code>order.sales_channel_id</code></td></tr></p>
+<table>
+<thead>
+<tr><th>بُعد</th><th>پاسخ‌گو</th></tr>
+</thead>
+<tbody>
+<tr><td>از کدام brand فروخته شد؟</td><td>`order.brand_id`</td></tr>
+<tr><td>از کدام channel؟</td><td>`order.sales_channel_id`</td></tr>
 <p><tr><td>تولیدکننده‌ی محصول کیست؟</td><td><code>order.producer_company_id</code> (از bar/product می‌آید — صرفاً اطلاعاتی، تأثیر مالی ندارد در v1)</td></tr></p>
 <p><tr><td>فروشنده‌ی حقوقی کیست؟</td><td><code>order.seller_company_id</code> (= صاحب موجودی فیزیکی که شمش از انبارش خارج شد)</td></tr></p>
 <p><tr><td>operator کیست؟</td><td><code>order.operator_company_id</code> (همیشه Goldis در فاز ۱)</td></tr></p>
@@ -183,73 +183,62 @@ hr {
 <table>
 <thead>
 <tr>
-<th>دسته‌بندی</th>
-<th>ویژگی</th>
+  <th>دسته‌بندی</th>
+  <th>ویژگی</th>
 </tr>
 </thead>
-<tbody>
-<tr>
-<td><strong>محصولات و فروش</strong></td>
-<td>شمش فیزیکی</td>
-</tr>
-<tr>
-<td><strong>محصولات و فروش</strong></td>
-<td>طلای دیجیتال (کیف‌پول)</td>
-</tr>
-<tr>
-<td><strong>محصولات و فروش</strong></td>
-<td>بازار چندکاناله (Multi-channel marketplace)</td>
-</tr>
-<tr>
-<td><strong>سیستم‌های مالی</strong></td>
-<td>کیف‌پول چند‌دارایی، ایزوله به ازای هر scope (D-46: سه کیف جداگانهٔ Goldis / AminZar / TalaMala)</td>
-</tr>
-<tr>
-<td><strong>سیستم‌های مالی</strong></td>
-<td>خزانهٔ مرکزی و مدیریتِ تعهدات طلا (Central Treasury & Hedging)</td>
-</tr>
-<tr>
-<td><strong>سیستم‌های مالی</strong></td>
-<td>دفترکلِ بین‌شرکتی (Inter-Company Ledger) — پیگیری تعهداتِ ریالی و طلایی میان شرکت‌ها</td>
-</tr>
-<tr>
-<td><strong>سیستم‌های مالی</strong></td>
-<td>برداشتِ ریالی دومرحله‌ای (Two-stage rial withdrawal)</td>
-</tr>
-<tr>
-<td><strong>سیستم‌های مالی</strong></td>
-<td>خریدِ فیزیکی از کیف‌پول (Physical purchase from wallet — جایگزین برداشتِ طلا)</td>
-</tr>
-<tr>
-<td><strong>عملیات</strong></td>
-<td>شبکهٔ نمایندگان (Dealer network)</td>
-</tr>
-<tr>
-<td><strong>عملیات</strong></td>
-<td>فرایند تحویل کالا</td>
-</tr>
-<tr>
-<td><strong>عملیات</strong></td>
-<td>بازخرید (Buyback) — شمش تحویل‌داده و تحویل‌نشده</td>
-</tr>
-<tr>
-<td><strong>عملیات</strong></td>
-<td>قیمت‌گذاری مرکزی (Centralized pricing)</td>
-</tr>
-<tr>
-<td><strong>سیستم‌های پشتیبان</strong></td>
-<td>اطلاع‌رسانی (Notifications)</td>
-</tr>
-<tr>
-<td><strong>سیستم‌های پشتیبان</strong></td>
-<td>حسابرسیِ کامل (Audit trail)</td>
-</tr>
-<tr>
-<td><strong>سیستم‌های پشتیبان</strong></td>
-<td>پردازش real-time</td>
-</tr>
-</tbody>
-</table>
+<p><tbody></p>
+<p><tr></p>
+<p>  <td rowspan="3"><strong>محصولات و فروش</strong></td></p>
+<p>  <td>شمش فیزیکی</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td>طلای دیجیتال (کیف‌پول)</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td>بازار چندکاناله (Multi-channel marketplace)</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td rowspan="5"><strong>سیستم‌های مالی</strong></td></p>
+<p>  <td>کیف‌پول چند‌دارایی، ایزوله به ازای هر scope (D-46: سه کیف جداگانهٔ Goldis / AminZar / TalaMala)</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td>خزانهٔ مرکزی و مدیریتِ تعهدات طلا (Central Treasury & Hedging)</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td>دفترکلِ بین‌شرکتی (Inter-Company Ledger) — پیگیری تعهداتِ ریالی و طلایی میان شرکت‌ها</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td>برداشتِ ریالی دومرحله‌ای (Two-stage rial withdrawal)</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td>خریدِ فیزیکی از کیف‌پول (Physical purchase from wallet — جایگزین برداشتِ طلا)</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td rowspan="4"><strong>عملیات</strong></td></p>
+<p>  <td>شبکهٔ نمایندگان (Dealer network)</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td>فرایند تحویل کالا</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td>بازخرید (Buyback) — شمش تحویل‌داده و تحویل‌نشده</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td>قیمت‌گذاری مرکزی (Centralized pricing)</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td rowspan="3"><strong>سیستم‌های پشتیبان</strong></td></p>
+<p>  <td>اطلاع‌رسانی (Notifications)</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td>حسابرسیِ کامل (Audit trail)</td></p>
+<p></tr></p>
+<p><tr></p>
+<p>  <td>پردازش real-time</td></p>
+<p></tr></p>
+<p></tbody></p>
+<p></table></p>
 <hr/>
 <p>#### خارج از این نسخه:</p>
 <table>
@@ -301,13 +290,13 @@ hr {
 <hr/>
 <p>## ۲. تصمیم‌های معماری اصلی</p>
 <p>این تصمیم‌ها در سه دور Q&A با تیم نهایی شده‌اند. <strong>هیچ‌کدام در فاز پیاده‌سازی نباید دوباره بحث شوند.</strong></p>
-<p><table></p>
-<p><thead></p>
-<p><tr><th>#</th><th>تصمیم</th><th>انتخاب نهایی</th><th>منبع</th></tr></p>
-<p></thead></p>
-<p><tbody></p>
-<p><tr><td>D-01</td><td>سبک معماری</td><td><strong>Modular Monolith</strong> با مرزهای bounded context صریح، آماده برای استخراج سرویس در آینده</td><td>تیم</td></tr></p>
-<p><tr><td>D-02</td><td>مدل multi-company</td><td><strong>One Platform / Multi Brand / Multi Company / Centralized Ops by Goldis</strong></td><td>تیم</td></tr></p>
+<table>
+<thead>
+<tr><th>#</th><th>تصمیم</th><th>انتخاب نهایی</th><th>منبع</th></tr>
+</thead>
+<tbody>
+<tr><td>D-01</td><td>سبک معماری</td><td>**Modular Monolith** با مرزهای bounded context صریح، آماده برای استخراج سرویس در آینده</td><td>تیم</td></tr>
+<tr><td>D-02</td><td>مدل multi-company</td><td>**One Platform / Multi Brand / Multi Company / Centralized Ops by Goldis**</td><td>تیم</td></tr>
 <p><tr><td>D-03</td><td>Operator مرکزی</td><td>همیشه Goldis در فاز ۱ — یک admin panel برای همه برندها</td><td>تیم</td></tr></p>
 <p><tr><td>D-04</td><td>Wallet scope</td><td><strong>سه کیفِ کاملاً ایزوله به ازای هر کیف‌پول-scope</strong> (goldis/aminzar/talamala) — جزئیات: D-46، ۴</td><td>تیم</td></tr></p>
 <p><tr><td>D-05</td><td>KYC scope</td><td><strong>مشترک</strong> — یک KYC، اسناد شاهکار یک‌بار، هر دو شرکت قبول می‌کنند</td><td>تیم</td></tr></p>
@@ -338,8 +327,8 @@ hr {
 <p></tbody></p>
 <p></table></p>
 <p>### تصمیمات دور دوم Q&A (حل ابهامات O-01 تا O-20)</p>
-<p><table></p>
-<p><thead></p>
+<table>
+<thead>
 <p><tr><th>#</th><th>تصمیم</th><th>انتخاب نهایی</th></tr></p>
 <p></thead></p>
 <p><tbody></p>
@@ -368,13 +357,13 @@ hr {
 <blockquote>
 <strong>ماهیت:</strong> این جدول <strong>changelog/تاریخچه‌ی استدلال</strong> است (چرا هر تصمیم گرفته شد) — برای حسابرسی و حافظه‌ی تیم. <strong>بدنه‌ی سند از v2.1 تمیز بازنویسی شده و مستقیماً مدل نهایی را می‌گوید؛ دیگر برای رفعِ تناقض نیازی به مراجعه‌ی اجباری به این جدول نیست.</strong> این جدول مرجعِ «چرا»ست، نه «چه». تصمیمات زیر با تیم نهایی شده‌اند و در پیاده‌سازی دوباره بحث نمی‌شوند.<br/>
 </blockquote>
-<p><table></p>
-<p><thead></p>
-<p><tr><th>#</th><th>تصمیم</th><th>انتخاب نهایی</th><th>اثر روی</th></tr></p>
-<p></thead></p>
-<p><tbody></p>
-<p><tr><td>D-46</td><td><strong>Wallet scope</strong> (بازنویسی D-04/D-29)</td><td>کیف‌پول per <strong>wallet-scope</strong> نه به ازای هر شخصیت حقوقی. سه scope: <code>goldis</code> / <code>aminzar</code> / <code>talamala</code>. هر سه <strong>کاملاً ایزوله، بدون انتقال مستقیم</strong> (AminZar حقوقاً زیر شرکت گلدیس ولی برای کاربر کیف جدا). کلید <code>asset_balances</code> و <code>wallet_ledger_entries</code> و <code>wallet_locks</code> بُعد <code>wallet_scope</code> می‌گیرد؛ <code>company_id</code> حفظ می‌شود (مشتق: goldis/aminzar→شرکت گلدیس، talamala→شرکت طلاملا) برای حسابداری/دفترکل بین‌شرکتی. گزارش حسابداری باید بدهی scope=aminzar را از scope=goldis تفکیک کند. هجینگ بدون تغییر (فروش AminZar هنوز Goldis-side).</td><td>Wallet، Accounting، ۴</td></tr></p>
-<p><tr><td>D-47</td><td><strong>Treasury سدِ سخت + سقف دوطرفه</strong></td><td>علاوه بر worker ۳۰s (که فقط هشدار/پشتیبان است)، در لحظه‌ی <strong>هر</strong> تراکنش (فروش+خرید، فیزیکی+دیجیتال+POS، بدون استثنا) یک چک inline همگام: اگر از سقف رد شود تراکنش <strong>رد می‌شود</strong>. سقف <strong>دوطرفه per فلز</strong>: <code>max_open_exposure_mg</code> (سمت فروش) + <code>max_short_exposure_mg</code> (سمت خرید/بازخرید/فروش کاربر). اپراتور هر دو را per فلز هر زمان تغییر می‌دهد، با audit_log.</td><td>Treasury، ۵</td></tr></p>
+<table>
+<thead>
+<tr><th>#</th><th>تصمیم</th><th>انتخاب نهایی</th><th>اثر روی</th></tr>
+</thead>
+<tbody>
+<tr><td>D-46</td><td>**Wallet scope** (بازنویسی D-04/D-29)</td><td>کیف‌پول per **wallet-scope** نه به ازای هر شخصیت حقوقی. سه scope: `goldis` / `aminzar` / `talamala`. هر سه **کاملاً ایزوله، بدون انتقال مستقیم** (AminZar حقوقاً زیر شرکت گلدیس ولی برای کاربر کیف جدا). کلید `asset_balances` و `wallet_ledger_entries` و `wallet_locks` بُعد `wallet_scope` می‌گیرد؛ `company_id` حفظ می‌شود (مشتق: goldis/aminzar→شرکت گلدیس، talamala→شرکت طلاملا) برای حسابداری/دفترکل بین‌شرکتی. گزارش حسابداری باید بدهی scope=aminzar را از scope=goldis تفکیک کند. هجینگ بدون تغییر (فروش AminZar هنوز Goldis-side).</td><td>Wallet، Accounting، ۴</td></tr>
+<tr><td>D-47</td><td>**Treasury سدِ سخت + سقف دوطرفه**</td><td>علاوه بر worker ۳۰s (که فقط هشدار/پشتیبان است)، در لحظه‌ی **هر** تراکنش (فروش+خرید، فیزیکی+دیجیتال+POS، بدون استثنا) یک چک inline همگام: اگر از سقف رد شود تراکنش **رد می‌شود**. سقف **دوطرفه per فلز**: `max_open_exposure_mg` (سمت فروش) + `max_short_exposure_mg` (سمت خرید/بازخرید/فروش کاربر). اپراتور هر دو را per فلز هر زمان تغییر می‌دهد، با audit_log.</td><td>Treasury، ۵</td></tr>
 <p><tr><td>D-48</td><td><strong>Supplier purchase داخل scope</strong> (بازنویسی D-7.2)</td><td>خرید از کارخانه داخل سامانه است، به‌صورت جریان <strong>فقط-طلا (بدون ریال)</strong> روی همان batch preorder. Goldis به کارخانه می‌دهد: اصل طلا + معادل اجرت به طلا؛ کارخانه شمش حک‌شده/پلمب‌شده برمی‌گرداند. تعهد طلایی Goldis↔کارخانه روی همان <code>inter_company_ledger</code> با <code>asset='gold'</code>, <code>source_type='supplier_purchase'</code> رصد می‌شود (جدول جدید لازم نیست). <code>purchase_wage_percent</code> عملیاتی می‌شود (دیگر صرفاً metadata نیست). طلای اجرت = هزینه‌ی حسابداری، <strong>بدون</strong> اثر روی exposure/سقف خزانه.</td><td>Inventory، Inter-Company، Catalog، ۷.۲</td></tr></p>
 <p><tr><td>D-49</td><td><strong>امانی = شمش مشخصِ allocated</strong> (شفاف‌سازی مدل امانی — مستقل از Q-10 سند)</td><td>طلای امانی یعنی شمش مشخصِ سریال‌دار که از <strong>لحظه‌ی خرید</strong> به مشتری تخصیص و قفل می‌شود (allocated، نه pooled). عملیات کنترل‌شده‌ی <strong>«تعویض شمش»</strong> (سریال قدیم→جدیدِ هم‌وزن/هم‌عیار) برای موارد گم/آسیب، فقط اپراتور، با ثبت در <code>ownership_history</code> + <code>audit_logs</code>.</td><td>Fulfillment، Inventory، ۸</td></tr></p>
 <p><tr><td>D-50</td><td><strong>Price-lock TTL</strong> (بازنویسی D-28)</td><td>بازه‌ی مجاز ۶۰–۳۰۰ ثانیه (CHECK از <code>BETWEEN 30 AND 300</code> به <code>BETWEEN 60 AND 300</code>)، پیش‌فرض ۱۲۰s. کف ۱ دقیقه برای شرایط پرنوسان.</td><td>Pricing، ۱۱.۴</td></tr></p>
@@ -425,13 +414,13 @@ hr {
 </blockquote>
 <p>## ۲.۶. اصلاحات P0 — Schema Implementation Fixes (نسخه ۲.۳)</p>
 <p>### ۲.۶.۱ اصلاحات P0 در v2.2 (بازبینی ChatGPT + DeepSeek اول)</p>
-<p><table></p>
-<p><thead></p>
-<p><tr><th>Fix</th><th>موضوع</th><th>اصلاح</th></tr></p>
-<p></thead></p>
-<p><tbody></p>
-<p><tr><td>P0-1</td><td>wallet_scope missing from ledger/locks</td><td><code>wallet_ledger_entries</code> و <code>wallet_locks</code> ستونِ <code>wallet_scope VARCHAR(20)</code> اضافه شدند. UNIQUE constraint هم scope-keyed: <code>UNIQUE (wallet_scope, user_id, idempotency_key)</code> (۴.۳)</td></tr></p>
-<p><tr><td>P0-2</td><td>payments.order_id NOT NULL but topup has no order</td><td><code>payments.order_id</code> را <code>NULLABLE</code> کردیم (برای topup payments که order ندارند) (۱۱.۷)</td></tr></p>
+<table>
+<thead>
+<tr><th>Fix</th><th>موضوع</th><th>اصلاح</th></tr>
+</thead>
+<tbody>
+<tr><td>P0-1</td><td>wallet_scope missing from ledger/locks</td><td>`wallet_ledger_entries` و `wallet_locks` ستونِ `wallet_scope VARCHAR(20)` اضافه شدند. UNIQUE constraint هم scope-keyed: `UNIQUE (wallet_scope, user_id, idempotency_key)` (۴.۳)</td></tr>
+<tr><td>P0-2</td><td>payments.order_id NOT NULL but topup has no order</td><td>`payments.order_id` را `NULLABLE` کردیم (برای topup payments که order ندارند) (۱۱.۷)</td></tr>
 <p><tr><td>P0-3</td><td>sales_channels missing seller/payment receiver columns</td><td><code>seller_company_id</code> و <code>payment_receiver_company_id</code> به <code>sales_channels</code> اضافه شدند (۳.۲) — D-56 marketplace override require میکند</td></tr></p>
 <p><tr><td>P0-4</td><td>physical_purchase_from_wallet calculates with product.weight_mg not pure_gold_mg</td><td>محاسبهٔ treasury و wallet lock از <code>pure_gold_mg = weight × (purity / 1000)</code> استفاده می‌کند، نه <code>weight_mg</code> مستقیم (۱۲.۵ گام ۳) — purity factor الزامی برای درستی</td></tr></p>
 <p><tr><td>P0-5</td><td>treasury concurrency: no SELECT FOR UPDATE lock</td><td>توضیح اضافه شد (۱۲.۱۰ و context service layer): checkpoint validation و <code>SELECT ... FOR UPDATE</code> درون transaction checking (implementation detail)</td></tr></p>
@@ -439,8 +428,8 @@ hr {
 <p></tbody></p>
 <p></table></p>
 <p>### ۲.۶.۲ اصلاحات P0 در v2.3 (بازبینی DeepSeek دوم — 2026-05-18)</p>
-<p><table></p>
-<p><thead></p>
+<table>
+<thead>
 <p><tr><th>Fix</th><th>موضوع</th><th>اصلاح</th></tr></p>
 <p></thead></p>
 <p><tbody></p>
@@ -454,13 +443,13 @@ hr {
 <blockquote>
 بعد از بررسی عمیق، <strong>۸ ابهام/contradiction باقی مانده</strong> که implementation را غلط راهنمایی می‌کرد.<br/>
 </blockquote>
-<p><table></p>
-<p><thead></p>
-<p><tr><th>Fix</th><th>موضوع</th><th>اصلاح</th></tr></p>
-<p></thead></p>
-<p><tbody></p>
-<p><tr><td>FIX-1</td><td><strong>BLOCKER:</strong> Duplicate inter-company ledger entry در 12.1</td><td><strong>مشکل:</strong> Step 4e (checkout) و step 7 (mark_paid) هر دو inter_company_ledger می‌ساختند → دوبار‌شماری. <strong>اصلاح:</strong> Step 4e کامل حذف شد. فقط step 7 (mark_paid/PaymentVerified) ledger می‌سازد. اضافه: توضیح "⚠️ فقط بعد از تأیید پرداخت، نه موقع checkout" در 6.4 و 12.1 (P0-6 override)</td></tr></p>
-<p><tr><td>FIX-2A</td><td><strong>BLOCKER:</strong> Marketplace contradiction — diagram 3.1 line 278</td><td><strong>مشکل:</strong> <code>talamala_digikala payee=TalaMala</code> (غلط، D-56 می‌گوید Goldis). <strong>اصلاح:</strong> تغییر به <code>payee=Goldis</code> + annotation "D-56: marketplace همیشه Goldis"</td></tr></p>
+<table>
+<thead>
+<tr><th>Fix</th><th>موضوع</th><th>اصلاح</th></tr>
+</thead>
+<tbody>
+<tr><td>FIX-1</td><td>**BLOCKER:** Duplicate inter-company ledger entry در 12.1</td><td>**مشکل:** Step 4e (checkout) و step 7 (mark_paid) هر دو inter_company_ledger می‌ساختند → دوبار‌شماری. **اصلاح:** Step 4e کامل حذف شد. فقط step 7 (mark_paid/PaymentVerified) ledger می‌سازد. اضافه: توضیح "⚠️ فقط بعد از تأیید پرداخت، نه موقع checkout" در 6.4 و 12.1 (P0-6 override)</td></tr>
+<tr><td>FIX-2A</td><td>**BLOCKER:** Marketplace contradiction — diagram 3.1 line 278</td><td>**مشکل:** `talamala_digikala payee=TalaMala` (غلط، D-56 می‌گوید Goldis). **اصلاح:** تغییر به `payee=Goldis` + annotation "D-56: marketplace همیشه Goldis"</td></tr>
 <p><tr><td>FIX-2B</td><td><strong>BLOCKER:</strong> Marketplace contradiction — 12.8 comment lines 2222-2226</td><td><strong>مشکل:</strong> Comment می‌گفت "اگر brand=TalaMala، TalaMala inter_company_ledger دریافت می‌کند" (نادرست، D-56 منع می‌کند). <strong>اصلاح:</strong> Comment حذف. جایگزین: "D-56: marketplace همیشه seller=Goldis، payment_receiver=Goldis؛ هیچ inter_company_ledger entry نیست"</td></tr></p>
 <p><tr><td>FIX-2C</td><td><strong>BLOCKER:</strong> Marketplace Note — بعد از 12.8 flow</td><td><strong>اضافه:</strong> صریح note "⚠️ D-56 (قطعی): هیچ inter-company entry در marketplace نیست. پول به Goldis. TalaMala marketplace income مستقیم ندارد."</td></tr></p>
 <p><tr><td>FIX-3</td><td><strong>BLOCKER:</strong> Supplier purchase contradiction 7.3 line 821</td><td><strong>مشکل:</strong> "هیچ ledger entry — supplier purchase خارج از scope" (نادرست، D-48 می‌گوید داخل). <strong>اصلاح:</strong> جایگزین با صریح: inter_company_ledger entry ثبت شود (source_type='supplier_purchase') از Goldis→AminZar + توضیح wage_gold_mg</td></tr></p>
@@ -471,8 +460,8 @@ hr {
 <p></tbody></p>
 <p></table></p>
 <p>### ۲.۶.۴ Decision Log Entries v2.4</p>
-<p><table></p>
-<p><thead></p>
+<table>
+<thead>
 <p><tr><th>ID</th><th>تصمیم</th><th>تاثیر</th></tr></p>
 <p></thead></p>
 <p><tbody></p>
@@ -831,13 +820,13 @@ CREATE TABLE treasury_position_snapshots (
 <li><strong>همزمان یک تراکنش hedging اتوماتیک شکل می‌گیرد</strong>: TalaMala از Goldis معادل وزن خام طلا را به قیمت طلای خام در همان لحظه «خریده»</li>
 </ul>
 <p>این <strong>دو obligation همزمان</strong> در <code>inter_company_ledger</code> ثبت می‌کند:</p>
-<p><table></p>
-<p><thead></p>
-<p><tr><th>Direction</th><th>Asset</th><th>Amount</th><th>معنی</th></tr></p>
-<p></thead></p>
-<p><tbody></p>
-<p><tr><td><code>TalaMala → Goldis</code></td><td>ریال</td><td><code>raw_gold_price_per_mg × weight_mg</code></td><td>TalaMala باید بهای معادل وزن خام را به Goldis بپردازد (تسویه روزانه)</td></tr></p>
-<p><tr><td><code>Goldis → TalaMala</code></td><td>gold خام (mg)</td><td><code>weight_mg</code></td><td>Goldis باید معادل وزن خام طلا را فیزیکی به TalaMala تحویل دهد (تسویه دوره‌ای)</td></tr></p>
+<table>
+<thead>
+<tr><th>Direction</th><th>Asset</th><th>Amount</th><th>معنی</th></tr>
+</thead>
+<tbody>
+<tr><td>`TalaMala → Goldis`</td><td>ریال</td><td>`raw_gold_price_per_mg × weight_mg`</td><td>TalaMala باید بهای معادل وزن خام را به Goldis بپردازد (تسویه روزانه)</td></tr>
+<tr><td>`Goldis → TalaMala`</td><td>gold خام (mg)</td><td>`weight_mg`</td><td>Goldis باید معادل وزن خام طلا را فیزیکی به TalaMala تحویل دهد (تسویه دوره‌ای)</td></tr>
 <p></tbody></p>
 <p></table></p>
 <p><strong>سود فروش نزد TalaMala می‌ماند.</strong> Goldis فقط بهای طلای خام را می‌گیرد و طلای خام را تحویل می‌دهد — هیچ profit share نیست (D-39).</p>
@@ -1240,13 +1229,13 @@ CREATE TABLE pos_transactions (
 </code></pre>
 <hr/>
 <p>## ۱۰. لیست کامل Bounded Contexts</p>
-<p><table></p>
-<p><thead></p>
-<p><tr><th>#</th><th>Context</th><th>Global/Per-Company</th><th>مسئولیت</th></tr></p>
-<p></thead></p>
-<p><tbody></p>
-<p><tr><td>1</td><td><strong>platform</strong></td><td>Global</td><td>Companies، Brands، SalesChannels، PaymentAccounts، InventoryLocations</td></tr></p>
-<p><tr><td>2</td><td><strong>identity</strong></td><td>Global</td><td>User، Session، JWT، RBAC، Permission، SSO</td></tr></p>
+<table>
+<thead>
+<tr><th>#</th><th>Context</th><th>Global/Per-Company</th><th>مسئولیت</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>**platform**</td><td>Global</td><td>Companies، Brands، SalesChannels، PaymentAccounts، InventoryLocations</td></tr>
+<tr><td>2</td><td>**identity**</td><td>Global</td><td>User، Session، JWT، RBAC، Permission، SSO</td></tr>
 <p><tr><td>3</td><td><strong>kyc</strong></td><td>Global</td><td>Shahkar، KYC status، user_level، limits، اسناد</td></tr></p>
 <p><tr><td>4</td><td><strong>catalog</strong></td><td>Global</td><td>Product، Variant، Attribute، Image، ChannelAvailability، ExternalMapping</td></tr></p>
 <p><tr><td>5</td><td><strong>pricing</strong></td><td>Hybrid</td><td>Source prices (global)، Internal base price، Channel formula، PriceLock</td></tr></p>
@@ -2253,13 +2242,13 @@ CREATE INDEX ix_pos_request_expires ON pos_pending_requests (expires_at);
 </blockquote>
 <p>### ۱۲.۵.۲. Buyback — دو حالت در v1</p>
 <p>Refund نداریم؛ «لغو» هم نداریم. <strong>فروشِ اصلی همیشه معتبر می‌ماند و هرگز reverse نمی‌شود.</strong> بازخرید همیشه یک تراکنش <strong>مستقلِ روبه‌جلو</strong> است، با دو حالتِ عملیاتی:</p>
-<p><table></p>
-<p><thead></p>
-<p><tr><th>حالت</th><th>شرایط</th><th>تأیید</th></tr></p>
-<p></thead></p>
-<p><tbody></p>
-<p><tr><td>(a) <strong>بازخریدِ تحویل‌نشده</strong></td><td>bar.status=SOLD، <code>delivered_at IS NULL</code> (شمش هنوز در خزانه‌ی ماست)</td><td>اتومات (آنلاین)</td></tr></p>
-<p><tr><td>(b) <strong>بازخریدِ حضوری</strong></td><td>bar.status=SOLD، <code>delivered_at IS NOT NULL</code> (مشتری شمش را حضوری می‌آورد)</td><td>کارشناسِ مرکزِ Authorized — state machine</td></tr></p>
+<table>
+<thead>
+<tr><th>حالت</th><th>شرایط</th><th>تأیید</th></tr>
+</thead>
+<tbody>
+<tr><td>(a) **بازخریدِ تحویل‌نشده**</td><td>bar.status=SOLD، `delivered_at IS NULL` (شمش هنوز در خزانه‌ی ماست)</td><td>اتومات (آنلاین)</td></tr>
+<tr><td>(b) **بازخریدِ حضوری**</td><td>bar.status=SOLD، `delivered_at IS NOT NULL` (مشتری شمش را حضوری می‌آورد)</td><td>کارشناسِ مرکزِ Authorized — state machine</td></tr>
 <p></tbody></p>
 <p></table></p>
 <blockquote>
@@ -2868,13 +2857,13 @@ EVENT_HANDLERS: dict[str, list[Callable]] = {
 <p>### کتابخانه: APScheduler + asyncio (نه Celery، نه Arq)</p>
 <p>دلیل: تک‌سرور، تیم کوچک، حداقل dependency.</p>
 <p>### Worker units (هر کدام یک systemd unit مستقل)</p>
-<p><table></p>
-<p><thead></p>
-<p><tr><th>Worker</th><th>فرکانس</th><th>تنظیم</th></tr></p>
-<p></thead></p>
-<p><tbody></p>
-<p><tr><td><code>outbox_publisher</code></td><td>continuous (poll 1s)</td><td>parallelism=2</td></tr></p>
-<p><tr><td><code>pricing_fetcher</code></td><td>dynamic به ازای هر منبع</td><td>configured</td></tr></p>
+<table>
+<thead>
+<tr><th>Worker</th><th>فرکانس</th><th>تنظیم</th></tr>
+</thead>
+<tbody>
+<tr><td>`outbox_publisher`</td><td>continuous (poll 1s)</td><td>parallelism=2</td></tr>
+<tr><td>`pricing_fetcher`</td><td>dynamic به ازای هر منبع</td><td>configured</td></tr>
 <p><tr><td><code>marketplace_poller</code></td><td>60s</td><td>به ازای هر کانال</td></tr></p>
 <p><tr><td><code>lock_expirer</code></td><td>30s</td><td>—</td></tr></p>
 <p><tr><td><code>treasury_monitor</code></td><td>30s</td><td>—</td></tr></p>
@@ -3055,13 +3044,13 @@ POST /admin/migration/import-bars-from-csv
 <hr/>
 <p>## ۲۰. ابهامات — وضعیت</p>
 <p>تمام ابهاماتِ اصلی (O-01…O-20) و سطح‌۲ (<strong>Q-01…Q-10</strong>) <strong>حل شده‌اند</strong>. نقاطِ کشف‌شده‌ی بازبینی (A-1…A-13، F-1…F-4) هم حل شده‌اند. استدلال و نگاشتِ Q→D در <strong>۲.۵ (دفتر تصمیمات)</strong>:</p>
-<p><table></p>
-<p><thead></p>
-<p><tr><th>Q</th><th>حل‌شده در</th><th>Q</th><th>حل‌شده در</th></tr></p>
-<p></thead></p>
-<p><tbody></p>
-<p><tr><td>Q-01 split payment</td><td>۱۲.۵</td><td>Q-06 سطوح KYC</td><td>D-61</td></tr></p>
-<p><tr><td>Q-02 physical buyback</td><td>۱۲.۵.۲ب</td><td>Q-07 inventory aging/transfer</td><td>D-62</td></tr></p>
+<table>
+<thead>
+<tr><th>Q</th><th>حل‌شده در</th><th>Q</th><th>حل‌شده در</th></tr>
+</thead>
+<tbody>
+<tr><td>Q-01 split payment</td><td>۱۲.۵</td><td>Q-06 سطوح KYC</td><td>D-61</td></tr>
+<tr><td>Q-02 physical buyback</td><td>۱۲.۵.۲ب</td><td>Q-07 inventory aging/transfer</td><td>D-62</td></tr>
 <p><tr><td>Q-03 قیمت buyback</td><td>D-53/D-59</td><td>Q-08 انتخاب درگاه</td><td>D-63</td></tr></p>
 <p><tr><td>Q-04 settlement_rules</td><td>منتفی (D-06b)</td><td>Q-09 برداشت ریال</td><td>D-64</td></tr></p>
 <p><tr><td>Q-05 reverse در buyback</td><td>D-59</td><td>Q-10 منبع شمش wallet</td><td>D-60</td></tr></p>
