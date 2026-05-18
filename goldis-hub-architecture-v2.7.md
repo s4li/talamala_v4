@@ -3074,6 +3074,44 @@ POST /admin/migration/import-bars-from-csv
 
 ---
 
+## ۲۰.۵. نکات اضافی برای D-84/D-95 — عملیات Commission Offset
+
+### خلاصه عملیاتی
+
+**D-84 (Commission Gold Exposure Offset)** و **D-95 (Dealer Commission Settlement + Offset)** دو فیچر مرتبطاند:
+
+1. **واریز کمیسیون TalaMala** (فاز ۴):
+   - نماینده TalaMala محصولات فروخت → کمیسیون عایدی طلایی
+   - Goldis کمیسیون را به کیف نماینده واریز میکند (XAU_MG +)
+   - Treasury position «در معرض خطر» می‌شود (+pure_gold_mg)
+   
+2. **مقابلرقم مالی TalaMala**:
+   - TalaMala تعهد به Goldis دارد (supplier_purchase یا hedge_buy): «Goldis −X طلا بابت تحویل»
+   - TalaMala درآمد گلیسیار از نمایندهها: «نماینده کمیسیون +Y طلا فروخت»
+   - این دو منبع **می‌توانند offset شوند** تا treasury balance را حفظ کنند.
+
+3. **روند settlement (v1 — Manual)**:
+   - **ماهانه**, اپراتور:
+     - لیست کمیسیونهای TalaMala ماه = X mg
+     - لیست تعهدات قدیم ریالی/طلایی Goldis↔TalaMala
+     - فراخوانی: `POST /admin/inter-company/settle-offset { TalaMala, Goldis, comment="May commission offset" }`
+     - سیستم: **FIFO consume** قدیمیترین hedge obligation و commission obligation خود‌کار
+     - نتیجه: هر دو بخش treasury balance میماند
+
+4. **اگر offset نشود**:
+   - Treasury position روزافزون بدتر می‌شود
+   - TalaMala debtor و creditor Goldis باقی میماند
+   - **نشت مالی**: Goldis طلا داده، TalaMala بدهکار نماند = سود Goldis کم
+
+### توثیق برای v1
+
+اگر در v1 automation نباشد (تنها manual settlement):
+- **Runbook برای اپراتور**: روز هفتم هر ماه، این endpoint را اجرا کن
+- **Alert**: اگر تعهدات offset نشده ۳۰ روز بیشتر باقی بماند، warning
+- **در فاز ۵**: worker automated منتشر شود (schedule: ماهانه یکم)
+
+---
+
 ## ۲۱. Implementation Roadmap
 
 ### فاز ۰ — Infrastructure (هفته ۱)
@@ -3143,44 +3181,6 @@ POST /admin/migration/import-bars-from-csv
 39. Staging environment final smoke testing
 40. Production deployment + DNS switch
 41. (Optional) Admin tool یکبار مصرف import-bars-from-csv برای bars فیزیکی موجود v4
-
----
-
-## ۲۰.۵. نکات اضافی برای D-84/D-95 — عملیات Commission Offset
-
-### خلاصه عملیاتی
-
-**D-84 (Commission Gold Exposure Offset)** و **D-95 (Dealer Commission Settlement + Offset)** دو فیچر مرتبطاند:
-
-1. **واریز کمیسیون TalaMala** (فاز ۴):
-   - نماینده TalaMala محصولات فروخت → کمیسیون عایدی طلایی
-   - Goldis کمیسیون را به کیف نماینده واریز میکند (XAU_MG +)
-   - Treasury position «در معرض خطر» می‌شود (+pure_gold_mg)
-   
-2. **مقابلرقم مالی TalaMala**:
-   - TalaMala تعهد به Goldis دارد (supplier_purchase یا hedge_buy): «Goldis −X طلا بابت تحویل»
-   - TalaMala درآمد گلیسیار از نمایندهها: «نماینده کمیسیون +Y طلا فروخت»
-   - این دو منبع **می‌توانند offset شوند** تا treasury balance را حفظ کنند.
-
-3. **روند settlement (v1 — Manual)**:
-   - **ماهانه**, اپراتور:
-     - لیست کمیسیونهای TalaMala ماه = X mg
-     - لیست تعهدات قدیم ریالی/طلایی Goldis↔TalaMala
-     - فراخوانی: `POST /admin/inter-company/settle-offset { TalaMala, Goldis, comment="May commission offset" }`
-     - سیستم: **FIFO consume** قدیمیترین hedge obligation و commission obligation خود‌کار
-     - نتیجه: هر دو بخش treasury balance میماند
-
-4. **اگر offset نشود**:
-   - Treasury position روزافزون بدتر می‌شود
-   - TalaMala debtor و creditor Goldis باقی میماند
-   - **نشت مالی**: Goldis طلا داده، TalaMala بدهکار نماند = سود Goldis کم
-
-### توثیق برای v1
-
-اگر در v1 automation نباشد (تنها manual settlement):
-- **Runbook برای اپراتور**: روز هفتم هر ماه، این endpoint را اجرا کن
-- **Alert**: اگر تعهدات offset نشده ۳۰ روز بیشتر باقی بماند، warning
-- **در فاز ۵**: worker automated منتشر شود (schedule: ماهانه یکم)
 
 ---
 
@@ -3562,7 +3562,7 @@ async def pos_confirm(
 
 ---
 
-## ۲۲. پایان سند
+## ۲۴. پایان سند
 
 این سند نتیجهی:
 - ۳ دور Q&A با تیم Goldis Operations
