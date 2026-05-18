@@ -1600,16 +1600,33 @@ CREATE TABLE payment_providers (
 
 CREATE TABLE payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id UUID NULL REFERENCES orders(id),        -- P0 fix: nullable برای topup payments (بدون order)
+    order_id BIGINT NULL REFERENCES orders(id),        -- nullable برای topup/wallet charge (بدون order)
     user_id BIGINT NOT NULL REFERENCES users(id),
     payment_account_id BIGINT NOT NULL REFERENCES payment_accounts(id),
     payment_receiver_company_id BIGINT NOT NULL REFERENCES companies(id),
     amount_rial BIGINT NOT NULL,
-    status VARCHAR(30) NOT NULL DEFAULT 'created',
-    authority VARCHAR(255) NULL,
-    tracking_code VARCHAR(255) NULL,
-    rrn VARCHAR(50) NULL,
-    idempotency_key VARCHAR(100) NULL UNIQUE,
+    
+    -- D-92: State Machine columns (Critical Subsystems)
+    payment_state VARCHAR(30) NOT NULL DEFAULT 'pending',
+    -- pending | gateway_verified_pending | inter_company_ledger_created | finalized | failed | cancelled
+    gateway VARCHAR(50) NULL,                          -- درگاه استفاده‌شده (zibal, sepehr, top, parsian)
+    gateway_ref VARCHAR(100) NULL,                     -- reference from gateway
+    gateway_verified_at TIMESTAMPTZ NULL,              -- when gateway confirmed payment
+    
+    -- Legacy fields (backward compatibility)
+    authority VARCHAR(255) NULL,                       -- درگاه reference
+    tracking_code VARCHAR(255) NULL,                   -- tracking code
+    rrn VARCHAR(50) NULL,                              -- RRN
+    
+    -- Ledger integration
+    ledger_entry_id UUID NULL REFERENCES inter_company_ledger(id),
+    finalized_at TIMESTAMPTZ NULL,
+    failed_at TIMESTAMPTZ NULL,
+    failure_reason TEXT NULL,
+    
+    -- Idempotency (D-92: critical for recovery after crash)
+    idempotency_key VARCHAR(100) NOT NULL UNIQUE,
+    
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -1799,6 +1816,63 @@ CREATE TABLE inventory_transfer_items (
 CREATE INDEX ix_iti_document ON inventory_transfer_items (document_id);
 CREATE INDEX ix_iti_bar ON inventory_transfer_items (bar_id);
 CREATE UNIQUE INDEX uq_iti_doc_bar ON inventory_transfer_items (document_id, bar_id);
+
+-- D-96: جدول reconciliations برای Price Lock (D-96)
+CREATE TABLE payment_reconciliations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payment_id UUID NOT NULL REFERENCES payments(id),
+    order_id BIGINT NOT NULL REFERENCES orders(id),
+    authorized_amount_rial BIGINT NOT NULL,           -- مبلغ auth شده
+    actual_price_at_payment_rial BIGINT NOT NULL,     -- قیمتِ new
+    variance_rial BIGINT NOT NULL,                     -- تفاوت (signed)
+    variance_percent NUMERIC(5,2) NOT NULL,            -- percentage
+    reconciliation_status VARCHAR(20) DEFAULT 'pending',
+    -- pending | auto_approved | auto_adjusted | manual_review | rejected
+    treasury_adjustment_mg NUMERIC(12,4) NULL,         -- ریاضیِ treasury
+    adjustment_reason TEXT NULL,
+    reviewed_by BIGINT NULL REFERENCES users(id),      -- admin review
+    reviewed_at TIMESTAMPTZ NULL,
+    approved_at TIMESTAMPTZ NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ix_payment_recon_payment ON payment_reconciliations (payment_id);
+CREATE INDEX ix_payment_recon_status ON payment_reconciliations (reconciliation_status, created_at DESC);
+
+-- D-97: Pending Reserves برای Checkout (D-97)
+CREATE TABLE inventory_pending_holds (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id BIGINT NOT NULL REFERENCES orders(id),
+    wallet_scope VARCHAR(20) NOT NULL,
+    pure_gold_mg_reserved NUMERIC(12,4) NOT NULL,
+    reserved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    finalized_at TIMESTAMPTZ NULL,                     -- set when payment confirmed
+    released_at TIMESTAMPTZ NULL,                      -- set when order cancelled
+    CONSTRAINT chk_only_one_state
+        CHECK ( (finalized_at IS NULL AND released_at IS NULL) OR
+                (finalized_at IS NOT NULL AND released_at IS NULL) OR
+                (finalized_at IS NULL AND released_at IS NOT NULL) ),
+    UNIQUE (order_id)  -- one hold per order
+);
+CREATE INDEX ix_hold_wallet_scope ON inventory_pending_holds (wallet_scope, released_at);
+
+-- D-99: POS Offline Queue (D-99)
+CREATE TABLE pos_pending_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    dealer_id BIGINT NOT NULL REFERENCES users(id),
+    pos_session_id VARCHAR(100) NOT NULL,
+    request_id VARCHAR(100) NOT NULL,
+    sale_data JSONB NOT NULL,                          -- complete sale JSON
+    payment_ref VARCHAR(100) NULL,                     -- gateway ref
+    request_state VARCHAR(30) NOT NULL DEFAULT 'received',
+    -- received | processing | pos_confirmed | server_confirmed | failed
+    server_confirmed_at TIMESTAMPTZ NULL,
+    error_reason TEXT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,                   -- 24-hour TTL
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (dealer_id, pos_session_id, request_id)
+);
+CREATE INDEX ix_pos_request_dealer ON pos_pending_requests (dealer_id, request_state);
+CREATE INDEX ix_pos_request_expires ON pos_pending_requests (expires_at);
 ```
 
 ---
@@ -2283,8 +2357,11 @@ Completed                (bar.location update شد + treasury/settlement)
 4. کارت‌کشی روی POS hardware (TalaMala terminal — payment_account اختصاصی)
 
 5. POS app → POST /api/v1/pos/confirm
-   Body: { reservation_id, trace_number, rrn, amount_rial, paid_at }
+   Body: { reservation_id, trace_number, rrn, amount_rial, paid_at, request_id }  # D-99: optional request_id for idempotency
    • Backend در DB transaction:
+     - **D-99:** اگر `request_id` ارائه شده:
+       - **INSERT/SELECT** `pos_pending_requests` با idempotency key = `(dealer_id, pos_session_id, request_id)`
+       - اگر قبلاً موجود: از `server_confirmed_at` return کن (idempotent)
      - INSERT pos_transactions (با terminal_id, trace_number, rrn)
      - Order.create(
          order_type=pos_sale, status=Paid,
@@ -2296,6 +2373,7 @@ Completed                (bar.location update شد + treasury/settlement)
      - چون POS برای TalaMala است → payment_receiver=TalaMala:
        INSERT inter_company_ledger × 2 (rial + gold per بخش ۶.۴)
      - DealerSale (commission for dealer به‌صورت Gold-for-Gold)
+     - **D-99:** UPDATE `pos_pending_requests` SET request_state='server_confirmed', server_confirmed_at=now()
      - Audit + Outbox + Notification
 
 6. on fail (cancel یا timeout):
@@ -2496,7 +2574,7 @@ worker هر ۳۰ ثانیه:
 - GET `/admin/inter-company/ledger?creditor=X&debtor=Y&asset=gold|rial&status=open|partial|settled` — لیست obligations
 - GET `/admin/inter-company/balance?company_a=X&company_b=Y` — net balance بین دو شرکت
 - POST `/admin/inter-company/settle-rial` { creditor_company_id, debtor_company_id, amount_rial, notes } — تأیید پرداخت ریالی، FIFO consume open entries
-- POST `/admin/inter-company/settle-gold` { creditor_company_id, debtor_company_id, amount_mg, notes } — تأیید تحویل طلا، FIFO consume
+- POST `/admin/inter-company/settle-gold` { creditor_company_id, debtor_company_id, amount_mg, notes, source_bulk_gold_id? } — تأیید تحویل طلا، FIFO consume. اگر `source_bulk_gold_id` ارائه شود (D-82 Hedge Buy): طلا از `bulk_gold_inventory` برداشته شود و `inventory_movement` ایجاد شود.
 - GET `/admin/inter-company/settle-actions?company_a=X&company_b=Y&date_from=...` — audit log همه‌ی settle actions
 - GET `/admin/inter-company/reports?period=month` — جمع‌بندی دوره‌ای (aggregate query)
 
@@ -2957,7 +3035,7 @@ POST /admin/migration/import-bars-from-csv
 
 ---
 
-## ۱۴. سیستم‌های بحرانی برای امنیت مالی (v2.7 — Critical Subsystems)
+## ۲۳. سیستم‌های بحرانی برای امنیت مالی (v2.7 — Critical Subsystems)
 
 ### ۱۴.۰ نقش و اهمیت
 
@@ -3084,25 +3162,7 @@ CREATE TABLE inventory_pending_holds (
 
 **راه‌حل:**
 
-```sql
--- Payment state machine
-CREATE TABLE payments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id BIGINT NOT NULL REFERENCES orders(id),
-    amount_rial BIGINT NOT NULL,
-    gateway VARCHAR(50) NOT NULL,
-    gateway_ref VARCHAR(100) NOT NULL,
-    payment_state VARCHAR(30) DEFAULT 'pending',
-    -- pending | gateway_verified_pending | inter_company_ledger_created | finalized | failed | cancelled
-    gateway_verified_at TIMESTAMPTZ NULL,
-    ledger_entry_id UUID NULL REFERENCES inter_company_ledger(id),
-    finalized_at TIMESTAMPTZ NULL,
-    failed_at TIMESTAMPTZ NULL,
-    failure_reason TEXT NULL,
-    idempotency_key VARCHAR(100) NOT NULL UNIQUE,    -- critical for recovery
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
+**جدول:** تعریف کامل `payments` با تمام ستون‌های D-92 در بخش ۱۱.۷ موجود است (payment_state، gateway_verified_at، ledger_entry_id، idempotency_key).
 
 **Flow:**
 
