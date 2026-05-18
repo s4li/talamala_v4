@@ -2241,8 +2241,7 @@ worker هر ۳۰ ثانیه:
 - POST `/admin/buyback/physical/{id}/reject` — رد در هر مرحله با reason
 
 **(c) Digital buyback** (آنلاین):
-- ~~POST `/buyback/quote`~~ — **منسوخ (D-68): از `/wallet/trades/sell` استفاده کن**
-- ~~POST `/buyback/digital`~~ — **منسوخ (D-68): بازخریدِ دیجیتال = همان `digital_trade sell`**
+- (بازخریدِ دیجیتال endpointِ جدا ندارد — از `/wallet/trades/sell` استفاده می‌شود)
 
 ### Fulfillment
 - GET `/admin/fulfillment/tasks?status=X`
@@ -2349,12 +2348,11 @@ WalletToppedUp, WalletTopupFailed
 # Trade
 DigitalGoldBought, DigitalGoldSold
 
-# Buyback (هر سه زیرflow)
-BuybackCancelCompleted,                              # (a) بازخریدِ تحویل‌نشده (D-58: «cancel» نیست — بازخریدِ مستقل)
+# Buyback (دو حالت — بازخریدِ دیجیتال = DigitalGoldSold)
+BuybackCompleted,                                    # (a) بازخریدِ تحویل‌نشده (آنلاین)
 PhysicalBuybackRequested, PhysicalBuybackReceived,   # (b) physical state machine
 PhysicalBuybackVerified, PhysicalBuybackApproved,
 PhysicalBuybackCompleted, PhysicalBuybackRejected,
-# ~~DigitalBuybackCompleted~~ — منسوخ (D-68): = DigitalGoldSold (digital_trade sell)
 
 # Withdrawal (فقط ریالی — D-31)
 WithdrawalRequested, WithdrawalApproved, WithdrawalRejected,
@@ -2416,7 +2414,6 @@ EVENT_HANDLERS: dict[str, list[Callable]] = {
 | `marketplace_poller` | 60s | per channel |
 | `lock_expirer` | 30s | — |
 | `treasury_monitor` | 30s | — |
-| ~~`settlement_daily`~~ | ~~cron 23:59~~ | **حذف شد (D-06b)** — inter_company_ledger real-time؛ بدون worker روزانه |
 | `notification_dispatcher` | continuous | parallelism=4 |
 | `payout_processor` | 30s | — |
 | `pos_transaction_reconciler` | hourly | per channel |
@@ -2596,24 +2593,19 @@ POST /admin/migration/import-bars-from-csv
 
 ---
 
-## ۲۰. ابهامات باقیمانده
+## ۲۰. ابهامات — وضعیت
 
-> **به‌روزرسانی (2026-05-13):** همه ۲۰ ابهام اصلی (O-01 تا O-20) با تیم حل شدند و به D-27 تا D-45 منتقل شدند (بخش ۲).
+تمام ابهاماتِ اصلی (O-01…O-20) و سطح‌۲ (**Q-01…Q-10**) **حل شده‌اند**. نقاطِ کشف‌شده‌ی بازبینی (A-1…A-13، F-1…F-4) هم حل شده‌اند. استدلال و نگاشتِ Q→D در **§۲.۵ (دفترِ تصمیمات)**:
 
-### ابهامات سطح ۲ که فعلاً مطرح نشده‌اند و در پیاده‌سازی هر context باید روشن شوند:
+| Q | حل‌شده در | Q | حل‌شده در |
+|---|---|---|---|
+| Q-01 split payment | §۱۲.۵ | Q-06 سطوح KYC | D-61 |
+| Q-02 physical buyback | §۱۲.۵.۲ب | Q-07 inventory aging/transfer | D-62 |
+| Q-03 قیمت buyback | D-53/D-59 | Q-08 انتخاب درگاه | D-63 |
+| Q-04 settlement_rules | منتفی (D-06b) | Q-09 برداشت ریال | D-64 |
+| Q-05 reverse در buyback | D-59 | Q-10 منبع شمشِ wallet | D-60 |
 
-| # | ابهام | اثر |
-|---|---------|---------|
-| ~~Q-01~~ | **حل شد:** split payment در `physical_purchase_from_wallet` هر سه منبع را پشتیبانی می‌کند: ۱) wallet XAU_MG ۲) wallet IRR در همان legal_entity ۳) gateway IRR. ترتیب استفاده بر اساس flag های request کاربر (`use_irr_wallet_for_difference`، `pay_remaining_in_gateway`). جزئیات: بخش ۱۲.۵. | ✅ RESOLVED |
-| ~~Q-02~~ | **حل شد** — physical buyback در v1 پیاده می‌شود. مرکز buyback: `inventory_locations.can_buyback = TRUE`. نماینده authorized یا انبار مرکزی Goldis. بدون پست — فقط حضوری. | ✅ RESOLVED |
-| ~~Q-03~~ | **حل شد** — قیمت buyback **نیازی به price_lock ندارد**. در (a) cancel_before_delivery و (b) physical_buyback از `order_items.buyback_credit_rial` (snapshot موقع خرید) استفاده می‌شود. فقط در (c) digital_buyback نیاز به price_lock لحظه‌ای است. | ✅ RESOLVED |
-| ~~Q-04~~ | **منتفی** — settlement_rules دیگر وجود ندارد (D-06b). inter_company_ledger مستقیم پر می‌شود. | ✅ RESOLVED |
-| ~~Q-05~~ | **حل شد (D-59):** بازخرید فروش اصلی را معکوس **نمی‌کند**. تحویل‌نشده/حضوری ⇒ تبدیل physical↔digital، خزانه ≈ صفر، بدون تعهد طلاییِ تازه، فقط `buyback_credit_rial` هزینه. دیجیتال ⇒ خزانه − + جفت تعهد تازه‌ی مخالف به قیمت خام لحظه‌ی بازخرید. | ✅ RESOLVED |
-| ~~Q-06~~ | **حل شد (D-61):** سه سطح L0/L1/L2. L0 بدون تراکنش مالی؛ L1 با شاهکار؛ L2 با احراز حساب بانکی. اعداد سقف اپراتور-تنظیم در `user_level_defaults`. AML پیشرفته بعداً (D-24). | ✅ RESOLVED |
-| ~~Q-07~~ | **حل شد (D-62):** بدون TTL خودکار؛ فقط گزارش سن‌خوردگی + ابزار دستی اپراتور. به‌علاوه انتقال بین انبارها دومرحله‌ای با in-transitِ مجازی + اسکن دوطرفه + OTP تحویل + تفکیک وظایف. | ✅ RESOLVED |
-| ~~Q-08~~ | **حل شد (D-63):** لیست اولویت‌دار per-channel + fallback خودکار؛ بدون انتخاب کاربر در v1؛ اطلاع‌رسانی الزامی به اپراتور وقتی درگاهی مشکل دارد. | ✅ RESOLVED |
-| ~~Q-09~~ | **حل شد (D-64):** فقط حساب خودِ کاربرِ احرازشده (تطبیق شبا↔کدملی). حساب غیر ممنوع — شرط سازمان مبارزه با پول‌شویی. اشخاص حقوقی به v2 موکول. | ✅ RESOLVED |
-| ~~Q-10~~ | **حل شد (D-60):** شمش فیزیکی از موجودیِ همان scope/برندِ کیف‌پول برداشته می‌شود (مثل فروش عادی، seller=همان scope). اگر موجود نبود خرید انجام نمی‌شود. مبنا: طلای دیجیتال کاغذی نیست — تعهد طلای واقعیِ Goldis→scope انبار را دوره‌ای پُر می‌کند. | ✅ RESOLVED |
+> **مواردِ بازِ باقی‌مانده در §۰.۱** فهرست شده‌اند (تمرکزِ بازبینیِ بعدی آنجاست).
 
 ---
 
@@ -2647,10 +2639,10 @@ POST /admin/migration/import-bars-from-csv
 19. Wallet trades (digital_trade buy/sell)
 20. Withdrawal **فقط ریال** (D-31 — gold withdrawal حذف شد)
 21. physical_purchase_from_wallet flow (به‌جای gold withdrawal)
-22. Buyback complete (هر سه زیرflow در v1):
-    - (a) بازخریدِ تحویل‌نشده — آنلاین اتومات (D-58: «cancel» نیست؛ فروش reverse نمی‌شود)
-    - (b) `physical_buyback` — حضوری با state machine کامل (PhysicalRequested → ... → Completed)
-    - ~~(c) `digital_buyback`~~ — منسوخ (D-68): همان digital_trade sell، جدا پیاده نمی‌شود
+22. Buyback (دو حالت در v1):
+    - (a) بازخریدِ تحویل‌نشده — آنلاین اتومات (فروشِ اصلی reverse نمی‌شود)
+    - (b) بازخریدِ حضوری — state machine کامل (PhysicalRequested → … → Completed)
+    - (بازخریدِ دیجیتال = همان `digital_trade sell` — جدا پیاده نمی‌شود)
 23. Inter-Company Ledger (D-06b): جدول `inter_company_ledger`، endpointهای settle، FIFO consume. **بدون settlement_rules، بدون worker روزانه.**
 24. Treasury alert worker
 
