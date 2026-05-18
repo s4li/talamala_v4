@@ -286,57 +286,62 @@
 
 <h4>خارج از این نسخه:</h4>
 
-| ویژگی | جایگزین یا وضعیت |
-|---|---|
-| **برداشت طلا** (Gold withdrawal) | جایگزین: خرید فیزیکی از کیف‌پول |
-| **بازپرداخت** (Refund) | جایگزین: بازخرید شمش |
-| **تقسیم سود / کمیسیون** (Profit sharing & settlement) | نسخهٔ آینده |
-| **DCA دورهای** (Dollar-Cost Averaging) | فیچر سرمایهگذاری |
-| **داشبورد سود/زیان** (PNL dashboard) | فیچر تحلیلی آینده |
-| **ترید و نوسانگیری** (Trading & speculation) | خارج از مدل بیزنس |
-| **ارز و کریپتو** | فقط طلا و نقره |
-| **زیورآلات سفارشی** | شاید بعدا |
-| **Jinja2 و server-side rendering** | کاملا حذف — فقط API |
+<table>
+<thead>
+<tr><th>ویژگی</th><th>جایگزین یا وضعیت</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>برداشت طلا</strong> (Gold withdrawal)</td><td>جایگزین: خرید فیزیکی از کیف‌پول</td></tr>
+<tr><td><strong>بازپرداخت</strong> (Refund)</td><td>جایگزین: بازخرید شمش</td></tr>
+<tr><td><strong>تقسیم سود / کمیسیون</strong> (Profit sharing & settlement)</td><td>نسخهٔ آینده</td></tr>
+<tr><td><strong>DCA دورهای</strong> (Dollar-Cost Averaging)</td><td>فیچر سرمایهگذاری</td></tr>
+<tr><td><strong>داشبورد سود/زیان</strong> (PNL dashboard)</td><td>فیچر تحلیلی آینده</td></tr>
+<tr><td><strong>ترید و نوسانگیری</strong> (Trading & speculation)</td><td>خارج از مدل بیزنس</td></tr>
+<tr><td><strong>ارز و کریپتو</strong></td><td>فقط طلا و نقره</td></tr>
+<tr><td><strong>زیورآلات سفارشی</strong></td><td>شاید بعدا</td></tr>
+<tr><td><strong>Jinja2 و server-side rendering</strong></td><td>کاملا حذف — فقط API</td></tr>
+</tbody>
+</table>
 
 ---
 
 ## ۲. تصمیم‌های معماری اصلی
 
-این تصمیمها در سه دور Q&A با تیم نهایی شده‌اند. **هیچ‌کدام در فاز پیاده‌سازی نباید دوباره بحث شوند.**
+این تصمیمها در سه دور Q&A با تیم نهایی شده‌اند. <strong>هیچ‌کدام در فاز پیاده‌سازی نباید دوباره بحث شوند.</strong>
 
 <table>
 <thead>
 <tr><th>#</th><th>تصمیم</th><th>انتخاب نهایی</th><th>منبع</th></tr>
 </thead>
 <tbody>
-<tr><td>D-01</td><td>سبک معماری</td><td>**Modular Monolith** با مرزهای bounded context صریح، آماده برای استخراج سرویس در آینده</td><td>تیم</td></tr>
-<tr><td>D-02</td><td>مدل multi-company</td><td>**One Platform / Multi Brand / Multi Company / Centralized Ops by Goldis**</td><td>تیم</td></tr>
+<tr><td>D-01</td><td>سبک معماری</td><td><strong>Modular Monolith</strong> با مرزهای bounded context صریح، آماده برای استخراج سرویس در آینده</td><td>تیم</td></tr>
+<tr><td>D-02</td><td>مدل multi-company</td><td><strong>One Platform / Multi Brand / Multi Company / Centralized Ops by Goldis</strong></td><td>تیم</td></tr>
 <tr><td>D-03</td><td>Operator مرکزی</td><td>همیشه Goldis در فاز ۱ — یک admin panel برای همه برندها</td><td>تیم</td></tr>
-<tr><td>D-04</td><td>Wallet scope</td><td>**سه کیف کاملا ایزوله به ازای هر کیف‌پول-scope** (goldis/aminzar/talamala) — جزئیات: D-46، ۴</td><td>تیم</td></tr>
-<tr><td>D-05</td><td>KYC scope</td><td>**مشترک** — یک KYC، اسناد شاهکار یکبار، هر دو شرکت قبول می‌کنند</td><td>تیم</td></tr>
-<tr><td>D-06</td><td>Treasury scope</td><td>**مرکزی Goldis = Central Hedging Desk**. هر فروش (هر شرکت) trigger میزند به hedging: فروشنده اتومات از Goldis طلای خام معادل می‌خرد، و Goldis مسئول است از بازار خام بخرد و فیزیکی تحویل دهد. هر خرید Goldis از بازار → exposure کاهش.</td><td>تیم</td></tr>
-<tr><td>D-06b</td><td>**Inter-Company Ledger (Hub-and-Spoke)**</td><td>هر فروش غیر-Goldis (payment به TalaMala/AminZar رفت) **دو obligation همزمان** ایجاد میکند: ۱) `Seller → Goldis: rial` به اندازه‌ی قیمت طلای خام در لحظه‌ی فروش، ۲) `Goldis → Seller: gold mg` به اندازه‌ی وزن خالص. یک طرف ledger همیشه Goldis است (Hub). تسویه دستی توسط اپراتور Goldis، rial سریع/روزانه و gold دورهای فیزیکی. فروشهای خود Goldis هیچ inter-company entry ندارند، فقط treasury exposure را افزا‌یش میدهند.</td><td>تیم</td></tr>
-<tr><td>D-06c</td><td>**Inventory ownership model**</td><td>هر `inventory_location` یک `owner_company_id` دارد. شمشهای موجود در انبار هر برند **مال خود همان برند** هستند (قبلا خریداری/تولید شده). **مدل consignment وجود ندارد**. مدل تأمین و توزیع شمشها در بخش چرخه‌ی تولید توضیح داده می‌شود.</td><td>تیم</td></tr>
-<tr><td>D-06d</td><td>**Gold settle بدون bar مشخص**</td><td>وقتی Goldis طلای خام را به TalaMala تحویل می‌دهد، فقط مقدار وزن (mg) ثبت می‌شود — نه bar خاص. اپراتور می‌گوید «۱۰g طلای خام تحویل دادم» و قدیمیترین obligation ها FIFO settle میشوند. این طلای خام (گرانول/شمش بزرگ) برای hedging موجودی فروشنده یا تولید بعدی است، **نه refill همان شمش فروختهشده**.</td><td>تیم</td></tr>
-<tr><td>D-07</td><td>Cross-brand sale</td><td>**مجاز** — bar تولید TalaMala می‌تواند در برند گلدیس فروخته شود (با settlement)</td><td>تیم</td></tr>
-<tr><td>D-08</td><td>Payment gateway</td><td>**به ازای برند** (با چند `payment_account`): Goldis IPG برای Goldis+AminZar، TalaMala IPG برای TalaMala</td><td>تیم</td></tr>
-<tr><td>D-09</td><td>Inventory location</td><td>**به ازای هر شخصیت حقوقی ولی fulfillment مرکزی** — انبار اصلی Goldis است، ولی bar میداند producer/owner کیست</td><td>تیم</td></tr>
+<tr><td>D-04</td><td>Wallet scope</td><td><strong>سه کیف کاملا ایزوله به ازای هر کیف‌پول-scope</strong> (goldis/aminzar/talamala) — جزئیات: D-46، ۴</td><td>تیم</td></tr>
+<tr><td>D-05</td><td>KYC scope</td><td><strong>مشترک</strong> — یک KYC، اسناد شاهکار یکبار، هر دو شرکت قبول می‌کنند</td><td>تیم</td></tr>
+<tr><td>D-06</td><td>Treasury scope</td><td><strong>مرکزی Goldis = Central Hedging Desk</strong>. هر فروش (هر شرکت) trigger میزند به hedging: فروشنده اتومات از Goldis طلای خام معادل می‌خرد، و Goldis مسئول است از بازار خام بخرد و فیزیکی تحویل دهد. هر خرید Goldis از بازار → exposure کاهش.</td><td>تیم</td></tr>
+<tr><td>D-06b</td><td><strong>Inter-Company Ledger (Hub-and-Spoke)</strong></td><td>هر فروش غیر-Goldis (payment به TalaMala/AminZar رفت) <strong>دو obligation همزمان</strong> ایجاد میکند: ۱) `Seller → Goldis: rial` به اندازه‌ی قیمت طلای خام در لحظه‌ی فروش، ۲) `Goldis → Seller: gold mg` به اندازه‌ی وزن خالص. یک طرف ledger همیشه Goldis است (Hub). تسویه دستی توسط اپراتور Goldis، rial سریع/روزانه و gold دورهای فیزیکی. فروشهای خود Goldis هیچ inter-company entry ندارند، فقط treasury exposure را افزا‌یش میدهند.</td><td>تیم</td></tr>
+<tr><td>D-06c</td><td><strong>Inventory ownership model</strong></td><td>هر `inventory_location` یک `owner_company_id` دارد. شمشهای موجود در انبار هر برند <strong>مال خود همان برند</strong> هستند (قبلا خریداری/تولید شده). <strong>مدل consignment وجود ندارد</strong>. مدل تأمین و توزیع شمشها در بخش چرخه‌ی تولید توضیح داده می‌شود.</td><td>تیم</td></tr>
+<tr><td>D-06d</td><td><strong>Gold settle بدون bar مشخص</strong></td><td>وقتی Goldis طلای خام را به TalaMala تحویل می‌دهد، فقط مقدار وزن (mg) ثبت می‌شود — نه bar خاص. اپراتور می‌گوید «۱۰g طلای خام تحویل دادم» و قدیمیترین obligation ها FIFO settle میشوند. این طلای خام (گرانول/شمش بزرگ) برای hedging موجودی فروشنده یا تولید بعدی است، <strong>نه refill همان شمش فروختهشده</strong>.</td><td>تیم</td></tr>
+<tr><td>D-07</td><td>Cross-brand sale</td><td><strong>مجاز</strong> — bar تولید TalaMala می‌تواند در برند گلدیس فروخته شود (با settlement)</td><td>تیم</td></tr>
+<tr><td>D-08</td><td>Payment gateway</td><td><strong>به ازای برند</strong> (با چند `payment_account`): Goldis IPG برای Goldis+AminZar، TalaMala IPG برای TalaMala</td><td>تیم</td></tr>
+<tr><td>D-09</td><td>Inventory location</td><td><strong>به ازای هر شخصیت حقوقی ولی fulfillment مرکزی</strong> — انبار اصلی Goldis است، ولی bar میداند producer/owner کیست</td><td>تیم</td></tr>
 <tr><td>D-10</td><td>DealerNetwork</td><td>حفظ کامل + توسعه — per-company با opt-in</td><td>تیم</td></tr>
-<tr><td>D-11</td><td>POS as sales_channel</td><td>**first-class** — `channels.type='pos'` با terminal_id/payment_account اختصاصی</td><td>ChatGPT proposal</td></tr>
-<tr><td>D-12</td><td>Settlement context</td><td>**bounded context جدا** — محاسبه‌ی سهم/سود/طلب بین Goldis ↔ TalaMala ↔ AminZar</td><td>ChatGPT proposal + تیم</td></tr>
-<tr><td>D-13</td><td>Fulfillment context</td><td>**bounded context جدا** — task برای انبار‌دار، pick/pack/handover</td><td>ChatGPT proposal</td></tr>
-<tr><td>D-14</td><td>Digital gold inventory</td><td>**بدون جدول جداگانه** — همان Treasury Position. (سقف با **D-47 دو‌طرفه شد**: `max_open_exposure_mg` + `max_short_exposure_mg` + چک inline)</td><td>معمار</td></tr>
+<tr><td>D-11</td><td>POS as sales_channel</td><td><strong>first-class</strong> — `channels.type='pos'` با terminal_id/payment_account اختصاصی</td><td>ChatGPT proposal</td></tr>
+<tr><td>D-12</td><td>Settlement context</td><td><strong>bounded context جدا</strong> — محاسبه‌ی سهم/سود/طلب بین Goldis ↔ TalaMala ↔ AminZar</td><td>ChatGPT proposal + تیم</td></tr>
+<tr><td>D-13</td><td>Fulfillment context</td><td><strong>bounded context جدا</strong> — task برای انبار‌دار، pick/pack/handover</td><td>ChatGPT proposal</td></tr>
+<tr><td>D-14</td><td>Digital gold inventory</td><td><strong>بدون جدول جداگانه</strong> — همان Treasury Position. (سقف با <strong>D-47 دو‌طرفه شد</strong>: `max_open_exposure_mg` + `max_short_exposure_mg` + چک inline)</td><td>معمار</td></tr>
 <tr><td>D-15</td><td>Marketplace integration</td><td>Adapter pattern با ۳ mode: push_managed / pull_only / bidirectional</td><td>معمار</td></tr>
-<tr><td>D-16</td><td>Withdrawal model (v1)</td><td>**فقط ریال** — `order_type=withdrawal_rial` + جدول `withdrawal_details` اختصاصی. gold withdrawal در v1 نداریم (D-31)</td><td>معمار + تیم</td></tr>
-<tr><td>D-17</td><td>Tech stack</td><td>Python 3.12+ / FastAPI / **SQLModel** / PostgreSQL 16+ / asyncpg / Alembic / Pydantic v2</td><td>تیم + ChatGPT</td></tr>
-<tr><td>D-18</td><td>Async/Sync</td><td>**async-first** (تیم async-experienced)</td><td>تیم</td></tr>
-<tr><td>D-19</td><td>Frontend</td><td>**کامل جدا** — هر brand یک Next.js/SPA فرانت، admin panel جدا، POS Android. backend فقط REST API.</td><td>ChatGPT proposal + تیم</td></tr>
+<tr><td>D-16</td><td>Withdrawal model (v1)</td><td><strong>فقط ریال</strong> — `order_type=withdrawal_rial` + جدول `withdrawal_details` اختصاصی. gold withdrawal در v1 نداریم (D-31)</td><td>معمار + تیم</td></tr>
+<tr><td>D-17</td><td>Tech stack</td><td>Python 3.12+ / FastAPI / <strong>SQLModel</strong> / PostgreSQL 16+ / asyncpg / Alembic / Pydantic v2</td><td>تیم + ChatGPT</td></tr>
+<tr><td>D-18</td><td>Async/Sync</td><td><strong>async-first</strong> (تیم async-experienced)</td><td>تیم</td></tr>
+<tr><td>D-19</td><td>Frontend</td><td><strong>کامل جدا</strong> — هر brand یک Next.js/SPA فرانت، admin panel جدا، POS Android. backend فقط REST API.</td><td>ChatGPT proposal + تیم</td></tr>
 <tr><td>D-20</td><td>Server</td><td>تک‌سرور Linux + systemd (مثل v4) با چند worker process مستقل</td><td>تیم</td></tr>
-<tr><td>D-21</td><td>Message broker</td><td>**Postgres Outbox** primary، Redis Streams **فقط** برای SSE fan-out و rate limit (اختیاری)</td><td>معمار</td></tr>
+<tr><td>D-21</td><td>Message broker</td><td><strong>Postgres Outbox</strong> primary، Redis Streams <strong>فقط</strong> برای SSE fan-out و rate limit (اختیاری)</td><td>معمار</td></tr>
 <tr><td>D-22</td><td>Realtime</td><td>SSE در فاز ۱ (پشت nginx سادهتر)</td><td>معمار</td></tr>
-<tr><td>D-23</td><td>Migration از v4</td><td>**Fresh start کامل** — هیچ data از v4 (wallet balance، order، KYC، dealer) به v5 منتقل نمی‌شود. v5 از صفر شروع می‌شود. v4 data و کاربران v4 خارج از scope طراحی v5 هستند. (تصمیم تیم)</td><td>تیم</td></tr>
+<tr><td>D-23</td><td>Migration از v4</td><td><strong>Fresh start کامل</strong> — هیچ data از v4 (wallet balance، order، KYC، dealer) به v5 منتقل نمی‌شود. v5 از صفر شروع می‌شود. v4 data و کاربران v4 خارج از scope طراحی v5 هستند. (تصمیم تیم)</td><td>تیم</td></tr>
 <tr><td>D-24</td><td>Compliance</td><td>شاهکار (موبایل + کد ملی) + OTP. AML/retention infrastructure-ready ولی feature بعدا</td><td>تیم</td></tr>
-<tr><td>D-25</td><td>Worker scheduler</td><td>**APScheduler در process جدا + asyncio loop**. نه Celery، نه Arq</td><td>معمار</td></tr>
+<tr><td>D-25</td><td>Worker scheduler</td><td><strong>APScheduler در process جدا + asyncio loop</strong>. نه Celery، نه Arq</td><td>معمار</td></tr>
 <tr><td>D-26</td><td>Source of truth</td><td>PostgreSQL برای همهچیز. هیچ state critical در Redis/Memory.</td><td>معمار</td></tr>
 </tbody>
 </table>
@@ -378,7 +383,7 @@
 
 <table>
 <thead>
-<tr><th>#</th><th>تصمیم</th><th>انتخاب نهایی</th><th>اثر روی</th></tr>
+<tr><th style="min-width: 70px; white-space: nowrap;">#</th><th>تصمیم</th><th>انتخاب نهایی</th><th>اثر روی</th></tr>
 </thead>
 <tbody>
 <tr><td>D-46</td><td><strong>Wallet scope</strong> (بازنویسی D-04/D-29)</td><td>کیف‌پول per <strong>wallet-scope</strong> نه به ازای هر شخصیت حقوقی. سه scope: <code>goldis</code> / <code>aminzar</code> / <code>talamala</code>. هر سه <strong>کاملا ایزوله، بدون انتقال مستقیم</strong> (AminZar حقوقا زیر شرکت گلدیس ولی برای کاربر کیف جدا). کلید <code>asset_balances</code> و <code>wallet_ledger_entries</code> و <code>wallet_locks</code> بعد <code>wallet_scope</code> میگیرد؛ <code>company_id</code> حفظ می‌شود (مشتق: goldis/aminzar→شرکت گلدیس، talamala→شرکت طلاملا) برای حسابداری/دفترکل بین‌شرکتی. گزارش حسابداری باید بدهی scope=aminzar را از scope=goldis تفکیک کند. هجینگ بدون تغییر (فروش AminZar هنوز Goldis-side).</td><td>Wallet، Accounting، ۴</td></tr>
@@ -439,7 +444,7 @@
 
 <table>
 <thead>
-<tr><th>Fix</th><th>موضوع</th><th>اصلاح</th></tr>
+<tr><th style="min-width: 90px; white-space: nowrap;">Fix</th><th>موضوع</th><th>اصلاح</th></tr>
 </thead>
 <tbody>
 <tr><td>P0-1</td><td>wallet_scope missing from ledger/locks</td><td><code>wallet_ledger_entries</code> و <code>wallet_locks</code> ستون <code>wallet_scope VARCHAR(20)</code> اضافه شدند. UNIQUE constraint هم scope-keyed: <code>UNIQUE (wallet_scope, user_id, idempotency_key)</code> (۴.۳)</td></tr>
@@ -455,7 +460,7 @@
 
 <table>
 <thead>
-<tr><th>Fix</th><th>موضوع</th><th>اصلاح</th></tr>
+<tr><th style="min-width: 90px; white-space: nowrap;">Fix</th><th>موضوع</th><th>اصلاح</th></tr>
 </thead>
 <tbody>
 <tr><td>P0-1.1</td><td>wallet_topups idempotency scope bug</td><td><code>wallet_topups</code> ستون UNIQUE constraint تغییر: <code>UNIQUE (company_id, idempotency_key)</code> ❌ → <code>UNIQUE (wallet_scope, user_id, idempotency_key)</code> ✅. دلیل: goldis+aminzar هر دو شرکت گلدیس دارند؛ تنها wallet_scope+user_id+key می‌تواند idempotency را تضمین کند (۱۱.۸)</td></tr>
@@ -473,7 +478,7 @@
 
 <table>
 <thead>
-<tr><th>Fix</th><th>موضوع</th><th>اصلاح</th></tr>
+<tr><th style="min-width: 90px; white-space: nowrap;">Fix</th><th>موضوع</th><th>اصلاح</th></tr>
 </thead>
 <tbody>
 <tr><td>FIX-1</td><td><strong>BLOCKER:</strong> Duplicate inter-company ledger entry در 12.1</td><td><strong>مشکل:</strong> Step 4e (checkout) و step 7 (mark_paid) هر دو inter_company_ledger میساختند → دوبارشماری. <strong>اصلاح:</strong> Step 4e کامل حذف شد. فقط step 7 (mark_paid/PaymentVerified) ledger میسازد. اضافه: توضیح "⚠️ فقط بعد از تأیید پرداخت، نه موقع checkout" در 6.4 و 12.1 (P0-6 override)</td></tr>
@@ -492,7 +497,7 @@
 
 <table>
 <thead>
-<tr><th>ID</th><th>تصمیم</th><th>تاثیر</th></tr>
+<tr><th style="min-width: 70px; white-space: nowrap;">ID</th><th>تصمیم</th><th>تاثیر</th></tr>
 </thead>
 <tbody>
 <tr><td>D-85</td><td>inter_company_ledger <strong>فقط</strong> در PaymentVerified — نه checkout</td><td>P0-6 fix برای 12.1: تمام فروش غیر-Goldis دقیقا یک بار ledger میسازند (یقینی‌سازی دوبارشماری). atomic transaction: checkout→payment→mark_paid.</td></tr>
