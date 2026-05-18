@@ -19,6 +19,19 @@
 
 ---
 
+## ⚠️ SPEC v2.7 READY
+
+> **2026-05-18:** معماری v2.7 نهایی شد. ۴ subsystem بحرانی برای امنیتِ مالی تولید اضافه شد:
+> - D-90: Payment Reconciliation (price lock deadlock)
+> - D-91: Pending Reserves (treasury race condition)
+> - D-92: Payment State Machine (orphaned payment recovery)
+> - D-93: POS Offline Queue (offline device support)
+> 
+> **فایل:** `talamala_v5_architecture_spec.md` (v2.7) + `SPEC-v2-7-SUMMARY.md`
+> **برای:** Implementation phase + external review (Gemini/ChatGPT/DeepSeek)
+
+---
+
 ## 1. خلاصه پروژه
 
 **TalaMala v4** یک فروشگاه اینترنتی شمش طلای فیزیکی مبتنی بر شبکه نمایندگان (B2B2C) است.
