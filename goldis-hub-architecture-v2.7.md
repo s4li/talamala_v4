@@ -10,7 +10,7 @@
 
 ## ۰.۰ راهنمای بازبین خارجی (⚠️ قبل از هر بازبینی بخوان)
 
-این سند پس از یک بازبینی عمیق **یکپارچه و تمیزسازی شده** (v2.1):
+این سند پس از یک بازبینی عمیق **یک‌پارچه و تمیزسازی شده** (v2.1):
 
 1. **متن اصلی سند قطعی و تمیز است** — مستقیما مدل نهایی را میگوید (بدون متن خطخورده/منسوخ). آن را معتبر بخوان.
 2. **۲.۵ «دفتر تصمیمات» (D-46…D-80) غیرقطعی است** — فقط *چرایی* تغییرات برای حسابرسی. برای ساخت سیستم به بدنه نگاه کن، نه این جدول.
@@ -21,7 +21,7 @@
 
 اینها هنوز عمیق بازبینی **نشدهاند** و بیشترین ارزش بازبینی بیرونی را دارند:
 
-- **عملیات چندنقشی بازبینینشده:** state machine بازخرید حضوری (۱۲.۵.۲ب)، عملیات تسویهی بینشرکتی (۶.۵)، intake شمش از کارخانه (۷.۳ + D-48)، برداشت ریال (۱۲.۶)، تسویه تراکنش POS (۹) — از منظر تفکیکوظایف و درگیری واحدهای مختلف.
+- **عملیات چندنقشی بازبینینشده:** state machine بازخرید حضوری (۱۲.۵.۲ب)، عملیات تسویه‌ی بینشرکتی (۶.۵)، intake شمش از کارخانه (۷.۳ + D-48)، برداشت ریال (۱۲.۶)، تسویه تراکنش POS (۹) — از منظر تفکیکوظایف و درگیری واحدهای مختلف.
 - **هشدار scope (P۵ در ۲.۵):** زیرسیستم قیمت(D-65/72)+دفترکل(۶)+خزانه(D-47/67)+نماینده(D-73) سنگینترین و پرریسکترین بخش است؛ تخمین ۱۲ هفته دیگر واقعبینانه نیست.
 - **موارد تصمیمگرفته ولی فقط پیشنویسی (نیازمند طراحی تفصیلی پیادهسازی):** موتور resolution نردبان قیمت + کمیسیون (D-65/73)، fallback درگاه (D-63)، پیادهسازی چک inline خزانه (D-47)، محاسبهی دقیق گردکردن/منبعقیمت تعهدات بینشرکتی.
 - ابهامات سطح۲ باز سند: `Q-05`(جزئیات ریز)، و هر چیزی که در بخش ۲۰ (ابهامات — وضعیت) هنوز ✅ نخورده.
@@ -59,8 +59,8 @@
 </thead>
 <tbody>
 <tr><td>**Goldis**</td><td>اپراتور + میز hedging مرکزی + فروشنده چندبرندی</td><td>مدیریت مرکزی پلتفرم (تیم فنی، حسابداری، نظارت)، **مرکز hedging** برای فروشهای TalaMala (طلای خام را از بازار یا از مشتریان میخرد و دورهای به TalaMala تحویل میدهد)، **فروشندهی واقعی** در brand های Goldis و AminZar (سایت `aminzar.com` را با اجازهی شرکت امین زر بهعنوان brand بازاریابی میگرداند — مدیریت، فروش، سود مال Goldis است)</td></tr>
-<tr><td>**TalaMala**</td><td>کارخانه + فروشنده مستقل + مالک برند</td><td>کارخانهی تولید شمش (با برند طلاملا)، فروشندهی مستقل از طریق سایت/POS/marketplace، گیرندهی پول از فروش برند طلاملا به حساب خود، طرف hedging با Goldis (rial→Goldis ، gold از Goldis)</td></tr>
-<tr><td>**AminZar**</td><td>کارخانه تنها (تأمینکننده)</td><td>فقط کارخانهی تولید شمش (با برند امین زر). شمشها را با حاشیهی سود به Goldis میفروشد. **هیچ کانال فروش مستقیم ندارد** — سایت `aminzar.com` را Goldis میگرداند (با اجازه). سود امین زر فقط از طریق حاشیهی درصد اجرت است (مثلا اگر امین زر اجرت ۲ درصد تعیین کند، Goldis آن را با ۲.۲ درصد میفروشد).</td></tr>
+<tr><td>**TalaMala**</td><td>کارخانه + فروشنده مستقل + مالک برند</td><td>کارخانه‌ای تولید شمش (با برند طلاملا)، فروشندهی مستقل از طریق سایت/POS/marketplace، گیرندهی پول از فروش برند طلاملا به حساب خود، طرف hedging با Goldis (rial→Goldis ، gold از Goldis)</td></tr>
+<tr><td>**AminZar**</td><td>کارخانه تنها (تأمین‌کننده)</td><td>فقط کارخانه‌ای تولید شمش (با برند امین زر). شمشها را با حاشیهی سود به Goldis میفروشد. **هیچ کانال فروش مستقیم ندارد** — سایت `aminzar.com` را Goldis میگرداند (با اجازه). سود امین زر فقط از طریق حاشیهی درصد اجرت است (مثلا اگر امین زر اجرت ۲ درصد تعیین کند، Goldis آن را با ۲.۲ درصد میفروشد).</td></tr>
 </tbody>
 </table>
 
@@ -138,7 +138,7 @@
   <td>دفترکل بینشرکتی (Inter-Company Ledger) — پیگیری تعهدات ریالی و طلایی میان شرکتها</td>
 </tr>
 <tr>
-  <td>برداشت ریالی دومرحلهای (Two-stage rial withdrawal)</td>
+  <td>برداشت ریالی دو‌مرحله‌ای (Two-stage rial withdrawal)</td>
 </tr>
 <tr>
   <td>خرید فیزیکی از کیفپول (Physical purchase from wallet — جایگزین برداشت طلا)</td>
@@ -281,13 +281,13 @@
 <tr><td>D-58</td><td>**«لغو» حذف — همهچیز Buyback** (بازنویسی D-32 زیرflow a)</td><td>مفهوم cancel وجود ندارد. فروش اول **همیشه معتبر و کامل** میماند (سود پیش فروشنده). اگر مشتری پشیمان شد، یک تراکنش **بازخرید مستقل روبهجلو** رخ میدهد (نه باطلکردن فروش). اقتصاد همیشه یکسان: اجرت/مالیات/سود میسوزد، وزن خالص→کیف XAU_MG، `buyback_credit_rial`→کیف IRR (با شرط D-53)، در scope برند فروش. سه **حالت عملیاتی** (نه مدل مالی متفاوت): (۱) تحویلنشده=آنلاین/اتومات، شمش بهحالت قابلفروش، بدون state machine؛ (۲) تحویلشده=حضوری با state machine + اصالتسنجی؛ (۳) دیجیتال=فروش طلای دیجیتال کیف. زیرflow `cancel_before_delivery` با `Order.status=Cancelled` **منسوخ** است.</td><td>Order/Buyback، ۱۲.۵.۲</td></tr>
 <tr><td>D-60</td><td>**حل Q-10 — منبع شمش physical_purchase_from_wallet**</td><td>شمش فیزیکی از موجودی **همان scope/برند کیفپول** برداشته میشود (نه انبار مرکزی Goldis). این جریان از نظر پول/برند/فروشنده دقیقا مثل یک خرید فیزیکی عادی است؛ فقط ابزار پرداخت بهجای ریال/درگاه، طلای کیف است → `seller_company`=همان scope، تعهد بینشرکتی طبق قاعدهی فروش غیر-Goldis. اگر شمش هموزن در آن scope موجود نبود، خرید انجام نمیشود (سازگار با O-03). **مبنا:** طلای دیجیتال کاغذی نیست — هر خرید دیجیتال scope غیر-Goldis یک تعهد طلای واقعی از Goldis میسازد که Goldis دورهای فیزیکی تحویل میدهد؛ پس انبار آن scope از همین مسیر پر میشود.</td><td>Inventory، Treasury، ۱۲.۵، ۲۰</td></tr>
 <tr><td>D-61</td><td>**حل Q-06 — مدل سطوح KYC در v1**</td><td>سه سطح: **L0** (فقط موبایل+OTP) → **هیچ تراکنش مالی** (فقط مرور/سبد/مشاهده قیمت؛ نه خرید، نه کیفپول، نه شارژ). **L1** (شاهکار موبایل↔کدملی منطبق + نام/کدملی) → سطح پایهی معامله با سقفهای محتاطانه. **L2** (L1 + احراز مالکیت حساب بانکی: تطبیق شبا↔کدملی + تأیید دستی اپراتور اختیاری) → سقفهای بالاتر/سفارشی. اعداد سقفها (۴ بعد×روزانه/ماهانه) در `user_level_defaults` **اپراتور-تنظیم با audit**، نه hard-code در سند. آستانههای پیشرفتهی AML همان «فیچر بعدی» D-24 باقی میماند.</td><td>KYC، ۱۱.۲، ۲۰</td></tr>
-<tr><td>D-62</td><td>**حل Q-07 + انتقال انبار دومرحلهای**</td><td>**(الف)** هیچ TTL/بازتخصیص خودکار روی طلا نیست — فقط گزارش/هشدار **سنخوردگی** (شمشهای راکد در یک کانال) و ابزار دستی اپراتور برای برداشتن/تغییر `assigned_channel_id` (با `inventory_movement`+audit). **(ب) انتقال بین انبارها = سند انتقال دومرحلهای** (الگوی WMS/ERP): `DRAFT → DISPATCHED (Goods Issue، اسکن سریال خروج، مبدأ کم) → RECEIVED (Goods Receipt، اسکن سریال ورود در مقصد) → COMPLETED`، شاخهی `DISCREPANCY` برای مغایرت. موجودی در راه = **`inventory_location` مجازی با `location_type='in_transit'`** و پرچم غیرقابلفروش (هیچجا reserve/فروش نمیشود تا رسید). **تفکیکوظایف:** فرستنده ≠ گیرنده؛ هر مرحله audit + `inventory_movement` per شمش. **v1:** اسکن دوطرفه + تفکیکوظایف + audit + **OTP تحویل اجباری** بین مبدأ/مقصد + هشدار «گیرکرده در راه»؛ بارنامه/پیک/بیمه = metadata اختیاری. آستانههای سنخوردگی/گیرکرده **اپراتور-تنظیم با audit**. ارتقای `DealerTransfer`/`ReconciliationSession` v4.</td><td>Inventory، Fulfillment، ۱۱.۵، ۲۰</td></tr>
+<tr><td>D-62</td><td>**حل Q-07 + انتقال انبار دو‌مرحله‌ای**</td><td>**(الف)** هیچ TTL/بازتخصیص خودکار روی طلا نیست — فقط گزارش/هشدار **سنخوردگی** (شمشهای راکد در یک کانال) و ابزار دستی اپراتور برای برداشتن/تغییر `assigned_channel_id` (با `inventory_movement`+audit). **(ب) انتقال بین انبارها = سند انتقال دو‌مرحله‌ای** (الگوی WMS/ERP): `DRAFT → DISPATCHED (Goods Issue، اسکن سریال خروج، مبدأ کم) → RECEIVED (Goods Receipt، اسکن سریال ورود در مقصد) → COMPLETED`، شاخهی `DISCREPANCY` برای مغایرت. موجودی در راه = **`inventory_location` مجازی با `location_type='in_transit'`** و پرچم غیرقابلفروش (هیچجا reserve/فروش نمیشود تا رسید). **تفکیکوظایف:** فرستنده ≠ گیرنده؛ هر مرحله audit + `inventory_movement` per شمش. **v1:** اسکن دوطرفه + تفکیکوظایف + audit + **OTP تحویل اجباری** بین مبدأ/مقصد + هشدار «گیرکرده در راه»؛ بارنامه/پیک/بیمه = metadata اختیاری. آستانههای سنخوردگی/گیرکرده **اپراتور-تنظیم با audit**. ارتقای `DealerTransfer`/`ReconciliationSession` v4.</td><td>Inventory، Fulfillment، ۱۱.۵، ۲۰</td></tr>
 <tr><td>D-63</td><td>**حل Q-08 — انتخاب درگاه (به ازای کانال، بدون انتخاب کاربر در v1)**</td><td>هر `sales_channel` یک **لیست اولویتدار از `payment_account`ها** دارد. موقع پرداخت، اولین درگاه **فعال و سالم** خودکار انتخاب میشود؛ اگر down بود **fallback خودکار** روی درگاه بعدی لیست. کاربر هیچ انتخابی نمیبیند (multi-PSP UX به v2 موکول؛ مدل طوری بماند که بعدا بدون تغییر اضافه شود). اپراتور میتواند per `payment_account` «موقتا غیرفعال» کند. **الزامی:** هر بار درگاهی خطا/down تشخیص داده شد (حتی اگر fallback پوشش داد) → **اطلاعرسانی به اپراتور/ادمین** (notification + audit) که کدام PSP مشکل دارد.</td><td>Payment، ۱۱.۷، ۲۰</td></tr>
 <tr><td>D-64</td><td>**حل Q-09 — برداشت فقط به حساب خود کاربر**</td><td>برداشت ریال **فقط** به حساب بانکی متعلق به همان کاربر مجاز است: نام صاحب شبا باید با کد ملی KYC تطبیق داده شود (`user_bank_accounts.is_verified=TRUE` از طریق استعلام بانکی/شاهکار). برداشت به حساب شخص دیگر **ممنوع** — شرط صریح سازمان مبارزه با پولشویی (ضد الگوی واریز-کارت-A / برداشت-حساب-B). دولایه با D-52 (احراز سیستمی + تأیید اپراتور). اشخاص حقوقی (حساب بهنام شرکت) **خارج از scope v1**، موکول به v2/onboarding دستی.</td><td>Withdrawal، Compliance، ۱۱.۱، ۲۰</td></tr>
 <tr><td>D-65</td><td>**نردبان قیمت + بعد سطح (حل A-1/A-2، اصلاح تفسیر D-39)**</td><td>**نقاط قیمتی نامدار per فلز در لحظه:** `P0`=`internal_base_price` (هزینهی مرجع خام، داخلی، بیسود) → `P_hedge`=قیمت عمدهی Goldis = P0 + حداقلمارجین Goldis که **تضمینا ≥ مالیات دولت + حداقل سود** → `P_partner(tier)` (هر `DealerTier` یک عدد، همیشه ≥ P_hedge) → `P_retail` (مشتری نهایی پیشفرض، بالاترین). **هیچکس زیر P_hedge نمیخرد؛ Goldis هرگز بیسود/زیرمالیات نمیفروشد. بعد سطح:** ستون `dealer_tier_id BIGINT NULL` به `channel_pricing_formulas` (رزولوشن با همان `priority`؛ `NULL`=مشتری نهایی). v1 فقط مشتری نهایی + سطوح همکار/نماینده (VIP خرده به v2). برای **طلای دیجیتال** (بدون اجرت) تمایز سطح کاملا در مارجین متال فرمول است (شکاف مدل اجرتمحور v4 رفع شد). **Invariant:** هم موقع ذخیرهی فرمول هم موقع ساخت price_lock باید خروجی ≥ P_hedge ≥ (P0+مالیات+حداقلمارجین)؛ نقض ⇒ رد/clamp + هشدار اپراتور. P_hedge **یک نقطهی per-فلز در سطح شرکت Goldis** (نه per کانال) تا ریاضی بینشرکتی یکدست بماند. **حل A-1:** تنها مبنای `inter_company_ledger` = `order_items.raw_hedge_price_rial` = `P_hedge_per_mg(لحظهی فروش) × pure_gold_mg`؛ ۱۲.۱ گام d/e اصلاح، خطوط «cost transfer reverse» منسوخ. **`cost_price_rial` → نام/تعریف `raw_hedge_price_rial`؛ `supplier_price_rial` حذف** (بیمصرف بعد از D-48). **اصلاح تفسیر D-39 (نه نقض):** «بابت فروش profit-share نیست» سرجایش است؛ ولی قیمت عمدهی طلای Goldis ذاتا مارجین خود Goldis (پوشش مالیات+حداقلسود) را دارد — این دو سازگارند.</td><td>Pricing، Inter-Company، Catalog، ۵، ۶.۴، ۱۱.۴، ۱۱.۶، ۱۲.۱</td></tr>
 <tr><td>D-75</td><td>**حل A-11 — بستهبندی/جعبهی هدیه = کالای ریالی جدا**</td><td>بستهبندی یک کالای جدا با قیمت ریالی مستقل است که فقط در صورت خواست مشتری به سفارش اضافه میشود (D-35/v4). مرزها: (۱) **صرفا ریالی** — نه طلا، نه `pure_gold_mg`؛ وارد نردبان D-65 نمیشود، exposure خزانه نمیسازد، تعهد بینشرکتی ندارد. (۲) در بازخرید **برنمیگردد** (مثل اجرت میسوزد — D-53). (۳) پرداختش **همیشه ریالی** است؛ حتی در `physical_purchase_from_wallet` سهم بستهبندی از کیف ریالی/درگاه، نه طلای کیف. (۴) پولش به scope فروشنده میرود؛ هیچ ردیف بینشرکتی ندارد. (۵) **خارج از مبنای کمیسیون نماینده** (D-73 بند۵؛ مبنا فقط `pure_gold_mg`).</td><td>Catalog، Order، Pricing، ۱۱.۶</td></tr>
-<tr><td>D-80</td><td>**حل F-4 — مرز Fulfillment ↔ انتقال داخلی (D-62)**</td><td>مرز بر اساس «مشتری درگیر است یا نه»: **fulfillment = فقط جابهجایی گرهخورده به سفارش مشتری** (همیشه `order_id` دارد — تحویل حضوری/پیک/فروشگاه). **همهی انتقالهای داخلی بین انبارها (بدون مشتری) فقط از مسیر دومرحلهای D-62.** مقصد `internal_transfer` از `fulfillment_tasks` **حذف**. اتصال: اگر شمش مورد تحویل در انبار دیگری است، **اول** انتقال D-62 (مرکزی→محل تحویل)، **بعد** task fulfillment در مقصد — پشتسر هم، نه موازی. یک مفهوم/یک سیستم؛ بدون گزارش دوگانه.</td><td>Fulfillment، Inventory، ۸</td></tr>
-<tr><td>D-79</td><td>**حل F-3 — مسیرهای استثنای تحویل (گم/پسزده/آسیب)**</td><td>به `fulfillment_tasks.status` اضافه میشود: **`delivery_failed`** (پیک نتوانست/مشتری پس زد/آدرس غلط) → شمش با همان فرایند دومرحلهای D-62 (in-transit + اسکن ورود) به انبار برمیگردد؛ تا برنگشته «در راه برگشت». **`lost_in_transit`** (گم/دزدیده) → رویداد زیان: عملیات ادعا از پیک، حسابداری ثبت زیان (audit + accounting)، **خزانه: یک پای جبرانی exposure** (طلا فروخته/هجشده ولی فیزیکش نیست). **`damaged`** (پلمبشکسته) → برمیگردد + شمش «نیازمند بازرسی» (پلمب/ذوب مجدد) — مستقیم قابل فروش دوباره نیست. هیچکدام **خودکار** بسته نمیشوند؛ تصمیم اپراتور/حسابدار + audit + reason الزامی. تا روشنشدن سرنوشت، شمش نه «فروش تمامشده» نه «موجود انبار» — حالت معلق «زیان در حال بررسی» با اثر خزانهای.</td><td>Fulfillment، Treasury، Accounting، ۸</td></tr>
+<tr><td>D-80</td><td>**حل F-4 — مرز Fulfillment ↔ انتقال داخلی (D-62)**</td><td>مرز بر اساس «مشتری درگیر است یا نه»: **fulfillment = فقط جابهجایی گرهخورده به سفارش مشتری** (همیشه `order_id` دارد — تحویل حضوری/پیک/فروشگاه). **همهی انتقالهای داخلی بین انبارها (بدون مشتری) فقط از مسیر دو‌مرحله‌ای D-62.** مقصد `internal_transfer` از `fulfillment_tasks` **حذف**. اتصال: اگر شمش مورد تحویل در انبار دیگری است، **اول** انتقال D-62 (مرکزی→محل تحویل)، **بعد** task fulfillment در مقصد — پشتسر هم، نه موازی. یک مفهوم/یک سیستم؛ بدون گزارش دوگانه.</td><td>Fulfillment، Inventory، ۸</td></tr>
+<tr><td>D-79</td><td>**حل F-3 — مسیرهای استثنای تحویل (گم/پسزده/آسیب)**</td><td>به `fulfillment_tasks.status` اضافه میشود: **`delivery_failed`** (پیک نتوانست/مشتری پس زد/آدرس غلط) → شمش با همان فرایند دو‌مرحله‌ای D-62 (in-transit + اسکن ورود) به انبار برمیگردد؛ تا برنگشته «در راه برگشت». **`lost_in_transit`** (گم/دزدیده) → رویداد زیان: عملیات ادعا از پیک، حسابداری ثبت زیان (audit + accounting)، **خزانه: یک پای جبرانی exposure** (طلا فروخته/هجشده ولی فیزیکش نیست). **`damaged`** (پلمبشکسته) → برمیگردد + شمش «نیازمند بازرسی» (پلمب/ذوب مجدد) — مستقیم قابل فروش دوباره نیست. هیچکدام **خودکار** بسته نمیشوند؛ تصمیم اپراتور/حسابدار + audit + reason الزامی. تا روشنشدن سرنوشت، شمش نه «فروش تمامشده» نه «موجود انبار» — حالت معلق «زیان در حال بررسی» با اثر خزانهای.</td><td>Fulfillment، Treasury، Accounting، ۸</td></tr>
 <tr><td>D-78</td><td>**حل F-2 — اثبات تحویل با OTP + تفکیک نقش**</td><td>انباردار فقط `handed_over` را میزند («از دست ما خارج شد»، نه «رسید»). `delivered` **فقط با OTP گیرنده** بسته میشود (+ اسکن سریال در تحویل حضوری)، و **توسط انباردار مبدأ بسته نمیشود** — نقش مقصد (پیکتأیید/کارمند فروشگاه/نماینده) در `delivered_confirmed_by`. `delivery_otp_hash`+`delivery_otp_expiry` (مثل v4) به `fulfillment_tasks` برمیگردد. تا قبل از تأیید، شمش «در حال تحویل»؛ `bar.delivered_at` فقط در لحظهی تأیید واقعی ست میشود (نه موقع handover). تفکیک وظیفه: درآورندهی شمش از انبار ≠ بندندهی «تحویلشده».</td><td>Fulfillment، ۸</td></tr>
 <tr><td>D-77</td><td>**حل F-1 — fulfillment_task: شمش مشخص + trigger=درخواست تحویل**</td><td>(۱) `fulfillment_tasks` ستون `bar_id` میگیرد (به شمش تخصیصیافتهی D-49 اشاره میکند؛ برای چند شمش، چند ردیف). انباردار **همان سریال** را برمیدارد؛ **اسکن سریال pick اجباری** و باید با `bar_id` بخواند وگرنه خطا — تضمین بستن «تخصیصدهندهی فروش» و «انباردار» به یک سریال واحد. (۲) trigger ساخت task = **«درخواست تحویل»** است، نه «پرداخت سفارش». فروش امانی (`delivered_at=NULL`) **هیچ taskی نمیسازد** (شمش در خزانه قفل). فقط با درخواست تحویل مشتری یا تحویل فوری POS/فروشگاه task ساخته میشود (برگشت مفهوم `CustodialDeliveryRequest` v4 که در ۸ گم بود).</td><td>Fulfillment، Inventory، ۸، ۱۲.۱</td></tr>
 <tr><td>D-76</td><td>**حل A-12 — تاپآپ به scope درست (ایزوله)**</td><td>`wallet_topup` بعد `wallet_scope` میگیرد؛ از **فرانت/کانال** resolve میشود (talamala→talamala، goldis→goldis، aminzar→**aminzar**) و کیف ریالی همان scope شارژ میشود. سه فرانت کاملا **ایزوله** (D-46): امینزر در goldis merge **نمیشود**، هرچند legal entity هر دو شرکت گلدیس و درگاه شارژش Goldis IPG است (`company_id` مشتق از scope فقط برای حسابداری). متن قدیمی ۱۲.۵.۴ که «گلدیس/امینزر → wallet Goldis» میگفت اصلاح شد. **یادآوری کلی:** هر فرانت (فعلا ۳ تا) همهچیزش — کیف، تاپآپ، بازخرید، گزارش — ایزولهٔ همان scope است.</td><td>Wallet، Payment، ۱۱.۷، ۱۲.۵.۴</td></tr>
@@ -364,7 +364,7 @@
 <tr><td>FIX-3</td><td>**BLOCKER:** Supplier purchase contradiction 7.3 line 821</td><td>**مشکل:** "هیچ ledger entry — supplier purchase خارج از scope" (نادرست، D-48 میگوید داخل). **اصلاح:** جایگزین با صریح: inter_company_ledger entry ثبت شود (source_type='supplier_purchase') از Goldis→AminZar + توضیح wage_gold_mg</td></tr>
 <tr><td>FIX-4</td><td>**BLOCKER:** Mensoukh API endpoints در 13</td><td>**مشکل:** `/orders/{id}/cancel` و `/orders/{order_id}/cancel-before-delivery` هنوز فهرست شده (D-58: cancel منسوخ). Buyback header "۳ زیرflow" (نادرست: فقط ۲ — تحویلنشده و حضوری). **اصلاح:** ۱) endpoint cancel حذف. ۲) endpoint cancel-before-delivery حذف. ۳) header به "۲ حالت" تغییر (D-58). ۴) labels (a)/(b) renumber. ۵) (c) digital_buyback = /wallet/trades/sell annotation</td></tr>
 <tr><td>FIX-5</td><td>**HIGH:** Wallet API company_code vs wallet_scope</td><td>**مشکل:** `/wallet/balances?company_code=X` و `/wallet/ledger?company_code=X` (D-46 violation: scope نه company_code). **اصلاح:** تمام `company_code` → `wallet_scope` (۳ جا در 13). اضافه: `locked_balance` و `credit_balance` فیلدها به response</td></tr>
-<tr><td>FIX-6</td><td>**HIGH:** D-62 schema missing from 11.9</td><td>**مشکل:** D-62 تصمیم دومرحلهای انتقال تولید شده (DRAFT→DISPATCHED→RECEIVED→COMPLETED) ولی جدول ندارد. **اصافه:** `inventory_transfer_documents` و `inventory_transfer_items` tables + all fields (reference_code, status enum, OTP, locations, movements) + indexes</td></tr>
+<tr><td>FIX-6</td><td>**HIGH:** D-62 schema missing from 11.9</td><td>**مشکل:** D-62 تصمیم دو‌مرحله‌ای انتقال تولید شده (DRAFT→DISPATCHED→RECEIVED→COMPLETED) ولی جدول ندارد. **اصافه:** `inventory_transfer_documents` و `inventory_transfer_items` tables + all fields (reference_code, status enum, OTP, locations, movements) + indexes</td></tr>
 <tr><td>FIX-7</td><td>**HIGH:** bars.status insufficient enum برای D-79</td><td>**مشکل:** `bars.status` فقط `RAW</td><td>ASSIGNED</td><td>RESERVED</td><td>SOLD` (D-79 نیاز: DAMAGED, LOST, IN_INSPECTION). **اصلاح:** Enum توسیع + مستند: DAMAGED (packing damaged)، LOST (loss event)، IN_INSPECTION (buyback/damage inspection)</td></tr>
 </tbody>
 </table>
@@ -508,7 +508,7 @@ CREATE TABLE inventory_locations (
     location_type VARCHAR(30) NOT NULL,
     -- warehouse | factory | safe_box | store | external_marketplace | branch | dealer
     -- D-62: in_transit (انبار مجازی موجودی در راه — غیرقابلفروش؛ هیچجا
-    --   reserve/فروش نمیشود تا رسید مقصد). انتقال دومرحلهای روی این بناست.
+    --   reserve/فروش نمیشود تا رسید مقصد). انتقال دو‌مرحله‌ای روی این بناست.
     is_sellable BOOLEAN NOT NULL DEFAULT TRUE,  -- D-62: برای location_type='in_transit' = FALSE
     address VARCHAR(500) NULL,
     -- D-32: آیا این مکان میتواند physical buyback را تأیید کند؟
@@ -782,7 +782,7 @@ CREATE TABLE treasury_position_snapshots (
 ### ۶.۳. مدل داده — `inter_company_ledger`
 
 ```sql
--- جدول یکپارچه برای تمام obligations بین شرکتها (هم gold هم rial)
+-- جدول یک‌پارچه برای تمام obligations بین شرکتها (هم gold هم rial)
 CREATE TABLE inter_company_ledger (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     debtor_company_id BIGINT NOT NULL REFERENCES companies(id),
@@ -945,14 +945,14 @@ Body: { creditor_company_id: TalaMala, debtor_company_id: Goldis, amount_mg, not
 - Goldis این شمشهای TalaMala را در channelهای خودش (سایت Goldis، DigiKala، Basalam) میفروشد.
 - ⚠️ **توجه:** Goldis طلای **خام** از TalaMala نمیخرد — فقط شمشهای تولیدی برند TalaMala را میخرد.
 
-**جریان معکوس (Goldis → TalaMala برای شمش):** در v1 وجود ندارد. TalaMala تنها از تولید کارخانهی خودش تأمین میشود. آنچه از Goldis به TalaMala میرسد فقط طلای **خام** برای settle obligation های hedging است (بخش ۶.۵).
+**جریان معکوس (Goldis → TalaMala برای شمش):** در v1 وجود ندارد. TalaMala تنها از تولید کارخانه‌ای خودش تأمین میشود. آنچه از Goldis به TalaMala میرسد فقط طلای **خام** برای settle obligation های hedging است (بخش ۶.۵).
 
 ### ۷.۲. Supplier Purchase — خرید از کارخانه (داخل scope v1)
 
 خرید از کارخانهها (AminZar و TalaMala-as-supplier) **داخل سامانه** است، بهصورت یک جریان **فقط-طلا (بدون ریال)** روی همان batch preorder:
 
 - Goldis به کارخانه میدهد: **اصل طلا** (وزن خالص شمشها) + **معادل اجرت بهصورت طلا** (`purchase_wage_percent` — عملیاتی، نه metadata). کارخانه شمش حکشده/پلمبشده برمیگرداند.
-- تعهد طلایی Goldis↔کارخانه روی همان `inter_company_ledger` با `asset='gold'`, `source_type='supplier_purchase'` رصد میشود (جدول جدا لازم نیست؛ کارخانه یک طرف تعهد، Goldis طرف دیگر).
+- تعهد طلایی Goldis↔کارخانه روی همان `inter_company_ledger` با `asset='gold'`, `source_type='supplier_purchase'` رصد میشود (جدول جدا لازم نیست؛ کارخانه‌ایک طرف تعهد، Goldis طرف دیگر).
 - **طلای اجرت = هزینهی حسابداری**، **بدون** اثر روی exposure/سقف خزانه (سقف معیار ریسک هجنشده است، نه هزینهی تولید).
 - جریان ورود سریالها (preorder → in_stock) در ۷.۳.
 
@@ -1067,7 +1067,7 @@ CREATE TABLE fulfillment_tasks (
     destination_type VARCHAR(30) NOT NULL,
     -- customer_pickup | courier | store
     -- D-80: internal_transfer حذف شد — هر انتقال داخلی بین انبارها فقط از
-    --   مسیر دومرحلهای D-62 میرود. fulfillment فقط تحویل مرتبط با
+    --   مسیر دو‌مرحله‌ای D-62 میرود. fulfillment فقط تحویل مرتبط با
     --   order_id مشتری است (همیشه order_id دارد).
     destination_address VARCHAR(500) NULL,
     courier_provider VARCHAR(50) NULL,
@@ -1877,7 +1877,7 @@ CREATE TABLE dealer_commission_rates (
 -- نگهبان (D-73): فروش → Σکمیسیون ≤ (P_retail−P_hedge)؛
 --   بازخرید → کمیسیون ≤ اسپرد بازخرید؛ نقض → رد/هشدار اپراتور.
 
--- D-73 (P۱): تسویهی کمیسیون نماینده — جدا از inter_company_ledger
+-- D-73 (P۱): تسویه‌ی کمیسیون نماینده — جدا از inter_company_ledger
 -- (آن شرکت↔شرکت است؛ نماینده کاربر است). بدهی طلایی TalaMala→نماینده.
 CREATE TABLE dealer_commission_ledger (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1899,7 +1899,7 @@ CREATE TABLE dealer_commission_ledger (
 CREATE INDEX ix_dcl_dealer_status
     ON dealer_commission_ledger (dealer_user_id, status);
 
--- D-62: انتقال بینانبار دومرحلهای (DRAFT→DISPATCHED→RECEIVED→COMPLETED|DISCREPANCY)
+-- D-62: انتقال بینانبار دو‌مرحله‌ای (DRAFT→DISPATCHED→RECEIVED→COMPLETED|DISCREPANCY)
 CREATE TABLE inventory_transfer_documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     reference_code VARCHAR(50) UNIQUE NOT NULL,   -- TRF-20260518-001
@@ -2696,7 +2696,7 @@ worker هر ۳۰ ثانیه:
 - POST `/admin/fulfillment/tasks/{id}/handover` { courier, tracking }
 - POST `/admin/fulfillment/tasks/{id}/confirm-delivery` { otp, serial? } — D-78 (جایگزین `/complete`؛ فقط نقش مقصد، با OTP گیرنده)
 
-### Inventory Transfers (دومرحلهای — D-62)
+### Inventory Transfers (دو‌مرحله‌ای — D-62)
 - POST `/admin/inventory/transfers` { source_location_id, destination_location_id, in_transit_location_id?, bar_ids: [UUID], idempotency_key } — ایجاد document با status=DRAFT
 - GET `/admin/inventory/transfers?status=X` — لیست documentها (DRAFT/DISPATCHED/RECEIVED/COMPLETED/DISCREPANCY/CANCELLED)
 - GET `/admin/inventory/transfers/{id}` — جزئیات + لیست items
