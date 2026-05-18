@@ -1870,7 +1870,7 @@ CREATE INDEX ix_dcl_dealer_status
    - fulfillment_task.status IN ('pending', 'picking')
    (اگر packed/handed_over: cancel_before_delivery دیگر مجاز نیست — physical_buyback لازم است)
 3. اتومات (در یک DB transaction):
-   - Order.status = Cancelled
+   - ❌ Order.status = Cancelled  ← منسوخ (D-58): فروشِ اصلی معتبر می‌ماند؛ یک سفارشِ بازخریدِ مستقل ساخته می‌شود، نه Cancelled
    - bar.status = ASSIGNED, customer_id = NULL, delivered_at = NULL
    - fulfillment_task.status = cancelled
    - Wallet.credit(user, <wallet matched با brand>, XAU_MG, order_item.pure_gold_mg)
