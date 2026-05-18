@@ -1855,50 +1855,44 @@ CREATE INDEX ix_dcl_dealer_status
 
 > **⚠️ نکته complexity:** این flow پیچیده است. تست concurrency حساس است — همزمانی lock بر دو wallet (XAU + IRR) + reservation + gateway callback. توصیه: integration test کامل با مسیرهای edge (gold فقط، gold+wallet_irr، gold+gateway، هر سه).
 
-### ۱۲.۵.۲. Buyback — مدل یکپارچه برای v1 (سه زیرflow)
+### ۱۲.۵.۲. Buyback — دو حالت در v1
 
-> **⚠️ override D-58/D-59:** «لغو» وجود ندارد — زیرflow (a) دیگر `cancel_before_delivery` با `Order.status=Cancelled` نیست؛ یک **بازخریدِ آنلاینِ مستقل** است که شمش هنوز دستِ ماست. فروش اصلی همیشه معتبر می‌ماند و **هیچ‌وقت معکوس نمی‌شود**. اثر خزانه/بین‌شرکتی طبق D-59 (تحویل‌نشده/حضوری ⇒ خنثی + فقط هزینه‌ی ریالی؛ دیجیتال ⇒ خزانه − + جفت مخالف). متن سه‌زیرflow زیر با همین لنز خوانده شود.
+Refund نداریم؛ «لغو» هم نداریم. **فروشِ اصلی همیشه معتبر می‌ماند و هرگز reverse نمی‌شود.** بازخرید همیشه یک تراکنشِ **مستقلِ روبه‌جلو** است، با دو حالتِ عملیاتی:
 
-> **D-32:** Refund نداریم. به‌جای آن **Buyback** با **سه زیرflow** در v1 پیاده می‌شود:
->
-> | زیرflow | trigger | شرایط | تأیید |
-> |---|---|---|---|
-> | (a) **بازخریدِ تحویل‌نشده** (D-58: «cancel» نیست) | کاربر تو سایت دکمه می‌زند | bar.status=SOLD، delivered_at IS NULL | اتومات (آنلاین)؛ فروشِ اصلی reverse نمی‌شود (D-59) |
-> | (b) `physical_buyback` | کاربر شمش فیزیکی را حضوری می‌برد | bar.status=SOLD، delivered_at IS NOT NULL | کارشناس مرکز Authorized |
-> | ~~(c) `digital_buyback`~~ | **منسوخ — D-68: = `digital_trade sell` (§۱۲.۴)؛ بازخرید فقط ۲ حالت دارد** | | |
->
-> **در هر سه**:
-> - `weight × purity / 1000` به wallet XAU_MG برمی‌گردد
-> - `order_items.buyback_credit_rial` (snapshot موقع خرید) به wallet IRR برمی‌گردد
-> - اجرت + مالیات + سود + هزینه‌های اضافه سوخت می‌شوند
+| حالت | شرایط | تأیید |
+|---|---|---|
+| (a) **بازخریدِ تحویل‌نشده** | bar.status=SOLD، `delivered_at IS NULL` (شمش هنوز در خزانه‌ی ماست) | اتومات (آنلاین) |
+| (b) **بازخریدِ حضوری** | bar.status=SOLD، `delivered_at IS NOT NULL` (مشتری شمش را حضوری می‌آورد) | کارشناسِ مرکزِ Authorized — state machine |
 
-#### زیرflow (a) — ❌ منسوخ: «Cancel» وجود ندارد (D-58)
+> «بازخریدِ دیجیتال» مسیرِ جدا **نیست** = همان `digital_trade sell` (§۱۲.۴).
 
-> **⚠️ D-58:** «لغو» حذف شد. این یک **بازخریدِ آنلاینِ مستقل** است (شمش هنوز دستِ ماست)، نه cancel با `Order.status=Cancelled`. فروشِ اصلی همیشه معتبر می‌ماند و reverse نمی‌شود (اثرِ خزانه/بین‌شرکتی طبق D-59). متنِ زیر صرفاً تاریخی است.
+**در هر دو حالت:**
+- وزنِ خالص (`weight × purity / 1000`) → wallet **XAU_MG** (همیشه).
+- `order_items.buyback_credit_rial` (snapshot موقع خرید) → wallet **IRR** — **فقط اگر** شمش در لحظه‌ی بازخرید به نامِ کاربر ثبت‌مالکیت شده باشد و با **OTP** تأیید شود؛ وگرنه ۰.
+- اجرت + مالیات + سود + هزینه‌های اضافه **می‌سوزد**.
+- هر دو واریز به **scope برندِ فروشِ همان شمش** (`bars.sale_wallet_scope`).
+- خزانه: تبدیلِ physical↔digital ⇒ **خنثی** (پای `+pure_gold_mg` به کیف، پای `−pure_gold_mg` شمشِ برگشتی)؛ **هیچ تعهدِ بین‌شرکتیِ تازه‌ای** ساخته نمی‌شود؛ فقط `buyback_credit_rial` هزینه‌ی ریالی است.
+- بازخریدِ آنلاین فقط در همان scope/وب‌سایتی که خرید انجام شده مجاز است.
+
+#### حالت (a) — بازخریدِ تحویل‌نشده (آنلاین، اتومات)
 
 ```
-1. User → POST /api/v1/orders/{order_id}/cancel-before-delivery
+1. User → POST /api/v1/orders/{order_id}/buyback   (شمش هنوز تحویل نشده)
 2. Validate:
    - order.user_id == current_user
-   - order.status == Paid
-   - bar.status == SOLD
-   - bar.delivered_at IS NULL (هنوز فیزیکی تحویل داده نشده)
-   - fulfillment_task.status IN ('pending', 'picking')
-   (اگر packed/handed_over: cancel_before_delivery دیگر مجاز نیست — physical_buyback لازم است)
+   - bar.status == SOLD، bar.delivered_at IS NULL
+   - (اگر fulfillment_task ساخته شده و packed/handed_over: حالت (a) مجاز نیست → حالت (b))
 3. اتومات (در یک DB transaction):
-   - ❌ Order.status = Cancelled  ← منسوخ (D-58): فروشِ اصلی معتبر می‌ماند؛ یک سفارشِ بازخریدِ مستقل ساخته می‌شود، نه Cancelled
-   - bar.status = ASSIGNED, customer_id = NULL, delivered_at = NULL
-   - fulfillment_task.status = cancelled
-   - Wallet.credit(user, <wallet matched با brand>, XAU_MG, order_item.pure_gold_mg)
-   - Wallet.credit(user, <wallet matched با brand>, IRR, order_item.buyback_credit_rial)
-   - Treasury.record(source=buyback, sub_type=cancel, delta=-order_item.pure_gold_mg)
-   - (منسوخ — D-58/D-59/D-65: بازخرید فروشِ اصلی را reverse نمی‌کند؛ cost transfer وجود ندارد)
-   - Audit log
-   - Outbox: BuybackCancelCompleted
-   - Notification
+   - یک سفارشِ بازخریدِ مستقل (order_type=buyback) ثبت می‌شود — فروشِ اصلی دست‌نخورده
+   - bar.status = ASSIGNED, customer_id = NULL  (شمش به خزانه برمی‌گردد، قابلِ فروشِ دوباره)
+   - اگر fulfillment_task باز بود → بسته/کنسل می‌شود
+   - Wallet.credit(user, bars.sale_wallet_scope, XAU_MG, order_item.pure_gold_mg)
+   - اگر ثبت‌مالکیت+OTP: Wallet.credit(user, scope, IRR, order_item.buyback_credit_rial)
+   - Treasury: دو پای متقابل ⇒ خالص ≈ صفر (physical→digital)
+   - Audit log + Outbox: BuybackCompleted + Notification
 ```
 
-#### زیرflow (b) — Physical Buyback (حضوری، نیازمند تأیید)
+#### حالت (b) — بازخریدِ حضوری (نیازمند تأیید)
 
 > این زیرflow **state machine صریح** دارد چون شامل تحویل فیزیکی است.
 
@@ -1946,18 +1940,16 @@ Completed                (bar.location update شد + treasury/settlement)
    → status=AuthenticityVerified | Rejected
 7. کارشناس تأیید نهایی → POST /api/v1/admin/buyback/{id}/approve
    → status=Approved
-8. سیستم در DB transaction:
-   - Wallet.credit(user, wallet by brand, XAU_MG, order_item.pure_gold_mg)
-   - Wallet.credit(user, wallet by brand, IRR, order_item.buyback_credit_rial)
-   - bar.status = ASSIGNED
-   - bar.customer_id = NULL
-   - bar.delivered_at = NULL
-   - bar.current_location_id = target_location_id  ⚠️ مهم: location تغییر می‌کند
+8. سیستم در DB transaction (فقط بعد از Approved):
+   - Wallet.credit(user, bars.sale_wallet_scope, XAU_MG, order_item.pure_gold_mg)
+   - اگر ثبت‌مالکیت+OTP تأیید شد: Wallet.credit(user, scope, IRR, order_item.buyback_credit_rial)
+   - bar.status = ASSIGNED, customer_id = NULL, delivered_at = NULL
+   - bar.current_location_id = target_location_id  (location تغییر می‌کند)
    - INSERT inventory_movement (type=transfer_in, to=target_location)
-   - Treasury.record(source=buyback, sub_type=physical, delta=-pure_gold_mg)
-   - (منسوخ — D-58/D-59/D-65: بازخرید فروشِ اصلی را reverse نمی‌کند؛ cost transfer وجود ندارد)
+   - Treasury: دو پای متقابل ⇒ خالص ≈ صفر (physical→digital)
+   - فروشِ اصلی reverse نمی‌شود (تراکنشِ بازخریدِ مستقل)
    - status=WalletCredited → Completed
-   - Audit log + Outbox + Notification
+   - Audit log + Outbox: PhysicalBuybackCompleted + Notification
 ```
 
 **قواعد امنیتی:**
@@ -1965,33 +1957,9 @@ Completed                (bar.location update شد + treasury/settlement)
 - separation of duties: کارشناس receive ≠ کارشناس verify (یا حداقل audit‌شده باشد)
 - audit_log الزامی در هر transition
 
-#### زیرflow (c) — Digital Buyback ❌ منسوخ (D-68)
+#### «بازخریدِ دیجیتال» — مسیرِ جدا ندارد
 
-> **⚠️ D-68: این زیرflow حذف شد.** «بازخریدِ دیجیتال» = همان `digital_trade sell` (§۱۲.۴). از `/wallet/trades/sell` استفاده کن، نه `/buyback/digital`. متنِ زیر صرفاً تاریخی است.
-
-> کاربر طلای دیجیتال در wallet را می‌فروشد. هیچ shemmesh فیزیکی درگیر نیست.
-
-```
-1. User → POST /api/v1/buyback/digital
-     { from_wallet: <Goldis | TalaMala>, asset: XAU_MG, amount_mg }
-2. KYC limits + Wallet.check_balance(user, from_wallet, XAU_MG, amount_mg)
-3. Pricing.buyback_quote(asset, amount_mg) → قیمت لحظه‌ای buyback
-   (با spread — مثل digital_trade sell)
-4. Wallet.lock(user, from_wallet, XAU_MG, amount_mg, ref=buyback_intent)
-5. Order.create(order_type=buyback, trade_side=sell, status=Confirmed)
-6. confirm (atomic):
-   - Wallet.consume_lock(XAU_MG, amount_mg)
-   - Wallet.credit(user, from_wallet, IRR, buyback_quote_price)
-   - Treasury.record(source=buyback, sub_type=digital, delta=-amount_mg)
-   - Accounting + Outbox + Notification
-7. on fail یا timeout price_lock:
-   - Wallet.release_lock
-   - Order.status=Cancelled
-```
-
-> **توجه:** زیرflow (c) با (a) و (b) فرق بنیادی دارد:
-> - (a) و (b) مربوط به یک bar مشخص هستند و `buyback_credit_rial` از order قبلی استفاده می‌کنند
-> - (c) مستقل از هر bar هست و قیمت buyback لحظه‌ای از Pricing.buyback_quote محاسبه می‌شود
+فروشِ طلای دیجیتالِ کیف **همان `digital_trade sell` (§۱۲.۴)** است؛ از `/wallet/trades/sell` استفاده می‌شود. قیمتش از نردبانِ قیمت سمتِ فروش (`trade_side=sell`) می‌آید. مدلِ خزانه/بین‌شرکتی‌اش در §۱۲.۴ آمده.
 
 ### ۱۲.۵.۴. شارژ wallet ریالی (Rial Topup) — اتومات، بدون اپراتور
 
