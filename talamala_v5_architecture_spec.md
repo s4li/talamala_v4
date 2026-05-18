@@ -347,9 +347,9 @@ CREATE TABLE inventory_locations (
 
 ---
 
-## ۴. مدل Wallet (Per-wallet-scope — D-46)
+## ۴. مدل Wallet (Per-wallet-scope)
 
-> **⚠️ این بخش با D-46 بازنویسی شد.** مدلِ «per-legal-entity / دو کیف / AminZar داخلِ Goldis» (D-04/D-29 قدیمی) **منسوخ** است. مدلِ معتبر: **سه کیفِ کاملاً ایزوله per wallet-scope**.
+> هر کاربر **سه کیفِ کاملاً ایزوله** دارد، با کلیدِ `wallet_scope`. `company_id` فقط مشتق و برای حسابداری است.
 
 ### ۴.۱. ساختار
 
@@ -468,21 +468,21 @@ CREATE TABLE wallet_locks (
 
 ### ۵.۲. Sign convention (explicit)
 
-> **⚠️ D-67:** `treasury_positions` **per پای** ثبت می‌شود، نه per تراکنش. علامت از **پای** می‌آید نه از `source_type`. بعضی تراکنش‌ها تک‌پایی‌اند (علامتِ ثابت)، بعضی دوپایی (یک `+` و یک `−`، خالص ≈ صفر).
+> `treasury_positions` **per پای** ثبت می‌شود، نه per تراکنش. علامت از **پای** می‌آید نه از `source_type`. بعضی تراکنش‌ها تک‌پایی‌اند (علامتِ ثابت)، بعضی دوپایی (یک `+` و یک `−`، خالص ≈ صفر).
 >
 > `treasury_positions.delta_amount_mg` بر اساس نگاه **Goldis**:
 >
 > **تراکنش‌های تک‌پایی (علامتِ ثابت):**
 > - **+** (exposure باز — Goldis بدهکار طلا شد): `order_physical`، `pos_sale`، `marketplace_sale`، `digital_buy` (در هر brand، شامل فروش‌های خود Goldis — چون Goldis باید خام بخرد)
-> - **−** (exposure بسته): `hedge_buy`، `digital_sell` (digital_trade sell — شاملِ آنچه قبلاً `digital_buyback` نامیده می‌شد، D-68)
+> - **−** (exposure بسته): `hedge_buy`، `digital_sell` (فروشِ طلای دیجیتال — «بازخریدِ دیجیتال» همین است)
 >
 > **تراکنش‌های دوپایی (net ≈ صفر):**
-> - `buyback` تحویل‌نشده/حضوری (D-59): پای `+pure_gold_mg` (طلا به کیف) و پای `−pure_gold_mg` (شمشِ برگشتی/مصرف) ⇒ خنثی
-> - `physical_purchase_from_wallet` (D-66): پای `−gold_part_mg` (مصرفِ طلای دیجیتالِ کیف) و پای `+pure_gold_mg` (خروجِ شمشِ فیزیکی) ⇒ خنثی
+> - `buyback` تحویل‌نشده/حضوری: پای `+pure_gold_mg` (طلا به کیف) و پای `−pure_gold_mg` (شمشِ برگشتی/مصرف) ⇒ خنثی
+> - `physical_purchase_from_wallet`: پای `−gold_part_mg` (مصرفِ طلای دیجیتالِ کیف) و پای `+pure_gold_mg` (خروجِ شمشِ فیزیکی) ⇒ خنثی
 >
 > sum(delta_amount_mg WHERE status IN ('open','partially_covered')) = current open exposure
 
-### ۵.۳. Cap و alert (D-47 — دوطرفه + چکِ inline)
+### ۵.۳. Cap و alert (دوطرفه + چکِ inline)
 
 - **سقفِ دوطرفه per metal:** `max_open_exposure_mg` (سمتِ فروش، exposure مثبت) + `max_short_exposure_mg` (سمتِ خرید/بازخرید، exposure منفی). هر دو اپراتور-تنظیم، با audit.
 - **چکِ inline سدِ سخت در لحظه‌ی هر تراکنش** (فروش+خرید، فیزیکی+دیجیتال+POS، بدون استثنا): اگر این تراکنش از سقفِ مربوطه رد شود، **همان تراکنش رد می‌شود** (مثل `require_fresh_price`).
