@@ -1,0 +1,585 @@
+/* ============================================================
+   Goldis Hub — Operational Review: Physical Print Safe CSS
+   Version: 2.0
+   Target: A4 physical printers with safe margins
+   ============================================================ */
+
+/* --- Base & RTL --- */
+html, body {
+  direction: rtl;
+  text-align: right;
+  font-family: "Vazirmatn", "Vazir", "IRANSans", "Tahoma", "Arial", sans-serif;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #111;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+}
+
+/* --- A4 Print: generous margins for physical printers --- */
+@page {
+  size: A4 portrait;
+  margin: 30mm 20mm 30mm 20mm;
+}
+
+/* --- Page Break Helpers --- */
+.page-break {
+  break-after: page;
+  page-break-after: always;
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.review-sheet {
+  break-before: page;
+  page-break-before: always;
+}
+
+.final-checklist {
+  break-before: page;
+  page-break-before: always;
+}
+
+/* --- Print / No-Print --- */
+.no-print {
+  display: block;
+}
+
+.print-only {
+  display: none;
+}
+
+/* --- Links --- */
+a {
+  color: #0d6efd;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* --- Headings --- */
+h1 {
+  font-size: 1.8em;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0.8em 0 0.4em;
+  border-bottom: 3px solid #b8860b;
+  padding-bottom: 0.3em;
+}
+
+h2 {
+  font-size: 1.35em;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 1.2em 0 0.4em;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.2em;
+}
+
+h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #34495e;
+  margin: 1em 0 0.3em;
+}
+
+h4 {
+  font-size: 1em;
+  font-weight: 600;
+  color: #555;
+  margin: 0.8em 0 0.2em;
+}
+
+/* --- Paragraphs & Lists --- */
+p {
+  margin: 0.5em 0;
+}
+
+ul, ol {
+  padding-right: 1.5em;
+  padding-left: 0;
+  margin: 0.5em 0;
+}
+
+li {
+  margin-bottom: 0.3em;
+}
+
+/* --- Tables --- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.8em 0;
+  font-size: 0.92em;
+  table-layout: auto;
+  word-wrap: break-word;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px 10px;
+  text-align: right;
+  vertical-align: top;
+}
+
+th {
+  background-color: #f5f0e0;
+  font-weight: 700;
+  color: #2c3e50;
+  white-space: nowrap;
+}
+
+tbody tr:nth-child(even) {
+  background-color: #fafaf5;
+}
+
+/* --- Blockquote --- */
+blockquote {
+  border-right: 4px solid #b8860b;
+  border-left: none;
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  background: #fdf8e8;
+  color: #5a4e1e;
+  font-style: normal;
+}
+
+/* --- Strong / Bold --- */
+strong {
+  font-weight: 700;
+}
+
+/* --- Horizontal Rule --- */
+hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 1.5em 0;
+}
+
+/* --- Cover Page --- */
+.cover-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 85vh;
+  text-align: center;
+  padding: 2em;
+}
+
+.cover-page .brand-title {
+  font-size: 2.2em;
+  font-weight: 800;
+  color: #b8860b;
+  margin-bottom: 0.2em;
+  letter-spacing: 1px;
+}
+
+.cover-page .sub-title {
+  font-size: 1.5em;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.3em;
+}
+
+.cover-page .session-title {
+  font-size: 1.2em;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 2em;
+}
+
+.cover-page .cover-info {
+  text-align: right;
+  width: 70%;
+  margin: 0 auto;
+  font-size: 1em;
+  line-height: 2.2;
+}
+
+.cover-page .cover-info .label {
+  font-weight: 700;
+  color: #333;
+}
+
+.cover-page .cover-instruction {
+  margin-top: 2em;
+  padding: 1em 1.5em;
+  background: #f8f6ee;
+  border: 1px solid #e0d8b0;
+  border-radius: 8px;
+  font-size: 0.95em;
+  color: #5a4e1e;
+  text-align: right;
+  width: 80%;
+}
+
+/* --- Separator between cover and content --- */
+.cover-page + .page-break + .session-overview {
+  margin-top: 0;
+}
+
+/* --- Session Overview --- */
+.session-overview h1 {
+  border-bottom-color: #2c3e50;
+}
+
+/* --- Notes Box --- */
+.notes-box {
+  min-height: 120px;
+  border: 1px dashed #999;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  background: #fdfdfd;
+  position: relative;
+}
+
+.notes-box .notes-label {
+  font-weight: 700;
+  font-size: 0.9em;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+/* --- Decision Box --- */
+.decision-box {
+  min-height: 100px;
+  border: 1px solid #b8860b;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 12px;
+  margin-bottom: 20px;
+  background: #fdf8e8;
+}
+
+.decision-box .decision-label {
+  font-weight: 700;
+  font-size: 0.9em;
+  color: #8b7a2b;
+  margin-bottom: 6px;
+}
+
+/* --- Checklist --- */
+.checklist-group {
+  margin: 1em 0;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.checklist-box {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border: 2px solid #999;
+  border-radius: 3px;
+  margin-top: 4px;
+  background: #fff;
+}
+
+.checklist-text {
+  flex: 1;
+}
+
+/* --- Footer --- */
+.page-footer {
+  margin-top: 2em;
+  padding-top: 0.5em;
+  border-top: 1px solid #ddd;
+  font-size: 0.8em;
+  color: #999;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* --- Review Sheet Section Headers --- */
+.review-sheet h1 {
+  font-size: 1.5em;
+  color: #b8860b;
+  border-bottom-color: #b8860b;
+}
+
+.review-sheet h2 {
+  font-size: 1.15em;
+  color: #2c3e50;
+}
+
+/* --- Final Checklist --- */
+.final-checklist h1 {
+  text-align: center;
+  border-bottom: 3px solid #b8860b;
+}
+
+.final-checklist .blank-area {
+  min-height: 100px;
+  border: 1px dashed #bbb;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 12px 0 20px;
+  background: #fefefe;
+}
+
+.final-checklist .blank-area .area-label {
+  font-weight: 700;
+  font-size: 0.95em;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+/* --- Index Page Specific --- */
+.index-header {
+  text-align: center;
+  padding: 2em 0 1em;
+}
+
+.index-header h1 {
+  border-bottom: none;
+  color: #b8860b;
+  font-size: 2em;
+}
+
+.index-header p {
+  font-size: 1.1em;
+  color: #555;
+}
+
+.session-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 1.2em 1.5em;
+  margin: 1em 0;
+  background: #fdf8e8;
+}
+
+.session-card h2 {
+  border-bottom: none;
+  color: #b8860b;
+  margin-top: 0;
+}
+
+.session-card a {
+  display: inline-block;
+  padding: 8px 20px;
+  background: #b8860b;
+  color: #fff;
+  border-radius: 6px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.session-card a:hover {
+  background: #9a7209;
+  text-decoration: none;
+}
+
+.instructions-box {
+  border: 1px solid #cce5ff;
+  background: #f0f7ff;
+  border-radius: 8px;
+  padding: 1em 1.5em;
+  margin: 1.5em 0;
+}
+
+.instructions-box h3 {
+  color: #0d6efd;
+  margin-top: 0;
+}
+
+/* --- Print Container Wrapper --- */
+.print-container {
+  box-sizing: border-box;
+}
+
+/* ============================================================
+   PRINT OVERRIDES — Physical Printer Safe
+   30mm top/bottom + 20mm left/right @page margins,
+   plus typography/element compaction below.
+   ============================================================ */
+@media print {
+  /* --- Visibility --- */
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+
+  /* --- Base Reset --- */
+  html, body {
+    width: auto !important;
+    min-height: auto;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+  body {
+    font-size: 10.8px;
+    line-height: 1.55;
+  }
+
+  /* --- Container --- */
+  .print-container {
+    width: 100%;
+    max-width: none;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box;
+  }
+
+  /* --- Footer: completely hidden --- */
+  .page-footer {
+    display: none !important;
+  }
+
+  /* --- Typography: compact + orphan/widow control --- */
+  h1 {
+    font-size: 1.45em;
+    margin: 0 0 0.55em 0;
+    padding-bottom: 0.25em;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  h2 {
+    font-size: 1.12em;
+    margin: 1.05em 0 0.45em 0;
+    padding-bottom: 0.2em;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 1em;
+    margin: 0.85em 0 0.35em 0;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  p {
+    margin: 0.35em 0;
+    orphans: 3;
+    widows: 3;
+  }
+  ul, ol {
+    margin: 0.35em 0 0.55em 0;
+    padding-right: 1.35em;
+    padding-left: 0;
+  }
+  li {
+    margin-bottom: 0.18em;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    orphans: 2;
+    widows: 2;
+  }
+  a {
+    text-decoration: none;
+    color: #111;
+  }
+  hr {
+    margin: 0.8em 0;
+  }
+
+  /* --- Tables: compact for narrower printable area --- */
+  table {
+    width: 100%;
+    max-width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78em;
+    margin: 0.55em 0 0.9em 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid #bbb;
+    padding: 4px 6px;
+    vertical-align: top;
+    text-align: right;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+  th {
+    background: #f5f0e0 !important;
+    font-weight: 700;
+  }
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* --- Page Break: sections --- */
+  .cover-page {
+    min-height: auto !important;
+    padding: 15mm 0 !important;
+    box-sizing: border-box;
+    break-after: page;
+    page-break-after: always;
+  }
+  .session-overview {
+    break-after: page;
+    page-break-after: always;
+  }
+  .review-sheet {
+    break-before: page;
+    page-break-before: always;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .final-checklist {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  /* --- Avoid break inside these blocks --- */
+  blockquote,
+  .card,
+  .notes-box,
+  .decision-box,
+  .checklist-group {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* --- Notes & Decision boxes: compact --- */
+  .notes-box,
+  .decision-box {
+    min-height: 70px;
+    padding: 8px 10px;
+    margin: 10px 0 12px 0;
+  }
+
+  /* --- Checklist: compact --- */
+  .checklist-box {
+    width: 12px;
+    height: 12px;
+    min-width: 12px;
+    margin-top: 3px;
+  }
+
+  /* --- Review sheet headings in print --- */
+  .review-sheet h1 {
+    font-size: 1.35em;
+  }
+  .review-sheet h2 {
+    font-size: 1.05em;
+  }
+}
+
+/* --- Responsive for screen preview --- */
+@media screen {
+  body {
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 20px 24px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.08);
+  }
+}
