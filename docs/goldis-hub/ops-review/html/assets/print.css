@@ -335,10 +335,10 @@ hr {
 
 @media print {
   .page-footer {
-    position: fixed;
-    bottom: 0;
-    left: 14mm;
-    right: 14mm;
+    position: static;
+    margin-top: 1.5em;
+    padding-top: 0.5em;
+    border-top: 1px solid #ddd;
   }
 }
 

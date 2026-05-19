@@ -89,14 +89,79 @@ def read_file(path):
         return f.read()
 
 
+def fix_list_breaks(md_text):
+    """Insert blank line between bold-titled lines and list items that follow.
+
+    Markdown requires a blank line before a list. Session overview files have
+    patterns like:
+        **راهنمای ارائه (۵ دقیقه):**
+        - item one
+    Without a blank line, the parser treats them as one paragraph.
+    """
+    lines = md_text.split("\n")
+    result = []
+    for i, line in enumerate(lines):
+        result.append(line)
+        if i + 1 < len(lines):
+            stripped = line.strip()
+            next_stripped = lines[i + 1].strip()
+            if (
+                stripped.startswith("**") and stripped.endswith(":**")
+                and (next_stripped.startswith("- ") or re.match(r"^\d+\.\s", next_stripped))
+            ):
+                result.append("")
+            elif (
+                stripped.startswith("**") and ":**" in stripped
+                and (next_stripped.startswith("- ") or re.match(r"^\d+\.\s", next_stripped))
+            ):
+                result.append("")
+    return "\n".join(result)
+
+
+CODE_REPLACEMENTS = {
+    "inter_company:settle": "مجوز تسویه بین شرکتی",
+    "OPEN_ISSUES_LOG.md": "لاگ مسائل باز",
+    "OPEN_ISSUES_LOG": "لاگ مسائل باز",
+    "CHANGE_REQUESTS_LOG.md": "لاگ درخواست تغییرات",
+    "CHANGE_REQUESTS_LOG": "لاگ درخواست تغییرات",
+    "FLOW_REVIEW_STATUS.md": "جدول وضعیت روال ها",
+    "FLOW_REVIEW_STATUS": "جدول وضعیت روال ها",
+    "MEETING_MINUTES_TEMPLATE.md": "قالب صورتجلسه",
+    "delivered_at": "تاریخ تحویل",
+    "flows/": "مستندات فنی روال ها",
+    "03-schema-index.md": "فهرست جداول دیتابیس",
+    "04-api-index.md": "فهرست واسط های برنامه نویسی",
+    "review-sheets": "برگه های بررسی",
+    "ops-review/": "بسته بررسی عملیاتی",
+}
+
+
+def sanitize_for_managers(md_text):
+    """Remove backtick code spans and replace known technical terms with
+    business-friendly Persian equivalents before markdown conversion."""
+    for code, replacement in CODE_REPLACEMENTS.items():
+        md_text = md_text.replace(f"`{code}`", replacement)
+    md_text = re.sub(r"`([^`]+)`", r"\1", md_text)
+    return md_text
+
+
+def strip_code_tags(html):
+    """Remove any remaining <code> tags from generated HTML."""
+    html = re.sub(r"<code>([^<]*)</code>", r"\1", html)
+    return html
+
+
 def md_to_html(md_text):
     md_text = re.sub(r"^---$", "", md_text, flags=re.MULTILINE)
+    md_text = fix_list_breaks(md_text)
+    md_text = sanitize_for_managers(md_text)
     html = markdown.markdown(
         md_text,
         extensions=["tables", "fenced_code"],
         output_format="html5",
     )
     html = convert_checkboxes(html)
+    html = strip_code_tags(html)
     return html
 
 
@@ -203,9 +268,9 @@ def build_final_checklist(session_num):
         "تاییدهای دستی و اتومات مشخص شد",
         "مدارک لازم مشخص شد",
         "ریسک های مالی و عملیاتی بررسی شد",
-        "مسائل باز در OPEN_ISSUES_LOG ثبت شد",
-        "درخواست تغییرات در CHANGE_REQUESTS_LOG ثبت شد",
-        "وضعیت روال ها در FLOW_REVIEW_STATUS بروزرسانی شد",
+        "مسائل باز در لاگ مسائل باز ثبت شد",
+        "درخواست تغییرات در لاگ درخواست تغییرات ثبت شد",
+        "وضعیت روال ها در جدول وضعیت روال ها بروزرسانی شد",
         "روال های تایید شده مشخص شدند",
         "روال های نیازمند اصلاح مشخص شدند",
     ]
@@ -269,8 +334,9 @@ def build_index_html():
         rows += f"""<tr>
   <td style="text-align:center; font-weight:700;">{num_fa}</td>
   <td>{s["title"]}</td>
-  <td style="font-size:0.9em;">{flows}</td>
+  <td style="font-size:0.85em;">{flows}</td>
   <td style="font-size:0.9em;">{s["units"]}</td>
+  <td style="font-size:0.85em;">{s["participants"]}</td>
   <td style="text-align:center;">{s["duration"]}</td>
 </tr>
 """
@@ -278,6 +344,7 @@ def build_index_html():
   <h2>جلسه {num_fa}: {s["title"]}</h2>
   <p>{s["topic"]}</p>
   <p><strong>مدت:</strong> {s["duration"]} &nbsp;|&nbsp; <strong>واحدها:</strong> {s["units"]}</p>
+  <p><strong>شرکت کنندگان پیشنهادی:</strong> {s["participants"]}</p>
   <a href="session-{s['num']:02d}-pre-read.html">باز کردن بسته پیش مطالعه</a>
 </div>
 """
@@ -306,6 +373,7 @@ def build_index_html():
   <th>موضوع</th>
   <th>روال ها</th>
   <th>واحدهای اصلی</th>
+  <th>شرکت کنندگان پیشنهادی</th>
   <th>مدت</th>
 </tr>
 </thead>
@@ -347,14 +415,12 @@ def main():
     print(f"Output: {HTML_DIR}")
     print()
 
-    # Build index
     index_html = build_index_html()
     index_path = os.path.join(HTML_DIR, "index.html")
     with open(index_path, "w", encoding="utf-8") as f:
         f.write(index_html)
-    print(f"  [OK] index.html")
+    print("  [OK] index.html")
 
-    # Build session files
     for session in SESSIONS:
         session_html = build_session_html(session)
         filename = f"session-{session['num']:02d}-pre-read.html"
@@ -367,13 +433,6 @@ def main():
 
     print()
     print("Done! All files generated successfully.")
-    print()
-    print("Files created:")
-    print(f"  - {os.path.join(HTML_DIR, 'index.html')}")
-    for s in SESSIONS:
-        fname = f"session-{s['num']:02d}-pre-read.html"
-        print(f"  - {os.path.join(HTML_DIR, fname)}")
-    print(f"  - {os.path.join(HTML_DIR, 'assets', 'print.css')}")
 
 
 if __name__ == "__main__":
