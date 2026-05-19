@@ -27,7 +27,7 @@
 > - D-92: Payment State Machine (orphaned payment recovery)
 > - D-93: POS Offline Queue (offline device support)
 > 
-> **فایل:** `talamala_v5_architecture_spec.md` (v2.7) + `SPEC-v2-7-SUMMARY.md`
+> **فایل:** `goldis-hub-architecture-v2.7.md`
 > **برای:** Implementation phase + external review (Gemini/ChatGPT/DeepSeek)
 
 ---
