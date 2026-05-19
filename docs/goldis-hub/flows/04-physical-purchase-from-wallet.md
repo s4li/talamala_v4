@@ -27,13 +27,12 @@ Customer uses their XAU_MG wallet balance to purchase a physical gold bar. Suppo
 
 ## 4. Trigger
 
-`POST /api/v1/orders` with `order_type: physical_purchase_from_wallet`.
+`POST /api/v1/orders/physical-from-wallet`
 
 ## 5. Steps
 
 ```
-1. User → /api/v1/orders {
-     order_type: physical_purchase_from_wallet,
+1. User → POST /api/v1/orders/physical-from-wallet {
      from_wallet: TalaMala,
      product_id: <10g bar product>,
      gold_use_amount_mg: <how much XAU_MG to spend>,  ← optional override

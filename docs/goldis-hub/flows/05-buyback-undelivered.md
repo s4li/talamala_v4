@@ -23,12 +23,12 @@ Customer requests buyback of a bar that has been sold but NOT physically deliver
 
 ## 4. Trigger
 
-`POST /api/v1/orders/{order_id}/buyback`
+`POST /api/v1/buyback/undelivered` with `{ order_id }`
 
 ## 5. Steps
 
 ```
-1. User → POST /api/v1/orders/{order_id}/buyback   (شمش هنوز تحویل نشده)
+1. User → POST /api/v1/buyback/undelivered { order_id }   (شمش هنوز تحویل نشده)
 2. Validate:
    - order.user_id == current_user
    - bar.status == SOLD، bar.delivered_at IS NULL
