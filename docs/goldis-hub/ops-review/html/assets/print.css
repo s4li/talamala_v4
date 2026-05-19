@@ -1,0 +1,446 @@
+/* ============================================================
+   Goldis Hub — Operational Review Print Stylesheet
+   Version: 1.0
+   ============================================================ */
+
+/* --- Base & RTL --- */
+html, body {
+  direction: rtl;
+  text-align: right;
+  font-family: "Vazirmatn", "Vazir", "IRANSans", "Tahoma", "Arial", sans-serif;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #1a1a1a;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+}
+
+/* --- A4 Print --- */
+@page {
+  size: A4;
+  margin: 16mm 14mm;
+}
+
+/* --- Page Break Helpers --- */
+.page-break {
+  break-after: page;
+  page-break-after: always;
+}
+
+.review-sheet {
+  break-before: page;
+  page-break-before: always;
+}
+
+.final-checklist {
+  break-before: page;
+  page-break-before: always;
+}
+
+/* Avoid breaking inside these */
+table, blockquote, .card, .notes-box, .decision-box, .checklist-group {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* --- Print / No-Print --- */
+.no-print {
+  display: block;
+}
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  body {
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  a {
+    text-decoration: none;
+    color: #1a1a1a;
+  }
+}
+
+/* --- Links --- */
+a {
+  color: #0d6efd;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* --- Headings --- */
+h1 {
+  font-size: 1.8em;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0.8em 0 0.4em;
+  border-bottom: 3px solid #b8860b;
+  padding-bottom: 0.3em;
+}
+
+h2 {
+  font-size: 1.35em;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 1.2em 0 0.4em;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.2em;
+}
+
+h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #34495e;
+  margin: 1em 0 0.3em;
+}
+
+h4 {
+  font-size: 1em;
+  font-weight: 600;
+  color: #555;
+  margin: 0.8em 0 0.2em;
+}
+
+/* --- Paragraphs & Lists --- */
+p {
+  margin: 0.5em 0;
+}
+
+ul, ol {
+  padding-right: 1.5em;
+  padding-left: 0;
+  margin: 0.5em 0;
+}
+
+li {
+  margin-bottom: 0.3em;
+}
+
+/* --- Tables --- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.8em 0;
+  font-size: 0.92em;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px 10px;
+  text-align: right;
+  vertical-align: top;
+}
+
+th {
+  background-color: #f5f0e0;
+  font-weight: 700;
+  color: #2c3e50;
+  white-space: nowrap;
+}
+
+/* Zebra rows */
+tbody tr:nth-child(even) {
+  background-color: #fafaf5;
+}
+
+/* Prevent table overflow */
+table {
+  table-layout: auto;
+  word-wrap: break-word;
+}
+
+/* --- Blockquote --- */
+blockquote {
+  border-right: 4px solid #b8860b;
+  border-left: none;
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  background: #fdf8e8;
+  color: #5a4e1e;
+  font-style: normal;
+}
+
+/* --- Strong / Bold --- */
+strong {
+  font-weight: 700;
+}
+
+/* --- Horizontal Rule --- */
+hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 1.5em 0;
+}
+
+/* --- Cover Page --- */
+.cover-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 85vh;
+  text-align: center;
+  padding: 2em;
+}
+
+.cover-page .brand-title {
+  font-size: 2.2em;
+  font-weight: 800;
+  color: #b8860b;
+  margin-bottom: 0.2em;
+  letter-spacing: 1px;
+}
+
+.cover-page .sub-title {
+  font-size: 1.5em;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.3em;
+}
+
+.cover-page .session-title {
+  font-size: 1.2em;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 2em;
+}
+
+.cover-page .cover-info {
+  text-align: right;
+  width: 70%;
+  margin: 0 auto;
+  font-size: 1em;
+  line-height: 2.2;
+}
+
+.cover-page .cover-info .label {
+  font-weight: 700;
+  color: #333;
+}
+
+.cover-page .cover-instruction {
+  margin-top: 2em;
+  padding: 1em 1.5em;
+  background: #f8f6ee;
+  border: 1px solid #e0d8b0;
+  border-radius: 8px;
+  font-size: 0.95em;
+  color: #5a4e1e;
+  text-align: right;
+  width: 80%;
+}
+
+@media print {
+  .cover-page {
+    min-height: 90vh;
+  }
+}
+
+/* --- Separator between cover and content --- */
+.cover-page + .page-break + .session-overview {
+  margin-top: 0;
+}
+
+/* --- Session Overview --- */
+.session-overview h1 {
+  border-bottom-color: #2c3e50;
+}
+
+/* --- Notes Box --- */
+.notes-box {
+  min-height: 120px;
+  border: 1px dashed #999;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  background: #fdfdfd;
+  position: relative;
+}
+
+.notes-box .notes-label {
+  font-weight: 700;
+  font-size: 0.9em;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+/* --- Decision Box --- */
+.decision-box {
+  min-height: 100px;
+  border: 1px solid #b8860b;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 12px;
+  margin-bottom: 20px;
+  background: #fdf8e8;
+}
+
+.decision-box .decision-label {
+  font-weight: 700;
+  font-size: 0.9em;
+  color: #8b7a2b;
+  margin-bottom: 6px;
+}
+
+/* --- Checklist --- */
+.checklist-group {
+  margin: 1em 0;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.checklist-box {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border: 2px solid #999;
+  border-radius: 3px;
+  margin-top: 4px;
+  background: #fff;
+}
+
+.checklist-text {
+  flex: 1;
+}
+
+/* --- Footer --- */
+.page-footer {
+  margin-top: 2em;
+  padding-top: 0.5em;
+  border-top: 1px solid #ddd;
+  font-size: 0.8em;
+  color: #999;
+  display: flex;
+  justify-content: space-between;
+}
+
+@media print {
+  .page-footer {
+    position: fixed;
+    bottom: 0;
+    left: 14mm;
+    right: 14mm;
+  }
+}
+
+/* --- Review Sheet Section Headers --- */
+.review-sheet h1 {
+  font-size: 1.5em;
+  color: #b8860b;
+  border-bottom-color: #b8860b;
+}
+
+.review-sheet h2 {
+  font-size: 1.15em;
+  color: #2c3e50;
+}
+
+/* --- Final Checklist --- */
+.final-checklist h1 {
+  text-align: center;
+  border-bottom: 3px solid #b8860b;
+}
+
+.final-checklist .blank-area {
+  min-height: 100px;
+  border: 1px dashed #bbb;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 12px 0 20px;
+  background: #fefefe;
+}
+
+.final-checklist .blank-area .area-label {
+  font-weight: 700;
+  font-size: 0.95em;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+/* --- Index Page Specific --- */
+.index-header {
+  text-align: center;
+  padding: 2em 0 1em;
+}
+
+.index-header h1 {
+  border-bottom: none;
+  color: #b8860b;
+  font-size: 2em;
+}
+
+.index-header p {
+  font-size: 1.1em;
+  color: #555;
+}
+
+.session-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 1.2em 1.5em;
+  margin: 1em 0;
+  background: #fdf8e8;
+}
+
+.session-card h2 {
+  border-bottom: none;
+  color: #b8860b;
+  margin-top: 0;
+}
+
+.session-card a {
+  display: inline-block;
+  padding: 8px 20px;
+  background: #b8860b;
+  color: #fff;
+  border-radius: 6px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.session-card a:hover {
+  background: #9a7209;
+  text-decoration: none;
+}
+
+.instructions-box {
+  border: 1px solid #cce5ff;
+  background: #f0f7ff;
+  border-radius: 8px;
+  padding: 1em 1.5em;
+  margin: 1.5em 0;
+}
+
+.instructions-box h3 {
+  color: #0d6efd;
+  margin-top: 0;
+}
+
+/* --- Responsive for screen preview --- */
+@media screen {
+  body {
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 20px 24px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.08);
+  }
+}
