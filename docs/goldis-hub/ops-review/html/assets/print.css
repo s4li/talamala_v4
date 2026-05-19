@@ -19,7 +19,7 @@ html, body {
 /* --- A4 Print --- */
 @page {
   size: A4;
-  margin: 18mm 16mm 18mm 16mm;
+  margin: 24mm 18mm 24mm 18mm;
 }
 
 /* --- Page Break Helpers --- */
@@ -54,14 +54,17 @@ table, blockquote, .card, .notes-box, .decision-box, .checklist-group {
 }
 
 @media print {
+  /* --- Visibility --- */
   .no-print {
     display: none !important;
   }
   .print-only {
     display: block !important;
   }
+
+  /* --- Base Reset --- */
   html, body {
-    width: auto;
+    width: auto !important;
     min-height: auto;
     margin: 0 !important;
     padding: 0 !important;
@@ -69,24 +72,62 @@ table, blockquote, .card, .notes-box, .decision-box, .checklist-group {
     box-shadow: none !important;
   }
   body {
-    font-size: 12px;
-    line-height: 1.7;
+    font-size: 11.5px;
+    line-height: 1.65;
   }
+
+  /* --- Container --- */
   .print-container {
-    padding: 6mm 4mm;
+    padding: 0;
     box-sizing: border-box;
   }
+
+  /* --- Section Spacing --- */
+  .session-overview,
+  .review-sheet,
+  .final-checklist {
+    padding-top: 4mm;
+    padding-bottom: 6mm;
+    box-sizing: border-box;
+  }
+  .cover-page {
+    padding-top: 10mm;
+    padding-bottom: 10mm;
+    box-sizing: border-box;
+    min-height: 90vh;
+  }
+
+  /* --- Typography --- */
+  h1 {
+    font-size: 1.55em;
+    margin-top: 0.4em;
+  }
+  h2 {
+    font-size: 1.18em;
+    margin-top: 0.9em;
+  }
+  h3 {
+    font-size: 1.05em;
+  }
+  a {
+    text-decoration: none;
+    color: #1a1a1a;
+  }
+
+  /* --- Tables --- */
   table {
+    font-size: 0.85em;
     max-width: 100%;
     margin-right: 0;
     margin-left: 0;
   }
   th, td {
-    padding: 6px 8px;
+    padding: 5px 7px;
   }
-  a {
-    text-decoration: none;
-    color: #1a1a1a;
+
+  /* --- Footer: hidden in print --- */
+  .page-footer {
+    display: none !important;
   }
 }
 
@@ -261,12 +302,6 @@ hr {
   width: 80%;
 }
 
-@media print {
-  .cover-page {
-    min-height: 90vh;
-  }
-}
-
 /* --- Separator between cover and content --- */
 .cover-page + .page-break + .session-overview {
   margin-top: 0;
@@ -351,15 +386,6 @@ hr {
   color: #999;
   display: flex;
   justify-content: space-between;
-}
-
-@media print {
-  .page-footer {
-    position: static;
-    margin-top: 1.5em;
-    padding-top: 0.5em;
-    border-top: 1px solid #ddd;
-  }
 }
 
 /* --- Review Sheet Section Headers --- */
