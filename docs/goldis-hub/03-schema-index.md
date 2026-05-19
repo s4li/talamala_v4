@@ -26,6 +26,7 @@
 | 12 | [Payment](#12-payment) | payment_providers, payments, payment_transactions, wallet_topups | §11.7 |
 | 13 | [Outbox + Audit](#13-outbox--audit) | outbox_events, audit_logs | §11.8 |
 | 14 | [Supplementary (D-62/D-63/D-73/D-96/D-97/D-99)](#14-supplementary) | sales_channel_payment_accounts, dealer_tiers, dealer_sales, dealer_commission_rates, dealer_commission_ledger, inventory_transfer_documents, inventory_transfer_items, payment_reconciliations, inventory_pending_holds, pos_pending_requests | §11.9 |
+| 15 | [POS Devices & Transactions](#15-pos-devices--transactions) | pos_devices, pos_transactions | §9.2 |
 
 ---
 
@@ -1183,5 +1184,45 @@ CREATE TABLE pos_pending_requests (
 );
 CREATE INDEX ix_pos_request_dealer ON pos_pending_requests (dealer_id, request_state);
 CREATE INDEX ix_pos_request_expires ON pos_pending_requests (expires_at);
+```
+
+---
+
+## 15. POS Devices & Transactions
+
+> Source: §9.2 — POS device registration, transaction tracking, reconciliation
+> Related: [POS as First-class Sales Channel](02-domain-models.md#۹-pos-as-first-class-sales-channel)
+
+```sql
+CREATE TABLE pos_devices (
+    id BIGSERIAL PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    sales_channel_id BIGINT NOT NULL REFERENCES sales_channels(id),
+    terminal_id VARCHAR(100) NOT NULL,
+    device_id VARCHAR(100) NULL,
+    dealer_id BIGINT NULL,                   -- اگر متعلق به dealer است
+    api_key_hash VARCHAR(255) NOT NULL UNIQUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_seen_at TIMESTAMPTZ NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE pos_transactions (
+    id BIGSERIAL PRIMARY KEY,
+    pos_device_id BIGINT NOT NULL REFERENCES pos_devices(id),
+    payment_account_id BIGINT NOT NULL REFERENCES payment_accounts(id),
+    terminal_id VARCHAR(100) NOT NULL,
+    trace_number VARCHAR(50) NOT NULL,
+    rrn VARCHAR(50) NULL,
+    amount_rial BIGINT NOT NULL,
+    paid_at TIMESTAMPTZ NOT NULL,
+    raw_data JSONB NULL,
+    matched_order_id UUID NULL REFERENCES orders(id),
+    settlement_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    reconciliation_status VARCHAR(20) NOT NULL DEFAULT 'unmatched',
+    -- unmatched | matched | discrepancy
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (terminal_id, trace_number)
+);
 ```
 
