@@ -70,8 +70,11 @@ Completed                (bar.location update شد + treasury/settlement)
 7. کارشناس تأیید نهایی → POST /api/v1/admin/buyback/physical/{id}/approve
    → status=Approved
 8. سیستم در DB transaction (فقط بعد از Approved):
-   - Wallet.credit(user, bars.sale_wallet_scope, XAU_MG, order_item.pure_gold_mg)
-   - اگر ثبت مالکیت+OTP تأیید شد: Wallet.credit(user, scope, IRR, order_item.buyback_credit_rial)
+   - old_sale_wallet_scope = bar.sale_wallet_scope          # snapshot BEFORE clearing
+   - old_pure_gold_mg = original_order_item.pure_gold_mg    # snapshot BEFORE clearing
+   - Wallet.credit(user, old_sale_wallet_scope, XAU_MG, old_pure_gold_mg)
+   - اگر ثبت مالکیت+OTP تأیید شد: Wallet.credit(user, old_sale_wallet_scope, IRR, order_item.buyback_credit_rial)
+   - # فقط بعد از wallet credit و audit:
    - bar.status = ASSIGNED, customer_id = NULL, delivered_at = NULL, sale_wallet_scope = NULL  (D-92: ready for resale in any scope)
    - bar.current_location_id = target_location_id  (location تغییر میکند)
    - INSERT inventory_movement (type=transfer_in, to=target_location)

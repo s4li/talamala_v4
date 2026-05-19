@@ -43,7 +43,7 @@ Customer charges their IRR wallet via payment gateway. Fully automatic — no op
 4. Payment.callback (idempotent):
    - Payment.verify
    - if verified:
-     • Wallet.credit(user, <company>, IRR, amount_rial, ref=topup)
+     • Wallet.credit(user, wallet_scope, IRR, amount_rial, ref=topup)
      • UPDATE wallet_topups status=completed
      • Audit + Outbox: WalletToppedUp
      • Notification

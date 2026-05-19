@@ -18,7 +18,9 @@ Customer withdraws IRR from their wallet to a verified bank account. Requires op
 ## 3. Preconditions
 
 - Customer has sufficient IRR balance in the specified wallet scope
-- Customer has a verified bank account (`user_bank_accounts`)
+- Customer has a verified bank account (`user_bank_accounts`) where `is_verified = TRUE`
+- `bank_account.user_id == current_user` — account must belong to requesting user ([D-64](../01-decisions-audit-log.md))
+- Bank account owner `national_id` must match user's KYC `national_id` ([D-64](../01-decisions-audit-log.md))
 - KYC limits: daily/monthly rial withdrawal limits
 
 ## 4. Trigger
@@ -91,6 +93,7 @@ Customer withdraws IRR from their wallet to a verified bank account. Requires op
 | Insufficient IRR balance | Reject request |
 | KYC withdrawal limit exceeded | Reject request |
 | Bank account not verified | Reject request |
+| Bank account belongs to another user/person | Reject — third-party withdrawal forbidden ([D-64](../01-decisions-audit-log.md)) |
 | Operator rejects | Lock released, status=Rejected, notification |
 | Payout API fails | Lock released, status=Failed, notification with retry/contact |
 | Concurrent withdrawal drains balance | Lock mechanism prevents over-withdrawal |
@@ -101,6 +104,7 @@ Customer withdraws IRR from their wallet to a verified bank account. Requires op
 - Gold withdrawal does NOT exist ([D-31](../01-decisions-audit-log.md)) — use physical purchase from wallet instead
 - Lock → approve → consume pattern: atomic, prevents over-withdrawal
 - `withdrawable_balance = balance - locked - credit` (credit_limit NOT included for withdrawals)
+- Withdrawal to third-party bank account is forbidden in v1 ([D-64](../01-decisions-audit-log.md)) — national_id must match
 - Payout goes to the bank API matching the wallet scope (Goldis bank for goldis scope, TalaMala bank for talamala scope)
 
 ## 13. Related References
@@ -110,4 +114,4 @@ Customer withdraws IRR from their wallet to a verified bank account. Requires op
 - [Schema: Order (withdrawal_details)](../03-schema-index.md#11-order) | [Wallet](../03-schema-index.md#2-wallet)
 - [API: Withdrawal](../04-api-index.md)
 - [Reference: Finance/Wallet/Treasury](../references/finance-wallet-treasury-ledger.md)
-- Decisions: [D-31](../01-decisions-audit-log.md), [D-46](../01-decisions-audit-log.md)
+- Decisions: [D-31](../01-decisions-audit-log.md), [D-46](../01-decisions-audit-log.md), [D-64](../01-decisions-audit-log.md)
