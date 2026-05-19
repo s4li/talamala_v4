@@ -23,7 +23,7 @@
 - `user_bank_accounts`: IBAN + bank_name + account_holder + is_verified
 - **D-64:** حساب بانکی باید به نام خود کاربر باشد (national_id match). برداشت به حساب شخص ثالث **ممنوع**.
 
-> Canonical schemas: [Identity](../03-schema-index.md#1-identity)
+> Canonical schemas: [Identity](../03-schema-index.md#6-identity)
 
 ---
 
@@ -137,7 +137,7 @@ KYC limits are checked at:
 - Rial withdrawal request
 - POS sale (if customer identified)
 
-> Canonical schemas: [Identity (KYC)](../03-schema-index.md#1-identity)
+> Canonical schemas: [Identity (KYC)](../03-schema-index.md#7-kyc)
 
 ---
 
@@ -216,7 +216,7 @@ Sub-dealer/شبکه نمایندگی **حذف شد** در v1. فقط flat dealer
 
 **audit_logs: INSERT ONLY** — DB grant: `REVOKE UPDATE, DELETE ON audit_logs FROM app_user`
 
-> Canonical schemas: [Outbox + Audit](../03-schema-index.md#11-outbox--audit)
+> Canonical schemas: [Outbox + Audit](../03-schema-index.md#13-outbox--audit)
 
 ---
 

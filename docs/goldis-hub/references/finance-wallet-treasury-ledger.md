@@ -224,7 +224,7 @@ pending → gateway_verified_pending → inter_company_ledger_created → finali
 - حساب بانکی باید به نام خود کاربر باشد (national_id match — D-64)
 - برداشت به حساب شخص ثالث **ممنوع** (D-64)
 
-> Canonical schemas: [Payment](../03-schema-index.md#6-payment), [Wallet](../03-schema-index.md#2-wallet)
+> Canonical schemas: [Payment](../03-schema-index.md#12-payment), [Wallet](../03-schema-index.md#2-wallet)
 
 ---
 

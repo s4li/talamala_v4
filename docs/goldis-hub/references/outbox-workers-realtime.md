@@ -56,7 +56,7 @@ EVENT_HANDLERS: dict[str, list[Callable]] = {
 - Each handler must be idempotent (safe to re-execute)
 - `FOR UPDATE SKIP LOCKED` prevents double-processing in parallel
 
-> Canonical schemas: [Outbox + Audit](../03-schema-index.md#11-outbox--audit)
+> Canonical schemas: [Outbox + Audit](../03-schema-index.md#13-outbox--audit)
 
 ---
 

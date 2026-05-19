@@ -79,7 +79,7 @@ raw_hedge_price_rial = P_hedge_per_mg(لحظه فروش) × pure_gold_mg
 - تنها مبنای inter_company_ledger (snapshot قیمت عمدهی Goldis در لحظه فروش)
 - [D-65](../01-decisions-audit-log.md): P_hedge ≠ internal_base_price خالص
 
-> Canonical schemas: [Pricing](../03-schema-index.md#7-pricing)
+> Canonical schemas: [Pricing](../03-schema-index.md#9-pricing)
 
 ---
 
@@ -125,7 +125,7 @@ Frontend domain → channel lookup → brand + payment_account + seller + operat
 - `raw_hedge_price_rial` = snapshot P_hedge × pure_gold_mg (inter-company basis — D-65)
 - `price_snapshot` = full pricing calculation (JSON)
 
-> Canonical schemas: [Order](../03-schema-index.md#8-order)
+> Canonical schemas: [Order](../03-schema-index.md#11-order)
 
 ---
 
@@ -181,7 +181,7 @@ Worker هر ۶۰ ثانیه:
 - حتی اگر brand=TalaMala — Goldis انحصارا marketplace را اداره میکند
 - TalaMala هیچ marketplace income مستقیم ندارد
 
-> Canonical schemas: [Marketplace](../03-schema-index.md#12-marketplace)
+> Canonical schemas: [Platform (marketplace channels)](../03-schema-index.md#1-platform), [Catalog (external mappings)](../03-schema-index.md#8-catalog)
 
 ---
 
