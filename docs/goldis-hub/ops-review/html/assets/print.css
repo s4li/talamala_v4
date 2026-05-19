@@ -19,7 +19,7 @@ html, body {
 /* --- A4 Print --- */
 @page {
   size: A4;
-  margin: 16mm 14mm;
+  margin: 18mm 16mm 18mm 16mm;
 }
 
 /* --- Page Break Helpers --- */
@@ -60,9 +60,29 @@ table, blockquote, .card, .notes-box, .decision-box, .checklist-group {
   .print-only {
     display: block !important;
   }
+  html, body {
+    width: auto;
+    min-height: auto;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
   body {
     font-size: 12px;
     line-height: 1.7;
+  }
+  .print-container {
+    padding: 6mm 4mm;
+    box-sizing: border-box;
+  }
+  table {
+    max-width: 100%;
+    margin-right: 0;
+    margin-left: 0;
+  }
+  th, td {
+    padding: 6px 8px;
   }
   a {
     text-decoration: none;
@@ -433,6 +453,11 @@ hr {
 .instructions-box h3 {
   color: #0d6efd;
   margin-top: 0;
+}
+
+/* --- Print Container Wrapper --- */
+.print-container {
+  box-sizing: border-box;
 }
 
 /* --- Responsive for screen preview --- */

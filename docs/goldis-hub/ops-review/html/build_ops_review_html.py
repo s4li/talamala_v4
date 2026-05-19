@@ -191,10 +191,12 @@ def html_wrapper(title, body, session_num=None):
   <link rel="stylesheet" href="assets/print.css">
 </head>
 <body>
+<main class="print-container">
 {body}
 <div class="page-footer no-print" style="margin-top:3em; text-align:center; color:#aaa; font-size:0.85em;">
   Goldis Hub &mdash; Operational Review &mdash; {footer_session} &mdash; v1.0
 </div>
+</main>
 </body>
 </html>
 """
