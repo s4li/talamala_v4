@@ -78,7 +78,7 @@ Goldis operator purchases raw gold (granules, large ingots) from the market to c
 - Hedge Buy **تنها در سطح Goldis** (operator only) قابل ایجاد است
 - هر hedge_buy یک source برای multiple settlements می‌تواند باشد
 - وزن در دسترس برای settlement نباید از total_weight_mg بیشتر شود (CHECK constraint یا service-level validation)
-- هر settlement یک `inter_company_ledger.source_type='hedge_buy_settlement'` entry میسازد
+- هر settlement، obligation های open موجود در `inter_company_ledger` را FIFO consume میکند و در `inter_company_settle_actions` audit record میسازد (نه entry جدید)
 
 ## 6. DB Writes
 
@@ -102,10 +102,8 @@ Goldis operator purchases raw gold (granules, large ingots) from the market to c
 ## 9. Inter-Company Impact
 
 - Hedge buy itself: no inter-company entries (Goldis buying from external market)
-- Settlement phase: FIFO consume open gold obligations from inter_company_ledger
-  - `source_type='hedge_buy_settlement'`
-  - Creditor: TalaMala/AminZar, Debtor: Goldis, asset: gold
-  - If `source_bulk_gold_id` provided: bulk_gold_inventory withdrawal + inventory_movement
+- Settlement phase: FIFO consume **existing open** gold obligations in `inter_company_ledger` + audit in `inter_company_settle_actions` (see [Flow 12](12-inter-company-settlement.md))
+  - If `source_bulk_gold_id` provided: `bulk_gold_inventory` withdrawal + `bulk_gold_movements` + `inventory_movements`
 
 ## 10. Audit & Events
 
@@ -130,7 +128,7 @@ Goldis operator purchases raw gold (granules, large ingots) from the market to c
 - Hedge Buy is **Goldis-only** operation — no other company can create hedge buys
 - `treasury_positions` delta is always **negative** for hedge_buy (closing exposure)
 - Available settlement weight ≤ total_weight_mg (cannot over-withdraw from bulk_gold_inventory)
-- Each settlement creates `source_type='hedge_buy_settlement'` in inter_company_ledger
+- Settlement FIFO-consumes existing open obligations in `inter_company_ledger` — does NOT create new ledger entries
 - Bulk gold = raw gold (granules, ingots) — NOT serialized bars; stored by weight (mg) not serial ([D-83](../01-decisions-audit-log.md))
 - Physical delivery to creditor company is a **separate real-world event** — operator confirms in system after actual delivery
 

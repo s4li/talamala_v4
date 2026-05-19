@@ -144,5 +144,5 @@ damaged              (پلمب‌شکسته → بازرسی، قابل فروش
 - [Domain Models — Fulfillment](../02-domain-models.md#۸-فرایند-تحویل-کالا)
 - [Schema: Fulfillment](../03-schema-index.md#5-fulfillment) | [Inventory](../03-schema-index.md#10-inventory)
 - [API: Fulfillment](../04-api-index.md)
-- [Reference: Inventory/Location](../references/inventory-location-transfer.md)
+- [Reference: Inventory/Location](../references/inventory-bars-warehouse.md)
 - Decisions: [D-13](../01-decisions-audit-log.md), [D-49](../01-decisions-audit-log.md), [D-77](../01-decisions-audit-log.md), [D-78](../01-decisions-audit-log.md), [D-79](../01-decisions-audit-log.md), [D-80](../01-decisions-audit-log.md)

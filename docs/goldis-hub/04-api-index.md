@@ -127,6 +127,7 @@
 ### Treasury
 - GET `/admin/treasury/positions?status=open&metal=gold`
 - POST `/admin/treasury/positions/{id}/cover` { amount_mg, source_note }
+- POST `/admin/treasury/hedge-buy/request` { metal_type, amount_mg, supplier_name, purchase_price_per_gram_rial, notes } — ثبت خرید طلای خام از بازار (Hedge Buy — §12.5.3 الف، D-82)
 - GET `/admin/treasury/snapshot`
 - PUT `/admin/treasury/settings`
 
@@ -137,6 +138,10 @@
 - POST `/admin/inter-company/settle-gold` { creditor_company_id, debtor_company_id, amount_mg, notes, source_bulk_gold_id? } — تأیید تحویل طلا، FIFO consume. اگر `source_bulk_gold_id` ارائه شود (D-82 Hedge Buy): طلا از `bulk_gold_inventory` برداشته شود و `inventory_movement` ایجاد شود.
 - GET `/admin/inter-company/settle-actions?company_a=X&company_b=Y&date_from=...` — audit log همه‌ی settle actions
 - GET `/admin/inter-company/reports?period=month` — جمعبندی دورهای (aggregate query)
+
+### Dealer Commission Settlement (D-73)
+- GET `/admin/dealer-commissions?dealer_id=X&status=open|settled` — لیست entries کمیسیون نماینده
+- POST `/admin/dealer-commissions/settle` { dealer_user_id, period_from?, period_to?, notes } — تسویه دورهای کمیسیون Gold-for-Gold (واریز XAU_MG به کیف نماینده)
 
 ### Marketplace
 - POST `/admin/external-channels`
