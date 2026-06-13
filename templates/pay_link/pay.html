@@ -1,0 +1,86 @@
+{% extends "shop/base_shop.html" %}
+{% block title %}پرداخت آنلاین - طلاملا{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+
+      {% if request.query_params.get('error') %}
+      <div class="alert-tm-danger py-2 mb-3">
+        <i class="bi bi-exclamation-triangle me-1"></i>{{ request.query_params.get('error') }}
+      </div>
+      {% endif %}
+
+      <div class="card-tm text-center mb-4">
+        <div class="mb-3">
+          <i class="bi bi-credit-card" style="font-size:2.5rem;color:var(--tm-primary)"></i>
+        </div>
+        <h5 class="fw-bold mb-1">پرداخت آنلاین</h5>
+        <p class="text-muted small mb-0">درخواست شده توسط طلاملا</p>
+      </div>
+
+      <div class="card-tm mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-3" style="border-bottom:1px solid var(--tm-border)">
+          <span class="text-muted">توضیحات</span>
+          <span class="fw-semibold">{{ link.description }}</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-3" style="border-bottom:1px solid var(--tm-border)">
+          <span class="text-muted">مبلغ قابل پرداخت</span>
+          <span class="fw-bold fs-5" style="color:var(--tm-primary)">
+            {{ link.amount_irr | toman }} تومان
+          </span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-3" style="border-bottom:1px solid var(--tm-border)">
+          <span class="text-muted">درگاه پرداخت</span>
+          <span class="badge bg-secondary">{{ link.gateway_label }}</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="text-muted">وضعیت</span>
+          <span class="badge bg-{{ link.status_color }}">{{ link.status_label }}</span>
+        </div>
+
+        {% if link.expires_at %}
+        <div class="d-flex justify-content-between align-items-center mt-3 pt-3" style="border-top:1px solid var(--tm-border)">
+          <span class="text-muted small">انقضا</span>
+          <span class="small text-muted">{{ link.expires_at | jdate }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if link.is_paid %}
+        <div class="alert-tm-success text-center py-3">
+          <i class="bi bi-check-circle-fill me-1"></i>این لینک پرداخت شده است
+        </div>
+        <a href="/pay/{{ link.token }}/receipt" class="btn btn-tm-primary w-100 mt-2">
+          مشاهده رسید پرداخت
+        </a>
+      {% elif link.is_expired %}
+        <div class="alert-tm-danger text-center py-3">
+          <i class="bi bi-clock-history me-1"></i>این لینک منقضی شده است
+        </div>
+      {% elif link.status == 'cancelled' %}
+        <div class="alert-tm-danger text-center py-3">
+          <i class="bi bi-x-circle me-1"></i>این لینک لغو شده است
+        </div>
+      {% elif can_pay %}
+        <form method="post" action="/pay/{{ link.token }}/initiate">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="btn btn-tm-primary w-100 btn-lg">
+            <i class="bi bi-credit-card me-1"></i>
+            پرداخت {{ link.amount_irr | toman }} تومان
+          </button>
+        </form>
+        <p class="text-muted text-center small mt-2">
+          شما به درگاه {{ link.gateway_label }} منتقل خواهید شد
+        </p>
+      {% else %}
+        <div class="alert-tm-danger text-center py-3">
+          <i class="bi bi-person-x me-1"></i>این لینک برای شما نیست
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

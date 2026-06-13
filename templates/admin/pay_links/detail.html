@@ -1,0 +1,177 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}لینک پرداخت #{{ link.id }} - ادمین طلاملا{% endblock %}
+
+{% block content %}
+<div class="page-header tm-animate-fade-in">
+  <h4>
+    <i class="bi bi-link-45deg me-2"></i>
+    لینک پرداخت <span class="text-muted">#{{ link.id }}</span>
+  </h4>
+  <a href="/admin/payment-links" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-right me-1"></i> بازگشت
+  </a>
+</div>
+
+{% if request.query_params.get('msg') %}
+<div class="alert-tm-success py-2 mb-3"><i class="bi bi-check-circle me-1"></i>{{ request.query_params.get('msg') }}</div>
+{% endif %}
+{% if request.query_params.get('error') %}
+<div class="alert-tm-danger py-2 mb-3"><i class="bi bi-exclamation-triangle me-1"></i>{{ request.query_params.get('error') }}</div>
+{% endif %}
+
+<div class="row g-4">
+
+  <!-- Left: details -->
+  <div class="col-lg-7">
+    <div class="card-tm mb-4">
+      <h6 class="fw-bold mb-3 pb-2" style="border-bottom:1px solid var(--tm-border)">
+        <i class="bi bi-info-circle me-1"></i> اطلاعات لینک
+      </h6>
+
+      <div class="row g-0 mb-2">
+        <div class="col-5 text-muted small">وضعیت</div>
+        <div class="col-7">
+          <span class="badge bg-{{ link.status_color }}">{{ link.status_label }}</span>
+        </div>
+      </div>
+      <div class="row g-0 mb-2">
+        <div class="col-5 text-muted small">کاربر</div>
+        <div class="col-7 fw-semibold">
+          <a href="/admin/customers/{{ link.user_id }}">{{ link.user.display_name }}</a>
+          <span class="text-muted small ms-1">({{ link.user.mobile }})</span>
+        </div>
+      </div>
+      <div class="row g-0 mb-2">
+        <div class="col-5 text-muted small">مبلغ</div>
+        <div class="col-7 fw-bold" style="color:var(--tm-primary)">{{ link.amount_irr | toman }} تومان</div>
+      </div>
+      <div class="row g-0 mb-2">
+        <div class="col-5 text-muted small">توضیحات</div>
+        <div class="col-7">{{ link.description }}</div>
+      </div>
+      <div class="row g-0 mb-2">
+        <div class="col-5 text-muted small">درگاه</div>
+        <div class="col-7"><span class="badge bg-secondary">{{ link.gateway_label }}</span></div>
+      </div>
+      <div class="row g-0 mb-2">
+        <div class="col-5 text-muted small">ایجاد شده توسط</div>
+        <div class="col-7 small">{{ link.creator.display_name if link.creator else '—' }}</div>
+      </div>
+      <div class="row g-0 mb-2">
+        <div class="col-5 text-muted small">تاریخ ایجاد</div>
+        <div class="col-7 small">{{ link.created_at | jdate }}</div>
+      </div>
+      {% if link.expires_at %}
+      <div class="row g-0 mb-2">
+        <div class="col-5 text-muted small">انقضا</div>
+        <div class="col-7 small">{{ link.expires_at | jdate }}</div>
+      </div>
+      {% endif %}
+      {% if link.paid_at %}
+      <div class="row g-0 mb-2">
+        <div class="col-5 text-muted small">تاریخ پرداخت</div>
+        <div class="col-7 small text-success fw-semibold">{{ link.paid_at | jdate }}</div>
+      </div>
+      {% endif %}
+      {% if link.ref_number %}
+      <div class="row g-0 mb-2">
+        <div class="col-5 text-muted small">شماره مرجع</div>
+        <div class="col-7 small fw-semibold">{{ link.ref_number }}</div>
+      </div>
+      {% endif %}
+      {% if link.notes %}
+      <div class="row g-0 mb-2">
+        <div class="col-5 text-muted small">یادداشت</div>
+        <div class="col-7 small text-muted">{{ link.notes }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Receipt (if paid) -->
+    {% if link.is_paid %}
+    <div class="card-tm" style="border-top:3px solid var(--tm-success)">
+      <div class="text-center mb-3">
+        <i class="bi bi-check-circle-fill text-success" style="font-size:1.5rem"></i>
+        <div class="fw-bold mt-1">پرداخت موفق</div>
+      </div>
+      <div class="d-flex justify-content-between mb-1">
+        <span class="text-muted small">پرداخت‌کننده</span>
+        <span class="small">{{ link.user.display_name }} ({{ link.user.mobile }})</span>
+      </div>
+      <div class="d-flex justify-content-between mb-1">
+        <span class="text-muted small">مبلغ</span>
+        <span class="small fw-bold">{{ link.amount_irr | toman }} تومان</span>
+      </div>
+      <div class="d-flex justify-content-between mb-1">
+        <span class="text-muted small">تاریخ پرداخت</span>
+        <span class="small">{{ link.paid_at | jdate }}</span>
+      </div>
+      <div class="d-flex justify-content-between">
+        <span class="text-muted small">شماره مرجع</span>
+        <span class="small fw-semibold">{{ link.ref_number or '—' }}</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right: link + actions -->
+  <div class="col-lg-5">
+
+    <!-- Shareable link -->
+    <div class="card-tm mb-4">
+      <h6 class="fw-bold mb-2"><i class="bi bi-share me-1"></i> لینک پرداخت</h6>
+      <div class="d-flex gap-2 align-items-center">
+        <input type="text" id="payUrl" class="form-control form-control-sm" value="{{ pay_url }}" readonly dir="ltr">
+        <button onclick="copyLink()" class="btn btn-outline-secondary btn-sm" title="کپی">
+          <i class="bi bi-clipboard" id="copyIcon"></i>
+        </button>
+      </div>
+      <div class="mt-2">
+        <a href="{{ pay_url }}" target="_blank" class="btn btn-sm btn-outline-primary w-100">
+          <i class="bi bi-box-arrow-up-right me-1"></i> مشاهده صفحه پرداخت
+        </a>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card-tm">
+      <h6 class="fw-bold mb-2"><i class="bi bi-gear me-1"></i> عملیات</h6>
+
+      {% if link.is_active and user.has_permission("pay_links", "edit") %}
+      <form method="post" action="/admin/payment-links/{{ link.id }}/cancel"
+            onsubmit="return confirm('آیا از لغو این لینک پرداخت مطمئن هستید؟')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-danger btn-sm w-100">
+          <i class="bi bi-x-circle me-1"></i> لغو لینک پرداخت
+        </button>
+      </form>
+      {% elif link.is_paid %}
+      <div class="text-success small text-center py-2">
+        <i class="bi bi-check-circle me-1"></i> پرداخت انجام شده — عملیات بیشتری لازم نیست
+      </div>
+      {% else %}
+      <div class="text-muted small text-center py-2">لینک {{ link.status_label }} است</div>
+      {% endif %}
+
+      <hr class="my-2">
+      {% if user.has_permission("pay_links", "create") %}
+      <a href="/admin/payment-links/new?user_id={{ link.user_id }}" class="btn btn-outline-secondary btn-sm w-100">
+        <i class="bi bi-plus-circle me-1"></i> لینک جدید برای همین کاربر
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+function copyLink() {
+  const inp = document.getElementById('payUrl');
+  navigator.clipboard.writeText(inp.value).then(() => {
+    const icon = document.getElementById('copyIcon');
+    icon.className = 'bi bi-clipboard-check';
+    setTimeout(() => { icon.className = 'bi bi-clipboard'; }, 2000);
+  });
+}
+</script>
+{% endblock %}

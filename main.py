@@ -122,6 +122,7 @@ from modules.blog.models import (  # noqa: F401
     ArticleCategory, ArticleTag, ArticleTagLink,
     Article, ArticleImage, ArticleComment,
 )
+from modules.pay_link.models import PaymentLink  # noqa: F401
 
 # ==========================================
 # Import routers
@@ -160,6 +161,8 @@ from modules.hedging.admin_routes import router as hedging_admin_router
 from modules.blog.routes import router as blog_router
 from modules.blog.admin_routes import router as blog_admin_router
 from modules.admin.testimonial_routes import router as testimonial_admin_router
+from modules.pay_link.routes import router as pay_link_router
+from modules.pay_link.admin_routes import router as pay_link_admin_router
 
 
 # ==========================================
@@ -548,6 +551,8 @@ app.include_router(hedging_admin_router)
 app.include_router(blog_router)
 app.include_router(blog_admin_router)
 app.include_router(testimonial_admin_router)
+app.include_router(pay_link_router)
+app.include_router(pay_link_admin_router)
 
 
 # ==========================================

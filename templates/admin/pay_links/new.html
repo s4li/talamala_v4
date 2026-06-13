@@ -1,0 +1,137 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}لینک پرداخت جدید - ادمین طلاملا{% endblock %}
+
+{% block content %}
+<div class="page-header tm-animate-fade-in">
+  <h4><i class="bi bi-link-45deg me-2"></i>ایجاد لینک پرداخت</h4>
+  <a href="/admin/payment-links" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-right me-1"></i> بازگشت
+  </a>
+</div>
+
+{% if request.query_params.get('error') %}
+<div class="alert-tm-danger py-2 mb-3"><i class="bi bi-exclamation-triangle me-1"></i>{{ request.query_params.get('error') }}</div>
+{% endif %}
+
+<div class="row justify-content-center">
+  <div class="col-md-7 col-lg-6">
+    <div class="card-tm">
+      <form method="post" action="/admin/payment-links/new">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <!-- User search -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">موبایل کاربر <span class="text-danger">*</span></label>
+          <input
+            type="text"
+            name="user_mobile"
+            id="userMobile"
+            class="form-control"
+            placeholder="09xxxxxxxxx"
+            value="{{ prefill_user.mobile if prefill_user else '' }}"
+            required
+            maxlength="11"
+            dir="ltr"
+          >
+          <div id="userInfo" class="form-text mt-1"></div>
+        </div>
+
+        <!-- Amount -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">مبلغ (تومان) <span class="text-danger">*</span></label>
+          <input
+            type="text"
+            name="amount_toman"
+            class="form-control"
+            placeholder="مثلاً: 500000"
+            required
+            dir="ltr"
+          >
+          <div class="form-text">مبلغ را به تومان وارد کنید</div>
+        </div>
+
+        <!-- Description -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">توضیحات / موضوع <span class="text-danger">*</span></label>
+          <input
+            type="text"
+            name="description"
+            class="form-control"
+            placeholder="مثلاً: فاکتور شماره ۱۲۳ — بدهی مانده"
+            required
+            maxlength="500"
+          >
+        </div>
+
+        <!-- Gateway -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">درگاه پرداخت</label>
+          <select name="gateway" class="form-select">
+            {% for gw in gateways %}
+            <option value="{{ gw }}" {% if gw == 'sepehr' %}selected{% endif %}>
+              {{ gateway_labels[gw] }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Expiry (optional) -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">انقضا (اختیاری)</label>
+          <div class="input-group">
+            <input
+              type="number"
+              name="expires_days"
+              class="form-control"
+              placeholder="تعداد روز"
+              min="1"
+              max="365"
+              dir="ltr"
+            >
+            <span class="input-group-text">روز</span>
+          </div>
+          <div class="form-text">خالی = بدون انقضا</div>
+        </div>
+
+        <!-- Notes (admin only) -->
+        <div class="mb-4">
+          <label class="form-label fw-semibold">یادداشت داخلی (اختیاری)</label>
+          <textarea name="notes" class="form-control" rows="2" placeholder="فقط برای ادمین‌ها نمایش داده می‌شود"></textarea>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-tm-primary flex-fill">
+            <i class="bi bi-plus-circle me-1"></i> ایجاد لینک پرداخت
+          </button>
+          <a href="/admin/payment-links" class="btn btn-outline-secondary">انصراف</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// Live user lookup on mobile input
+const inp = document.getElementById('userMobile');
+const info = document.getElementById('userInfo');
+let timer;
+inp.addEventListener('input', () => {
+  clearTimeout(timer);
+  const val = inp.value.trim();
+  if (val.length < 10) { info.textContent = ''; return; }
+  timer = setTimeout(async () => {
+    try {
+      const r = await fetch(`/admin/payment-links/api/user-lookup?mobile=${encodeURIComponent(val)}`);
+      if (r.ok) {
+        const d = await r.json();
+        if (d.found) {
+          info.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${d.name} — ${d.mobile}</span>`;
+        } else {
+          info.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>کاربر یافت نشد</span>`;
+        }
+      }
+    } catch {}
+  }, 500);
+});
+</script>
+{% endblock %}

@@ -96,6 +96,11 @@
             <i class="bi bi-shield-check"></i> پوشش ریسک (هجینگ)
         </a>
         {% endif %}
+        {% if user.has_permission('pay_links') %}
+        <a href="/admin/payment-links" class="nav-link {% if active_page == 'pay_links' %}active{% endif %}">
+            <i class="bi bi-link-45deg"></i> لینک‌های پرداخت
+        </a>
+        {% endif %}
         {% if user.has_permission('coupons') %}
         <a href="/admin/coupons" class="nav-link {% if active_page == 'coupons' %}active{% endif %}">
             <i class="bi bi-ticket-perforated"></i> کوپن‌ها
