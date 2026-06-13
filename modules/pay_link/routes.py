@@ -1,6 +1,6 @@
 """
-Pay Link — public routes
-  GET  /pay/{token}           — show payment page (requires login)
+Pay Link — public routes (no login required — token is the access key)
+  GET  /pay/{token}           — show payment page, auto-initiates if active
   POST /pay/{token}/initiate  — redirect to gateway
   POST /pay/callback/sepehr   — Sepehr callback
   GET  /pay/callback/zibal    — Zibal callback
@@ -17,28 +17,20 @@ from sqlalchemy.orm import Session
 from config.database import get_db
 from common.security import csrf_check, new_csrf_token
 from common.templating import templates
-from modules.auth.deps import get_current_active_user, require_login
+from modules.auth.deps import get_current_active_user
 from modules.pay_link.service import pay_link_service
 
 router = APIRouter(prefix="/pay", tags=["pay_link"])
 
 
-def _cart_count(request: Request, db: Session, me) -> int:
-    try:
-        from modules.cart.service import cart_service
-        return cart_service.get_item_count(db, me.id)
-    except Exception:
-        return 0
-
-
-# ── Payment page ────────────────────────────────────────────────────────────
+# ── Payment page (no login needed) ──────────────────────────────────────────
 
 @router.get("/{token}")
 async def pay_page(
     request: Request,
     token: str,
     db: Session = Depends(get_db),
-    me=Depends(require_login),
+    me=Depends(get_current_active_user),
 ):
     link = pay_link_service.get_by_token(db, token)
     if not link:
@@ -51,16 +43,16 @@ async def pay_page(
     resp = templates.TemplateResponse("pay_link/pay.html", {
         "request": request,
         "user": me,
-        "cart_count": _cart_count(request, db, me),
+        "cart_count": 0,
+        "gold_price": None,
         "link": link,
         "csrf_token": csrf,
-        "can_pay": link.is_active and (me.id == link.user_id or me.is_admin),
     })
     resp.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return resp
 
 
-# ── Initiate payment ─────────────────────────────────────────────────────────
+# ── Initiate payment (no login needed) ──────────────────────────────────────
 
 @router.post("/{token}/initiate")
 async def initiate_payment(
@@ -68,7 +60,6 @@ async def initiate_payment(
     token: str,
     csrf_token: str = Form(""),
     db: Session = Depends(get_db),
-    me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
 
@@ -76,8 +67,8 @@ async def initiate_payment(
     if not link:
         return RedirectResponse("/", status_code=303)
 
-    if not (me.id == link.user_id or me.is_admin):
-        error = urllib.parse.quote("این لینک پرداخت برای شما نیست")
+    if not link.is_active:
+        error = urllib.parse.quote(f"این لینک {link.status_label} است")
         return RedirectResponse(f"/pay/{token}?error={error}", status_code=303)
 
     result = pay_link_service.initiate(db, link)
@@ -90,7 +81,7 @@ async def initiate_payment(
         return RedirectResponse(f"/pay/{token}?error={error}", status_code=303)
 
 
-# ── Receipt page ─────────────────────────────────────────────────────────────
+# ── Receipt page (no login needed) ──────────────────────────────────────────
 
 @router.get("/{token}/receipt")
 async def receipt_page(
@@ -106,7 +97,8 @@ async def receipt_page(
     return templates.TemplateResponse("pay_link/receipt.html", {
         "request": request,
         "user": me,
-        "cart_count": _cart_count(request, db, me) if me else 0,
+        "cart_count": 0,
+        "gold_price": None,
         "link": link,
     })
 
@@ -124,7 +116,7 @@ async def sepehr_callback(
     digitalreceipt: str = Form(None),
     db: Session = Depends(get_db),
 ):
-    token = link_token or invoiceid  # fallback: invoiceid = link.token set as order_ref
+    token = link_token or invoiceid
 
     if not token:
         return RedirectResponse("/", status_code=303)
@@ -151,7 +143,7 @@ async def sepehr_callback(
         return RedirectResponse(f"/pay/{token}?error={error}", status_code=303)
 
 
-# ── Zibal callback (GET) ──────────────────────────────────────────────────────
+# ── Zibal callback (GET) ─────────────────────────────────────────────────────
 
 @router.get("/callback/zibal")
 async def zibal_callback(
@@ -179,7 +171,7 @@ async def zibal_callback(
         return RedirectResponse(f"/pay/{link_token}?error={error}", status_code=303)
 
 
-# ── Top callback (GET) ────────────────────────────────────────────────────────
+# ── Top callback (GET) ───────────────────────────────────────────────────────
 
 @router.get("/callback/top")
 async def top_callback(
@@ -210,7 +202,7 @@ async def top_callback(
         return RedirectResponse(f"/pay/{link_token}?error={error}", status_code=303)
 
 
-# ── Parsian callback (POST) ───────────────────────────────────────────────────
+# ── Parsian callback (POST) ──────────────────────────────────────────────────
 
 @router.post("/callback/parsian")
 async def parsian_callback(
