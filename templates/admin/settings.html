@@ -315,6 +315,13 @@
                 </select>
                 <small class="text-muted d-block mt-1">این درگاه هنگام پرداخت به‌صورت پیش‌فرض انتخاب شده نمایش داده می‌شود.</small>
             </div>
+            <div class="col-md-6">
+                {% set top_fee = settings.get('top_credit_fee_percent').value if settings.get('top_credit_fee_percent') else '3' %}
+                <label class="form-label-tm" for="top_credit_fee_percent">هزینه وام اعتباری درگاه تاپ (٪)</label>
+                <input type="text" class="form-control" name="top_credit_fee_percent" id="top_credit_fee_percent"
+                       value="{{ top_fee }}" dir="ltr" inputmode="decimal">
+                <small class="text-muted d-block mt-1">درصدی که هنگام پرداخت از درگاه <strong>تاپ</strong> به مبلغ کل سفارش اضافه می‌شود (پیش‌فرض ۳٪). در فاکتور با عنوان «هزینه وام اعتباری تاپ» ثبت می‌شود.</small>
+            </div>
         </div>
         <script>
         (function(){

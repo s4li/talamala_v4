@@ -79,6 +79,10 @@ class Order(Base):
     payment_ref = Column(String, nullable=True)        # شماره مرجع / ref_number
     paid_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Top gateway credit-loan surcharge (هزینه وام اعتباری تاپ)
+    # Set only when paying via the Top gateway; 0 otherwise. Stored in rial.
+    top_credit_fee = Column(BigInteger, server_default=text("0"), default=0, nullable=False)
+
     # Gold-for-Gold (dealer B2B)
     payment_asset_code = Column(String(10), nullable=True)  # NULL/IRR = ریالی، XAU_MG = طلایی
     gold_total_mg = Column(BigInteger, nullable=True)       # جمع کل طلا (میلی‌گرم)
@@ -151,6 +155,11 @@ class Order(Base):
         if self.promo_choice == "DISCOUNT" and self.promo_amount:
             base = max(0, base - self.promo_amount)
         return base
+
+    @property
+    def payable_total(self) -> int:
+        """grand_total + Top credit-loan surcharge (the actual amount the customer pays)."""
+        return self.grand_total + (self.top_credit_fee or 0)
 
 
 class OrderItem(Base):

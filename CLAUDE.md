@@ -121,7 +121,7 @@ talamala_v4/
 │   ├── admin/
 │   │   ├── base_admin.html      # Admin sidebar layout
 │   │   ├── dashboard.html
-│   │   ├── settings.html        # Asset prices (gold/silver) + tax, shipping, trade toggles, precious metal trade fees, log retention
+│   │   ├── settings.html        # Asset prices (gold/silver) + tax, shipping, trade toggles, precious metal trade fees, Top credit-loan fee %, log retention
 │   │   ├── catalog/             # products, categories, packages, gift_boxes, batches
 │   │   ├── inventory/           # bars, edit_bar
 │   │   ├── reconciliation.html  # Admin reconciliation session list
@@ -213,8 +213,10 @@ talamala_v4/
 - **CartItem**: id, cart_id, product_id, quantity, gift_box_id (FK→gift_boxes, nullable)
 
 ### order/models.py
-- **Order**: id, customer_id (FK→users), status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_dealer_id (FK→users), shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at, payment_asset_code (String(10), nullable — NULL/IRR=ریالی, XAU_MG=طلایی), gold_total_mg (BigInteger, nullable — total gold cost in mg), delivery_otp_hash (String, nullable — OTP for dealer delivery), delivery_otp_expiry (DateTime(tz), nullable)
+- **Order**: id, customer_id (FK→users), status (Pending/Paid/Cancelled), cancellation_reason, cancelled_at, delivery_method (Pickup/Postal), is_gift (bool), pickup_dealer_id (FK→users), shipping_province, shipping_city, shipping_address, shipping_postal_code, delivery_code_hash, delivery_status, total_amount, shipping_cost, insurance_cost, coupon_code, promo_choice (DISCOUNT/CASHBACK), promo_amount, cashback_settled, payment_method, payment_ref, paid_at, track_id, delivered_at, created_at, payment_asset_code (String(10), nullable — NULL/IRR=ریالی, XAU_MG=طلایی), gold_total_mg (BigInteger, nullable — total gold cost in mg), delivery_otp_hash (String, nullable — OTP for dealer delivery), delivery_otp_expiry (DateTime(tz), nullable), top_credit_fee (BigInteger, default 0 — هزینه وام اعتباری درگاه تاپ به ریال؛ فقط هنگام پرداخت با درگاه Top ست می‌شود)
   - Property: `is_gold_order` → `payment_asset_code == "XAU_MG"` (Gold-for-Gold dealer order)
+  - Property: `grand_total` → جمع کالا + ارسال + بیمه − تخفیف (بدون هزینه وام اعتباری)
+  - Property: `payable_total` → `grand_total + top_credit_fee` (مبلغ واقعی پرداختی؛ مبنای ارسال به درگاه و استرداد)
 - **OrderItem**: id, order_id, product_id, bar_id, applied_metal_price, applied_unit_price, applied_weight, applied_purity, applied_wage_percent, applied_tax_percent, final_gold_amount, final_wage_amount, final_tax_amount, gift_box_id (FK→gift_boxes, nullable), applied_gift_box_price (BigInteger, default=0), line_total (= gold_total + gift_box_price), gold_cost_mg (BigInteger, nullable — gold cost for dealer orders), applied_dealer_wage_percent (Numeric(5,2), nullable — dealer tier wage snapshot)
 - **OrderStatusLog**: id, order_id (FK→orders, CASCADE), field ("status"/"delivery_status"), old_value, new_value, changed_by, description, created_at — audit trail for status changes
 

@@ -76,6 +76,21 @@ class PaymentService:
         setting = db.query(SystemSetting).filter(SystemSetting.key == "default_gateway").first()
         return setting.value.strip() if setting and setting.value else ""
 
+    def get_top_credit_fee_percent(self, db: Session) -> float:
+        """Top gateway credit-loan surcharge percent (default 3%). Configurable via SystemSetting."""
+        setting = db.query(SystemSetting).filter(SystemSetting.key == "top_credit_fee_percent").first()
+        try:
+            return float(setting.value.strip()) if setting and setting.value else 3.0
+        except (ValueError, TypeError):
+            return 3.0
+
+    def calc_top_credit_fee(self, db: Session, base_amount: int) -> int:
+        """Compute the Top credit-loan surcharge in rial, rounded to nearest 10 rial."""
+        percent = self.get_top_credit_fee_percent(db)
+        if base_amount <= 0 or percent <= 0:
+            return 0
+        return int(round(base_amount * percent / 100 / 10)) * 10
+
     # ==========================================
     # 💰 Pay from Wallet
     # ==========================================
@@ -89,6 +104,8 @@ class PaymentService:
         if order.status != OrderStatus.PENDING:
             return {"success": False, "message": "این سفارش قابل پرداخت نیست"}
 
+        # Wallet payment carries no Top credit-loan surcharge — clear any stale fee.
+        order.top_credit_fee = 0
         amount = order.grand_total
         if amount < 0:
             return {"success": False, "message": "مبلغ سفارش نامعتبر است"}
@@ -164,7 +181,14 @@ class PaymentService:
         if not gw:
             return {"success": False, "message": f"درگاه {gateway_name} در دسترس نیست"}
 
-        amount = order.grand_total
+        # Top gateway charges a credit-loan surcharge (هزینه وام اعتباری تاپ).
+        # Recorded on the order so it appears on the invoice; cleared for other gateways.
+        if gateway_name == "top":
+            order.top_credit_fee = self.calc_top_credit_fee(db, order.grand_total)
+        else:
+            order.top_credit_fee = 0
+
+        amount = order.payable_total
         callback_url = f"{BASE_URL}/payment/{gateway_name}/callback?order_id={order_id}"
 
         result = gw.create_payment(GatewayPaymentRequest(
@@ -245,7 +269,8 @@ class PaymentService:
         if order.status != OrderStatus.PAID:
             return {"success": False, "message": "فقط سفارشات پرداخت‌شده قابل استرداد هستند"}
 
-        amount = order.grand_total
+        # Refund the full amount actually paid, including any Top credit-loan surcharge.
+        amount = order.payable_total
         try:
             wallet_service.deposit(
                 db, order.customer_id, amount,

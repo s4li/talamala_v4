@@ -519,9 +519,15 @@
                             <span>{{ order.insurance_cost | toman }} تومان</span>
                         </div>
                         {% endif %}
+                        {% if order.top_credit_fee and order.top_credit_fee > 0 %}
+                        <div class="totals-line" style="color:#b8860b;">
+                            <span>هزینه وام اعتباری تاپ ({{ get_setting_value('top_credit_fee_percent', '3') | persian_number }}٪)</span>
+                            <span>{{ order.top_credit_fee | toman }} تومان</span>
+                        </div>
+                        {% endif %}
                         <div class="totals-line total-grand">
                             <span>جمع قابل پرداخت</span>
-                            <span>{{ order.grand_total | toman }} تومان</span>
+                            <span>{{ order.payable_total | toman }} تومان</span>
                         </div>
                         {% endif %}
                     </div>
@@ -678,9 +684,17 @@
             </div>
 
             <!-- Grand Total -->
-            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <div class="d-flex justify-content-between align-items-center mb-1 pb-2 border-bottom">
                 <span class="fw-bold">جمع قابل پرداخت</span>
-                <span class="fw-bold fs-5 text-tm-primary">{{ order.grand_total | toman }} <small class="text-muted fw-normal">تومان</small></span>
+                <span class="fw-bold fs-5 text-tm-primary">
+                    <span id="payableAmount" data-base="{{ order.grand_total }}">{{ order.grand_total | toman }}</span>
+                    <small class="text-muted fw-normal">تومان</small>
+                </span>
+            </div>
+            <div id="topFeeNote" class="small mb-3 {% if not (order.top_credit_fee and order.top_credit_fee > 0) %}d-none{% endif %}" style="color:#b8860b;">
+                <i class="bi bi-info-circle me-1"></i>
+                شامل هزینه وام اعتباری تاپ ({{ get_setting_value('top_credit_fee_percent', '3') | persian_number }}٪):
+                <span id="topFeeAmount">{{ order.top_credit_fee | toman if order.top_credit_fee else '۰' }}</span> تومان
             </div>
 
             {% if order.grand_total == 0 %}
@@ -734,10 +748,11 @@
                     {% for gw in enabled_gateways %}
                     <div class="form-check mb-1">
                         <input class="form-check-input" type="radio" name="gateway" value="{{ gw }}" id="gw_{{ gw }}"
+                               data-topfee="{{ '1' if gw == 'top' else '0' }}"
                                {{ 'checked' if (default_gateway and gw == default_gateway) or (not default_gateway and loop.first) }}>
                         <label class="form-check-label" for="gw_{{ gw }}">
                             {% if gw == 'sepehr' %}درگاه سپهر
-                            {% elif gw == 'top' %}درگاه تاپ
+                            {% elif gw == 'top' %}درگاه تاپ <small style="color:#b8860b;">(+{{ get_setting_value('top_credit_fee_percent', '3') | persian_number }}٪ هزینه وام اعتباری)</small>
                             {% elif gw == 'parsian' %}درگاه پارسیان
                             {% else %}{{ gw }}{% endif %}
                         </label>
@@ -966,4 +981,50 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block shop_js %}
+{% if order.status == 'Pending' and order.grand_total > 0 and enabled_gateways %}
+<script>
+(function () {
+    var TOP_FEE_PERCENT = parseFloat("{{ get_setting_value('top_credit_fee_percent', '3') }}") || 0;
+    var payableEl = document.getElementById("payableAmount");
+    var feeNote = document.getElementById("topFeeNote");
+    var feeAmountEl = document.getElementById("topFeeAmount");
+    if (!payableEl) return;
+    var baseRial = parseInt(payableEl.getAttribute("data-base"), 10) || 0;
+
+    function toFa(s) {
+        var fa = "۰۱۲۳۴۵۶۷۸۹";
+        return String(s).replace(/\d/g, function (d) { return fa[d]; });
+    }
+    function toman(rial) {
+        var t = Math.round(rial / 10);
+        return toFa(t.toLocaleString("en-US"));
+    }
+    function calcTopFee() {
+        if (baseRial <= 0 || TOP_FEE_PERCENT <= 0) return 0;
+        return Math.round(baseRial * TOP_FEE_PERCENT / 100 / 10) * 10;
+    }
+    function update() {
+        var sel = document.querySelector('input[name="gateway"]:checked');
+        var isTop = sel && sel.getAttribute("data-topfee") === "1";
+        var fee = isTop ? calcTopFee() : 0;
+        payableEl.textContent = toman(baseRial + fee);
+        if (feeNote) {
+            if (fee > 0) {
+                feeNote.classList.remove("d-none");
+                if (feeAmountEl) feeAmountEl.textContent = toman(fee);
+            } else {
+                feeNote.classList.add("d-none");
+            }
+        }
+    }
+    document.querySelectorAll('input[name="gateway"]').forEach(function (r) {
+        r.addEventListener("change", update);
+    });
+    update();
+})();
+</script>
+{% endif %}
 {% endblock %}

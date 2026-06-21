@@ -504,7 +504,7 @@ async def delete_product(user=Depends(require_permission("products", level="full
 | متد | مسیر | توضیح |
 |------|------|--------|
 | POST | `/payment/{id}/wallet` | پرداخت با کیف پول |
-| POST | `/payment/{order_id}/gateway` | پرداخت با درگاه فعال (عمومی) |
+| POST | `/payment/{order_id}/gateway` | پرداخت با درگاه فعال (عمومی) — هنگام انتخاب درگاه تاپ، «هزینه وام اعتباری تاپ» (پیش‌فرض ۳٪) به مبلغ کل اضافه و در فاکتور ثبت می‌شود |
 | GET | `/payment/zibal/callback` | بازگشت از درگاه زیبال |
 | POST | `/payment/sepehr/callback` | بازگشت از درگاه سپهر |
 | GET | `/payment/top/callback` | بازگشت از درگاه تاپ |
