@@ -31,9 +31,9 @@
 
 اینها هنوز عمیق بازبینی **نشده‌اند** و بیشترین ارزش بازبینی بی‌رونی را دارند:
 
-- **عملیات چندنقشی بازبینی‌نشده:** state machine بازخرید حضوری ([flow 06](flows/06-buyback-in-person.md))، عملیات تسویه‌ی بین‌شرکتی ([flow 12](flows/12-inter-company-settlement.md))، intake شمش از کارخانه ([references/inventory-bars-warehouse.md](references/inventory-bars-warehouse.md) §7.3 + [D-48](01-decisions-audit-log.md#d-48))، برداشت ریال ([flow 10](flows/10-rial-withdrawal.md))، تسویه تراکنش POS ([flow 07](flows/07-pos-sale.md)) — از منظر تفکیک وظایف و درگیری واحدهای مختلف.
+- **عملیات چندنقشی بازبینی‌نشده:** state machine بازخرید حضوری ([flow 06](flows/06-buyback-in-person.md))، عملیات تسویه‌ی بین‌شرکتی ([flow 12](flows/12-inter-company-settlement.md))، intake شمش از کارخانه ([references/inventory-bars-warehouse.md](references/inventory-bars-warehouse.md) §7.3 + [D-48](01-decisions-audit-log.md#d-48))، برداشت ریال ([flow 10](flows/10-rial-withdrawal.md))، تسویه تراکنش POS ([flow 07](flows/07-pos-sale.md)) — از منظر تفکیک وظایف و درگیری واحدهای مختلف. ✅ تفکیک وظایف (SoD) اکنون **اجباری** شده (maker ≠ checker؛ منعِ super_admin از تأیید مالی؛ CHECK انتقال): [D-107](01-decisions-audit-log.md).
 - **هشدار scope (P۵ در دفتر تصمیمات):** زیرسیستم قیمت(D-65/72)+دفترکل(§6)+خزانه(D-47/67)+نماینده(D-73) سنگین‌ترین و پرریسک‌ترین بخش است؛ تخمین ۱۲ هفته دیگر واقع‌بینانه نیست.
-- **موارد تصمیم‌گرفته ولی فقط پیشنویسی (نیاز‌مند طراحی تفصیلی پیاده‌سازی):** موتور resolution نردبان قیمت + کمیسیون ([D-65/D-73](01-decisions-audit-log.md))، fallback درگاه ([D-63](01-decisions-audit-log.md)), پیاده‌سازی چک inline خزانه ([D-47](01-decisions-audit-log.md))، محاسبهی دقیق گردکردن/منبعقیمت تعهدات بین‌شرکتی.
+- **موارد تصمیم‌گرفته ولی فقط پیشنویسی (نیاز‌مند طراحی تفصیلی پیاده‌سازی):** موتور resolution نردبان قیمت + کمیسیون ([D-65/D-73](01-decisions-audit-log.md))، fallback درگاه ([D-63](01-decisions-audit-log.md)). (چک سقف خزانه ✅ با [D-101](01-decisions-audit-log.md) قطعی شد؛ گردکردن/منبع‌قیمت تعهدات بین‌شرکتی ✅ با [D-104](01-decisions-audit-log.md)+[D-102](01-decisions-audit-log.md) قطعی شد.)
 - ابهامات سطح۲ باز سند: `Q-05`(جزئیات ریز)، و هر چیزی که در بخش ابهامات هنوز ✅ نخورده.
 
 > **سؤال پیشنهادی به داور:** «با فرض اینکه دفتر تصمیمات قطعی است، فقط روی بخش ۰.۱ (موارد باز) و باگهای مالی/همزمانی/تفکیک وظایف کشفنشده تمرکز کن. تصمیمات را بازنکن مگر باگ مالی اثبات‌پذیر نشان دهی.»
@@ -48,7 +48,7 @@
 2. **مرحله به مرحله** کد بخواه — نه یکجا. ترتیب پیشنهادی در بخش Implementation Roadmap (انتهای این فایل) آمده.
 3. هر تصمیم architectural اینجا **explicit** است — assumption نیست.
 4. در فاز پیاده‌سازی، LLM باید قبل از کدنویسی هر context، فایل `talamala_v4/CLAUDE.md` و `talamala_pos/CLAUDE.md` را بخواند تا با current state آشنا شود.
-5. ابهامات: همه‌ی Q-01…Q-10 حل شده‌اند. موارد باز باقیمانده در **بخش ۰.۱** فهرست شده — قبل از پیاده‌سازی context مربوطه باید حل شوند.
+5. ابهامات: همه‌ی Q-01…Q-10 و تصمیمات معماری حل شده‌اند (بخش ۲.۷ canonical — هیچ تصمیمِ بازی باقی نمانده). موارد باقیمانده در **بخش ۰.۱** صرفاً طراحیِ تفصیلیِ پیاده‌سازی و هشدار scope هستند، نه تصمیمِ باز.
 
 ---
 

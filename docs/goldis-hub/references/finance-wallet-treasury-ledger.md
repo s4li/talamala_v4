@@ -137,8 +137,8 @@ worker هر ۳۰ ثانیه:
 
 | Direction | Asset | Amount | معنی |
 |-----------|-------|--------|------|
-| TalaMala → Goldis | ریال | `raw_gold_price_per_mg × weight_mg` | TalaMala باید بهای معادل وزن خام را به Goldis بپردازد |
-| Goldis → TalaMala | gold خام (mg) | `weight_mg` | Goldis باید معادل وزن خام طلا را فیزیکی به TalaMala تحویل دهد |
+| TalaMala → Goldis | ریال | `P_hedge_per_mg × pure_gold_mg` | TalaMala باید بهای معادل وزن خالص طلا را به Goldis بپردازد |
+| Goldis → TalaMala | gold خام (mg) | `pure_gold_mg` | Goldis باید معادل وزن خالص طلا را فیزیکی به TalaMala تحویل دهد |
 
 **سود فروش نزد TalaMala میماند.** Goldis فقط بهای طلای خام را میگیرد و طلای خام را تحویل می‌دهد — هیچ profit share نیست ([D-39](../01-decisions-audit-log.md)).
 

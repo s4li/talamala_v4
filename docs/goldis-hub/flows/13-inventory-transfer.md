@@ -131,7 +131,7 @@ COMPLETED            (همه items matched → تکمیل)
 
 ## 12. Invariants
 
-- Sender ≠ Receiver (separation of duties — [D-62](../01-decisions-audit-log.md))
+- Sender ≠ Receiver (separation of duties — [D-62](../01-decisions-audit-log.md), DB CHECK `chk_itd_maker_checker` per [D-107](../01-decisions-audit-log.md))
 - OTP mandatory between source/destination
 - In-transit bars are **non-sellable** (virtual location with `is_sellable=FALSE`)
 - Every state transition generates `inventory_movement` + audit
@@ -144,4 +144,4 @@ COMPLETED            (همه items matched → تکمیل)
 - [Schema: Inventory (transfer documents)](../03-schema-index.md#10-inventory) | [Supplementary](../03-schema-index.md#14-supplementary)
 - [API: Inventory Transfers](../04-api-index.md)
 - [Reference: Inventory/Location](../references/inventory-bars-warehouse.md)
-- Decisions: [D-62](../01-decisions-audit-log.md), [D-80](../01-decisions-audit-log.md), [D-89](../01-decisions-audit-log.md), [D-93](../01-decisions-audit-log.md)
+- Decisions: [D-62](../01-decisions-audit-log.md), [D-80](../01-decisions-audit-log.md), [D-89](../01-decisions-audit-log.md), [D-93](../01-decisions-audit-log.md), [D-107](../01-decisions-audit-log.md)

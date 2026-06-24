@@ -22,7 +22,7 @@
 ### Segregation of Duties (SoD — اجباری، D-107)
 - maker ≠ checker روی همه‌ی workflowهای dual-control اجباری است: گارد سراسری لایه‌ی app `if maker_id == checker_id: raise` روی transfer/buyback/withdrawal **قبل** از هر منطق approval.
 - `inventory_transfer_documents`: `CHECK(dispatched_by IS NULL OR received_by IS NULL OR dispatched_by <> received_by)`.
-- trio بازخرید (`received_by`/`verified_by`/`approved_by`) نباید یک `user_id` باشند (گارد لایه‌ی app، قبل از approval).
+- trio بازخرید (`received_by`/`verified_by`/`approved_by`): نقش‌های متوالی نباید یک `user_id` باشند (گارد لایه‌ی app، قبل از approval).
 - `super_admin` از actor بودن در گام‌های تأیید مالی **منع** می‌شود (bypass permission ≠ bypass SoD).
 - گزارش کارآگاهی دوره‌ای روی `audit_logs` برای same-actor-both-halves و same-device.
 
@@ -70,13 +70,11 @@ async def mark_order_paid(self, order_id: UUID, payment_id: UUID):
         order = await self.repo.get_for_update(order_id)
         if order.status == OrderStatus.Paid:
             return
-        order.status = OrderStatus.Paid
-        order.paid_at = utcnow()
         await self.inventory_svc.consume_reservation(order)
         # D-77: create_task اینجا صدا زده نمی‌شود — task فقط هنگام
         #   «درخواست تحویل» ساخته می‌شود (فروش امانی task ندارد).
         #   استثنا: تحویل فوری POS/فروشگاه → همانجا create_task(order_item, bar).
-        await self.treasury_svc.record_open_position(order)   # D-47: per پای؛ چک inline سد سخت قبل این
+        await self.treasury_svc.finalize_from_hold(order)   # D-101/D-105: hold → treasury_position؛ چک سد سخت قبلاً موقع checkout زیر advisory lock انجام شده
         # D-06b/D-69: settlement_svc حذف شد. اگر فروش غیر-Goldis:
         if order.payment_receiver_company_id != GOLDIS_ID:
             await self.inter_company_svc.record_obligations(order)  # جفت rial(P_hedge)+gold
@@ -90,6 +88,8 @@ async def mark_order_paid(self, order_id: UUID, payment_id: UUID):
         if order.payment_receiver_company_id != GOLDIS_ID:
             events.append(("InterCompanyObligationCreated", ...))
         await self.outbox.enqueue(events)
+        order.status = OrderStatus.Paid   # D-103: order.Paid آخرین mutation، بعد از outbox.enqueue، در همان tx اتمیک
+        order.paid_at = utcnow()
         # commit در پایان context
         # نکته: FulfillmentTaskCreated اینجا منتشر نمی‌شود (D-77)
 ```

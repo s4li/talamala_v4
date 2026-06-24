@@ -113,7 +113,7 @@
 | N callbacks همزمان روی یک payment | Idempotent — all return same result, side effects once only |
 | 2 checkouts that together exceed treasury cap | At most one succeeds — advisory-lock serializes the cap check ([D-97](../01-decisions-audit-log.md)/[D-101](../01-decisions-audit-log.md)) |
 | Concurrent price lock creation + expiry | Lock expirer doesn't expire locks in active use |
-| Double gateway callback on one payment | Credited exactly once; callback dedup on (gateway, ref) — see fix-soon |
+| Double gateway callback on one payment | Credited exactly once; callback dedup on (gateway, ref) |
 | Abandoned checkout hold + lock_expirer | Expired hold leaves the reserved-sum; cap recovers ([D-105](../01-decisions-audit-log.md)) |
 | Randomized transaction storm then reconcile | Reconciliation worker reports **0 drift** on all invariants ([D-106](../01-decisions-audit-log.md)) |
 

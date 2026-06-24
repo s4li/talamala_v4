@@ -30,7 +30,7 @@ For any feature or flow, use these files together:
 
 ## File Inventory
 
-### Root Files (6)
+### Root Files (7)
 - `README.md` — Navigation index
 - `00-overview.md` — Project overview + bounded contexts
 - `01-decisions-audit-log.md` — All architectural decisions (D-01..D-110, incl. §2.7 Pre-Build Review D-100..D-110 which override earlier ones)
@@ -89,9 +89,9 @@ For any feature or flow, use these files together:
 0. **Build-discipline harness (D-110)** — Alembic async+SQLModel with explicit per-column enum strategy (native PG enum via `alembic-postgresql-enum`, or `VARCHAR+CHECK` for reversible downgrade), `import-linter` enforcing the 24-context boundary (no Table model crosses; `payment` must not import `treasury` internals), commit/rollback only at the use-case boundary, `asyncpg statement_cache_size=0` if a transaction-mode pooler is used, `testcontainers` Postgres + concurrency/idempotency fixtures. No financial context ships before this harness.
 1. **Platform + Identity + KYC** (foundations: users, companies, brands, channels)
 2. **Catalog + Pricing + Inventory** (products, bars, locations, price pipeline)
-3. **Wallet + Payment + Reconciliation/Solvency worker (D-106)** (double-entry ledger, atomic payment finalize; scheduled worker running the 3 self-reconciliations + cross-ledger solvency identity + treasury_position_snapshots + alert on any nonzero residue + external 3-way recon + blind cycle-count of custodial bars — part of the financial core, NOT a later phase)
+3. **Wallet + Payment** (double-entry ledger, atomic payment finalize)
 4. **Cart + Orders + Fulfillment** (checkout, delivery, OTP confirmation)
-5. **Treasury + Inter-Company Ledger** (hedging desk, multi-company settlement)
+5. **Treasury + Inter-Company Ledger + Reconciliation/Solvency worker (D-106)** (hedging desk, multi-company settlement; scheduled worker running the 3 self-reconciliations + cross-ledger solvency identity + treasury_position_snapshots + alert on any nonzero residue + external 3-way recon + blind cycle-count of custodial bars — part of the financial core, NOT a later phase)
 6. **POS + Marketplace** (dealer POS, external channel sync)
 7. **Buyback + Withdrawal** (buyback flows, rial withdrawal)
 8. **Dealer Commission** (Gold-for-Gold settlement)
