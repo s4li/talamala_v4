@@ -7,12 +7,12 @@
 
 ## Documentation Package is Ready for Coding
 
-The Goldis Hub v2.7 architecture has been fully decomposed from the monolithic source document into 28 structured DDD + End-to-End Flow files. All business logic, decisions (D-01..D-110, including the authoritative §2.7 Pre-Build Review decisions D-100..D-110 which override earlier ones), schemas, API contracts, and operational flows are preserved without summarization or omission.
+The Goldis Hub v2.7 architecture is fully captured in 28 structured DDD + End-to-End Flow files (the modular set under `docs/goldis-hub/`). All business logic, decisions (D-01..D-110, including the authoritative §2.7 Pre-Build Review decisions D-100..D-110 which override earlier ones), schemas, API contracts, and operational flows live here without summarization or omission.
 
 ## Source of Truth
 
-- **Split docs (`docs/goldis-hub/`)** are the **source of truth** for all implementation work.
-- **Original monolith (`goldis-hub-architecture-v2.7.md`)** is **archive only** — do not reference it for coding decisions.
+- **The modular docs (`docs/goldis-hub/`: 00–05 + `flows/` + `references/`)** are the **single source of truth** for all implementation work.
+- The original v2.7 monolith has been **removed** (content split and updated across the modular set; recoverable from git history).
 
 ## How to Use for Implementation
 

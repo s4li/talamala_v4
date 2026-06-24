@@ -4,8 +4,6 @@
 > No other file in this repository should contain `CREATE TABLE` statements.
 > Flow files and reference documents link here via markdown anchors.
 
-> **Source:** `goldis-hub-architecture-v2.7.md` §3.2, §4.3, §5.4, §6.3, §8.2, §11.1–§11.9
-
 ---
 
 ## Table of Contents

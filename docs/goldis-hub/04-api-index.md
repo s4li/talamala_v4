@@ -3,8 +3,6 @@
 > **Canonical home for all API contracts and conventions.**
 > Flow files reference specific endpoints via markdown links to this document.
 
-> **Source:** `goldis-hub-architecture-v2.7.md` §13
-
 ---
 
 ## ۱۳. API contracts (نمونه)

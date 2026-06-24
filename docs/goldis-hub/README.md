@@ -1,7 +1,7 @@
 # Goldis Hub — Architecture Documentation
 
 > **Version:** 2.7 (Implementation-ready — 2026-05-18)
-> **Source:** `goldis-hub-architecture-v2.7.md` (3599-line monolith → structured DDD split)
+> **Canonical source:** the modular set below (00–05 + `flows/` + `references/`) is the single source of truth. The original 3599-line v2.7 monolith has been removed — its content lives, split and updated (incl. D-100…D-110), across these files; recoverable from git history.
 
 ---
 
@@ -69,8 +69,3 @@ Canonical home for shared domain logic referenced by multiple flows.
 - Decisions appear **only** in `01-decisions-audit-log.md`.
 - Flow files **reference** both via markdown links — they never duplicate.
 - Reference files hold **canonical** shared logic — flows link to them.
-
-## Source Document
-
-The original monolithic document is preserved at:
-`goldis-hub-architecture-v2.7.md` (3599 lines, v2.7, 2026-05-18)

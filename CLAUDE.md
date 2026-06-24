@@ -27,7 +27,7 @@
 > - D-92: Payment State Machine (orphaned payment recovery)
 > - D-93: POS Offline Queue (offline device support)
 > 
-> **فایل:** `docs/goldis-hub/goldis-hub-architecture-v2.7.md`
+> **مستندات:** `docs/goldis-hub/` — setِ ماژولار (`00-05` + `flows/` + `references/`)، منبعِ یگانه؛ از `README.md` شروع کن (مونولیتِ v2.7 حذف شد، در git history موجود است)
 > **برای:** Implementation phase + external review (Gemini/ChatGPT/DeepSeek)
 
 ---

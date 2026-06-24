@@ -3,8 +3,6 @@
 > **Canonical home for authentication, authorization, compliance, audit, and event specifications.**
 > Related schemas: [outbox_events, audit_logs](03-schema-index.md#13-outbox--audit)
 
-> **Source:** `goldis-hub-architecture-v2.7.md` §17 (Security) + §14 (Outbox Pattern & Events)
-
 ---
 
 ## ۱۷. Security, Compliance, Audit
