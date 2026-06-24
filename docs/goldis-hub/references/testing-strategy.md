@@ -43,9 +43,10 @@
 
 ### ۲.۴. Treasury
 
-- Sign convention: positive for sales, negative for hedge_buy
-- Bidirectional cap check ([D-47](../01-decisions-audit-log.md))
-- Dual-leg transactions (buyback, physical_purchase_from_wallet) net ≈ 0
+- Sign convention: positive for sales, negative for hedge_buy; exposure = SUM(open signed delta) — no coverage ([D-100](../01-decisions-audit-log.md))
+- Bidirectional cap check ([D-47](../01-decisions-audit-log.md)); canonical formula `committed + reserved + this_tx` within caps; advisory-lock serialization ([D-101](../01-decisions-audit-log.md))
+- Dual-leg transactions (buyback, physical_purchase_from_wallet) net to **exactly 0 mg** — every leg derives from the SAME FLOOR-rounded integer ([D-104](../01-decisions-audit-log.md))
+- `inventory_pending_holds` expire and are excluded from the reserved-sum once expired ([D-105](../01-decisions-audit-log.md))
 
 ### ۲.۵. Buyback
 
@@ -86,11 +87,12 @@
 - Bar status transitions: all valid and invalid paths
 - Preorder lifecycle: preorder → in_stock (factory delivery)
 
-### ۳.۴. Settlement
+### ۳.۴. Settlement & Reconciliation
 
-- Inter-company FIFO consume (rial + gold)
-- Partial settlement (settled_amount < amount)
-- Dealer commission settlement + treasury offset ([D-84](../01-decisions-audit-log.md))
+- Inter-company **net** running account ([D-102](../01-decisions-audit-log.md)): settle appends an opposite-direction row → net → 0; NO FIFO / status / row-mutation
+- Opposite-direction obligations (digital buy↔sell, buyback, commission offset) **auto-net to zero** — no second independent obligation lingers
+- Dealer commission settlement + treasury offset auto-nets in the inter-company balance ([D-84](../01-decisions-audit-log.md)/[D-102](../01-decisions-audit-log.md))
+- **Reconciliation worker** ([D-106](../01-decisions-audit-log.md)): `balance == Σ ledger`, `open exposure == Σ signed delta`, `inter-company outstanding == NET`; the cross-ledger solvency identity holds; **zero residue** after a randomized transaction storm
 
 ### ۳.۵. Marketplace
 
@@ -109,8 +111,11 @@
 | N tasks همزمان روی wallet یک کاربر | Only one succeeds if insufficient balance; no double-spend |
 | N tasks همزمان روی reserve یک bar | Only one succeeds; others get reservation conflict |
 | N callbacks همزمان روی یک payment | Idempotent — all return same result, side effects once only |
-| 2 checkouts that together exceed treasury cap | At most one succeeds if cap would be breached ([D-97](../01-decisions-audit-log.md)) |
+| 2 checkouts that together exceed treasury cap | At most one succeeds — advisory-lock serializes the cap check ([D-97](../01-decisions-audit-log.md)/[D-101](../01-decisions-audit-log.md)) |
 | Concurrent price lock creation + expiry | Lock expirer doesn't expire locks in active use |
+| Double gateway callback on one payment | Credited exactly once; callback dedup on (gateway, ref) — see fix-soon |
+| Abandoned checkout hold + lock_expirer | Expired hold leaves the reserved-sum; cap recovers ([D-105](../01-decisions-audit-log.md)) |
+| Randomized transaction storm then reconcile | Reconciliation worker reports **0 drift** on all invariants ([D-106](../01-decisions-audit-log.md)) |
 
 ### ۴.۲. Implementation Pattern
 
@@ -168,13 +173,20 @@ async def test_wallet_double_spend():
 
 ## ۷. Implementation Roadmap
 
-### فاز ۰ — Infrastructure (هفته ۱)
-1. Project structure (`app/contexts/<name>/...`)
-2. Database setup + Alembic init
-3. Authentication + JWT + middleware
+> ⚠️ **بازبینی پیش از ساخت (D-100…D-110) این roadmap را بازچینش می‌کند:**
+> - **فاز ۰ harness قبل از هر کد مالی اجباری است** ([D-110](../01-decisions-audit-log.md)).
+> - **فاز ۰.۵ (ویرایش سند، نه کد):** اعمال D-100…D-108 روی schema/flow + بستن D-109 (Rasis).
+> - **زنجیره‌ی مالی نو را جلو بیندازید:** wallet ledger → treasury (signed-sum) → inter-company (net) → outbox در یک finalize اتمیک، اول به‌صورت پروتوتایپ عمودی با تست‌های پولی+concurrency — نه آخر.
+> - **reconciliation worker ([D-106](../01-decisions-audit-log.md)) جزء هسته‌ی مالی است (فاز ۳، نه ۶).**
+> - تخمین هفته‌ایِ زیر **خوش‌بینانه است** (هشدار P۵)؛ به‌عنوان ترتیب نسبی بخوانید، نه تقویم قطعی.
+
+### فاز ۰ — Infrastructure + Build-discipline harness ([D-110](../01-decisions-audit-log.md))
+1. Project structure (`app/contexts/<name>/...`) + **import-linter** context-boundary contracts
+2. Database setup + Alembic (async) + **enum strategy decided per column** (native enum via `alembic-postgresql-enum`, or `VARCHAR+CHECK`) — downgrade must stay reversible
+3. Authentication + JWT + middleware; commit/rollback ONLY at the use-case boundary
 4. Platform context (Companies/Brands/Channels)
 5. Outbox infra + Audit log infra
-6. Testing infra (pytest fixtures, testcontainers, factories)
+6. Testing infra (pytest fixtures, testcontainers, factories) + **concurrency/idempotency fixtures** (the money-safety harness)
 
 ### فاز ۱ — Core Domain (هفته ۲-۳)
 7. Identity (User, Session, JWT)
@@ -197,10 +209,12 @@ async def test_wallet_double_spend():
 20. Physical purchase from wallet
 21. Buyback (a: undelivered, b: physical)
 22. Hedge Buy + bulk_gold_inventory
-23. Inter-Company Ledger ([D-06](../01-decisions-audit-log.md))
+23. Inter-Company Ledger — signed **NET** running account ([D-06](../01-decisions-audit-log.md)/[D-102](../01-decisions-audit-log.md))
 24. Treasury alert worker
+    + **Reconciliation + solvency-invariant worker** ([D-106](../01-decisions-audit-log.md)) — financial core, NOT phase 6
 
 ### فاز ۴ — Dealer Network (هفته ۸-۹)
+> ⚠️ **Gate:** بخش POS این فاز به **D-109 (Rasis cutover)** وابسته است — تا تعیین‌تکلیف نشده، POS قابل برنامه‌ریزی امن نیست.
 25. Dealer + Tier + Commission rates/ledger ([D-73](../01-decisions-audit-log.md))
 26. POS context
 27. POS reserve→confirm flow

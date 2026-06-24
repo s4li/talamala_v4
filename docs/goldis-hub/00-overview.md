@@ -256,14 +256,21 @@ POST /admin/migration/import-bars-from-csv
 
 ## ۲۱. Implementation Roadmap
 
-### فاز ۰ — Infrastructure (هفته ۱)
-1. Project structure (folders: `app/contexts/<name>/...`)
-2. Database setup + Alembic init
-3. Authentication + JWT + middleware (Identity context base)
+> ⚠️ **بازبینی پیش از ساخت (D-100…D-110) این roadmap را بازچینش می‌کند:**
+> - **فاز ۰ harness قبل از هر کد مالی اجباری است** ([D-110](01-decisions-audit-log.md)).
+> - **فاز ۰.۵ (ویرایش سند، نه کد):** اعمال D-100…D-108 روی schema/flow + بستن D-109 (Rasis).
+> - **زنجیره‌ی مالی نو را جلو بیندازید:** wallet ledger → treasury (signed-sum) → inter-company (net) → outbox در یک finalize اتمیک، اول به‌صورت پروتوتایپ عمودی با تست‌های پولی+concurrency — نه آخر.
+> - **reconciliation worker ([D-106](01-decisions-audit-log.md)) جزء هسته‌ی مالی است (فاز ۳، نه ۶).**
+> - تخمین هفته‌ایِ زیر **خوش‌بینانه است** (هشدار P۵)؛ به‌عنوان ترتیب نسبی بخوانید، نه تقویم قطعی.
+
+### فاز ۰ — Infrastructure + Build-discipline harness ([D-110](01-decisions-audit-log.md)) (هفته ۱)
+1. Project structure (`app/contexts/<name>/...`) + **import-linter** context-boundary contracts
+2. Database setup + Alembic (async) + **enum strategy تصمیم‌گرفته per column** (native enum via `alembic-postgresql-enum`، یا `VARCHAR+CHECK`) — downgrade باید reversible بماند
+3. Authentication + JWT + middleware (Identity context base)؛ commit/rollback **فقط در مرز use-case**
 4. Platform context (Companies/Brands/Channels) — برای resolve از همه middleware ها
 5. Outbox infra (table + skeleton publisher)
 6. Audit log infra
-7. Testing infra (pytest fixtures, testcontainers Postgres, factories)
+7. Testing infra (pytest fixtures, testcontainers Postgres, factories) + **concurrency/idempotency fixtures** (harness ایمنی پول)
 
 ### فاز ۱ — Core domain (هفته ۲-۳)
 8. Identity (User، Session، JWT)
@@ -289,10 +296,12 @@ POST /admin/migration/import-bars-from-csv
     - (b) بازخرید حضوری — state machine کامل (PhysicalRequested → … → Completed)
     - (بازخرید دیجیتال = همان `digital_trade sell` — جدا پیاده نمی‌شود)
 23. **Hedge Buy flow + bulk_gold_inventory intake** ([D-95](01-decisions-audit-log.md)): Goldis خرید طلای خام از بازار/ارزی یا دریافت طلا از تولیدکنندهها (supplier purchase [D-48](01-decisions-audit-log.md))؛ ثبت در treasury (−exposure)؛ تولید شمش و توزیع در شبکه.
-24. Inter-Company Ledger ([D-06b](01-decisions-audit-log.md)): جدول `inter_company_ledger`، endpointهای settle، FIFO consume. **بدون settlement_rules، بدون worker روزانه.**
+24. Inter-Company Ledger ([D-06b](01-decisions-audit-log.md)/[D-102](01-decisions-audit-log.md)): جدول `inter_company_ledger` — دفترِ **NET علامت‌دارِ append-only**؛ outstanding = جمع خالص per (pair, asset)؛ settle = ردیف جهت‌مخالف (جفت‌های مخالف auto-net)؛ بدون FIFO/status/row-mutation. **بدون settlement_rules، بدون worker روزانه.**
 25. Treasury alert worker
+    + **Reconciliation + solvency-invariant worker** ([D-106](01-decisions-audit-log.md)) — هسته‌ی مالی، نه فاز ۶
 
 ### فاز ۴ — DealerNetwork (هفته ۸-۹)
+> ⚠️ **Gate:** بخش POS این فاز به **D-109 (Rasis cutover)** وابسته است — تا تعیین‌تکلیف نشده، POS قابل برنامه‌ریزی امن نیست.
 26. Dealer + Tier + dealer_commission_rates + dealer_commission_ledger (بدون SubDealer/شبکه — [D-73](01-decisions-audit-log.md))
 27. POS context (sales_channels.type=pos)
 28. POS reserve→confirm flow
@@ -302,7 +311,7 @@ POST /admin/migration/import-bars-from-csv
     - (b) Treasury check: اگر TalaMala commission (یعنی نماینده TalaMala محصولات فروخته)، یک inter_company_ledger entry ایجاد می‌شود **بهجای** FIFO settle:
       - `debtor=TalaMala, creditor=Goldis, asset=gold, amount=commission_amount_mg`
       - دلیل: TalaMala طلا به نماینده داد (treasury −)، ولی این طلا باید از hedge obligation Goldis (تعهد Goldis→TalaMala) پوشش خوردہ شود. بدون offset، Treasury balance misaligned میماند.
-    - (c) Manual settlement flow (v1): اپراتور ماهانه: `POST /admin/inter-company/settle-offset { company_a=TalaMala, company_b=Goldis, comment="commission settlement month N" }` → FIFO consume oldest hedge obligation + commission obligation خود‌کار offset
+    - (c) Manual settlement flow (v1): اپراتور ماهانه: `POST /admin/inter-company/settle-offset { company_a=TalaMala, company_b=Goldis, comment="commission settlement month N" }` → یک ردیف جهت‌مخالف می‌افزاید تا تعهد hedge + تعهد commission روی همان (pair, asset) به‌صورت **NET** به صفر برسند ([D-102](01-decisions-audit-log.md))؛ بدون FIFO
     - (d) نکته پیاده‌سازی: اگر in v1 offset خود‌کار نباشد (فقط manual)، توثیق شود که *اپراتور هر ماه این endpoint را اجرا میکند*. در فاز ۵+ می‌تواند worker شود.
 
 ### فاز ۵ — Marketplace (هفته ۱۰)
@@ -341,7 +350,7 @@ POST /admin/migration/import-bars-from-csv
 - SQLModel (Table) برای DB، Pydantic (Create/Update/Read) برای API — هرگز Table مستقیم به API
 - async-first (SQLAlchemy 2.x async + asyncpg)
 - Explicit transaction در هر service method
-- `SELECT FOR UPDATE` برای wallet balance، bar reservation، treasury_settings update
+- `SELECT FOR UPDATE` برای wallet balance و bar reservation. **خزانه:** ناحیه‌ی بحرانی سقف با `pg_advisory_xact_lock(hashtext('treasury:'||metal_type))` سریالایز می‌شود و `treasury_settings` با `SELECT` ساده داخل همان ناحیه خوانده می‌شود — نه `SELECT FOR UPDATE` روی `treasury_settings` (D-101). ترتیب قفل: advisory(treasury per metal) → wallet rows → bar.
 - `idempotency_key` در همه‌ی POST تغییردهنده
 - Repository pattern برای DB
 - Service pattern برای business logic

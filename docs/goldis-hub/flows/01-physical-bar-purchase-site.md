@@ -22,7 +22,7 @@ Customer purchases a physical gold bar from a brand website (e.g., talamala.ir).
 - Product is active and in stock (at least one bar available in brand's inventory)
 - Price is fresh (staleness guard per asset)
 - Trade is enabled for this metal + channel (trade guard)
-- Treasury capacity check passes ([D-47](../01-decisions-audit-log.md) — inline hard cap)
+- Treasury capacity check passes — two-level cap per [D-101](../01-decisions-audit-log.md): at checkout an `inventory_pending_holds` row (with `expires_at`, [D-105](../01-decisions-audit-log.md)) is written under `pg_advisory_xact_lock(hashtext('treasury:'||metal_type))` enforcing `committed + reserved + this_tx ≤ cap`; at PaymentVerified the hold is finalized into a `treasury_position`. Lock order: advisory(treasury per metal) → wallet rows → bar.
 
 ## 4. Trigger
 
@@ -60,13 +60,13 @@ Customer purchases a physical gold bar from a brand website (e.g., talamala.ir).
    e. **هیچ ledger entry اینجا ساخته نمی‌شود — فقط در step 7 (mark_paid)**
 5. POST /api/v1/payments/start → TalaMala IPG → redirect to bank
 6. Bank callback → POST /api/v1/payments/callback/zibal [IDEMPOTENT]
-7. on verified:
+7. on verified (gateway-verify happens OUTSIDE the tx; the writes below execute in ONE atomic transaction per [D-103](../01-decisions-audit-log.md) — order: wallet ledger → treasury position (finalized from the pending hold) → inter-company net rows → outbox → order.status=Paid; crash recovery = idempotent retry keyed on a stable business key, NOT a saga):
    - UPDATE payments status=verified
    - Order.mark_paid:
      • UPDATE orders status=Paid
      • Inventory.consume(bar) → status=SOLD, customer_id=user_id
      • (D-77: اگر تحویل فوری/POS → create_task(order_item, bar)؛ اگر امانی → هیچ task، فقط هنگام درخواست تحویل ساخته می‌شود)
-     • Treasury.record(source=order_physical, delta=+pure_gold_mg,  # D-91: pure weight not raw weight
+     • Treasury.finalize_from_hold(source=order_physical, delta=+pure_gold_mg,  # D-91 pure weight; D-101/D-105 finalized from the pending hold
                        triggered_by_brand=TalaMala)
      • اگر payment_receiver != Goldis:
        INSERT inter_company_ledger × 2 (rial + gold per بخش ۶.۴)
@@ -85,9 +85,9 @@ Customer purchases a physical gold bar from a brand website (e.g., talamala.ir).
 - `orders` — new row (order_type=purchase, status=Paid)
 - `order_items` — with buyback_credit_rial, raw_hedge_price_rial, pure_gold_mg snapshots
 - `bars` — status: RESERVED → SOLD, customer_id set, sale_wallet_scope set ([D-71](../01-decisions-audit-log.md))
-- `inventory_reservations` — created at checkout, consumed at payment
+- `inventory_pending_holds` — created at checkout (with `expires_at`, [D-105](../01-decisions-audit-log.md)), finalized at PaymentVerified ([D-101](../01-decisions-audit-log.md))
 - `price_locks` — created at step 3, used_in_order_id set at step 4
-- `payments` — gateway payment record with state machine ([D-98](../01-decisions-audit-log.md))
+- `payments` / `payment_states` — gateway payment record; per [D-103](../01-decisions-audit-log.md) the state machine ([D-98](../01-decisions-audit-log.md)) is observability/alerting only and is never read to resume control-flow
 
 > Canonical schemas: [Order](../03-schema-index.md#11-order), [Inventory](../03-schema-index.md#10-inventory), [Payment](../03-schema-index.md#12-payment), [Pricing](../03-schema-index.md#9-pricing)
 
@@ -95,7 +95,7 @@ Customer purchases a physical gold bar from a brand website (e.g., talamala.ir).
 
 - `treasury_positions` += `pure_gold_mg` (source=order_physical, triggered_by_brand)
 - Sign: **positive** (Goldis now owes gold — open exposure)
-- Inline hard cap check BEFORE recording ([D-47](../01-decisions-audit-log.md))
+- Two-level cap check under advisory lock: pending_hold at checkout, finalize at PaymentVerified ([D-101](../01-decisions-audit-log.md))
 
 > Canonical schema: [Treasury](../03-schema-index.md#3-treasury)
 
@@ -135,7 +135,7 @@ If `payment_receiver == Goldis`: no inter-company entries (Goldis buys from mark
 | Price lock expired | Reject checkout, user must re-lock |
 | Inventory reserve fails (no stock) | Reject checkout |
 | Gateway payment fails/times out | Release reservation, cancel price lock, Order → PaymentFailed |
-| Treasury cap exceeded | Reject checkout (inline hard block — [D-47](../01-decisions-audit-log.md)) |
+| Treasury cap exceeded | Reject checkout (two-level cap hard block under advisory lock — [D-47](../01-decisions-audit-log.md), [D-101](../01-decisions-audit-log.md)) |
 | KYC limit exceeded | Reject checkout |
 
 ## 12. Invariants
@@ -144,7 +144,7 @@ If `payment_receiver == Goldis`: no inter-company entries (Goldis buys from mark
 - Buyback snapshot is immutable once order is paid — `buyback_credit_rial` and `pure_gold_mg` frozen at purchase time ([D-32](../01-decisions-audit-log.md))
 - `raw_hedge_price_rial` = P_hedge_per_mg × pure_gold_mg — sole basis for inter_company_ledger ([D-65](../01-decisions-audit-log.md))
 - Fulfillment task NOT created at payment — only when customer requests delivery ([D-77](../01-decisions-audit-log.md))
-- `bar.sale_wallet_scope` set at sale, IMMUTABLE thereafter ([D-71](../01-decisions-audit-log.md))
+- `bar.sale_wallet_scope` set at sale, IMMUTABLE while `status=SOLD`; reset to NULL when the bar returns via buyback (resaleable in any scope) ([D-71](../01-decisions-audit-log.md), [D-92](../01-decisions-audit-log.md))
 
 ## 13. Related References
 
@@ -154,4 +154,4 @@ If `payment_receiver == Goldis`: no inter-company entries (Goldis buys from mark
 - [API: Cart/Checkout/Order](../04-api-index.md) | [Payment](../04-api-index.md)
 - [Reference: Finance/Wallet/Treasury](../references/finance-wallet-treasury-ledger.md)
 - [Reference: Inventory/Bars](../references/inventory-bars-warehouse.md)
-- Decisions: [D-06b](../01-decisions-audit-log.md), [D-32](../01-decisions-audit-log.md), [D-47](../01-decisions-audit-log.md), [D-49](../01-decisions-audit-log.md), [D-65](../01-decisions-audit-log.md), [D-71](../01-decisions-audit-log.md), [D-77](../01-decisions-audit-log.md), [D-78](../01-decisions-audit-log.md), [D-91](../01-decisions-audit-log.md), [D-98](../01-decisions-audit-log.md)
+- Decisions: [D-06b](../01-decisions-audit-log.md), [D-32](../01-decisions-audit-log.md), [D-47](../01-decisions-audit-log.md), [D-49](../01-decisions-audit-log.md), [D-65](../01-decisions-audit-log.md), [D-71](../01-decisions-audit-log.md), [D-77](../01-decisions-audit-log.md), [D-78](../01-decisions-audit-log.md), [D-91](../01-decisions-audit-log.md), [D-92](../01-decisions-audit-log.md), [D-98](../01-decisions-audit-log.md), [D-101](../01-decisions-audit-log.md), [D-103](../01-decisions-audit-log.md), [D-105](../01-decisions-audit-log.md)

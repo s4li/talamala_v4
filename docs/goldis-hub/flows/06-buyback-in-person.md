@@ -12,7 +12,7 @@ Customer brings back a physically delivered bar (`delivered_at IS NOT NULL`) to 
 ## 2. Actors
 
 - **Customer** (owner of bar, bar physically in hand)
-- **Buyback center staff** (receive + verify — separation of duties recommended)
+- **Buyback center staff** (receive + verify — separation of duties ENFORCED: received_by ≠ verified_by ≠ approved_by, guarded before approval logic — [D-107](../01-decisions-audit-log.md))
 - **Admin/operator** (final approval)
 - **System** (wallet credit + treasury after approval)
 
@@ -137,7 +137,7 @@ Two counterbalancing legs → **net ≈ zero** (same as [Flow 05](05-buyback-und
 
 - Original sale NEVER reversed — buyback is independent forward transaction
 - Wallet credit only AFTER `AuthenticityVerified` — never before
-- Separation of duties: receive ≠ verify (or at minimum, audited)
+- Separation of duties ENFORCED ([D-107](../01-decisions-audit-log.md)): received_by ≠ verified_by ≠ approved_by, guarded in the app before approval logic; global `if maker_id == checker_id: raise` on all dual-control; `super_admin` cannot act in financial approval steps
 - `buyback_credit_rial` is immutable snapshot from purchase time ([D-32](../01-decisions-audit-log.md))
 - Bar returns to ASSIGNED with `sale_wallet_scope = NULL` → resaleable in any scope ([D-92](../01-decisions-audit-log.md))
 - Dealer commission for buyback only recorded after `AuthenticityVerified` ([D-73](../01-decisions-audit-log.md) بند۷)

@@ -204,32 +204,41 @@ CREATE TABLE wallet_locks (
 ## 3. Treasury
 
 > Source: §5.4 — Positions, Settings, Snapshots
-> Related decisions: [D-47](01-decisions-audit-log.md) (bidirectional caps)
+> Related decisions: [D-47](01-decisions-audit-log.md) (bidirectional caps), [D-100](01-decisions-audit-log.md) (signed-sum exposure — coverage model removed), [D-101](01-decisions-audit-log.md) (two-level cap + advisory lock), [D-90](01-decisions-audit-log.md) (hedge_buy = negative delta)
 
 ```sql
+-- D-100: SIGNED-SUM exposure model. The coverage mechanism is REMOVED
+-- (covered_amount_mg, covered_at, status 'partially_covered'/'covered', and the
+--  POST /positions/{id}/cover endpoint are gone). hedge_buy is a NEGATIVE delta row (D-90).
 CREATE TABLE treasury_positions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     metal_type VARCHAR(20) NOT NULL,
     source_type VARCHAR(50) NOT NULL,
     -- order_physical | digital_buy | digital_sell | marketplace_sale
     -- pos_sale | physical_purchase_from_wallet | buyback
-    -- hedge_buy | hedge_sell | manual_adjustment
+    -- hedge_buy | hedge_sell | dealer_commission | manual_adjustment
     -- (gold withdrawal حذف شد — D-31. hedging merge شد در Treasury — D-42)
     source_id VARCHAR(100) NULL,
     sales_channel_id BIGINT NULL REFERENCES sales_channels(id),
     triggered_by_brand_id BIGINT NULL REFERENCES brands(id),
-    delta_amount_mg BIGINT NOT NULL,
+    delta_amount_mg BIGINT NOT NULL,   -- signed: + opens exposure, − closes (hedge_buy/digital_sell). D-104: integer mg, FLOOR.
     metal_price_per_gram_rial NUMERIC(20, 2) NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'open',
-    -- open | partially_covered | covered | cancelled
-    covered_amount_mg BIGINT NOT NULL DEFAULT 0,
+    -- D-100: ONLY two values — 'open' (counted in exposure) | 'cancelled' (ignored). No coverage states.
     note TEXT NULL,
     metadata JSONB NULL,
     actor_id BIGINT NULL REFERENCES users(id),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    covered_at TIMESTAMPTZ NULL
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_treasury_metal_status ON treasury_positions (metal_type, status);
+-- D-100 canonical exposure:
+--   exposure(metal) = SUM(delta_amount_mg) WHERE metal_type=? AND status='open'
+-- D-101 hard cap check (inline, EVERY txn — sale+buy, all channels, no exception):
+--   committed = SUM(open positions);  reserved = SUM(live inventory_pending_holds — D-105);
+--   ALLOW iff  (committed + reserved + this_tx_delta)  stays within
+--             [ −max_short_exposure_mg , +max_open_exposure_mg ].
+--   Serialize (read committed + read reserved + compare + INSERT hold) with
+--   pg_advisory_xact_lock(hashtext('treasury:'||metal_type)). Keep it tiny; NEVER hold across a gateway round-trip.
 
 CREATE TABLE treasury_settings (
     metal_type VARCHAR(20) PRIMARY KEY,
@@ -240,6 +249,8 @@ CREATE TABLE treasury_settings (
 );
 -- D-47: علاوه بر worker ۳۰s، چک inline سد سخت در لحظه‌ی هر تراکنش (فروش+خرید،
 -- همه‌ی کانالها بدون استثنا). هر دو سقف per فلز قابل تغییر لحظهای اپراتور با audit.
+-- D-101: داخل ناحیه‌ی advisory-lock با SELECT ساده خوانده شود (نه SELECT FOR UPDATE —
+--   آن کل فروش‌ها را روی یک ردیف سریالایز و ویرایش زنده‌ی سقف را بلاک می‌کند).
 
 CREATE TABLE treasury_position_snapshots (
     id BIGSERIAL PRIMARY KEY,
@@ -257,52 +268,43 @@ CREATE TABLE treasury_position_snapshots (
 ## 4. Inter-Company Ledger
 
 > Source: §6.3 — Ledger + Settle Actions
-> Related decisions: [D-06b](01-decisions-audit-log.md) (real-time ledger replaces old settlement)
+> Related decisions: [D-06b](01-decisions-audit-log.md) (real-time ledger replaces old settlement), [D-102](01-decisions-audit-log.md) (signed NET running account — FIFO/status removed)
 
 ```sql
--- جدول یک‌پارچه برای تمام obligations بین شرکتها (هم gold هم rial)
+-- D-102: SIGNED NET RUNNING ACCOUNT (replaces the old gross-FIFO + status model).
+-- Each row is an append-only movement "debtor owes creditor amount_minor" (always > 0).
+-- OUTSTANDING is never stored — it is the NET of all rows per unordered {company-pair, asset}:
+--   net_B_owes_A(asset) = SUM(amount WHERE debtor=B AND creditor=A AND asset)
+--                       − SUM(amount WHERE debtor=A AND creditor=B AND asset)
+--   (positive ⇒ B owes A ; negative ⇒ A owes B ; zero ⇒ settled).
+-- Opposite-direction movements (digital buy↔sell, buyback, D-84 commission offset) AUTO-NET in this
+--   sum — no second independent obligation is ever created.
+-- SETTLEMENT = append a row in the OPPOSITE direction (source_type='settlement', recorded_by set),
+--   which moves the net toward zero. Rows are NEVER mutated. No status / settled_amount / FIFO consume.
 CREATE TABLE inter_company_ledger (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     debtor_company_id BIGINT NOT NULL REFERENCES companies(id),
     creditor_company_id BIGINT NOT NULL REFERENCES companies(id),
     asset_type VARCHAR(10) NOT NULL,  -- 'XAU_MG' | 'IRR'
     amount_minor BIGINT NOT NULL CHECK (amount_minor > 0),
-    -- mg برای gold، rial برای rial
-    settled_amount_minor BIGINT NOT NULL DEFAULT 0,
-    status VARCHAR(20) NOT NULL DEFAULT 'open',
-    -- open | partial | settled | cancelled
+    -- mg برای gold (D-104: integer، FLOOR)، rial برای rial
     source_type VARCHAR(50) NOT NULL,
-    -- 'sale' | 'buyback' | 'manual_adjustment' | 'cancellation_reversal'
+    -- 'sale' | 'digital_trade' | 'supplier_purchase' | 'commission_offset' | 'settlement' | 'manual_adjustment'
     source_order_id UUID NULL REFERENCES orders(id),
-    -- در صورت buyback یا cancel، این entry می‌تواند یک entry قبلی را معکوس کند
-    reverses_ledger_id UUID NULL REFERENCES inter_company_ledger(id),
     notes TEXT NULL,
+    recorded_by BIGINT NULL REFERENCES users(id),  -- NULL for auto obligation rows; set for operator settlement/adjustment rows
     idempotency_key VARCHAR(100) NULL UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    settled_at TIMESTAMPTZ NULL,
-    settled_by BIGINT NULL REFERENCES users(id),
-    CONSTRAINT chk_settled_le_amount CHECK (settled_amount_minor <= amount_minor),
     CONSTRAINT chk_companies_different CHECK (debtor_company_id <> creditor_company_id)
 );
-CREATE INDEX ix_icledger_pair_status
-    ON inter_company_ledger (creditor_company_id, debtor_company_id, asset_type, status);
+-- The net query is direction-agnostic, so index BOTH directions of the pair:
+CREATE INDEX ix_icledger_pair ON inter_company_ledger (creditor_company_id, debtor_company_id, asset_type, created_at);
+CREATE INDEX ix_icledger_pair_rev ON inter_company_ledger (debtor_company_id, creditor_company_id, asset_type, created_at);
 CREATE INDEX ix_icledger_order ON inter_company_ledger (source_order_id);
-CREATE INDEX ix_icledger_open
-    ON inter_company_ledger (status, created_at)
-    WHERE status IN ('open', 'partial');
 
--- audit trail: هر action settle که اپراتور انجام می‌دهد
-CREATE TABLE inter_company_settle_actions (
-    id BIGSERIAL PRIMARY KEY,
-    creditor_company_id BIGINT NOT NULL REFERENCES companies(id),
-    debtor_company_id BIGINT NOT NULL REFERENCES companies(id),
-    asset_type VARCHAR(10) NOT NULL,
-    amount_minor BIGINT NOT NULL,
-    affected_ledger_ids UUID[] NOT NULL,  -- FIFO consumed entries
-    notes TEXT NULL,
-    actor_id BIGINT NOT NULL REFERENCES users(id),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+-- D-102: the old `inter_company_settle_actions` table is REMOVED. A settlement is now a normal
+--   ledger row (source_type='settlement', recorded_by); the sensitive operator action is captured
+--   by audit_logs (mandatory per §17 / D-107). There is no FIFO "affected_ledger_ids" anymore.
 ```
 
 
@@ -427,7 +429,7 @@ CREATE TABLE user_bank_accounts (
 CREATE TABLE kyc_records (
     user_id BIGINT PRIMARY KEY REFERENCES users(id),
     status VARCHAR(20) NOT NULL DEFAULT 'NotStarted',
-    user_level VARCHAR(20) NOT NULL DEFAULT 'Normal',
+    user_level VARCHAR(20) NOT NULL DEFAULT 'L0',  -- D-108: canonical levels L0 | L1 | L2 (per D-61); value resolves to user_level_defaults.level
     shahkar_verified_at TIMESTAMPTZ NULL,
     shahkar_response JSONB NULL,
     documents JSONB NOT NULL DEFAULT '[]',
@@ -450,7 +452,7 @@ CREATE TABLE kyc_records (
 );
 
 CREATE TABLE user_level_defaults (
-    level VARCHAR(20) PRIMARY KEY,
+    level VARCHAR(20) PRIMARY KEY,   -- D-108: 'L0' | 'L1' | 'L2' (seed all three). Replaces Normal/Verified/Premium.
     daily_buy_limit_rial BIGINT NOT NULL,
     monthly_buy_limit_rial BIGINT NOT NULL,
     daily_sell_limit_rial BIGINT NOT NULL,
@@ -902,6 +904,10 @@ CREATE TABLE payments (
     -- D-92: State Machine columns (Critical Subsystems)
     payment_state VARCHAR(30) NOT NULL DEFAULT 'pending',
     -- pending | gateway_verified_pending | inter_company_ledger_created | finalized | failed | cancelled
+    -- ⚠️ D-103: payment_state is OBSERVABILITY / alerting ONLY. Finalize is ONE atomic transaction
+    --   (gateway-verify OUTSIDE the tx; then wallet ledger → treasury → inter-company → outbox → order.Paid
+    --    all INSIDE one tx). Crash recovery = idempotent retry of the WHOLE op keyed on idempotency_key.
+    --   No control-flow branch may read payment_state to resume a saga; these are not checkpoints.
     gateway VARCHAR(50) NULL,                          -- درگاه استفاده‌شده (zibal, sepehr, top, parsian)
     gateway_ref VARCHAR(100) NULL,                     -- reference from gateway
     gateway_verified_at TIMESTAMPTZ NULL,              -- when gateway confirmed payment
@@ -1106,7 +1112,10 @@ CREATE TABLE inventory_transfer_documents (
     received_at TIMESTAMPTZ NULL,
     completed_at TIMESTAMPTZ NULL,
     CONSTRAINT chk_itd_locations
-        CHECK (source_location_id != destination_location_id)
+        CHECK (source_location_id != destination_location_id),
+    -- D-107: separation of duties — the dispatcher must not also be the receiver
+    CONSTRAINT chk_itd_maker_checker
+        CHECK (dispatched_by IS NULL OR received_by IS NULL OR dispatched_by <> received_by)
 );
 CREATE INDEX ix_itd_status ON inventory_transfer_documents (status, created_at DESC);
 CREATE INDEX ix_itd_source ON inventory_transfer_documents (source_location_id);
@@ -1139,7 +1148,7 @@ CREATE TABLE payment_reconciliations (
     variance_percent NUMERIC(5,2) NOT NULL,            -- percentage
     reconciliation_status VARCHAR(20) DEFAULT 'pending',
     -- pending | auto_approved | auto_adjusted | manual_review | rejected
-    treasury_adjustment_mg NUMERIC(12,4) NULL,         -- ریاضی treasury
+    treasury_adjustment_mg BIGINT NULL,                -- D-104: integer mg, FLOOR (was NUMERIC(12,4))
     adjustment_reason TEXT NULL,
     reviewed_by BIGINT NULL REFERENCES users(id),      -- admin review
     reviewed_at TIMESTAMPTZ NULL,
@@ -1149,22 +1158,29 @@ CREATE TABLE payment_reconciliations (
 CREATE INDEX ix_payment_recon_payment ON payment_reconciliations (payment_id);
 CREATE INDEX ix_payment_recon_status ON payment_reconciliations (reconciliation_status, created_at DESC);
 
--- D-97: Pending Reserves برای Checkout (D-97)
+-- D-97/D-101: Pending Reserves — soft treasury hold at checkout, finalized into a treasury_position at PaymentVerified.
+-- D-104: integer mg (BIGINT). D-105: holds EXPIRE — an abandoned checkout must not throttle the cap forever.
 CREATE TABLE inventory_pending_holds (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL REFERENCES orders(id),
+    metal_type VARCHAR(20) NOT NULL DEFAULT 'gold',    -- D-101: the cap is per metal, so reserved-sum filters by metal
     wallet_scope VARCHAR(20) NOT NULL,
-    pure_gold_mg_reserved NUMERIC(12,4) NOT NULL,
+    pure_gold_mg_reserved BIGINT NOT NULL,             -- D-104: integer mg, FLOOR (was NUMERIC(12,4))
     reserved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    finalized_at TIMESTAMPTZ NULL,                     -- set when payment confirmed
-    released_at TIMESTAMPTZ NULL,                      -- set when order cancelled
+    expires_at TIMESTAMPTZ NOT NULL,                   -- D-105: TTL; lock_expirer releases stale holds
+    finalized_at TIMESTAMPTZ NULL,                     -- set when payment confirmed (→ becomes a treasury_position)
+    released_at TIMESTAMPTZ NULL,                      -- set when order cancelled OR expired
     CONSTRAINT chk_only_one_state
         CHECK ( (finalized_at IS NULL AND released_at IS NULL) OR
                 (finalized_at IS NOT NULL AND released_at IS NULL) OR
                 (finalized_at IS NULL AND released_at IS NOT NULL) ),
-    UNIQUE (order_id)  -- one hold به ازای هر سفارش
+    UNIQUE (order_id)  -- one hold per order (an idempotent checkout retry maps to the same order_id, never a 2nd hold)
 );
-CREATE INDEX ix_hold_wallet_scope ON inventory_pending_holds (wallet_scope, released_at);
+-- D-101 reserved-sum used by the cap check counts ONLY LIVE holds:
+--   SUM(pure_gold_mg_reserved) WHERE metal_type=? AND finalized_at IS NULL
+--                                    AND released_at IS NULL AND expires_at > now()
+CREATE INDEX ix_hold_live ON inventory_pending_holds (metal_type)
+    WHERE finalized_at IS NULL AND released_at IS NULL;
 
 -- D-99: POS Offline Queue (D-99)
 CREATE TABLE pos_pending_requests (

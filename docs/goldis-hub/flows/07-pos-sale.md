@@ -22,7 +22,7 @@ Dealer sells a physical gold bar to a customer via POS device at dealer location
 - Bars available at dealer's inventory_location (status ASSIGNED or RAW)
 - Price is fresh (staleness guard)
 - Trade enabled for this metal + channel (dealer_pos)
-- Treasury capacity check passes ([D-47](../01-decisions-audit-log.md))
+- Treasury two-level cap check passes ([D-101](../01-decisions-audit-log.md)): at reserve, write an `inventory_pending_holds` row (with `expires_at` per [D-105](../01-decisions-audit-log.md)) inside `pg_advisory_xact_lock(hashtext('treasury:'||metal_type))`, enforcing `committed + reserved + this_tx ≤ cap` (committed = SUM open treasury_positions, reserved = SUM live pending_holds); finalized into a `treasury_position` at confirm.
 
 ## 4. Trigger
 
@@ -47,6 +47,10 @@ Dealer sells a physical gold bar to a customer via POS device at dealer location
    • Backend:
      - validate: bar در dealer's location، status قابل reserve
      - Pricing.create_price_lock(channel, bar.product_id)
+     - **D-101:** زیر `pg_advisory_xact_lock(hashtext('treasury:'||metal_type))`:
+       - plain SELECT از `treasury_settings` (نه SELECT FOR UPDATE)
+       - enforce `committed + reserved + this_tx ≤ cap`
+       - INSERT `inventory_pending_holds` (با `expires_at` per [D-105](../01-decisions-audit-log.md)) — نه فقط bar.status=RESERVED
      - bar.status = RESERVED, reserved_until = +N min
      - returns: reservation_id, amount_rial, price_lock_id
 
@@ -65,7 +69,7 @@ Dealer sells a physical gold bar to a customer via POS device at dealer location
        )
      - INSERT order_items (با pure_gold_mg, buyback_credit_rial snapshot — D-32)
      - Inventory.consume(bar) → customer_id=resolved_user_id
-     - Treasury.record(source=pos_sale, delta=+pure_gold_mg)  # D-91: pure weight
+     - **D-101:** finalize `inventory_pending_holds` row → `treasury_position` (source=pos_sale, delta=+pure_gold_mg); global lock order: advisory(treasury per metal) → wallet rows → bar  # D-91: pure weight
      - چون POS برای TalaMala است → payment_receiver=TalaMala:
        INSERT inter_company_ledger × 2 (rial + gold per بخش ۶.۴)
      - DealerSale (commission for dealer به‌صورت Gold-for-Gold)
@@ -123,7 +127,7 @@ Same logic as [Flow 01](01-physical-bar-purchase-site.md):
 | Reservation timeout (N min) | Expiry worker releases bar |
 | Network failure during confirm | [D-99](../01-decisions-audit-log.md): offline queue — POS retries with same request_id (idempotent) |
 | Bar already reserved/sold | Reject reserve attempt |
-| Treasury cap exceeded | Reject reserve |
+| Treasury cap exceeded | [D-101](../01-decisions-audit-log.md): two-level cap check fails under advisory lock → reject reserve |
 
 ## 12. Invariants
 
@@ -140,4 +144,4 @@ Same logic as [Flow 01](01-physical-bar-purchase-site.md):
 - [Schema: POS](../03-schema-index.md#15-pos-devices--transactions) | [Supplementary (dealer_sales)](../03-schema-index.md#14-supplementary)
 - [API: POS](../04-api-index.md)
 - [Reference: Commercial/Pricing](../references/commercial-pricing-orders.md)
-- Decisions: [D-32](../01-decisions-audit-log.md), [D-47](../01-decisions-audit-log.md), [D-56](../01-decisions-audit-log.md), [D-91](../01-decisions-audit-log.md), [D-99](../01-decisions-audit-log.md)
+- Decisions: [D-32](../01-decisions-audit-log.md), [D-47](../01-decisions-audit-log.md), [D-56](../01-decisions-audit-log.md), [D-91](../01-decisions-audit-log.md), [D-99](../01-decisions-audit-log.md), [D-101](../01-decisions-audit-log.md), [D-105](../01-decisions-audit-log.md)

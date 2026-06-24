@@ -66,7 +66,7 @@ Customer buys digital gold (XAU_MG) via a brand wallet. Gold is credited to the 
 - Inter-company ledger × 2 (TalaMala-side):
   • TalaMala → Goldis، rial = P_hedge_per_mg(لحظه) × 500mg   # D-69/D-65 — نه internal_base_price، نه قیمتی که کاربر پرداخت
   • Goldis → TalaMala، gold، 500mg
-  (status=open، تا اپراتور settle کند)
+  (دفتر append-only علامت‌دار؛ تعهد معوق = NET SUM(signed amount_minor) per (creditor,debtor,asset) — تسویه = append یک ردیف جهت‌مخالف، نه mutate/status — D-102)
   # D-69: خرید دیجیتال scope غیر-Goldis همسنگ فروش فیزیکی غیر-Goldis
   #   است (همان مدل ۱۲.۱)؛ فقط شمش/اجرت ندارد و خزانهاش تک‌پایی
   #   digital_buy است. مابه‌التفاوت (قیمت کاربر − P_hedge) سود TalaMala.

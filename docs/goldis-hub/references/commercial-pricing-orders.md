@@ -120,7 +120,7 @@ Frontend domain → channel lookup → brand + payment_account + seller + operat
 
 ### ۲.۴. Key Snapshots in order_items
 
-- `pure_gold_mg` = weight × purity / 1000 (buyback basis — always XAU_MG)
+- `pure_gold_mg` = floor(weight_mg × purity / 1000) — تبدیل واحد با سیاست FLOOR در helper واحد canonical ([D-104](../01-decisions-audit-log.md))؛ مبنای بازخرید — always XAU_MG
 - `buyback_credit_rial` = snapshot at purchase (D-32)
 - `raw_hedge_price_rial` = snapshot P_hedge × pure_gold_mg (inter-company basis — D-65)
 - `price_snapshot` = full pricing calculation (JSON)
@@ -147,7 +147,7 @@ Frontend domain → channel lookup → brand + payment_account + seller + operat
 
 ### ۳.۳. قواعد مشترک (a) و (b)
 
-- وزن خالص (`weight × purity / 1000`) → wallet **XAU_MG** (همیشه)
+- وزن خالص (`floor(weight_mg × purity / 1000)` — سیاست FLOOR، helper واحد canonical [D-104](../01-decisions-audit-log.md)) → wallet **XAU_MG** (همیشه)
 - `buyback_credit_rial` (snapshot موقع خرید) → wallet **IRR** — **فقط اگر** ثبت مالکیت + OTP
 - اجرت + مالیات + سود **می‌سوزد**
 - هر دو واریز به **scope برند فروش همان شمش** (`bars.sale_wallet_scope` — [D-71](../01-decisions-audit-log.md))

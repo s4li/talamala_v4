@@ -60,10 +60,14 @@ Operator initiates periodic settlement (daily/weekly/monthly) via admin panel.
      b. Treasury.record(source=dealer_commission, delta=+total_open_mg)
         # D-73 P۳: commission gold = new digital gold ⇒ +exposure
      c. UPDATE dealer_commission_ledger entries: status='settled', settled_at=now
+        # NOTE: dealer_commission_ledger keeps its OWN status (D-73 P1) — it is SEPARATE from
+        #   inter_company_ledger and is NOT affected by D-102's net model.
      d. D-84: if seller_company=TalaMala:
-        INSERT inter_company_ledger offset entry
-        (TalaMala→Goldis gold debt partially covered by commission payout)
-        → prevents mismatch: TalaMala gave gold (treasury −) but hedged liability not recorded
+        INSERT inter_company_ledger row (D-102 append, NOT a status update):
+          (debtor=TalaMala, creditor=Goldis, asset='XAU_MG',
+           amount_minor=total_open_mg, source_type='commission_offset', recorded_by=actor)
+        → این ردیف خودکار در **net** با تعهدات hedge جهت‌مخالف صفر می‌شود (هیچ تعهد مستقل دوم)
+        → prevents mismatch: TalaMala gave gold (treasury +exposure) without it being recorded
      e. Audit log + Outbox: DealerCommissionSettled + Notification
 ```
 
@@ -75,7 +79,7 @@ Operator initiates periodic settlement (daily/weekly/monthly) via admin panel.
 - `wallet_ledger_entries` — credit XAU_MG to dealer wallet
 - `asset_balances` — dealer's XAU_MG balance increased
 - `treasury_positions` — delta=+total_open_mg (new gold exposure from commission)
-- `inter_company_ledger` — offset entry if TalaMala commission ([D-84](../01-decisions-audit-log.md))
+- `inter_company_ledger` — append a `commission_offset` row if TalaMala commission; auto-nets ([D-84](../01-decisions-audit-log.md)/[D-102](../01-decisions-audit-log.md))
 
 > Canonical schemas: [Supplementary (dealer_commission)](../03-schema-index.md#14-supplementary), [Wallet](../03-schema-index.md#2-wallet), [Treasury](../03-schema-index.md#3-treasury)
 
@@ -97,7 +101,7 @@ Operator initiates periodic settlement (daily/weekly/monthly) via admin panel.
 **D-84 offset:** When commission is from TalaMala:
 - TalaMala gives gold (as commission) → treasury exposure increases
 - This must be offset in inter_company_ledger to prevent mismatch
-- Offset entry: TalaMala→Goldis gold debt partially covered
+- Offset row (`source_type='commission_offset'`): debtor=TalaMala, creditor=Goldis, gold — auto-nets in the running balance (D-102)
 - Without offset: TalaMala paid gold but hedged liability not recorded → financial mismatch
 
 ## 10. Audit & Events

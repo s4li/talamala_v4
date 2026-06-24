@@ -137,7 +137,7 @@ User Ali (mobile=0912...)
 > - `buyback` تحویل‌نشده/حضوری: پای `+pure_gold_mg` (طلا به کیف) و پای `−pure_gold_mg` (شمش برگشتی/مصرف) ⇒ خنثی
 > - `physical_purchase_from_wallet`: پای `−gold_part_mg` (مصرف طلای دیجیتال کیف) و پای `+pure_gold_mg` (خروج شمش فیزیکی) ⇒ خنثی
 >
-> sum(delta_amount_mg WHERE status IN ('open','partially_covered')) = current open exposure
+> **D-100 (signed-sum):** `exposure(metal) = sum(delta_amount_mg WHERE status='open')`. مدل coverage (`covered_amount_mg` / status `partially_covered`/`covered` / endpoint cover) **حذف شد**؛ `hedge_buy` یک ردیف با delta **منفی** است (D-90). status فقط `open` (شمرده می‌شود) یا `cancelled`.
 
 ### ۵.۳. Cap و alert (دو‌طرفه + چک inline)
 
@@ -145,6 +145,7 @@ User Ali (mobile=0912...)
 - **چک inline سد سخت در لحظه‌ی هر تراکنش** (فروش+خرید، فیزیکی+دیجیتال+POS، بدون استثنا): اگر این تراکنش از سقف مربوطه رد شود، **همان تراکنش رد می‌شود** (مثل `require_fresh_price`).
 - `warning_threshold_percent` (مثلا ۷۰٪) برای هر دو طرف.
 - `auto_block_at_cap`: worker (۱۲.۱۰) فقط **هشدار/پشتیبان** است؛ سد واقعی همان چک inline است.
+- **D-101 فرمول canonical سقف (دوسطحی):** `committed + reserved + this_tx` باید در بازه‌ی `[−max_short_exposure_mg, +max_open_exposure_mg]` بماند؛ `committed = SUM(open positions)`، `reserved = SUM(inventory_pending_holds زنده — D-105)`. ناحیه‌ی بحرانی (read committed + read reserved + compare + INSERT hold) با `pg_advisory_xact_lock(hashtext('treasury:'||metal_type))` سریالایز می‌شود (نه `SELECT FOR UPDATE` روی `treasury_settings` که کل فروش را روی یک ردیف قفل می‌کند). ناحیه کوچک و **هرگز** روی round-trip درگاه نگه داشته نمی‌شود.
 
 ### ۵.۴. مدل داده
 
@@ -182,8 +183,8 @@ User Ali (mobile=0912...)
 <tr><th>Direction</th><th>Asset</th><th>Amount</th><th>معنی</th></tr>
 </thead>
 <tbody>
-<tr><td>`TalaMala → Goldis`</td><td>ریال</td><td>`raw_gold_price_per_mg × weight_mg`</td><td>TalaMala باید بهای معادل وزن خام را به Goldis بپردازد (تسویه روزانه)</td></tr>
-<tr><td>`Goldis → TalaMala`</td><td>gold خام (mg)</td><td>`weight_mg`</td><td>Goldis باید معادل وزن خام طلا را فیزیکی به TalaMala تحویل دهد (تسویه دورهای)</td></tr>
+<tr><td>`TalaMala → Goldis`</td><td>ریال</td><td>`P_hedge_per_mg × pure_gold_mg`</td><td>TalaMala باید بهای معادل وزن خام را به Goldis بپردازد (تسویه روزانه)</td></tr>
+<tr><td>`Goldis → TalaMala`</td><td>gold خام (mg)</td><td>`pure_gold_mg`</td><td>Goldis باید معادل وزن خالص طلا را فیزیکی به TalaMala تحویل دهد (تسویه دورهای)</td></tr>
 </tbody>
 </table>
 
@@ -239,13 +240,13 @@ User Ali (mobile=0912...)
    b. (debtor=Goldis, creditor=payment_receiver,
        asset='XAU_MG', amount=pure_gold_mg,
        source='sale', source_order_id=order.id)
-5. treasury_positions.update(...)  # Goldis exposure +weight_mg
+5. treasury_positions.update(...)  # Goldis exposure +pure_gold_mg
 6. Outbox: InterCompanyObligationCreated × 2
 ```
 
 **در زمان sale Goldis-side** (payment_receiver = Goldis):
 - هیچ inter_company_ledger entry ساخته نمی‌شود
-- فقط `treasury_positions.update(...)` # Goldis exposure +weight_mg
+- فقط `treasury_positions.update(...)` # Goldis exposure +pure_gold_mg
 - Goldis مسئول خرید مستقیم از بازار است
 
 ### ۶.۵. Settle Operations (دستی توسط اپراتور Goldis)
@@ -258,14 +259,16 @@ User Ali (mobile=0912...)
 POST /api/v1/admin/inter-company/settle-rial
 Body: { creditor_company_id: Goldis, debtor_company_id: TalaMala, amount_rial, notes }
 
+# D-102: تسویه = append یک ردیف در جهت مخالف که net را به سمت صفر می‌برد (نه FIFO/mutate/status).
 1. Validate: actor has admin/operator role
-2. Find FIFO open rial obligations (debtor=TalaMala, creditor=Goldis, asset=rial)
-3. Consume from oldest until amount مصرف شود:
-   - برای هر entry: settled_amount_minor += min(remaining_amount, entry_remaining)
-   - وقتی settled_amount_minor == amount_minor → status='settled'، settled_at=now
-   - در غیر صورت → status='partial'
-4. INSERT inter_company_settle_actions (audit)
-5. Outbox: InterCompanyRialSettled
+2. (اختیاری) net فعلی را بخوان: net(TalaMala owes Goldis, IRR) — تا از over-settle جلوگیری شود
+3. INSERT inter_company_ledger (
+     debtor=Goldis, creditor=TalaMala,           # جهتِ مخالفِ بدهیِ TalaMala→Goldis
+     asset='IRR', amount_minor=amount_rial,
+     source_type='settlement', recorded_by=actor, notes
+   )                                             # net را amount_rial به سمت صفر می‌برد
+4. Outbox: InterCompanyRialSettled
+# هیچ ردیف قبلی mutate نمی‌شود؛ هیچ status/FIFO/settle_actions نیست. audit با audit_logs.
 ```
 
 #### Settle gold (Goldis طلای خام را به فروشنده تحویل داد)
@@ -276,7 +279,9 @@ Body: { creditor_company_id: Goldis, debtor_company_id: TalaMala, amount_rial, n
 POST /api/v1/admin/inter-company/settle-gold
 Body: { creditor_company_id: TalaMala, debtor_company_id: Goldis, amount_mg, notes }
 
-(منطق FIFO مشابه بالا، روی asset='gold')
+# D-102: append یک ردیف جهت‌مخالف روی asset='XAU_MG' — همان منطق settle-rial.
+#   بدهیِ طلا Goldis→TalaMala است؛ تحویل با ردیف debtor=TalaMala, creditor=Goldis,
+#   source_type='settlement' ثبت می‌شود تا net gold را به سمت صفر ببرد.
 ```
 
 **نکته:** این endpoint **فقط ledger را آپدیت میکند** — تحویل واقعی طلای خام در دنیای واقعی توسط تیم عملیات Goldis انجام می‌شود (و در صورت نیاز، یک inventory_movement جدا برای ثبت ورود گرانول به انبار TalaMala ثبت می‌شود — این طلا برای hedging یا تولید بعدی بهکار می‌رود، **ربطی به refill شمشهای فروختهشده ندارد**).
@@ -288,15 +293,16 @@ Body: { creditor_company_id: TalaMala, debtor_company_id: Goldis, amount_mg, not
 - پرداخت → TalaMala IPG (۵۲M به حساب TalaMala)
 - شمش از inventory_location TalaMala (مال خود TalaMala) به مشتری (یا custodial)
 - در همان transaction:
-  - `inter_company_ledger`: TalaMala → Goldis، rial، **۴۸M** (قیمت طلای خام در لحظه‌ی فروش)، status=open
-  - `inter_company_ledger`: Goldis → TalaMala، gold، **۱۰۰۰mg** (وزن خالص طلا)، status=open
+  - `inter_company_ledger`: ردیف TalaMala → Goldis، rial، **۴۸M** (قیمت طلای خام در لحظه‌ی فروش)
+  - `inter_company_ledger`: ردیف Goldis → TalaMala، gold، **۱۰۰۰mg** (وزن خالص طلا)
+  - (هیچ status نیست — outstanding = **net** این ردیف‌ها per (pair, asset)؛ D-102)
   - `treasury_positions`: Goldis exposure +۱۰۰۰mg
 - **سود ۴M (= ۵۲M − ۴۸M) نزد TalaMala باقی میماند.**
 
 عملیاتهای بعدی (دستی توسط اپراتور Goldis):
 1. Goldis از بازار طلای خام معادل ۱g می‌خرد (مثلا به ۴۷.۸M چون قیمت تغییر کرده) — این یک operation داخلی Goldis است که در `treasury_movements` ثبت می‌شود؛ exposure کاهش مییابد
-2. TalaMala فردا ۴۸M ریال به حساب Goldis واریز میکند → اپراتور `settle-rial` میزند → rial obligation به ۰ میرسد (status=settled)
-3. Goldis هر هفته/ماه مجموع طلای خامی که برای hedging TalaMala خریده را فیزیکی به انبار TalaMala تحویل می‌دهد → اپراتور `settle-gold` میزند → gold obligation به ۰ میرسد
+2. TalaMala فردا ۴۸M ریال به حساب Goldis واریز میکند → اپراتور `settle-rial` میزند → یک ردیف جهت‌مخالف append می‌شود → **net** rial به ۰ می‌رسد (D-102)
+3. Goldis هر هفته/ماه مجموع طلای خامی که برای hedging TalaMala خریده را فیزیکی به انبار TalaMala تحویل می‌دهد → اپراتور `settle-gold` میزند → یک ردیف جهت‌مخالف append می‌شود → **net** gold به ۰ می‌رسد
 4. این طلای خام تحویلی برای hedging موجودی TalaMala یا تولید شمش بعدی استفاده می‌شود (نه refill همان شمش فروختهشده)
 
 ### ۶.۷. Buyback و اثرش بر دفتر بین‌شرکتی
@@ -532,7 +538,7 @@ POS = `sales_channels.channel_type = 'pos'`. یک channel POS مشخص دارد:
 <tr><td>8</td><td>**order**</td><td>Per-brand</td><td>Order (با ۷ order_type)، OrderItem، OrderStatusLog، WithdrawalDetail (فقط rial)، PhysicalPurchaseFromWallet، Buyback</td></tr>
 <tr><td>9</td><td>**payment**</td><td>Per-account</td><td>Payment، PaymentTransaction، Callback (Refund حذف شد — D-32. بهجای آن Buyback در order context)</td></tr>
 <tr><td>10</td><td>**wallet**</td><td>Per-wallet-scope</td><td>AssetBalance، LedgerEntry، Lock</td></tr>
-<tr><td>11</td><td>**treasury**</td><td>Goldis-only</td><td>Position، Coverage، Alert</td></tr>
+<tr><td>11</td><td>**treasury**</td><td>Goldis-only</td><td>Position، Exposure (signed-sum)، Alert</td></tr>
 <tr><td>12</td><td>**inter_company**</td><td>Inter-company</td><td>InterCompanyLedger (real-time obligations: gold + rial)، SettleActions (audit)، Reports (aggregate). جایگزین settlement قدیمی.</td></tr>
 <tr><td>13</td><td>**fulfillment**</td><td>Goldis-ops</td><td>Task، Event</td></tr>
 <tr><td>14</td><td>**pos**</td><td>Per-channel</td><td>Device، Transaction، Reconciliation</td></tr>

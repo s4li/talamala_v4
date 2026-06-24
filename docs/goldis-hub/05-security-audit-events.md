@@ -21,6 +21,13 @@
 - ABAC: `accountant` فقط می‌تواند settlement خودش (company-bound) را تأیید کند
 - Route protection: `Depends(require_permission("settlement", level="approve"))`
 
+### Segregation of Duties (SoD — اجباری، D-107)
+- maker ≠ checker روی همه‌ی workflowهای dual-control اجباری است: گارد سراسری لایه‌ی app `if maker_id == checker_id: raise` روی transfer/buyback/withdrawal **قبل** از هر منطق approval.
+- `inventory_transfer_documents`: `CHECK(dispatched_by IS NULL OR received_by IS NULL OR dispatched_by <> received_by)`.
+- trio بازخرید (`received_by`/`verified_by`/`approved_by`) نباید یک `user_id` باشند (گارد لایه‌ی app، قبل از approval).
+- `super_admin` از actor بودن در گام‌های تأیید مالی **منع** می‌شود (bypass permission ≠ bypass SoD).
+- گزارش کارآگاهی دوره‌ای روی `audit_logs` برای same-actor-both-halves و same-device.
+
 ### Idempotency
 - Header `Idempotency-Key` در همه‌ی POST تغییردهنده الزامی
 - ذخیره: یا در جدول `idempotency_keys` با TTL=۲۴h، یا در ستون idempotency_key entity (پیشنهاد دوم: سادهتر)
@@ -37,7 +44,7 @@
 
 ### Audit
 - هر action با priority بالا → audit_logs.insert در همان transaction
-- لیست actions الزامی: تغییر قیمت، manual override، inventory adjustment، wallet adjustment manual، تغییر KYC level/limits، تأیید/رد withdrawal ریال، mark treasury covered، **inter-company settle (rial/gold)**، buyback (digital و physical)، تغییر role/permission، sync دستی marketplace، تغییر mapping، تغییر payment_account، inventory_movement بین انبارها (مثلا تحویل طلای خام از Goldis به TalaMala برای hedging)
+- لیست actions الزامی: تغییر قیمت، manual override، inventory adjustment، wallet adjustment manual، تغییر KYC level/limits، تأیید/رد withdrawal ریال، cancel treasury position (تغییر status از open به cancelled)، **inter-company settle (rial/gold)**، buyback (digital و physical)، تغییر role/permission، sync دستی marketplace، تغییر mapping، تغییر payment_account، inventory_movement بین انبارها (مثلا تحویل طلای خام از Goldis به TalaMala برای hedging)
 - audit_logs **INSERT ONLY** — DB grant level: `REVOKE UPDATE, DELETE ON audit_logs FROM app_user`
 
 ### Payment callback security
@@ -129,7 +136,7 @@ WithdrawalRequested, WithdrawalApproved, WithdrawalRejected,
 WithdrawalCompleted, WithdrawalFailed
 
 # Treasury
-TreasuryPositionOpened, TreasuryPositionCovered, TreasuryThresholdReached
+TreasuryPositionOpened, TreasuryPositionCancelled, TreasuryThresholdReached
 
 # Inter-Company Ledger (بخش ۶)
 InterCompanyObligationCreated,     # موقع sale (gold یا rial)

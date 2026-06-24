@@ -194,7 +194,7 @@ DRAFT → DISPATCHED → RECEIVED → COMPLETED
 وقتی `POST /admin/inter-company/settle-gold` با `source_bulk_gold_id`:
 - Withdraw از bulk_gold_inventory (weight_mg_delta=−amount)
 - INSERT inventory_movement (from=goldis_warehouse, to=creditor_warehouse)
-- UPDATE inter_company_ledger (FIFO consume)
+- INSERT inter_company_ledger (ردیف settlement جهت‌مخالف: debtor=TalaMala، creditor=Goldis، asset=XAU_MG، source_type='settlement' — net تعهد طلا را به سمت صفر می‌برد؛ append-only، بدون FIFO/status و بدون mutate ردیف‌های قبلی — D-102)
 
 ---
 

@@ -12,7 +12,7 @@
 | File | Content |
 |---|---|
 | [00-overview.md](00-overview.md) | Project summary, scope, companies/brands, migration plan, roadmap, LLM instructions |
-| [01-decisions-audit-log.md](01-decisions-audit-log.md) | All architectural decisions D-01…D-99, P0 fixes, FIX-1…7, ambiguity resolution |
+| [01-decisions-audit-log.md](01-decisions-audit-log.md) | All architectural decisions D-01…D-110 (incl. §2.7 Pre-Build Review D-100…D-110 — authoritative/override), P0 fixes, FIX-1…7, ambiguity resolution |
 | [02-domain-models.md](02-domain-models.md) | Bounded contexts, domain concepts, Companies/Brands/Channels narrative, Wallet/Treasury/Inter-Company concepts |
 | [03-schema-index.md](03-schema-index.md) | All SQL schemas (canonical home — other files reference here) |
 | [04-api-index.md](04-api-index.md) | Complete API contracts & conventions |

@@ -70,7 +70,8 @@ Goldis operator purchases raw gold (granules, large ingots) from the market to c
    - Backend:
      - Withdraw از bulk_gold_inventory (weight_mg_delta=-150000)
      - INSERT inventory_movement (from=goldis_warehouse, to=talamala_warehouse)
-     - UPDATE inter_company_ledger (status=settled)
+     - INSERT inter_company_ledger settlement row (debtor=TalaMala, creditor=Goldis,
+         asset='XAU_MG', amount_minor=150000, source_type='settlement') → net gold به سمت ۰ (D-102)
      - Audit log + Notification
 ```
 
@@ -78,14 +79,14 @@ Goldis operator purchases raw gold (granules, large ingots) from the market to c
 - Hedge Buy **تنها در سطح Goldis** (operator only) قابل ایجاد است
 - هر hedge_buy یک source برای multiple settlements می‌تواند باشد
 - وزن در دسترس برای settlement نباید از total_weight_mg بیشتر شود (CHECK constraint یا service-level validation)
-- هر settlement، obligation های open موجود در `inter_company_ledger` را FIFO consume میکند و در `inter_company_settle_actions` audit record میسازد (نه entry جدید)
+- هر settlement (D-102) یک ردیف `settlement` جهت‌مخالف در `inter_company_ledger` append می‌کند که **net** را به سمت صفر می‌برد (نه FIFO/status؛ audit در `audit_logs`)
 
 ## 6. DB Writes
 
 - `bulk_gold_inventory` — new row (acquisition_source=hedge_buy)
 - `bulk_gold_movements` — intake record (weight_mg_delta=+amount_mg)
 - `treasury_positions` — delta=-amount_mg (hedge_buy reduces exposure)
-- On settlement: `inter_company_ledger` updated (status=settled), `inventory_movements` for physical transfer
+- On settlement: a new `inter_company_ledger` `settlement` row (opposite direction, net→0 — D-102), `inventory_movements` for physical transfer
 
 > Canonical schemas: [Inventory (bulk_gold)](../03-schema-index.md#10-inventory), [Treasury](../03-schema-index.md#3-treasury), [Inter-Company](../03-schema-index.md#4-inter-company-ledger)
 
@@ -102,7 +103,7 @@ Goldis operator purchases raw gold (granules, large ingots) from the market to c
 ## 9. Inter-Company Impact
 
 - Hedge buy itself: no inter-company entries (Goldis buying from external market)
-- Settlement phase: FIFO consume **existing open** gold obligations in `inter_company_ledger` + audit in `inter_company_settle_actions` (see [Flow 12](12-inter-company-settlement.md))
+- Settlement phase: append an opposite-direction `settlement` row to `inter_company_ledger` (net→0, D-102; audit in `audit_logs`) (see [Flow 12](12-inter-company-settlement.md))
   - If `source_bulk_gold_id` provided: `bulk_gold_inventory` withdrawal + `bulk_gold_movements` + `inventory_movements`
 
 ## 10. Audit & Events
@@ -128,7 +129,7 @@ Goldis operator purchases raw gold (granules, large ingots) from the market to c
 - Hedge Buy is **Goldis-only** operation — no other company can create hedge buys
 - `treasury_positions` delta is always **negative** for hedge_buy (closing exposure)
 - Available settlement weight ≤ total_weight_mg (cannot over-withdraw from bulk_gold_inventory)
-- Settlement FIFO-consumes existing open obligations in `inter_company_ledger` — does NOT create new ledger entries
+- Settlement appends an opposite-direction `settlement` row to `inter_company_ledger` that drives the **net** toward zero (D-102 — no FIFO, no row mutation)
 - Bulk gold = raw gold (granules, ingots) — NOT serialized bars; stored by weight (mg) not serial ([D-83](../01-decisions-audit-log.md))
 - Physical delivery to creditor company is a **separate real-world event** — operator confirms in system after actual delivery
 

@@ -7,7 +7,7 @@
 
 ## Documentation Package is Ready for Coding
 
-The Goldis Hub v2.7 architecture has been fully decomposed from the monolithic source document into 28 structured DDD + End-to-End Flow files. All business logic, decisions (D-01..D-99), schemas, API contracts, and operational flows are preserved without summarization or omission.
+The Goldis Hub v2.7 architecture has been fully decomposed from the monolithic source document into 28 structured DDD + End-to-End Flow files. All business logic, decisions (D-01..D-110, including the authoritative §2.7 Pre-Build Review decisions D-100..D-110 which override earlier ones), schemas, API contracts, and operational flows are preserved without summarization or omission.
 
 ## Source of Truth
 
@@ -23,7 +23,7 @@ For any feature or flow, use these files together:
 | End-to-end flow (steps, state machine, DB writes, treasury/wallet/inter-company impact) | `flows/01..15-*.md` |
 | SQL schemas (CREATE TABLE, constraints, indexes) | `03-schema-index.md` |
 | API contracts (endpoints, request/response) | `04-api-index.md` |
-| Architectural decisions (D-01..D-99) | `01-decisions-audit-log.md` |
+| Architectural decisions (D-01..D-110; §2.7 D-100..D-110 override earlier decisions) | `01-decisions-audit-log.md` |
 | Domain concepts and bounded contexts | `02-domain-models.md` |
 | Security, RBAC, events, outbox | `05-security-audit-events.md` |
 | Cross-cutting deep-dives | `references/*.md` |
@@ -33,7 +33,7 @@ For any feature or flow, use these files together:
 ### Root Files (6)
 - `README.md` — Navigation index
 - `00-overview.md` — Project overview + bounded contexts
-- `01-decisions-audit-log.md` — All 99 architectural decisions
+- `01-decisions-audit-log.md` — All architectural decisions (D-01..D-110, incl. §2.7 Pre-Build Review D-100..D-110 which override earlier ones)
 - `02-domain-models.md` — Domain concepts (no SQL — links to schema index)
 - `03-schema-index.md` — Canonical SQL schemas (15 sections)
 - `04-api-index.md` — API contracts and conventions
@@ -86,9 +86,10 @@ For any feature or flow, use these files together:
 
 ## Implementation Order (Suggested)
 
+0. **Build-discipline harness (D-110)** — Alembic async+SQLModel with explicit per-column enum strategy (native PG enum via `alembic-postgresql-enum`, or `VARCHAR+CHECK` for reversible downgrade), `import-linter` enforcing the 24-context boundary (no Table model crosses; `payment` must not import `treasury` internals), commit/rollback only at the use-case boundary, `asyncpg statement_cache_size=0` if a transaction-mode pooler is used, `testcontainers` Postgres + concurrency/idempotency fixtures. No financial context ships before this harness.
 1. **Platform + Identity + KYC** (foundations: users, companies, brands, channels)
 2. **Catalog + Pricing + Inventory** (products, bars, locations, price pipeline)
-3. **Wallet + Payment** (double-entry ledger, payment state machine, reconciliation)
+3. **Wallet + Payment + Reconciliation/Solvency worker (D-106)** (double-entry ledger, atomic payment finalize; scheduled worker running the 3 self-reconciliations + cross-ledger solvency identity + treasury_position_snapshots + alert on any nonzero residue + external 3-way recon + blind cycle-count of custodial bars — part of the financial core, NOT a later phase)
 4. **Cart + Orders + Fulfillment** (checkout, delivery, OTP confirmation)
 5. **Treasury + Inter-Company Ledger** (hedging desk, multi-company settlement)
 6. **POS + Marketplace** (dealer POS, external channel sync)

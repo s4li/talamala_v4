@@ -58,7 +58,7 @@
 
 | Role | Scope | Description |
 |------|-------|-------------|
-| `super_admin` | Global | Full access, all permissions |
+| `super_admin` | Global | Full access — اما در گام‌های تأیید مالی (transfer/buyback/withdrawal) به‌عنوان actor مجاز نیست ([D-107](../01-decisions-audit-log.md): bypass permission ≠ bypass SoD) |
 | `admin` | Global | Near-full access |
 | `operator` | Per-company | عملیاتی — fulfillment, inventory, withdrawal approve |
 | `accountant` | Per-company | Settlement, treasury, financial reports |
@@ -83,6 +83,15 @@ view → create → edit → full
 - Route protection: `Depends(require_permission("settlement", level="approve"))`
 - Dealer فقط inventory و sales خودش را میبیند
 
+### ۳.۴. Separation of Duties — اجبار ([D-107](../01-decisions-audit-log.md))
+
+SoD از «توصیه/audit» به **اجبار** ارتقا یافته است:
+- گارد سراسری `if maker_id == checker_id: raise` روی همه‌ی workflowهای dual-control (transfer/buyback/withdrawal)، **قبل** از هر منطق approval.
+- `inventory_transfer_documents` → `CHECK(dispatched_by IS NULL OR received_by IS NULL OR dispatched_by <> received_by)`.
+- trio بازخرید (`received_by`/`verified_by`/`approved_by`) → نقش‌های متوالی نباید یک `user_id` باشند (گارد لایه‌ی app).
+- `super_admin` از actor بودن در گام‌های تأیید مالی منع است (bypass permission ≠ bypass SoD).
+- گزارش کارآگاهی دوره‌ای روی `audit_logs` برای same-actor-both-halves و same-device.
+
 ---
 
 ## ۴. KYC (Know Your Customer)
@@ -95,13 +104,13 @@ NotStarted → Pending → Approved | Rejected
                    (requires_manual_approval=TRUE → admin review)
 ```
 
-### ۴.۲. User Levels ([D-61](../01-decisions-audit-log.md))
+### ۴.۲. User Levels ([D-61](../01-decisions-audit-log.md), [D-108](../01-decisions-audit-log.md))
 
 | Level | KYC Requirement | Limits |
 |-------|----------------|--------|
-| `Normal` | فقط موبایل | حداقل (مشاهده + خریدهای خُرد) |
-| `Verified` | Shahkar + national_id | متوسط |
-| `Premium` | Verified + اسناد اضافی | حداکثر |
+| `L0` | فقط موبایل+OTP | هیچ تراکنش مالی — فقط مرور/سبد/مشاهده قیمت (نه خرید، نه کیف‌پول، نه شارژ) |
+| `L1` | Shahkar (موبایل↔کدملی منطبق) + نام/کدملی | سطح پایه‌ی معامله با سقف‌های محتاطانه |
+| `L2` | L1 + احراز مالکیت حساب بانکی (شبا↔کدملی) + تأیید دستی اختیاری | سقف‌های بالاتر/سفارشی |
 
 ### ۴.۳. Limit Types (per level + per user override)
 
@@ -206,7 +215,7 @@ Sub-dealer/شبکه نمایندگی **حذف شد** در v1. فقط flat dealer
 - Wallet adjustment manual
 - تغییر KYC level/limits
 - تأیید/رد withdrawal ریال
-- Mark treasury covered
+- ثبت hedge_buy خزانه (ردیف delta منفی در treasury_positions)
 - **Inter-company settle (rial/gold)**
 - Buyback (digital و physical)
 - تغییر role/permission

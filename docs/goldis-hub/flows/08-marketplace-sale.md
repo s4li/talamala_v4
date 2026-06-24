@@ -19,6 +19,7 @@ Import and process orders from external marketplaces (DigiKala, Basalam, etc.) v
 - Marketplace channel configured (channel_type=marketplace, adapter_class set)
 - Product mappings exist (external SKU → internal product_id)
 - Inventory available for the mapped products
+- Treasury capacity check passes ([D-47](../01-decisions-audit-log.md) — inline hard cap; [D-101](../01-decisions-audit-log.md) — two-level cap + advisory lock)
 
 ## 4. Trigger
 
@@ -44,6 +45,9 @@ Worker هر دقیقه:
         seller_company=channel.seller_company,
       )
       Inventory.consume(channel, product)
+      pg_advisory_xact_lock(hashtext('treasury:'||metal_type))   # D-101 serialize
+      if committed + reserved + this_tx > cap:   # D-101 canonical formula
+        Outbox: ExternalOrderFailed; alert admin; continue   # skip rather than breach cap
       Treasury.record(source=marketplace_sale, delta=+pure_gold_mg)  # D-91: pure weight
       # D-56 (قطعی): marketplace همیشه seller=Goldis و payment_receiver=Goldis
       # هیچ inter_company_ledger entry برای marketplace وجود ندارد
@@ -97,6 +101,7 @@ Worker هر دقیقه:
 | Duplicate order (dedup_key) | Skip silently (UniqueViolation) |
 | Product mapping not found | `ExternalOrderFailed` event, skip order, alert admin |
 | No inventory for product | `ExternalOrderFailed` event, skip order |
+| Treasury cap exceeded | `ExternalOrderFailed` event, skip order, alert admin (inline hard block — [D-47](../01-decisions-audit-log.md)/[D-101](../01-decisions-audit-log.md)) |
 | Adapter connection failure | Worker retries next cycle, alert if persistent |
 | Marketplace API rate limit | Backoff, retry next cycle |
 

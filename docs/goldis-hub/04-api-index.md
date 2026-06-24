@@ -126,18 +126,18 @@
 
 ### Treasury
 - GET `/admin/treasury/positions?status=open&metal=gold`
-- POST `/admin/treasury/positions/{id}/cover` { amount_mg, source_note }
+  # D-100: `/positions/{id}/cover` حذف شد (مدل signed-sum؛ hedge_buy یک position منفی است، نه «cover»).
 - POST `/admin/treasury/hedge-buy/request` { metal_type, amount_mg, supplier_name, purchase_price_per_gram_rial, notes } — ثبت خرید طلای خام از بازار (Hedge Buy — §12.5.3 الف، D-82)
 - GET `/admin/treasury/snapshot`
 - PUT `/admin/treasury/settings`
 
 ### Inter-Company Ledger (بخش ۶ — جایگزین Settlement قدیمی)
-- GET `/admin/inter-company/ledger?creditor=X&debtor=Y&asset=gold|rial&status=open|partial|settled` — لیست obligations
-- GET `/admin/inter-company/balance?company_a=X&company_b=Y` — net balance بین دو شرکت
-- POST `/admin/inter-company/settle-rial` { creditor_company_id, debtor_company_id, amount_rial, notes } — تأیید پرداخت ریالی، FIFO consume open entries
-- POST `/admin/inter-company/settle-gold` { creditor_company_id, debtor_company_id, amount_mg, notes, source_bulk_gold_id? } — تأیید تحویل طلا، FIFO consume. اگر `source_bulk_gold_id` ارائه شود (D-82 Hedge Buy): طلا از `bulk_gold_inventory` برداشته شود و `inventory_movement` ایجاد شود.
-- GET `/admin/inter-company/settle-actions?company_a=X&company_b=Y&date_from=...` — audit log همه‌ی settle actions
-- GET `/admin/inter-company/reports?period=month` — جمعبندی دورهای (aggregate query)
+- GET `/admin/inter-company/ledger?creditor=X&debtor=Y&asset=gold|rial` — ردیف‌های دفتر (append-only، **بدون** status — D-102)
+- GET `/admin/inter-company/balance?company_a=X&company_b=Y` — **net** outstanding per asset بین دو شرکت (مرجعِ تسویه — D-102)
+- POST `/admin/inter-company/settle-rial` { creditor_company_id, debtor_company_id, amount_rial, notes } — D-102: یک ردیف `settlement` در جهت مخالف append می‌کند (net→۰)، نه FIFO consume
+- POST `/admin/inter-company/settle-gold` { creditor_company_id, debtor_company_id, amount_mg, notes, source_bulk_gold_id? } — D-102: ردیف `settlement` جهت‌مخالف append می‌کند. اگر `source_bulk_gold_id` (D-82 Hedge Buy): طلا از `bulk_gold_inventory` برداشته و `inventory_movement` ایجاد شود.
+- GET `/admin/inter-company/settlements?company_a=X&company_b=Y&date_from=...` — ردیف‌های `source_type='settlement'` (جایگزین `settle-actions` حذف‌شده — D-102؛ audit کامل در `audit_logs`)
+- GET `/admin/inter-company/reports?period=month` — جمعبندی دورهای (aggregate query روی net)
 
 ### Dealer Commission Settlement (D-73)
 - GET `/admin/dealer-commissions?dealer_id=X&status=open|settled` — لیست entries کمیسیون نماینده

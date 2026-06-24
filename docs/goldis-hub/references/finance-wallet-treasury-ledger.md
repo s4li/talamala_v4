@@ -87,7 +87,7 @@ User Ali (mobile=0912...)
 - `buyback` تحویل‌نشده/حضوری: پای `+pure_gold_mg` (طلا به کیف) و پای `−pure_gold_mg` (شمش برگشتی/مصرف) ⇒ خنثی
 - `physical_purchase_from_wallet`: پای `−gold_part_mg` (مصرف طلای دیجیتال کیف) و پای `+pure_gold_mg` (خروج شمش فیزیکی) ⇒ خنثی
 
-> `sum(delta_amount_mg WHERE status IN ('open','partially_covered'))` = current open exposure
+> **D-100 (signed-sum):** `exposure(metal) = sum(delta_amount_mg WHERE status='open')`. مدل coverage حذف شد؛ `hedge_buy` یک ردیف با delta منفی است (D-90). status فقط `open`/`cancelled`.
 
 ### ۲.۳. Cap و Alert (دو‌طرفه + چک inline) — [D-47](../01-decisions-audit-log.md)
 
@@ -95,13 +95,14 @@ User Ali (mobile=0912...)
 - **چک inline سد سخت در لحظه‌ی هر تراکنش** (فروش+خرید، فیزیکی+دیجیتال+POS، بدون استثنا): اگر این تراکنش از سقف مربوطه رد شود، **همان تراکنش رد می‌شود** (مثل `require_fresh_price`).
 - `warning_threshold_percent` (مثلا ۷۰٪) برای هر دو طرف.
 - `auto_block_at_cap`: worker (۱۲.۱۰) فقط **هشدار/پشتیبان** است؛ سد واقعی همان چک inline است.
+- **D-101 فرمول/قفل:** `committed + reserved + this_tx` در بازه‌ی `[−max_short_exposure_mg, +max_open_exposure_mg]`؛ `committed = SUM(open positions)`، `reserved = SUM(inventory_pending_holds زنده — D-105)`. ناحیه‌ی بحرانی با `pg_advisory_xact_lock(hashtext('treasury:'||metal_type))` سریالایز می‌شود (نه `SELECT FOR UPDATE` روی `treasury_settings`).
 
 ### ۲.۴. Treasury Alert Worker
 
 ```
 worker هر ۳۰ ثانیه:
   for each metal:
-    net = SUM(delta_amount_mg) where status IN ('open','partially_covered')
+    net = SUM(delta_amount_mg) where status = 'open'   # D-100
     if net >= max_open_exposure_mg → sell-block + critical alert
     elif net > 0 and net / max >= warning_threshold → throttled warning
     if -net >= max_short_exposure_mg → buy-block + critical alert
@@ -147,15 +148,17 @@ worker هر ۳۰ ثانیه:
 ```
 POST /api/v1/admin/inter-company/settle-rial
 Body: { creditor_company_id: Goldis, debtor_company_id: TalaMala, amount_rial, notes }
-→ FIFO consume open rial obligations from oldest
-→ INSERT inter_company_settle_actions (audit)
+→ D-102: append an OPPOSITE-direction settlement row (debtor=Goldis, creditor=TalaMala,
+         asset='IRR', source_type='settlement') → net rial moves toward zero. No FIFO/status.
+→ audit in audit_logs
 ```
 
 #### Settle Gold
 ```
 POST /api/v1/admin/inter-company/settle-gold
 Body: { creditor_company_id: TalaMala, debtor_company_id: Goldis, amount_mg, notes }
-→ FIFO consume open gold obligations
+→ D-102: append an OPPOSITE-direction settlement row (debtor=TalaMala, creditor=Goldis,
+         asset='XAU_MG', source_type='settlement') → net gold moves toward zero. No FIFO/status.
 → اگر source_bulk_gold_id: withdraw from bulk_gold_inventory + inventory_movement
 ```
 
@@ -173,15 +176,15 @@ Body: { creditor_company_id: TalaMala, debtor_company_id: Goldis, amount_mg, not
 - پرداخت → TalaMala IPG (۵۲M به حساب TalaMala)
 - شمش از inventory_location TalaMala به مشتری
 - در همان transaction:
-  - `inter_company_ledger`: TalaMala → Goldis، rial، **۴۸M**، status=open
-  - `inter_company_ledger`: Goldis → TalaMala، gold، **۱۰۰۰mg**، status=open
+  - `inter_company_ledger`: TalaMala → Goldis، rial، **۴۸M** (ردیف append-only علامت‌دار، بدون status — D-102)
+  - `inter_company_ledger`: Goldis → TalaMala، gold، **۱۰۰۰mg** (ردیف append-only علامت‌دار، بدون status — D-102)
   - `treasury_positions`: Goldis exposure +۱۰۰۰mg
 - **سود ۴M (= ۵۲M − ۴۸M) نزد TalaMala باقی میماند**
 
 عملیاتهای بعدی:
 1. Goldis از بازار طلای خام معادل ۱g می‌خرد → treasury exposure کاهش مییابد
-2. TalaMala فردا ۴۸M ریال واریز → اپراتور `settle-rial` → rial obligation settled
-3. Goldis هفتگی/ماهانه طلای خام فیزیکی به TalaMala تحویل → `settle-gold` → gold obligation settled
+2. TalaMala فردا ۴۸M ریال واریز → اپراتور `settle-rial` → ردیف جهت‌مخالف append → **net** rial→۰ (D-102)
+3. Goldis هفتگی/ماهانه طلای خام فیزیکی به TalaMala تحویل → `settle-gold` → ردیف جهت‌مخالف append → **net** gold→۰
 
 > Canonical schemas: [Inter-Company Ledger](../03-schema-index.md#4-inter-company-ledger)
 
@@ -193,17 +196,20 @@ Body: { creditor_company_id: TalaMala, debtor_company_id: Goldis, amount_mg, not
 
 هر channel یک لیست اولویت‌دار درگاه دارد (`sales_channel_payment_accounts`). موقع پرداخت: اولین payment_account enabled و سالم؛ اگر down → fallback به بعدی. هر بار درگاهی خطا داد → notification + audit.
 
-### ۴.۲. Payment State Machine ([D-92](../01-decisions-audit-log.md))
+### ۴.۲. Payment State — Observability Only ([D-103](../01-decisions-audit-log.md) override of [D-92](../01-decisions-audit-log.md))
+
+finalize یک **transaction اتمیک واحد** است: gateway-verify خارج از tx؛ سپس در یک tx: wallet ledger → treasury position (from hold) → inter-company net rows → outbox events → order.status=Paid. بازیابی crash = **retry idempotent کل عملیات** با کلید کسب‌وکاریِ پایدار (نه saga؛ نه consume کردن state برای resume).
+
+`payment_states` صرفاً برای observability/alerting است و **هیچ شاخه‌ی control-flow** آن را برای resume نمی‌خواند:
 
 ```
-pending → gateway_verified_pending → inter_company_ledger_created → finalized
-                                                                  → failed
-                                                                  → cancelled
+pending → verified_pending → finalized
+                          → failed
+                          → cancelled
 ```
 
-- `gateway_verified_at`: when gateway confirmed payment
-- `ledger_entry_id`: FK to inter_company_ledger (if non-Goldis sale)
-- `idempotency_key`: critical for crash recovery
+- `gateway_verified_at`: when gateway confirmed payment (observability)
+- `idempotency_key`: کلید کسب‌وکاری پایدار برای retry idempotent finalize
 
 ### ۴.۳. Split Payment (physical_purchase_from_wallet)
 
@@ -238,9 +244,9 @@ Handles price lock expiry during gateway round-trip: `payment_reconciliations` t
 
 `inventory_pending_holds`: per-order treasury reserve during checkout. Prevents race condition where treasury cap check passes at checkout but breaches by payment time. Finalized or released atomically.
 
-### ۵.۳. Payment State Machine ([D-92](../01-decisions-audit-log.md))
+### ۵.۳. Payment State Machine ([D-103](../01-decisions-audit-log.md) override of [D-92](../01-decisions-audit-log.md))
 
-Multi-step state tracking for orphaned payment recovery. Each step (gateway verify → ledger create → finalize) is checkpoint-idempotent.
+Observability-only state tracking for orphaned payment recovery ([D-103](../01-decisions-audit-log.md)). finalize یک transaction اتمیک واحد است؛ بازیابی = retry idempotent کل عملیات با کلید کسب‌وکاری پایدار (نه checkpoint/saga per-step). `payment_states` فقط observability/alerting است و هیچ control-flow ای آن را برای resume نمی‌خواند.
 
 ### ۵.۴. POS Offline Queue ([D-99](../01-decisions-audit-log.md))
 
@@ -284,3 +290,10 @@ Multi-step state tracking for orphaned payment recovery. Each step (gateway veri
 | [D-96](../01-decisions-audit-log.md) | Payment reconciliation for price lock variance |
 | [D-97](../01-decisions-audit-log.md) | Pending reserves prevent treasury race condition |
 | [D-99](../01-decisions-audit-log.md) | POS offline queue with idempotency |
+| [D-100](../01-decisions-audit-log.md) | Treasury = signed-sum exposure (coverage model removed) |
+| [D-101](../01-decisions-audit-log.md) | Two-level cap + canonical formula + advisory lock per metal |
+| [D-102](../01-decisions-audit-log.md) | Inter-company = signed NET running account (FIFO/status removed) |
+| [D-103](../01-decisions-audit-log.md) | Atomic payment finalize; payment_state observability-only |
+| [D-104](../01-decisions-audit-log.md) | Integer milligram everywhere + single FLOOR rounding |
+| [D-105](../01-decisions-audit-log.md) | Pending holds expire (lock_expirer) |
+| [D-106](../01-decisions-audit-log.md) | Reconciliation + solvency-invariant worker (financial core) |

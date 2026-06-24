@@ -38,6 +38,7 @@ Customer withdraws IRR from their wallet to a verified bank account. Requires op
    + INSERT withdrawal_details (bank_account_id)
 5. اپراتور (admin_role=operator) در پنل ادمین → POST /api/v1/admin/withdrawals/{id}/approve
    → status=OperatorApproved
+   → تفکیک وظایف (D-107): approver ≠ requester؛ super_admin به‌عنوان approver مالی مجاز نیست.
 6. Payout worker → Goldis bank API (یا TalaMala bank API برای from_wallet=TalaMala)
 7. on success:
    - Wallet.consume_lock
@@ -106,6 +107,7 @@ Customer withdraws IRR from their wallet to a verified bank account. Requires op
 - `withdrawable_balance = balance - locked - credit` (credit_limit NOT included for withdrawals)
 - Withdrawal to third-party bank account is forbidden in v1 ([D-64](../01-decisions-audit-log.md)) — national_id must match
 - Payout goes to the bank API matching the wallet scope (Goldis bank for goldis scope, TalaMala bank for talamala scope)
+- تفکیک وظایف (SoD — [D-107](../01-decisions-audit-log.md)): اپراتورِ تأییدکننده نباید همان actor درخواست‌دهنده باشد، و `super_admin` مجاز نیست به‌عنوان approver مالیِ برداشت عمل کند (bypass-permission ≠ bypass-SoD)؛ گزارش کارآگاهی دوره‌ای موارد same-actor/same-device را علامت می‌زند.
 
 ## 13. Related References
 

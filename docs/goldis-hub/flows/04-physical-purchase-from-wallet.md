@@ -24,6 +24,7 @@ Customer uses their XAU_MG wallet balance to purchase a physical gold bar. Suppo
 - Price is fresh
 - KYC limits allow the transaction
 - O-03: withdrawal only as existing products — customer must choose an available bar of exact weight
+- The confirm tx acquires locks in the global order ([D-101](../01-decisions-audit-log.md)): advisory(treasury per metal) → wallet rows(asset_code, id) [XAU_MG then IRR] → bar(id)
 
 ## 4. Trigger
 
@@ -67,6 +68,10 @@ Customer uses their XAU_MG wallet balance to purchase a physical gold bar. Suppo
 8. Pricing.create_price_lock(channel, product, split_payment_plan)
    → snapshot شامل: gold_part_mg, irr_from_wallet, irr_from_gateway, metal_price
 9. Inventory.reserve(bar)
+   → write an `inventory_pending_holds` row (with `expires_at`, D-105) INSIDE the
+     treasury advisory lock `pg_advisory_xact_lock(hashtext('treasury:'||metal_type))`,
+     after enforcing the two-level cap (D-101); finalized into a `treasury_position`
+     at confirm (step 12)
 10. Order.create(
       order_type=physical_purchase_from_wallet,
       payment_asset='SPLIT',
@@ -169,7 +174,7 @@ Same as [Flow 01](01-physical-bar-purchase-site.md) §9 — if payment_receiver 
 | Insufficient IRR + no gateway | Reject |
 | Gateway fails after wallet locks | Release all locks, release reservation, cancel price lock |
 | Concurrent wallet drain | Lock mechanism prevents over-spend |
-| Treasury cap | Reject (inline hard block) |
+| Treasury cap (two-level, D-101) | Reject — checked inline at checkout when writing the `inventory_pending_holds` row, under `pg_advisory_xact_lock(hashtext('treasury:'||metal_type))`, enforcing `committed + reserved + this_tx ≤ cap` (committed = SUM open positions; reserved = SUM live pending_holds). |
 
 ## 12. Invariants
 
@@ -185,4 +190,4 @@ Same as [Flow 01](01-physical-bar-purchase-site.md) §9 — if payment_receiver 
 - [Schema: Order](../03-schema-index.md#11-order) (see `order_payment_allocations`)
 - [API: Physical from wallet](../04-api-index.md)
 - [Reference: Finance/Wallet/Treasury](../references/finance-wallet-treasury-ledger.md)
-- Decisions: [D-31](../01-decisions-audit-log.md), [D-39](../01-decisions-audit-log.md), [D-47](../01-decisions-audit-log.md), [D-66](../01-decisions-audit-log.md), [D-77](../01-decisions-audit-log.md)
+- Decisions: [D-31](../01-decisions-audit-log.md), [D-39](../01-decisions-audit-log.md), [D-47](../01-decisions-audit-log.md), [D-66](../01-decisions-audit-log.md), [D-77](../01-decisions-audit-log.md), [D-101](../01-decisions-audit-log.md), [D-105](../01-decisions-audit-log.md)

@@ -100,7 +100,7 @@ EVENT_HANDLERS: dict[str, list[Callable]] = {
 - `WithdrawalCompleted`, `WithdrawalFailed`
 
 **Treasury:**
-- `TreasuryPositionOpened`, `TreasuryPositionCovered`, `TreasuryThresholdReached`
+- `TreasuryPositionOpened`, `TreasuryPositionCancelled`, `TreasuryThresholdReached`
 
 **Inter-Company Ledger:**
 - `InterCompanyObligationCreated` (موقع sale — gold + rial)
@@ -152,8 +152,9 @@ EVENT_HANDLERS: dict[str, list[Callable]] = {
 | `outbox_publisher` | continuous (poll 1s) | parallelism=2 | Dispatch outbox events to handlers |
 | `pricing_fetcher` | dynamic per source | configurable | Fetch market prices from external sources |
 | `marketplace_poller` | 60s | per channel | Pull new orders from DigiKala/Basalam |
-| `lock_expirer` | 30s | — | Release expired price locks + inventory reservations |
-| `treasury_monitor` | 30s | — | Check treasury caps, send alerts ([D-47](../01-decisions-audit-log.md)) |
+| `lock_expirer` | 30s | — | Release expired price locks + inventory reservations + **inventory_pending_holds** ([D-105](../01-decisions-audit-log.md)) via state/version-guarded UPDATE (no blind delete) |
+| `treasury_monitor` | 30s | — | Check treasury caps, send alerts ([D-47](../01-decisions-audit-log.md)) — back-up only; real gate is the inline check ([D-101](../01-decisions-audit-log.md)) |
+| `reconciliation_worker` | per period (5–15m) | — | **Financial core** ([D-106](../01-decisions-audit-log.md)): recompute each balance/exposure from its ledger; assert the 3 self-reconciliation identities + the cross-ledger solvency identity; write a snapshot; raise an incident on any non-zero residue; drive the external 3-way reconcile (bank/gateway, physical bars, counterparty) |
 | `notification_dispatcher` | continuous | parallelism=4 | Send SMS/push notifications |
 | `payout_processor` | 30s | — | Process approved rial withdrawals |
 | `pos_transaction_reconciler` | hourly | per channel | Reconcile POS transactions |
@@ -171,6 +172,7 @@ async def main():
         TreasuryMonitorWorker(),
         NotificationDispatcherWorker(),
         PayoutProcessorWorker(),
+        ReconciliationWorker(),   # D-106: ledger/exposure/inter-company invariants + cross-ledger solvency identity
         # SettlementDailyWorker حذف شد (D-06b) — inter_company_ledger real-time
     ]
     tasks = [asyncio.create_task(w.loop()) for w in workers]

@@ -35,10 +35,13 @@ Customer requests buyback of a bar that has been sold but NOT physically deliver
    - (اگر fulfillment_task ساخته شده و packed/handed_over: حالت (a) مجاز نیست → حالت (b))
 3. اتومات (در یک DB transaction):
    - یک سفارش بازخرید مستقل (order_type=buyback) ثبت می‌شود — فروش اصلی دستنخورده
-   - bar.status = ASSIGNED, customer_id = NULL, sale_wallet_scope = NULL  (شمش به خزانه برمیگردد، قابل فروش دوباره در هر scope — D-92)
+   - old_sale_wallet_scope = bar.sale_wallet_scope          # snapshot BEFORE clearing
+   - old_pure_gold_mg = order_item.pure_gold_mg             # snapshot BEFORE clearing
+   - Wallet.credit(user, old_sale_wallet_scope, XAU_MG, old_pure_gold_mg)
+   - اگر ثبت مالکیت+OTP: Wallet.credit(user, old_sale_wallet_scope, IRR, order_item.buyback_credit_rial)
    - اگر fulfillment_task باز بود → بسته/کنسل می‌شود
-   - Wallet.credit(user, bars.sale_wallet_scope, XAU_MG, order_item.pure_gold_mg)
-   - اگر ثبت مالکیت+OTP: Wallet.credit(user, scope, IRR, order_item.buyback_credit_rial)
+   - # فقط بعد از wallet credit و audit:
+   - bar.status = ASSIGNED, customer_id = NULL, sale_wallet_scope = NULL  (شمش به خزانه برمیگردد، قابل فروش دوباره در هر scope — D-92)
    - Treasury: دو پای متقابل ⇒ خالص ≈ صفر (physical→digital)
    - Audit log + Outbox: BuybackCompleted + Notification
 ```
