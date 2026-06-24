@@ -218,7 +218,7 @@
 >
 > **این بخش canonical است.** هر تناقض با بدنه‌ی قدیمی‌تر سند یا با `03-schema-index.md` به نفع همین جدول حل می‌شود، تا وقتی که آن فایل‌ها هم به‌روزرسانی شوند. تا قبل از اعمال این تغییرات در schema/flowها، **هیچ کد مالی نباید نوشته شود** (وگرنه پیاده‌ساز همان مدل‌های ردشده را می‌سازد).
 >
-> **وضعیت اعمال:** ✅ در schema/flowها و referenceها اعمال شد (00–05، flows/، references/). این جدول مرجع canonical «چرایی» باقی می‌ماند. **D-109 همچنان باز است (DECISION NEEDED — تکلیف Rasis POS).**
+> **وضعیت اعمال:** ✅ در schema/flowها و referenceها اعمال شد (00–05، flows/، references/). این جدول مرجع canonical «چرایی» باقی می‌ماند. **D-109 بسته شد** (۲۰۲۶-۰۶-۲۴ — Rasis کاملاً حذف؛ POS = greenfield). هیچ تصمیمِ بازی باقی نمانده.
 
 <table>
 <thead>
@@ -244,7 +244,7 @@
 
 <tr><td>D-108</td><td>**یکسان‌سازی نام سطوح KYC به `L0/L1/L2`** — مجموعه‌ی canonical = `L0/L1/L2` (مطابق D-61). `kyc_records.user_level` default، `user_level_defaults.level` PK + seed، و `references/identity §4.2` از `Normal/Verified/Premium` به `L0/L1/L2` اصلاح می‌شوند. تست: هر مقدار `user_level` در کد به یک ردیف `user_level_defaults` resolve شود.</td><td>**رفع ناسازگاری**: دو واژگان برای یک gate → کد limit-lookup سقف اشتباه می‌دهد. هدف: `03 §7`، `references/identity §4.2`.</td></tr>
 
-<tr><td>D-109</td><td>**⛔ DECISION NEEDED — تکلیف Rasis POS در cutover** — v4 پروداکشن یک یکپارچگی **زنده‌ی** Rasis POS دارد (~۱۰۰۰ خط، auto-sync inventory+pricing، `rasis_sharepoint`، دستگاه‌های واقعی در میدان)، ولی v5 (D-23 fresh start، D-44 greenfield POS) هیچ migration path ندارد. باید انتخاب شود: **(الف)** decommission/جایگزینی ترمینال‌های Rasis در cutover (+پلن عملیاتی + وابستگی به آماده‌بودن اپ `talamala_pos` جدید)، یا **(ب)** یک Rasis compatibility adapter (به‌سبک marketplace adapter که `pos_pending_requests` را feed می‌کند) در scope. **تا تصمیم‌گیری، فاز POS قابل‌برنامه‌ریزی امن نیست.**</td><td>**باز** — تصمیم business. هدف: roadmap فاز ۴/۵، context POS.</td></tr>
+<tr><td>D-109</td><td>**✅ CLOSED — حذف کاملِ Rasis POS** — تصمیمِ business (۲۰۲۶-۰۶-۲۴): دیگر با شرکت Rasis کار نمی‌شود. یکپارچگیِ Rasisِ v4 (~۱۰۰۰ خط، auto-sync، `rasis_sharepoint`) **به v5 منتقل نمی‌شود** و هیچ compatibility adapter ساخته نمی‌شود. v5 POS کاملاً **greenfield** است — فقط اپِ `talamala_pos` با API v1 جدید (D-44). فاز POS دیگر به Rasis gate نمی‌خورد. (v4 «frozen» است؛ کدِ Rasisِ آن با بازنشستگیِ v4 retire می‌شود — جراحیِ production جداگانه لازم نیست مگر business صریحاً بخواهد.)</td><td>**بسته** — تصمیم business (۲۰۲۶-۰۶-۲۴). هدف: roadmap فاز ۴ (gate حذف شد)، context POS = greenfield.</td></tr>
 
 <tr><td>D-110</td><td>**harness انضباط ساخت، قبل از هر کد مالی** — Alembic برای async SQLModel با **استراتژی enum صریح per column** (native PG enum با `alembic-postgresql-enum`، یا `VARCHAR+CHECK` تا `downgrade base` reversible بماند — برای هر status/state column تصمیم و ثبت شود)؛ `import-linter` برای مرز ۲۴ context (هیچ Table model از مرز عبور نکند؛ `payment` نباید internals `treasury` را import کند)؛ commit/rollback فقط در مرز use-case (نه در teardown سشن)؛ `asyncpg statement_cache_size=0` اگر pooler حالت transaction استفاده شود؛ `testcontainers` Postgres + fixtureهای concurrency/idempotency. **هیچ context مالی تا قبل از این harness ship نمی‌شود.**</td><td>**process** — رفع بزرگ‌ترین بدهی فنی v4 (alembic رهاشده، god-service). هدف: roadmap فاز ۰، `references/testing`.</td></tr>
 

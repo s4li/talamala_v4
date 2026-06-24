@@ -12,7 +12,7 @@ Dealer sells a physical gold bar to a customer via POS device at dealer location
 
 - **Customer** (walk-in at dealer location)
 - **Dealer** (operates POS device)
-- **POS device** (Android app, API-key authenticated)
+- **POS device** (Android app `talamala_pos`، API-key authenticated — **greenfield**؛ Rasis کاملاً decommission شد، هیچ adapter/migration ندارد — [D-109](../01-decisions-audit-log.md)/[D-44](../01-decisions-audit-log.md))
 - **Payment terminal** (card payment)
 - **Goldis Treasury**
 
@@ -144,4 +144,4 @@ Same logic as [Flow 01](01-physical-bar-purchase-site.md):
 - [Schema: POS](../03-schema-index.md#15-pos-devices--transactions) | [Supplementary (dealer_sales)](../03-schema-index.md#14-supplementary)
 - [API: POS](../04-api-index.md)
 - [Reference: Commercial/Pricing](../references/commercial-pricing-orders.md)
-- Decisions: [D-32](../01-decisions-audit-log.md), [D-47](../01-decisions-audit-log.md), [D-56](../01-decisions-audit-log.md), [D-91](../01-decisions-audit-log.md), [D-99](../01-decisions-audit-log.md), [D-101](../01-decisions-audit-log.md), [D-105](../01-decisions-audit-log.md)
+- Decisions: [D-32](../01-decisions-audit-log.md), [D-44](../01-decisions-audit-log.md), [D-47](../01-decisions-audit-log.md), [D-56](../01-decisions-audit-log.md), [D-91](../01-decisions-audit-log.md), [D-99](../01-decisions-audit-log.md), [D-101](../01-decisions-audit-log.md), [D-105](../01-decisions-audit-log.md), [D-109](../01-decisions-audit-log.md)

@@ -258,7 +258,7 @@ POST /admin/migration/import-bars-from-csv
 
 > ⚠️ **بازبینی پیش از ساخت (D-100…D-110) این roadmap را بازچینش می‌کند:**
 > - **فاز ۰ harness قبل از هر کد مالی اجباری است** ([D-110](01-decisions-audit-log.md)).
-> - **فاز ۰.۵ (ویرایش سند، نه کد):** اعمال D-100…D-108 روی schema/flow + بستن D-109 (Rasis).
+> - **فاز ۰.۵ (ویرایش سند، نه کد):** اعمال D-100…D-108 روی schema/flow + **D-109 بسته شد** (Rasis کاملاً حذف؛ POS greenfield).
 > - **زنجیره‌ی مالی نو را جلو بیندازید:** wallet ledger → treasury (signed-sum) → inter-company (net) → outbox در یک finalize اتمیک، اول به‌صورت پروتوتایپ عمودی با تست‌های پولی+concurrency — نه آخر.
 > - **reconciliation worker ([D-106](01-decisions-audit-log.md)) جزء هسته‌ی مالی است (فاز ۳، نه ۶).**
 > - تخمین هفته‌ایِ زیر **خوش‌بینانه است** (هشدار P۵)؛ به‌عنوان ترتیب نسبی بخوانید، نه تقویم قطعی.
@@ -301,7 +301,7 @@ POST /admin/migration/import-bars-from-csv
     + **Reconciliation + solvency-invariant worker** ([D-106](01-decisions-audit-log.md)) — هسته‌ی مالی، نه فاز ۶
 
 ### فاز ۴ — DealerNetwork (هفته ۸-۹)
-> ⚠️ **Gate:** بخش POS این فاز به **D-109 (Rasis cutover)** وابسته است — تا تعیین‌تکلیف نشده، POS قابل برنامه‌ریزی امن نیست.
+> ✅ **D-109 بسته شد:** Rasis کاملاً حذف شد — POS این فاز کاملاً **greenfield** است (فقط اپِ `talamala_pos`، API v1 جدید — [D-44](01-decisions-audit-log.md)/[D-109](01-decisions-audit-log.md))؛ دیگر gate ندارد.
 26. Dealer + Tier + dealer_commission_rates + dealer_commission_ledger (بدون SubDealer/شبکه — [D-73](01-decisions-audit-log.md))
 27. POS context (sales_channels.type=pos)
 28. POS reserve→confirm flow
