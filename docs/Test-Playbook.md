@@ -769,6 +769,13 @@ uvicorn main:app --reload
 | TS-29-06 | فرمول دقت | weight=1g, purity=750, price=50M, wage=7%, tax=9% | محاسبه دقیق ریال | ☐ |
 | TS-29-07 | purity مختلف | محصول purity=999 (طلای ۲۴عیار) | raw = weight × (999/750) × price | ☐ |
 | TS-29-08 | wage_percent | is_wage_percent=True + wage=7 | اجرت = raw × 7% | ☐ |
+| TS-29-09 | فید قیمت — منبع اصلی | `fetch_gold_price()` / `fetch_silver_price()` | قیمت معقول برمی‌گردد با `source == "sawiss"` (طلا از `Gold750`، نقره از `Silver999`، فیلد `value_rial`) | ☐ |
+| TS-29-10 | فید قیمت — nonce منقضی | `feed_service._sawiss_nonce = "deadbeef00"` سپس fetch | سرور ۴۰۳ می‌دهد → nonce خودکار از صفحه اصلی ساویس تازه می‌شود → قیمت با `source == "sawiss"` برمی‌گردد (**نباید** روی fallback بیفتد) | ☐ |
+| TS-29-11 | فید قیمت — fallback گلدیس | ساویس را غیرقابل‌دسترس کن (`SAWISS_BASE_URL` نامعتبر) | قیمت با `source == "goldis"` برمی‌گردد + هشدار در لاگ `talamala.pricing.feed` | ☐ |
+| TS-29-12 | فید قیمت — هر دو منبع خراب | هر دو URL نامعتبر | استثنا پرتاب می‌شود (نه قیمت صفر/غلط)؛ `Asset.price_per_gram` دست‌نخورده می‌ماند | ☐ |
+| TS-29-13 | زمان‌بند → DB | Asset با `auto_update=True` و `updated_at` قدیمی‌تر از `update_interval_minutes` → اجرای `_auto_update_prices()` | `price_per_gram` آپدیت، `updated_by == "system:sawiss"`، `is_fresh=True` | ☐ |
+| TS-29-14 | زمان‌بند — هنوز موعد نرسیده | Asset تازه آپدیت‌شده (کمتر از `update_interval_minutes`) | رد می‌شود (`continue`) — هیچ فراخوانی HTTP و هیچ تغییری در DB | ☐ |
+| TS-29-15 | بروزرسانی دستی ادمین | `POST /admin/settings/fetch-price` با `asset_code=gold_18k` | JSON شامل `success`, `new_price`, `source`؛ `updated_by == "admin:<نام> (sawiss)"` | ☐ |
 
 ---
 
@@ -1301,7 +1308,7 @@ uvicorn main:app --reload
 | درخواست نمایندگی | TS-26 | 10 |
 | نظرات و Q&A | TS-27 | 16 |
 | راسیس | TS-28 | 6 |
-| قیمت‌گذاری | TS-29 | 8 |
+| قیمت‌گذاری | TS-29 | 15 |
 | انبارگردانی | TS-30 | 11 |
 | کنترل معاملات | TS-31 | 10 |
 | اعلان‌ها | TS-32 | 14 |

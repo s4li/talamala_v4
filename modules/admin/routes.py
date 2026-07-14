@@ -212,23 +212,24 @@ async def fetch_price_ajax(
 
     try:
         if asset_code == GOLD_18K:
-            from modules.pricing.feed_service import fetch_gold_price_goldis
-            new_price = fetch_gold_price_goldis()
+            from modules.pricing.feed_service import fetch_gold_price
+            result = fetch_gold_price()
         elif asset_code == SILVER:
-            from modules.pricing.feed_service import fetch_silver_price_goldis
-            new_price = fetch_silver_price_goldis()
+            from modules.pricing.feed_service import fetch_silver_price
+            result = fetch_silver_price()
         else:
             return JSONResponse({"success": False, "error": "منبع قیمت برای این دارایی تعریف نشده"})
 
-        asset.price_per_gram = new_price
+        asset.price_per_gram = result.price
         asset.updated_at = now_utc()
-        asset.updated_by = f"admin:{user.full_name}"
+        asset.updated_by = f"admin:{user.full_name} ({result.source})"
         db.commit()
 
         return JSONResponse({
             "success": True,
-            "new_price": new_price,
-            "new_price_toman": new_price // 10,
+            "new_price": result.price,
+            "new_price_toman": result.price // 10,
+            "source": result.source,
             "updated_by": asset.updated_by,
         })
     except Exception as e:

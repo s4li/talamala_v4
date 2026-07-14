@@ -381,7 +381,9 @@ return response
 - Tax from SystemSetting key `tax_percent`
 - `modules/pricing/models.py` → `Asset` model (per-asset price with staleness guard)
 - `modules/pricing/service.py` → `get_price_value()`, `require_fresh_price()`, `is_price_fresh()`, `get_product_pricing(db, product)` (returns metal price + base purity + tax based on product's `metal_type`)
-- `modules/pricing/feed_service.py` → `fetch_gold_price_goldis()` (auto-fetch from goldis.ir)
+- `modules/pricing/feed_service.py` → `fetch_gold_price()` / `fetch_silver_price()` — منبع اصلی **sawiss.com**، fallback خودکار روی **goldis.ir**. هر دو `PriceResult(price, source)` برمی‌گردانند (`source`: `sawiss`/`goldis`) که در `Asset.updated_by` ثبت می‌شود.
+  - ⚠️ sawiss یک **nonce وردپرسی** می‌خواهد که هر ۱۲–۲۴ ساعت منقضی می‌شود (بدون آن ۴۰۳). nonce از `var ziotoPricing = {...}` در صفحه اصلی sawiss خوانده و کش می‌شود؛ در صورت ۴۰۳/۴۰۰ خودکار تازه می‌شود. هیچ کوکی یا هدر خاصی لازم نیست.
+  - نگاشت: طلا ← `Gold750` (خلوص ۷۵۰)، نقره ← `Silver999` (خلوص ۹۹۹). فیلد استفاده‌شده: `value_rial` (قیمت سِل/هدلاین).
 - Background scheduler fetches gold price every N minutes (configurable per asset)
 - Staleness guard: blocks checkout/POS/wallet if price expired (configurable per asset)
 - `calculate_bar_price()` now takes `base_metal_price` + `base_purity` params (generic for any metal)

@@ -846,7 +846,7 @@ async def delete_product(user=Depends(require_permission("products", level="full
   - آستانه انقضای قیمت (`stale_after_minutes`) — قابل ویرایش per-asset
   - بازه بروزرسانی خودکار (`update_interval_minutes`) — قابل ویرایش per-asset
   - سوئیچ بروزرسانی خودکار (auto_update toggle)
-  - دکمه بروزرسانی دستی (AJAX fetch از goldis.ir)
+  - دکمه بروزرسانی دستی (AJAX fetch از sawiss.com، با fallback روی goldis.ir)
   - نشان تازگی قیمت (سبز/قرمز) + زمان آخرین بروزرسانی
 - درصد مالیات
 - هزینه ارسال پستی
@@ -1524,7 +1524,7 @@ metal_price, base_purity = get_product_pricing(product, db)
 
 سیستم مدیریت دارایی (Asset) جایگزین ذخیره‌سازی قیمت طلا در `SystemSetting` شده و امکانات زیر را فراهم می‌کند:
 
-- **بروزرسانی خودکار قیمت** از API گلدیس (goldis.ir) — دیفالت فعال
+- **بروزرسانی خودکار قیمت** از منبع خارجی — دیفالت فعال. منبع اصلی **sawiss.com**، در صورت خطا fallback خودکار روی **goldis.ir**
 - **آستانه انقضای قیمت** (staleness guard): اگر قیمت بیش از حد آستانه به‌روز نشده باشد، خرید/فروش بلاک می‌شود
 - **تنظیمات per-asset**: هر دارایی (طلا، نقره، ...) آستانه انقضا و بازه بروزرسانی مستقل خود را دارد
 - **سوئیچ دستی/خودکار**: ادمین می‌تواند بروزرسانی خودکار را خاموش و قیمت را دستی وارد کند
@@ -1543,7 +1543,7 @@ metal_price, base_purity = get_product_pricing(product, db)
 | `update_interval_minutes` | Integer | بازه بروزرسانی (دقیقه) — پیش‌فرض: ۵ |
 | `source_url` | String | آدرس API منبع قیمت |
 | `updated_at` | DateTime(tz) | زمان آخرین بروزرسانی |
-| `updated_by` | String | عامل بروزرسانی (`system:goldis` یا `admin:username`) |
+| `updated_by` | String | عامل بروزرسانی — `system:sawiss` / `system:goldis` (زمان‌بند، با ذکر منبعی که واقعاً جواب داد) یا `admin:username (sawiss)` (بروزرسانی دستی) |
 
 ### محل‌های بلاک شدن (Staleness Guard)
 
@@ -1567,19 +1567,30 @@ metal_price, base_purity = get_product_pricing(product, db)
 
 - یک job هر ۶۰ ثانیه اجرا می‌شود
 - برای هر Asset با `auto_update=True` بررسی می‌کند آیا از آخرین بروزرسانی به اندازه `update_interval_minutes` گذشته
-- در صورت نیاز، از API مربوطه (goldis.ir برای طلا) قیمت جدید دریافت و ذخیره می‌کند
+- در صورت نیاز، قیمت جدید را از منبع خارجی دریافت و ذخیره می‌کند
+- اگر منبع اصلی (sawiss) خطا بدهد، خودکار سراغ goldis می‌رود؛ اگر **هر دو** خطا بدهند قیمت دست‌نخورده می‌ماند و در نهایت staleness guard خرید/فروش را می‌بندد
+
+### منابع قیمت (Price Feed)
+
+| منبع | اولویت | Endpoint | نگاشت | فیلد |
+|-------|---------|-----------|--------|-------|
+| **sawiss.com** | اصلی | `POST /wp-admin/admin-ajax.php` با `action=zioto_refresh_prices` | طلا ← `Gold750` (خلوص ۷۵۰)، نقره ← `Silver999` (خلوص ۹۹۹) | `value_rial` (قیمت سِل/هدلاین) |
+| **goldis.ir** | fallback | `GET /api/v3/prices` | طلا ← `GOLD18`، نقره ← `SILVER` | `buy_price` |
+
+> ⚠️ **nonce وردپرسی**: endpoint ساویس یک فیلد `nonce` می‌خواهد، وگرنه **۴۰۳** برمی‌گرداند. این nonce هر ۱۲–۲۴ ساعت منقضی می‌شود، پس نمی‌توان hardcode کرد. `feed_service` آن را از `var ziotoPricing = {...}` در HTML صفحه اصلی ساویس می‌خواند و کش می‌کند؛ اگر سرور ۴۰۳/۴۰۰ داد، nonce یک بار خودکار تازه شده و درخواست دوباره تلاش می‌شود. هیچ کوکی یا هدر خاصی لازم نیست.
+> اگر افزونه‌ی zioto در ساویس آپدیت شود و ساختار `ziotoPricing` عوض شود، پارس nonce می‌شکند — در آن صورت fallback گلدیس سیستم را سرپا نگه می‌دارد و در لاگ `talamala.pricing.feed` هشدار ثبت می‌شود.
 
 ### آدرس‌های جدید
 
 | متد | مسیر | توضیح |
 |------|------|--------|
-| POST | `/admin/settings/fetch-price` | بروزرسانی دستی قیمت (AJAX) — JSON body: `{"asset_code": "gold_18k"}` |
+| POST | `/admin/settings/fetch-price` | بروزرسانی دستی قیمت (AJAX) — JSON body: `{"asset_code": "gold_18k"}`. پاسخ شامل `source` (`sawiss`/`goldis`) است |
 
 ### دارایی‌های seed
 
 | کد | نام | خودکار | بازه | آستانه انقضا |
 |-----|------|---------|------|-------------|
-| `gold_18k` | طلای ۱۸ عیار | ✅ (از goldis.ir) | ۵ دقیقه | ۱۵ دقیقه |
+| `gold_18k` | طلای ۱۸ عیار | ✅ (sawiss، fallback: goldis) | ۵ دقیقه | ۱۵ دقیقه |
 | `silver` | نقره | ❌ (دستی) | — | ۳۰ دقیقه |
 
 ### فایل‌های مرتبط
@@ -1587,7 +1598,7 @@ metal_price, base_purity = get_product_pricing(product, db)
 | فایل | توضیح |
 |-------|--------|
 | `modules/pricing/models.py` | مدل Asset + ثابت‌های GOLD_18K, SILVER |
-| `modules/pricing/feed_service.py` | دریافت قیمت از goldis.ir API |
+| `modules/pricing/feed_service.py` | `fetch_gold_price()` / `fetch_silver_price()` → `PriceResult(price, source)` — ساویس با fallback گلدیس |
 | `modules/pricing/service.py` | توابع `get_price_value`, `is_price_fresh`, `require_fresh_price`, `update_asset_price`, `get_product_pricing` |
 | `main.py` | job زمان‌بند `_auto_update_prices` |
 | `templates/admin/settings.html` | UI مدیریت دارایی‌ها |

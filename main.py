@@ -208,7 +208,7 @@ def _auto_update_prices():
     try:
         from common.helpers import now_utc
         from modules.pricing.models import Asset as AssetModel
-        from modules.pricing.feed_service import fetch_gold_price_goldis, fetch_silver_price_goldis
+        from modules.pricing.feed_service import fetch_gold_price, fetch_silver_price
 
         assets = db.query(AssetModel).filter(AssetModel.auto_update == True).all()
         for asset in assets:
@@ -220,15 +220,17 @@ def _auto_update_prices():
 
             try:
                 if asset.asset_code == "gold_18k":
-                    new_price = fetch_gold_price_goldis()
+                    result = fetch_gold_price()
                 elif asset.asset_code == "silver":
-                    new_price = fetch_silver_price_goldis()
+                    result = fetch_silver_price()
                 else:
                     continue
-                asset.price_per_gram = new_price
+                asset.price_per_gram = result.price
                 asset.updated_at = now_utc()
-                asset.updated_by = "system:goldis"
-                scheduler_logger.info(f"Updated {asset.asset_code}: {new_price:,} rial")
+                asset.updated_by = f"system:{result.source}"
+                scheduler_logger.info(
+                    f"Updated {asset.asset_code}: {result.price:,} rial (source: {result.source})"
+                )
             except Exception as e:
                 scheduler_logger.warning(f"Failed to update {asset.asset_code}: {e}")
 
