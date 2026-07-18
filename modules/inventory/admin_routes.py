@@ -89,6 +89,7 @@ async def list_bars(
         all_dealers=all_dealers,
         all_provinces=all_provinces,
         bar_statuses=BarStatus,
+        bulk_statuses=inventory_service.BULK_STATUSES,
         preorder_max=preorder_max,
         msg=msg,
         error=error,
@@ -227,6 +228,7 @@ async def bulk_action(
     target_customer_id: str = Form(None),
     target_batch_id: str = Form(None),
     target_dealer_id: str = Form(None),
+    target_status: str = Form(None),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     user=Depends(require_permission("inventory", level="full")),
@@ -256,6 +258,7 @@ async def bulk_action(
                 "target_customer_id": target_customer_id,
                 "target_batch_id": target_batch_id,
                 "target_dealer_id": target_dealer_id,
+                "target_status": target_status,
             })
             msg = urllib.parse.quote(f"{count} شمش بروزرسانی شد")
         except ValueError as e:

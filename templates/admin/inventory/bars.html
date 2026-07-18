@@ -271,6 +271,19 @@
 
                 <h6 class="mt-3 fw-bold">تخصیص:</h6>
                 <div class="row g-2">
+                    <div class="col-12">
+                        <label class="form-label-tm small">وضعیت</label>
+                        <select id="bulk_status" class="form-select form-select-tm form-select-sm">
+                            <option value="">بدون تغییر (بر اساس محصول/مالک تعیین شود)</option>
+                            {% for s in bulk_statuses %}
+                            <option value="{{ s.value }}">{{ s.value | fa_label }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">
+                            اگر وضعیت را انتخاب کنید، بر تعیین خودکار اولویت دارد.
+                            «رزرو» اینجا نیست چون فقط سبد خرید و POS آن را می‌سازند.
+                        </small>
+                    </div>
                     <div class="col-md-6">
                         <label class="form-label-tm small">محصول</label>
                         <select id="bulk_product" class="form-select form-select-tm form-select-sm">
@@ -406,6 +419,7 @@
             'target_customer_id': document.getElementById('bulk_customer').value,
             'target_batch_id': document.getElementById('bulk_batch').value,
             'target_dealer_id': document.getElementById('bulk_dealer').value,
+            'target_status': document.getElementById('bulk_status').value,
         };
         for (const [k, v] of Object.entries(fields)) {
             let inp = form.querySelector(`input[name="${k}"]`);

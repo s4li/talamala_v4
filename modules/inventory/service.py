@@ -231,6 +231,14 @@ class InventoryService:
     # Bulk Actions
     # ==========================================
 
+    # Statuses an admin may set from the bulk action.
+    # RESERVED is excluded on purpose: a reservation is created by the cart/POS
+    # flow together with reserved_customer_id + reserved_until. Bulk-setting it
+    # here would leave a bar Reserved with no holder and no expiry, which
+    # release_expired_reservations() never picks up — i.e. stuck out of stock
+    # forever. Use the single-bar edit form if you really need it.
+    BULK_STATUSES = (BarStatus.RAW, BarStatus.ASSIGNED, BarStatus.SOLD)
+
     def bulk_update(self, db: Session, ids: List[int], data: dict) -> int:
         """Bulk update bars. Returns count of affected rows."""
         if not ids:
@@ -242,34 +250,58 @@ class InventoryService:
         has_dealer = data.get("target_dealer_id") not in (None, "")
         target_dealer = safe_int(data["target_dealer_id"]) if has_dealer and data["target_dealer_id"] != "0" else None
 
+        # Explicit status wins over the status implied by product/customer below
+        explicit_status = (data.get("target_status") or "").strip() or None
+        if explicit_status and explicit_status not in self.BULK_STATUSES:
+            if explicit_status == BarStatus.RESERVED:
+                raise ValueError(
+                    "وضعیت «رزرو» از عملیات گروهی قابل تنظیم نیست — "
+                    "رزرو توسط سبد خرید یا POS ایجاد می‌شود."
+                )
+            raise ValueError("وضعیت انتخاب‌شده نامعتبر است.")
+
         # Product assignment
-        if data.get("target_product_id") not in (None, ""):
+        has_product = data.get("target_product_id") not in (None, "")
+        prod_id = None
+        if has_product:
             prod_id = safe_int(data["target_product_id"]) if data["target_product_id"] != "0" else None
-            new_status = BarStatus.ASSIGNED if prod_id else BarStatus.RAW
             # Validation: bar with product must have dealer (physical location)
             if prod_id and not target_dealer:
                 orphan_count = db.query(Bar).filter(Bar.id.in_(ids), Bar.dealer_id.is_(None)).count()
                 if orphan_count > 0 and not has_dealer:
                     raise ValueError("شمش دارای محصول باید مکان (نماینده) داشته باشد.")
             update_data[Bar.product_id] = prod_id
-            update_data[Bar.status] = new_status
+            if not explicit_status:
+                update_data[Bar.status] = BarStatus.ASSIGNED if prod_id else BarStatus.RAW
 
         # Customer assignment
-        if data.get("target_customer_id") not in (None, ""):
+        has_customer = data.get("target_customer_id") not in (None, "")
+        cust_id = None
+        if has_customer:
             cust_id = safe_int(data["target_customer_id"]) if data["target_customer_id"] != "0" else None
-            new_status = BarStatus.SOLD if cust_id else BarStatus.ASSIGNED
-            if new_status in (BarStatus.SOLD, BarStatus.ASSIGNED) and not target_dealer:
+            if not target_dealer:
                 orphan_count = db.query(Bar).filter(Bar.id.in_(ids), Bar.dealer_id.is_(None)).count()
                 if orphan_count > 0 and not has_dealer:
                     raise ValueError("برای تغییر مالکیت، انتخاب نماینده (مکان) الزامی است.")
             update_data[Bar.customer_id] = cust_id
-            update_data[Bar.status] = new_status
+            if not explicit_status:
+                update_data[Bar.status] = BarStatus.SOLD if cust_id else BarStatus.ASSIGNED
 
         # Other fields
         if data.get("target_batch_id") not in (None, ""):
             update_data[Bar.batch_id] = safe_int(data["target_batch_id"]) if data["target_batch_id"] != "0" else None
         if has_dealer:
             update_data[Bar.dealer_id] = target_dealer
+
+        # Explicit status: validate the state each bar actually ends up in
+        if explicit_status:
+            self._validate_bulk_status(
+                db, ids, explicit_status,
+                prod_id if has_product else "keep",
+                cust_id if has_customer else "keep",
+                target_dealer if has_dealer else "keep",
+            )
+            update_data[Bar.status] = explicit_status
 
         if update_data:
             # Always clear reservation on bulk update
@@ -280,6 +312,66 @@ class InventoryService:
             return count
 
         return 0
+
+    def _validate_bulk_status(self, db: Session, ids: List[int], status: str,
+                              product, customer, dealer) -> None:
+        """
+        Reject a bulk status change that would leave bars in an incoherent state.
+
+        product/customer/dealer are the bulk target values, or the sentinel
+        "keep" when that field is not being changed (each bar keeps its own).
+        """
+        bars = db.query(Bar).filter(Bar.id.in_(ids)).all()
+
+        missing_dealer, missing_product, missing_customer = 0, 0, 0
+        has_product, has_customer = 0, 0
+
+        for bar in bars:
+            final_product = bar.product_id if product == "keep" else product
+            final_customer = bar.customer_id if customer == "keep" else customer
+            final_dealer = bar.dealer_id if dealer == "keep" else dealer
+
+            if not final_dealer:
+                missing_dealer += 1
+            if not final_product:
+                missing_product += 1
+            if not final_customer:
+                missing_customer += 1
+            if final_product:
+                has_product += 1
+            if final_customer:
+                has_customer += 1
+
+        if status == BarStatus.RAW:
+            # A raw bar is a bare serial: no product, no owner.
+            if has_product:
+                raise ValueError(
+                    f"{has_product} شمش هنوز محصول دارد. برای تبدیل به «خام»، "
+                    "گزینه «حذف محصول» را هم انتخاب کنید."
+                )
+            if has_customer:
+                raise ValueError(
+                    f"{has_customer} شمش هنوز مالک دارد. برای تبدیل به «خام»، "
+                    "گزینه «حذف مالک» را هم انتخاب کنید."
+                )
+            return
+
+        # ASSIGNED / SOLD both need a physical location and a product
+        if missing_dealer:
+            raise ValueError(
+                f"{missing_dealer} شمش نمایندگی (مکان) ندارد. "
+                "برای این وضعیت انتخاب نمایندگی الزامی است."
+            )
+        if missing_product:
+            raise ValueError(
+                f"{missing_product} شمش محصول ندارد. "
+                "برای این وضعیت تخصیص محصول الزامی است."
+            )
+        if status == BarStatus.SOLD and missing_customer:
+            raise ValueError(
+                f"{missing_customer} شمش مالک ندارد. "
+                "برای وضعیت «فروخته» انتخاب مالک الزامی است."
+            )
 
     def _sync_sellable_to_rasis(self, db: Session, bars: List[Bar], sellable: bool) -> None:
         """Mirror a sellability change onto Rasis POS devices. Never raises."""
