@@ -43,6 +43,7 @@ async def list_bars(
     status: str = Query(None),
     product_id: str = Query(None),
     dealer_id: str = Query(None),
+    sellable: str = Query(None),
     msg: str = Query(None),
     error: str = Query(None),
     db: Session = Depends(get_db),
@@ -52,10 +53,12 @@ async def list_bars(
     _product_id = safe_int(product_id)
     _dealer_id = safe_int(dealer_id)
     _status = status if status else None
+    _sellable = {"1": True, "0": False}.get(sellable)
 
     bars, total, total_pages = inventory_service.list_bars(
         db, page=page, search=search or None, customer_id=_customer_id,
         status=_status, product_id=_product_id, dealer_id=_dealer_id,
+        is_sellable=_sellable,
     )
 
     filter_customer = None
@@ -79,6 +82,7 @@ async def list_bars(
         status_filter=status or "",
         product_filter=product_id or "",
         dealer_filter=dealer_id or "",
+        sellable_filter=sellable or "",
         all_products=db.query(Product).all(),
         all_customers=db.query(User).filter(User.is_dealer == False, User.is_admin == False).all(),
         all_batches=db.query(Batch).all(),
@@ -180,6 +184,7 @@ async def update_bar(
     batch_id: str = Form(None),
     dealer_id: str = Form(None),
     is_preorder: str = Form(None),
+    is_sellable: str = Form(None),
     transfer_note: str = Form(""),
     new_files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
@@ -198,6 +203,7 @@ async def update_bar(
             "batch_id": batch_id,
             "dealer_id": dealer_id,
             "is_preorder": is_preorder,
+            "is_sellable": is_sellable,
             "transfer_note": transfer_note,
         }, new_files, updated_by=user.full_name)
         db.commit()
@@ -256,6 +262,13 @@ async def bulk_action(
             db.rollback()
             msg = urllib.parse.quote(str(e))
             return RedirectResponse(f"/admin/bars?error={msg}", status_code=303)
+
+    elif action in ("sellable_on", "sellable_off"):
+        sellable = action == "sellable_on"
+        count = inventory_service.bulk_set_sellable(db, ids, sellable)
+        label = "قابل فروش" if sellable else "غیرقابل فروش"
+        msg = urllib.parse.quote(f"{count} شمش {label} شد")
+
     else:
         msg = urllib.parse.quote("عملیات نامعتبر")
 

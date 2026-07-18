@@ -194,7 +194,12 @@ talamala_v4/
 - **Batch / BatchImage**: بچ تولید (ذوب)
 
 ### inventory/models.py
-- **Bar**: id, serial_code (unique), product_id, batch_id, dealer_id (FK→users), customer_id (FK→users), claim_code (unique, nullable — for POS/gift), status (RAW/ASSIGNED/RESERVED/SOLD), reserved_customer_id, reserved_until, delivered_at (nullable — NULL = custodial/"امانی", set = physically delivered)
+- **Bar**: id, serial_code (unique), product_id, batch_id, dealer_id (FK→users), customer_id (FK→users), claim_code (unique, nullable — for POS/gift), status (RAW/ASSIGNED/RESERVED/SOLD), reserved_customer_id, reserved_until, delivered_at (nullable — NULL = custodial/"امانی", set = physically delivered), is_sellable (Boolean, default False, indexed)
+  - **`is_sellable` = دروازه فروش**: موجودی نمایش‌داده‌شده در **همه** کانال‌ها برابر تعداد شمش‌های `is_sellable=True` است — فروشگاه، سبد، چک‌اوت، تخصیص شمش هنگام سفارش، POS نماینده، POS مشتری، REST API نماینده، سینک Rasis
+  - Opt-in: شمش جدید پیش‌فرض **غیرقابل فروش** است و باید صراحتاً فعال شود
+  - مستقل از `status`؛ تغییرش رزرو فعال را پاک نمی‌کند (برخلاف `bulk_update`)
+  - عملیات گروهی: `inventory_service.bulk_set_sellable(db, ids, bool)` — عمداً جدا از `bulk_update`
+  - Rasis: فعال‌سازی → `add_bar_to_pos`، غیرفعال‌سازی → `remove_bar_from_pos` (best-effort). ورودی رسید Rasis این فیلد را چک نمی‌کند (فروش فیزیکیِ انجام‌شده باید ثبت شود)
   - Relationship: `dealer_location` → User (physical location), `customer` → User (owner)
   - Custodial gold ("طلای امانی") = bars with `status == SOLD` and `delivered_at IS NULL`
   - QR codes: generated on-the-fly per request (never saved to disk) — served via authenticated admin endpoint only
@@ -844,6 +849,8 @@ total     = raw_metal + wage + tax
 - `POST /admin/dealers/{id}/gold-settlement` — Execute gold deposit
 - `POST /admin/orders/{id}/send-delivery-otp` — Send delivery OTP to dealer for gold order
 - `POST /admin/orders/{id}/confirm-delivery-otp` — Confirm gold order delivery with OTP
+- `GET /admin/bars?sellable=1|0` — Filter bar list by sellability
+- `POST /admin/bars/bulk_action` — Bulk ops: `action=update|delete|sellable_on|sellable_off` (requires `inventory:full`)
 - `GET /admin/bars/{bar_id}/qr` — Generate and stream high-res QR code PNG on-the-fly (for laser printing)
 - `GET /api/admin/bars/lookup?serial=X` — Bar lookup JSON (scanner)
 - `GET /admin/reconciliation` — Reconciliation session list

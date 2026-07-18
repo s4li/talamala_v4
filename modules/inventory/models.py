@@ -76,6 +76,10 @@ class Bar(Base):
     # Pre-order: bar not yet physically produced (exists only on paper)
     is_preorder = Column(Boolean, default=False, server_default="false", nullable=False)
 
+    # Sellable: bar is offered for sale on every channel (shop, cart, POS, dealer API, Rasis).
+    # Site inventory count == number of sellable bars. Opt-in: new bars are NOT sellable.
+    is_sellable = Column(Boolean, default=False, server_default="false", nullable=False, index=True)
+
     # Relationships
     product = relationship("Product", foreign_keys=[product_id])
     customer = relationship("User", foreign_keys=[customer_id])

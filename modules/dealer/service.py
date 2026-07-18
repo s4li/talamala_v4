@@ -211,6 +211,7 @@ class DealerService:
             .filter(
                 Bar.dealer_id == dealer_id,
                 Bar.status == BarStatus.ASSIGNED,
+                Bar.is_sellable == True,
             )
             .order_by(Bar.serial_code)
             .all()
@@ -239,6 +240,8 @@ class DealerService:
             return {"success": False, "message": "شمش یافت نشد"}
         if bar.status != BarStatus.ASSIGNED:
             return {"success": False, "message": "این شمش قابل فروش نیست"}
+        if not bar.is_sellable:
+            return {"success": False, "message": "این شمش برای فروش فعال نشده است"}
         if bar.is_preorder:
             return {"success": False, "message": "شمش پیش‌سفارش قابل فروش حضوری نیست"}
         if bar.dealer_id != dealer.id:
@@ -882,6 +885,7 @@ class DealerService:
             .filter(
                 Bar.dealer_id == dealer.id,
                 Bar.status == BarStatus.ASSIGNED,
+                Bar.is_sellable == True,
             )
             .order_by(Bar.product_id, Bar.serial_code)
             .all()

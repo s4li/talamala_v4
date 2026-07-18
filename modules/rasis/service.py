@@ -409,6 +409,7 @@ class RasisService:
             .filter(
                 Bar.status == BarStatus.ASSIGNED,
                 Bar.product_id.isnot(None),
+                Bar.is_sellable == True,
                 User.rasis_sharepoint.isnot(None),
                 User.is_dealer == True,
                 User.is_active == True,
@@ -462,6 +463,7 @@ class RasisService:
                 Bar.dealer_id == dealer.id,
                 Bar.status == BarStatus.ASSIGNED,
                 Bar.product_id.isnot(None),
+                Bar.is_sellable == True,
             )
             .all()
         )

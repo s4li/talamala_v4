@@ -60,7 +60,8 @@ class ShopService:
             Bar,
             (Bar.product_id == Product.id)
             & (Bar.status == BarStatus.ASSIGNED)
-            & (Bar.customer_id.is_(None)),
+            & (Bar.customer_id.is_(None))
+            & (Bar.is_sellable == True),
         ).filter(
             Product.is_active == True,
         )
@@ -160,6 +161,7 @@ class ShopService:
             Bar.product_id == product_id,
             Bar.status == BarStatus.ASSIGNED,
             Bar.customer_id.is_(None),
+            Bar.is_sellable == True,
         ).count()
 
         # Dealer breakdown for customer display (dealer = location)
@@ -176,6 +178,7 @@ class ShopService:
             Bar.product_id == product_id,
             Bar.status == BarStatus.ASSIGNED,
             Bar.customer_id.is_(None),
+            Bar.is_sellable == True,
             User.is_dealer == True,
             User.is_active == True,
         ).group_by(User.id, GeoCity.name).all()

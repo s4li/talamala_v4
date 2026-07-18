@@ -54,6 +54,13 @@
                     {% endfor %}
                 </select>
             </div>
+            <div class="col-md-2">
+                <select name="sellable" class="form-select form-select-tm form-select-sm">
+                    <option value="">قابل فروش: همه</option>
+                    <option value="1" {% if sellable_filter == '1' %}selected{% endif %}>فقط قابل فروش</option>
+                    <option value="0" {% if sellable_filter == '0' %}selected{% endif %}>فقط غیرقابل فروش</option>
+                </select>
+            </div>
             <div class="col-auto">
                 <button class="btn btn-sm btn-tm-primary"><i class="bi bi-funnel"></i> فیلتر</button>
                 <a href="/admin/bars" class="btn btn-sm btn-light">پاک</a>
@@ -120,6 +127,7 @@
                         <th>#</th>
                         <th>سریال</th>
                         <th>وضعیت</th>
+                        <th>قابل فروش</th>
                         <th>محصول</th>
                         <th>بچ</th>
                         <th>نمایندگی</th>
@@ -141,6 +149,13 @@
                         <td>
                             <span class="badge bg-{{ bar.status_color }}">{{ bar.status_label }}</span>
                             {% if bar.is_preorder %}<span class="badge bg-warning text-dark ms-1">پیش‌سفارش</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if bar.is_sellable %}
+                            <span class="badge bg-success"><i class="bi bi-check-lg"></i> بله</span>
+                            {% else %}
+                            <span class="badge bg-secondary"><i class="bi bi-x-lg"></i> خیر</span>
+                            {% endif %}
                         </td>
                         <td>{{ bar.product.name if bar.product else '—' }}</td>
                         <td>{{ bar.batch.batch_number if bar.batch else '—' }}</td>
@@ -165,7 +180,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="9" class="text-center text-muted py-4">شمشی یافت نشد</td></tr>
+                    <tr><td colspan="10" class="text-center text-muted py-4">شمشی یافت نشد</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -176,7 +191,7 @@
 
 <!-- Pagination -->
 {% from "components/pagination.html" import pagination %}
-{% set qs %}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if product_filter %}&product_id={{ product_filter }}{% endif %}{% if dealer_filter %}&dealer_id={{ dealer_filter }}{% endif %}{% endset %}
+{% set qs %}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if product_filter %}&product_id={{ product_filter }}{% endif %}{% if dealer_filter %}&dealer_id={{ dealer_filter }}{% endif %}{% if sellable_filter %}&sellable={{ sellable_filter }}{% endif %}{% endset %}
 {{ pagination(page, total_pages, '/admin/bars', qs) }}
 
 <!-- Generate Modal -->
@@ -310,6 +325,22 @@
                         </select>
                     </div>
                 </div>
+
+                {% if user.has_permission("inventory", "full") %}
+                <hr class="my-3">
+                <h6 class="fw-bold">قابلیت فروش:</h6>
+                <p class="text-muted small mb-2">
+                    موجودی نمایش‌داده‌شده در سایت و همه دستگاه‌های فروش، برابر تعداد شمش‌های «قابل فروش» است.
+                </p>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-success flex-grow-1" onclick="doBulk('sellable_on')">
+                        <i class="bi bi-check-circle me-1"></i> قابل فروش کن
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary flex-grow-1" onclick="doBulk('sellable_off')">
+                        <i class="bi bi-slash-circle me-1"></i> غیرقابل فروش کن
+                    </button>
+                </div>
+                {% endif %}
             </div>
             <div class="modal-footer d-flex gap-2">
                 {% if user.has_permission("inventory", "full") %}
@@ -364,6 +395,7 @@
         const selected = [...document.querySelectorAll('.bar-check:checked')].map(c => c.value);
         if (!selected.length) return alert('موردی انتخاب نشده');
         if (action === 'delete' && !confirm('آیا از حذف مطمئنید؟')) return;
+        if (action === 'sellable_off' && !confirm(selected.length + ' شمش از فروش خارج می‌شود و از موجودی سایت و دستگاه‌های POS کم می‌شود. مطمئنید؟')) return;
 
         const form = document.getElementById('bulkForm');
         document.getElementById('selectedIdsInput').value = selected.join(',');

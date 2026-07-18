@@ -41,6 +41,7 @@ class PosService:
                 Bar.status == BarStatus.ASSIGNED,
                 Bar.product_id.isnot(None),
                 Bar.is_preorder == False,
+                Bar.is_sellable == True,
             )
             .distinct()
             .subquery()
@@ -100,6 +101,7 @@ class PosService:
                 Bar.status == BarStatus.ASSIGNED,
                 Bar.product_id.isnot(None),
                 Bar.is_preorder == False,
+                Bar.is_sellable == True,
             )
             .group_by(Bar.product_id)
         )
@@ -199,6 +201,7 @@ class PosService:
                 Bar.product_id == product_id,
                 Bar.status == BarStatus.ASSIGNED,
                 Bar.is_preorder == False,
+                Bar.is_sellable == True,
             )
             .with_for_update(skip_locked=True)
             .first()

@@ -206,6 +206,7 @@ class OrderService:
                 Bar.status == BarStatus.ASSIGNED,
                 Bar.customer_id.is_(None),
                 Bar.reserved_customer_id.is_(None),
+                Bar.is_sellable == True,
             )
 
             # Dealer-aware reservation (with central warehouse fallback)
@@ -456,6 +457,7 @@ class OrderService:
                 Bar.status == BarStatus.ASSIGNED,
                 Bar.customer_id.is_(None),
                 Bar.reserved_customer_id.is_(None),
+                Bar.is_sellable == True,
             )
 
             cw_ids = delivery_service.get_central_warehouse_ids(db)

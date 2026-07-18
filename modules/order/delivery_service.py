@@ -111,6 +111,7 @@ class DeliveryService:
                 Bar.customer_id.is_(None),
                 Bar.reserved_customer_id.is_(None),
                 Bar.is_preorder == True,
+                Bar.is_sellable == True,
                 Bar.product_id.in_(product_ids),
             ).scalar() or 0
         elif cw_ids:
@@ -120,6 +121,7 @@ class DeliveryService:
                 Bar.customer_id.is_(None),
                 Bar.reserved_customer_id.is_(None),
                 Bar.is_preorder == True,
+                Bar.is_sellable == True,
             ).scalar() or 0
 
         # Get preorder delivery time setting
@@ -132,6 +134,7 @@ class DeliveryService:
                 Bar.status == BarStatus.ASSIGNED,
                 Bar.customer_id.is_(None),
                 Bar.reserved_customer_id.is_(None),
+                Bar.is_sellable == True,
             )
             if product_ids:
                 bar_q = bar_q.filter(Bar.product_id.in_(product_ids))
@@ -176,6 +179,7 @@ class DeliveryService:
             Bar.status == BarStatus.ASSIGNED,
             Bar.customer_id.is_(None),
             Bar.reserved_customer_id.is_(None),
+            Bar.is_sellable == True,
         )
         if product_ids:
             q = q.filter(Bar.product_id.in_(product_ids))

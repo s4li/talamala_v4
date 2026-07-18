@@ -44,6 +44,7 @@ class InventoryService:
         status: str = None,
         product_id: int = None,
         dealer_id: int = None,
+        is_sellable: bool = None,
     ) -> Tuple[List[Bar], int, int]:
         """
         List bars with pagination, search, and filters.
@@ -66,6 +67,8 @@ class InventoryService:
             query = query.filter(Bar.product_id == product_id)
         if dealer_id:
             query = query.filter(Bar.dealer_id == dealer_id)
+        if is_sellable is not None:
+            query = query.filter(Bar.is_sellable == is_sellable)
 
         total = query.count()
         total_pages = math.ceil(total / per_page) if total else 1
@@ -175,6 +178,11 @@ class InventoryService:
         bar.batch_id = safe_int(data.get("batch_id")) if data.get("batch_id") != "0" else None
         bar.is_preorder = bool(data.get("is_preorder"))
 
+        # Sellability change: mirror onto the Rasis POS device if this dealer has one
+        new_sellable = bool(data.get("is_sellable"))
+        sellable_changed = bar.is_sellable != new_sellable
+        bar.is_sellable = new_sellable
+
         # Track dealer (location) change
         if bar.dealer_id != new_dealer:
             db.add(DealerTransfer(
@@ -187,8 +195,8 @@ class InventoryService:
             ))
             bar.dealer_id = new_dealer
 
-            # Rasis POS: add bar to new dealer's POS if assigned
-            if new_dealer and data.get("status") == BarStatus.ASSIGNED:
+            # Rasis POS: add bar to new dealer's POS if assigned and sellable
+            if new_dealer and data.get("status") == BarStatus.ASSIGNED and new_sellable:
                 try:
                     from modules.rasis.service import rasis_service
                     from modules.user.models import User
@@ -197,6 +205,10 @@ class InventoryService:
                         rasis_service.add_bar_to_pos(db, bar, dealer_obj)
                 except Exception:
                     pass  # Never block admin operations
+
+        elif sellable_changed and bar.dealer_id:
+            # Location unchanged but sellability flipped — push/pull on the POS device
+            self._sync_sellable_to_rasis(db, [bar], new_sellable)
 
         # Clear reservation if no longer reserved or if owner assigned
         if bar.status != BarStatus.RESERVED or new_cust is not None:
@@ -269,6 +281,49 @@ class InventoryService:
 
         return 0
 
+    def _sync_sellable_to_rasis(self, db: Session, bars: List[Bar], sellable: bool) -> None:
+        """Mirror a sellability change onto Rasis POS devices. Never raises."""
+        try:
+            from modules.rasis.service import rasis_service
+            from modules.user.models import User
+
+            dealer_cache = {}
+            for bar in bars:
+                if not bar.dealer_id or bar.status != BarStatus.ASSIGNED or not bar.product_id:
+                    continue
+                if bar.dealer_id not in dealer_cache:
+                    dealer_cache[bar.dealer_id] = db.query(User).get(bar.dealer_id)
+                dealer_obj = dealer_cache[bar.dealer_id]
+                if not dealer_obj or not dealer_obj.rasis_sharepoint:
+                    continue
+                if sellable:
+                    rasis_service.add_bar_to_pos(db, bar, dealer_obj)
+                else:
+                    rasis_service.remove_bar_from_pos(db, bar, dealer_obj)
+        except Exception:
+            pass  # Rasis is best-effort; never block an admin operation
+
+    def bulk_set_sellable(self, db: Session, ids: List[int], sellable: bool) -> int:
+        """
+        Bulk enable/disable sellability. Returns count of affected rows.
+
+        Deliberately separate from bulk_update: that method clears reservations on
+        every write, which would orphan an in-flight reservation here.
+        """
+        if not ids:
+            return 0
+
+        bars = db.query(Bar).filter(Bar.id.in_(ids), Bar.is_sellable != sellable).all()
+        if not bars:
+            return 0
+
+        for bar in bars:
+            bar.is_sellable = sellable
+        db.flush()
+
+        self._sync_sellable_to_rasis(db, bars, sellable)
+        return len(bars)
+
     def bulk_delete(self, db: Session, ids: List[int]) -> int:
         """Delete bars by IDs. Returns count deleted."""
         count = db.query(Bar).filter(Bar.id.in_(ids)).delete(synchronize_session=False)
@@ -314,6 +369,7 @@ class InventoryService:
                 Bar.product_id == product_id,
                 Bar.status == BarStatus.ASSIGNED,
                 Bar.customer_id.is_(None),
+                Bar.is_sellable == True,
             )
             .with_for_update(skip_locked=True)
             .limit(quantity)

@@ -36,6 +36,7 @@ class CartService:
             Bar.status == BarStatus.ASSIGNED,
             Bar.customer_id.is_(None),
             Bar.reserved_customer_id.is_(None),
+            Bar.is_sellable == True,
         ).count()
 
     def update_item(self, db: Session, customer_id: int, product_id: int, change: int,
@@ -114,6 +115,7 @@ class CartService:
             Bar.status == BarStatus.ASSIGNED,
             Bar.customer_id.is_(None),
             Bar.reserved_customer_id.is_(None),
+            Bar.is_sellable == True,
         ).group_by(Bar.product_id).all()
         inv_map = {pid: cnt for pid, cnt in inv_rows}
 
@@ -197,6 +199,7 @@ class CartService:
             Bar.status == BarStatus.ASSIGNED,
             Bar.customer_id.is_(None),
             Bar.reserved_customer_id.is_(None),
+            Bar.is_sellable == True,
         ).group_by(Bar.product_id).all()
         inv_map = {pid: cnt for pid, cnt in inv_rows}
 
