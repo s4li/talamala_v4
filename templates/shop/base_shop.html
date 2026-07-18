@@ -249,18 +249,6 @@
         قیمت‌ها ممکن است به‌روز نباشند. امکان ثبت سفارش تا بروزرسانی قیمت وجود ندارد.
     </div>
     {% endif %}
-    {# بنر «فروشگاه غیرفعال» موقتاً برداشته شده (درخواست کاربر، ۱۴۰۵/۰۴/۲۷).
-       گاردِ فروش همچنان فعال است: require_trade_enabled(..., "shop") در
-       cart/routes.py و order/service.py افزودن به سبد و ثبت سفارش را مسدود
-       می‌کند. برای بازگرداندن، این بلوک را برگردانید — shop_disabled و
-       shop_closed_message همچنان به تمپلیت پاس داده می‌شوند.
-    {% if shop_disabled %}
-    <div class="alert-tm-danger py-2 mb-3">
-        <i class="bi bi-lock me-1"></i>
-        {{ shop_closed_message or 'به دلیل نوسانات شدید بازار، فروشگاه موقتاً غیرفعال است. از صبر و شکیبایی شما سپاسگزاریم.' }}
-    </div>
-    {% endif %}
-    #}
     {% block shop_content %}{% endblock %}
 </div>
 
