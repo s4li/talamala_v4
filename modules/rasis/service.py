@@ -651,11 +651,15 @@ class RasisService:
                         customer_name=item.get("PayerName") or None,
                         customer_mobile=item.get("PayerMobile") or None,
                         sale_price=sale_price,
-                        applied_gold_price=applied_gold_price,
+                        applied_metal_price=applied_gold_price,
                         description=f"فروش از دستگاه پوز راسیس — فاکتور #{item.get('ReceiptNo', '')}",
                     )
                     db.add(sale)
                     db.flush()
+
+                    # پیامک اطلاع‌رسانی فروش به شماره‌های ثابت (ترد جدا — غیر بلاکینگ)
+                    from common.sales_alert import notify_sale_async
+                    notify_sale_async(db, sale, "دستگاه راسیس")
 
                     bar.status = BarStatus.SOLD
                     bar.delivered_at = now_utc()

@@ -443,6 +443,10 @@ class PosService:
         except Exception:
             pass  # Never block POS sale
 
+        # پیامک اطلاع‌رسانی فروش به شماره‌های ثابت (ترد جدا — غیر بلاکینگ)
+        from common.sales_alert import notify_sale_async
+        notify_sale_async(db, sale, "پوز مشتری")
+
         return {
             "success": True,
             "sale": {

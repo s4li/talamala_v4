@@ -5,7 +5,6 @@ Checkout, order creation, inventory reservation, expiration cleanup.
 """
 
 import logging
-import threading
 from decimal import Decimal
 from datetime import timedelta
 from typing import List, Optional
@@ -23,71 +22,6 @@ from modules.pricing.calculator import calculate_bar_price, calculate_gold_cost
 from modules.pricing.service import get_end_customer_wage, get_product_pricing
 
 logger = logging.getLogger("talamala.order")
-
-# شماره‌های ثابت دریافت‌کننده پیامک سفارش (هارد‌کد به درخواست کارفرما)
-ORDER_ALERT_MOBILES = ["09121023589", "09120725564"]
-
-
-def build_order_alert_text(db: Session, order: Order) -> str:
-    """
-    ساخت متن پیامک اطلاع‌رسانی سفارش برای شماره‌های ثابت.
-    باید در همان ترد اصلی (با سشن باز) صدا زده شود؛ نتیجه‌اش رشته‌ای است
-    که به ترد پس‌زمینه پاس داده می‌شود.
-    """
-    from modules.user.models import User
-
-    buyer = db.query(User).filter(User.id == order.customer_id).first()
-    buyer_name = (buyer.full_name if buyer else "") or "نامشخص"
-    buyer_mobile = buyer.mobile if buyer else "-"
-
-    lines = [f"طلاملا | سفارش جدید #{order.id}"]
-    lines.append(f"خریدار: {buyer_name} - {buyer_mobile}")
-
-    for oi in order.items:
-        product = db.query(Product).filter(Product.id == oi.product_id).first()
-        name = product.name if product else f"محصول #{oi.product_id}"
-        serial = oi.bar.serial_code if oi.bar else "-"
-        lines.append(f"- {name} | سریال: {serial}")
-
-    if order.is_gold_order:
-        lines.append(f"مبلغ: {(order.gold_total_mg or 0) / 1000:.3f} گرم طلا")
-    else:
-        lines.append(f"مبلغ: {int(order.payable_total or 0) // 10:,} تومان")
-
-    if order.delivery_method == DeliveryMethod.PICKUP:
-        dealer = order.pickup_dealer
-        where = dealer.display_name if dealer else "نامشخص"
-        lines.append(f"تحویل: حضوری - {where}")
-    else:
-        city = order.shipping_city or ""
-        province = order.shipping_province or ""
-        lines.append(f"تحویل: پستی - {province} {city}".strip())
-
-    return "\n".join(lines)
-
-
-def _send_order_alert_sms(text: str):
-    """ارسال پیامک به شماره‌های ثابت. داخل ترد دیمن اجرا می‌شود (بدون سشن DB)."""
-    from common.sms import sms_sender
-    for mobile in ORDER_ALERT_MOBILES:
-        try:
-            sms_sender.send_plain_text(mobile, text)
-        except Exception as e:
-            logger.error(f"Order alert SMS failed to {mobile}: {e}")
-
-
-def notify_order_alert_async(db: Session, order: Order):
-    """
-    متن را همگام می‌سازد (چون بعد از commit ممکن است آبجکت‌ها منقضی شوند)
-    و ارسال پیامک را به یک ترد دیمن می‌سپارد تا درخواست بلاک نشود.
-    """
-    try:
-        text = build_order_alert_text(db, order)
-    except Exception as e:
-        logger.error(f"Building order alert text failed for order #{order.id}: {e}")
-        return
-    threading.Thread(target=_send_order_alert_sms, args=(text,), daemon=True).start()
-
 
 def build_order_item(product, bar, invoice: dict, metal_price_rial: int, tax_percent_str: str,
                      gift_box_id: int = None, gift_box_price: int = 0) -> OrderItem:
@@ -766,7 +700,8 @@ class OrderService:
             pass  # Never block order finalization
 
         # پیامک اطلاع‌رسانی سفارش به شماره‌های ثابت (ترد جدا — غیر بلاکینگ)
-        notify_order_alert_async(db, order)
+        from common.sales_alert import notify_order_async
+        notify_order_async(db, order)
 
         db.flush()
         return order
