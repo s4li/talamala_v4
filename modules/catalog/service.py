@@ -108,6 +108,40 @@ class ProductService:
     def list_all(self, db: Session) -> List[Product]:
         return db.query(Product).order_by(Product.weight.asc(), Product.id.asc()).all()
 
+    def list_all_with_stock(self, db: Session) -> List[Product]:
+        """
+        Products for the admin list, each carrying two counts:
+
+          product.stock_sellable — what customers actually see on the storefront
+          product.stock_total    — every bar physically in stock (Assigned, unowned)
+
+        Two aggregate queries rather than one per product.
+        """
+        from sqlalchemy import func
+        from modules.inventory.models import Bar, BarStatus
+
+        products = self.list_all(db)
+        if not products:
+            return products
+
+        base = (
+            db.query(Bar.product_id, func.count(Bar.id))
+            .filter(
+                Bar.status == BarStatus.ASSIGNED,
+                Bar.customer_id.is_(None),
+                Bar.product_id.isnot(None),
+            )
+        )
+        total_map = dict(base.group_by(Bar.product_id).all())
+        sellable_map = dict(
+            base.filter(Bar.is_sellable == True).group_by(Bar.product_id).all()
+        )
+
+        for p in products:
+            p.stock_total = total_map.get(p.id, 0)
+            p.stock_sellable = sellable_map.get(p.id, 0)
+        return products
+
     def get_by_id(self, db: Session, product_id: int) -> Optional[Product]:
         return db.query(Product).filter(Product.id == product_id).first()
 

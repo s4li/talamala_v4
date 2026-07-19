@@ -41,7 +41,7 @@ def ctx(request, user, **extra):
 
 @router.get("/admin/products", response_class=HTMLResponse)
 async def list_products(request: Request, db: Session = Depends(get_db), user=Depends(require_permission("products"))):
-    products = product_service.list_all(db)
+    products = product_service.list_all_with_stock(db)
     categories = db.query(ProductCategory).order_by(ProductCategory.sort_order).all()
     packages = db.query(PackageType).all()
     data, csrf = ctx(request, user, products=products, categories=categories, packages=packages)

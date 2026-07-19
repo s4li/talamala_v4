@@ -83,7 +83,9 @@
     </div>
 
     <!-- Product Info -->
-    <div class="col-md-7 tm-animate-slide-right tm-delay-2">
+    {# data-stock برای مصرف اسکریپت‌های فرانت است، نه نمایش. عمداً رندر نمی‌شود. #}
+    <div class="col-md-7 tm-animate-slide-right tm-delay-2"
+         data-product-id="{{ p.id }}" data-stock="{{ inventory }}">
         <h3 class="fw-bold">{{ p.name }}</h3>
 
         <div class="d-flex gap-3 mt-2 mb-3">
@@ -91,28 +93,12 @@
             <span class="badge bg-light text-dark border">عیار {{ p.purity|purity }}</span>
         </div>
 
-        <!-- Stock -->
+        {# Stock — تعداد عمداً به مشتری نمایش داده نمی‌شود؛ فقط اتمام موجودی اعلام می‌شود.
+           تفکیک به‌ازای نمایندگی هم حذف شده (نقشه موجودی شبکه را لو می‌داد).
+           شمارش‌ها فقط در پنل ادمین دیده می‌شوند. کامنت Jinja است تا به مرورگر نرود. #}
+        {% if inventory <= 0 %}
         <div class="mb-3">
-            {% if inventory > 0 %}
-            <span class="badge-tm badge-tm-secondary"><i class="bi bi-check-circle me-1"></i>{{ inventory }} عدد موجود</span>
-            {% else %}
             <span class="badge-tm badge-tm-info"><i class="bi bi-x-circle me-1"></i>ناموجود</span>
-            {% endif %}
-        </div>
-
-        <!-- Location Availability -->
-        {% if location_inventory %}
-        <div class="mb-3">
-            <h6 class="fw-bold small"><i class="bi bi-geo-alt me-1"></i>محل موجودی:</h6>
-            <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
-                {% for loc in location_inventory %}
-                <div class="border rounded-3 p-2 small" style="min-width:140px;">
-                    <div class="fw-bold">{{ loc.name }}</div>
-                    {% if loc.city %}<div class="text-muted">{{ loc.city }}</div>{% endif %}
-                    <span class="badge-tm badge-tm-secondary mt-1">{{ loc.count }} عدد</span>
-                </div>
-                {% endfor %}
-            </div>
         </div>
         {% endif %}
 

@@ -27,6 +27,7 @@
                         <th>عیار</th>
                         <th>اجرت</th>
                         <th>بسته‌بندی</th>
+                        <th>موجودی</th>
                         <th>وضعیت</th>
                         <th>عملیات</th>
                     </tr>
@@ -51,6 +52,19 @@
                         <td>{{ p.wage }}%</td>
                         <td><small>{% if p.allowed_packages %}{% for pkg in p.allowed_packages %}{{ pkg.name }}{% if not loop.last %}، {% endif %}{% endfor %}{% else %}—{% endif %}</small></td>
                         <td>
+                            {# عدد بزرگ = آنچه مشتری می‌بیند (قابل فروش). عدد کوچک = کل موجودی فیزیکی. #}
+                            {% if p.stock_sellable > 0 %}
+                            <span class="badge-tm badge-tm-success">{{ p.stock_sellable }} قابل فروش</span>
+                            {% else %}
+                            <span class="badge-tm badge-tm-info">ناموجود</span>
+                            {% endif %}
+                            {% if p.stock_total > p.stock_sellable %}
+                            <br><small class="text-muted" title="شمش‌های موجود در انبار که برای فروش فعال نشده‌اند">
+                                از {{ p.stock_total }} شمش انبار
+                            </small>
+                            {% endif %}
+                        </td>
+                        <td>
                             {% if p.is_active %}
                             <span class="badge-tm badge-tm-success">فعال</span>
                             {% else %}
@@ -71,7 +85,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="10" class="text-center text-muted py-4">هنوز محصولی ثبت نشده</td></tr>
+                    <tr><td colspan="11" class="text-center text-muted py-4">هنوز محصولی ثبت نشده</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
