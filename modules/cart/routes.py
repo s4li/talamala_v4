@@ -105,6 +105,10 @@ async def update_cart_form(
     if action != "remove":
         from modules.catalog.models import Product
         product = db.query(Product).filter(Product.id == product_id).first()
+        if product and product.is_hidden_in_shop:
+            from common.flash import flash
+            flash(request, "این محصول در فروشگاه در دسترس نیست.", "danger")
+            return RedirectResponse(referer, status_code=303)
         if product:
             try:
                 require_trade_enabled(db, product.metal_type or "gold", "shop")
@@ -148,6 +152,11 @@ async def api_update_cart(
     if change > 0:
         from modules.catalog.models import Product
         product = db.query(Product).filter(Product.id == product_id).first()
+        if product and product.is_hidden_in_shop:
+            return JSONResponse(
+                {"status": "error", "message": "این محصول در فروشگاه در دسترس نیست."},
+                status_code=403,
+            )
         if product:
             try:
                 require_trade_enabled(db, product.metal_type or "gold", "shop")

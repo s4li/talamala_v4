@@ -64,6 +64,7 @@ class ShopService:
             & (Bar.is_sellable == True),
         ).filter(
             Product.is_active == True,
+            Product.is_hidden_in_shop == False,
         )
 
         # Category filter at DB level
@@ -146,6 +147,7 @@ class ShopService:
         product = db.query(Product).filter(
             Product.id == product_id,
             Product.is_active == True,
+            Product.is_hidden_in_shop == False,
         ).first()
 
         if not product:

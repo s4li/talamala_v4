@@ -44,7 +44,7 @@ class PosService:
                 Bar.is_sellable == True,
             )
             .distinct()
-            .subquery()
+            .scalar_subquery()
         )
 
         categories = (
@@ -56,8 +56,13 @@ class PosService:
                 sa_func.count(ProductCategoryLink.product_id.distinct()).label("product_count"),
             )
             .join(ProductCategoryLink, ProductCategoryLink.category_id == ProductCategory.id)
+            # Join Product so the count matches what /api/pos/products actually returns —
+            # otherwise a hidden or inactive product keeps its category on the device.
+            .join(Product, Product.id == ProductCategoryLink.product_id)
             .filter(
                 ProductCategory.is_active == True,
+                Product.is_active == True,
+                Product.is_hidden_in_pos == False,
                 ProductCategoryLink.product_id.in_(available_product_ids),
             )
             .group_by(ProductCategory.id)
@@ -117,7 +122,11 @@ class PosService:
 
         products_query = (
             db.query(Product)
-            .filter(Product.id.in_(stock_map.keys()), Product.is_active == True)
+            .filter(
+                Product.id.in_(stock_map.keys()),
+                Product.is_active == True,
+                Product.is_hidden_in_pos == False,
+            )
         )
         if category_id:
             products_query = products_query.join(ProductCategoryLink).filter(
@@ -182,6 +191,10 @@ class PosService:
         """Reserve an available bar for POS payment (2-minute hold)."""
         # Get product first to check metal-specific staleness + trade toggle
         product = db.query(Product).filter(Product.id == product_id).first()
+        # The device only lists visible products, but reserve takes a raw product_id —
+        # re-check here so a stale or hand-crafted request can't reserve a hidden one.
+        if product and product.is_hidden_in_pos:
+            return {"success": False, "message": "این محصول در دستگاه پوز در دسترس نیست."}
         if product:
             _, _, metal_info = get_product_pricing(db, product)
             try:

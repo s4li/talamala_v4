@@ -155,6 +155,8 @@ class ProductService:
             buyback_wage_percent=safe_decimal(data.get("buyback_wage_percent", "0"), Decimal("0")),
             is_wage_percent=True,
             is_active=data.get("is_active", True),
+            is_hidden_in_shop=data.get("is_hidden_in_shop", False),
+            is_hidden_in_pos=data.get("is_hidden_in_pos", False),
         )
         db.add(product)
         db.flush()
@@ -204,6 +206,8 @@ class ProductService:
         p.buyback_wage_percent = safe_decimal(data.get("buyback_wage_percent", "0"), Decimal("0"))
         p.is_wage_percent = True
         p.is_active = data.get("is_active", False)
+        p.is_hidden_in_shop = data.get("is_hidden_in_shop", False)
+        p.is_hidden_in_pos = data.get("is_hidden_in_pos", False)
 
         # Sync M2M categories
         if "category_ids" in data:

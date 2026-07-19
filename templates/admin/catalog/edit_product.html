@@ -86,6 +86,20 @@
                             <label class="form-check-label">فعال</label>
                         </div>
                     </div>
+                    <div class="col-md-3">
+                        <label class="form-label-tm">مخفی‌سازی در کانال‌ها</label>
+                        <div class="form-check form-switch mt-2">
+                            <input type="checkbox" name="is_hidden_in_shop" class="form-check-input"
+                                   {% if p.is_hidden_in_shop %}checked{% endif %}>
+                            <label class="form-check-label">مخفی در وب‌سایت</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input type="checkbox" name="is_hidden_in_pos" class="form-check-input"
+                                   {% if p.is_hidden_in_pos %}checked{% endif %}>
+                            <label class="form-check-label">مخفی در دستگاه پوز</label>
+                        </div>
+                        <small class="text-muted">محصول مخفی در آن کانال نه نمایش داده می‌شود و نه قابل خرید است</small>
+                    </div>
                     <div class="col-12">
                         <label class="form-label-tm">توضیحات محصول</label>
                         <textarea name="description" class="form-control form-control-tm" rows="4" placeholder="توضیحات تکمیلی محصول (اختیاری)">{{ p.description or '' }}</textarea>

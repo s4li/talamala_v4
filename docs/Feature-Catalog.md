@@ -243,6 +243,13 @@ async def delete_product(user=Depends(require_permission("products", level="full
 - تصاویر محصول (ProductImage)
 - Property `categories`: لیست اشیاء ProductCategory مرتبط
 - Property `category_ids`: لیست شناسه‌های دسته‌بندی‌ها (List[int])
+- **مخفی‌سازی per-channel** (`is_hidden_in_shop` / `is_hidden_in_pos`): Boolean، پیش‌فرض `false`
+  - مستقل از `is_active` — برای وقتی محصول باید فقط از یک کانال برداشته شود، نه از همه‌جا
+  - محصول مخفی در آن کانال **نه لیست می‌شود و نه از مسیر مستقیم قابل خرید است**
+  - `is_hidden_in_shop` روی: لیست فروشگاه، صفحه جزئیات محصول (۴۰۴)، `POST /cart/update`، `POST /api/cart/update`
+  - `is_hidden_in_pos` روی: `GET /api/pos/products`، `GET /api/pos/categories` (شمارش)، `POST /api/pos/reserve`، `GET /api/dealer/products`، انتخابگر شمش `/dealer/pos`، و ثبت فروش `create_pos_sale`
+  - قابل تنظیم از فرم افزودن/ویرایش محصول در پنل ادمین + بج در لیست محصولات
+  - ⚠️ محدودیت شناخته‌شده: سبدهای **موجود** مسدود نمی‌شوند؛ مخفی‌کردن محصول جلوی نهایی‌شدن سبدی که از قبل آن را داشته نمی‌گیرد
 
 #### ProductCategoryLink (رابطه محصول-دسته‌بندی)
 - جدول واسط (junction table) برای رابطه Many-to-Many بین Product و ProductCategory

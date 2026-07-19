@@ -86,6 +86,10 @@ class Product(Base):
     is_wage_percent = Column(Boolean, default=True, nullable=False)  # همیشه True برای شمش
     metal_type = Column(String(20), default="gold", nullable=False)  # "gold", "silver" — maps to PRECIOUS_METALS keys
     package_type_id = Column(Integer, ForeignKey("package_types.id", ondelete="SET NULL"), nullable=True, index=True)
+    # --- Per-channel visibility (independent of is_active) ---
+    # True = محصول در آن کانال مخفی است: نه لیست می‌شود، نه از مسیر مستقیم قابل خرید است
+    is_hidden_in_shop = Column(Boolean, default=False, nullable=False, index=True)  # وب‌سایت/فروشگاه
+    is_hidden_in_pos = Column(Boolean, default=False, nullable=False, index=True)   # دستگاه پوز (مشتری + نماینده)
 
     __table_args__ = (
         CheckConstraint("purity > 0 AND purity <= 999.9", name="ck_product_purity_range"),

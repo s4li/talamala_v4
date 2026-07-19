@@ -205,13 +205,22 @@ class DealerService:
     # ------------------------------------------
 
     def get_available_bars(self, db: Session, dealer_id: int) -> List[Bar]:
-        """Get bars at this dealer's location that are available for sale."""
+        """Get bars at this dealer's location that are available for sale.
+
+        Joins Product so bars of a POS-hidden product drop out of the dealer POS
+        picker — this query previously never looked at Product at all.
+        """
+        from modules.catalog.models import Product
+
         return (
             db.query(Bar)
+            # OUTER join: bars with no product were listed before and must stay listed.
+            .outerjoin(Product, Product.id == Bar.product_id)
             .filter(
                 Bar.dealer_id == dealer_id,
                 Bar.status == BarStatus.ASSIGNED,
                 Bar.is_sellable == True,
+                or_(Product.id.is_(None), Product.is_hidden_in_pos == False),
             )
             .order_by(Bar.serial_code)
             .all()
@@ -249,6 +258,10 @@ class DealerService:
 
         # --- Resolve metal type + pricing ---
         product = bar.product
+        # The picker already excludes these, but the serial can also be typed or
+        # scanned straight in — block the sale here too.
+        if product and product.is_hidden_in_pos:
+            return {"success": False, "message": "این محصول در دستگاه پوز در دسترس نیست"}
         metal_type = (product.metal_type if product else "gold") or "gold"
         metal_price, base_purity, metal_info = get_product_pricing(db, product) if product else (0, 750, {})
 
@@ -914,7 +927,11 @@ class DealerService:
         product_ids = list(bars_by_product.keys())
         products = (
             db.query(Product)
-            .filter(Product.id.in_(product_ids), Product.is_active == True)
+            .filter(
+                Product.id.in_(product_ids),
+                Product.is_active == True,
+                Product.is_hidden_in_pos == False,
+            )
             .all()
         )
 

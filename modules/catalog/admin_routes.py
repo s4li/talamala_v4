@@ -57,6 +57,8 @@ async def add_product(
     package_type_id: str = Form(""),
     wage: str = Form("0"),
     is_active: bool = Form(True),
+    is_hidden_in_shop: bool = Form(False),
+    is_hidden_in_pos: bool = Form(False),
     files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db), user=Depends(require_permission("products", level="create")),
@@ -72,6 +74,8 @@ async def add_product(
         "package_type_ids": package_type_ids,
         "wage": wage,
         "is_active": is_active,
+        "is_hidden_in_shop": is_hidden_in_shop,
+        "is_hidden_in_pos": is_hidden_in_pos,
     }, files)
     db.commit()
     return RedirectResponse("/admin/products", status_code=303)
@@ -97,6 +101,8 @@ async def update_product(
     package_type_id: str = Form(""),
     wage: str = Form(...),
     is_active: bool = Form(False),
+    is_hidden_in_shop: bool = Form(False),
+    is_hidden_in_pos: bool = Form(False),
     new_files: List[UploadFile] = File(None),
     csrf_token: Optional[str] = Form(None),
     db: Session = Depends(get_db), user=Depends(require_permission("products", level="edit")),
@@ -117,6 +123,8 @@ async def update_product(
         "wage": wage,
         "buyback_wage_percent": buyback_wage_percent,
         "is_active": is_active,
+        "is_hidden_in_shop": is_hidden_in_shop,
+        "is_hidden_in_pos": is_hidden_in_pos,
     }, new_files)
     db.commit()
 

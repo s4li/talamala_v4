@@ -70,6 +70,16 @@
                             {% else %}
                             <span class="badge-tm badge-tm-info">غیرفعال</span>
                             {% endif %}
+                            {% if p.is_hidden_in_shop %}
+                            <br><span class="badge-tm badge-tm-warning mt-1" title="در فروشگاه وب نمایش داده نمی‌شود">
+                                <i class="bi bi-eye-slash"></i> مخفی در وب
+                            </span>
+                            {% endif %}
+                            {% if p.is_hidden_in_pos %}
+                            <br><span class="badge-tm badge-tm-warning mt-1" title="در دستگاه پوز نمایش داده نمی‌شود">
+                                <i class="bi bi-eye-slash"></i> مخفی در پوز
+                            </span>
+                            {% endif %}
                         </td>
                         <td>
                             <div class="d-flex gap-1">
@@ -161,6 +171,17 @@
                             <div class="form-check form-switch mt-2">
                                 <input type="checkbox" name="is_active" class="form-check-input" checked>
                                 <label class="form-check-label">فعال</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label-tm">مخفی‌سازی در کانال‌ها</label>
+                            <div class="form-check form-switch mt-2">
+                                <input type="checkbox" name="is_hidden_in_shop" class="form-check-input">
+                                <label class="form-check-label">مخفی در وب‌سایت</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input type="checkbox" name="is_hidden_in_pos" class="form-check-input">
+                                <label class="form-check-label">مخفی در دستگاه پوز</label>
                             </div>
                         </div>
                         <div class="col-12">

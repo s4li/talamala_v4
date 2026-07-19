@@ -185,7 +185,12 @@ talamala_v4/
 ### catalog/models.py
 - **ProductCategory**: id, name (unique), slug (unique), sort_order, is_active
 - **ProductCategoryLink**: id, product_id (FK → products), category_id (FK → product_categories) — M2M junction (UniqueConstraint)
-- **Product**: id, name, weight (Decimal), purity (int: 750=18K), wage (Numeric 5,2 — percent), is_wage_percent, package_type_id, metal_type (String(20), default="gold"), is_active
+- **Product**: id, name, weight (Decimal), purity (int: 750=18K), wage (Numeric 5,2 — percent), is_wage_percent, package_type_id, metal_type (String(20), default="gold"), is_active, is_hidden_in_shop (Boolean, default False, indexed), is_hidden_in_pos (Boolean, default False, indexed)
+  - **مخفی‌سازی per-channel**: مستقل از `is_active` — محصول می‌تواند فعال باشد ولی فقط از یک کانال برداشته شود
+  - `is_hidden_in_shop=True` → از لیست فروشگاه، صفحه جزئیات (۴۰۴)، و افزودن به سبد (هر دو مسیر form و AJAX) حذف می‌شود
+  - `is_hidden_in_pos=True` → از `/api/pos/products`، شمارش دسته‌های پوز، `reserve`، `/api/dealer/products`، انتخابگر شمش پوز نماینده (`get_available_bars`) و ثبت فروش پوز نماینده حذف می‌شود
+  - هر دو opt-in هستند (پیش‌فرض `False` = قابل نمایش)
+  - ⚠️ **checkout سبدهای موجود را مسدود نمی‌کند** — اگر محصولی بعد از افزوده‌شدن به سبد مخفی شود، آن سبد همچنان نهایی می‌شود
   - `metal_type` maps to `PRECIOUS_METALS` keys ("gold", "silver") — determines which asset price + base purity to use for pricing
   - Properties: `categories` (list of ProductCategory), `category_ids` (list of int)
 - **ProductImage**: id, product_id, path, is_default
