@@ -468,6 +468,12 @@ uvicorn main:app --reload
 | TS-11-10 | scan lookup | `/dealer/scan/lookup?serial=X` | JSON: اطلاعات شمش | ☐ |
 | TS-11-11 | فروش نقره | شمش نقره + اطلاعات | DealerSale با metal_type=silver | ☐ |
 | TS-11-12 | فروش زیرنماینده | D1 parent → sale by sub-dealer | parent_commission_mg ثبت شود | ☐ |
+| TS-11-13 | snapshot محصول (پوز نماینده) | فروش موفق از `/dealer/pos` | `product_id`, `product_name`, `product_weight`, `product_purity`, `applied_wage_percent`, `serial_code` روی DealerSale پر شوند | ☐ |
+| TS-11-14 | snapshot محصول (پوز مشتری) | `POST /api/pos/reserve` سپس `/api/pos/confirm` | همان ۶ ستون snapshot پر شوند | ☐ |
+| TS-11-15 | پایداری گزارش بعد از حذف شمش | فروش ثبت شود → شمش حذف شود → `/admin/dealers/sales` | نام محصول، وزن، عیار و اجرت همچنان نمایش داده شوند + برچسب «شمش حذف شده»؛ مجموع وزن و ریال **تغییر نکند** | ☐ |
+| TS-11-16 | جستجوی سریالِ شمشِ حذف‌شده | `/admin/dealers/sales?search=<serial>` | فروش پیدا شود (از روی snapshot، نه join) | ☐ |
+| TS-11-17 | تفکیک محصول | `/admin/dealers/sales` | جدول «تفکیک بر اساس محصول» با تعداد/وزن/ریال/سود نماینده/سود ما + جمع کل که با کارت‌های خلاصه reconcile شود | ☐ |
+| TS-11-18 | محاسبه سود ما | اجرت مشتری ۷٪، اجرت سطح نماینده ۴٪، شمش ۱ گرمی | `wage_mg=70`، `metal_profit_mg=30`، `our_profit_mg=40` | ☐ |
 
 ---
 

@@ -249,6 +249,10 @@ talamala_v4/
 - **DealerSale**: id, dealer_id (FK→users), bar_id, customer_name/mobile/national_id, sale_price, commission_amount, metal_profit_mg, discount_wage_percent (Numeric 5,2 — تخفیف اجرت از سهم نماینده), metal_type (String(20), default="gold"), parent_dealer_id (FK→users, nullable — parent dealer for sub-dealer sales), parent_commission_mg (Numeric 12,4, nullable — parent's share in mg), description, created_at
   - `applied_metal_price` — metal price at time of sale (was `applied_gold_price`)
   - `metal_type` — which metal was sold ("gold", "silver")
+  - **Product snapshot** (ثبت در لحظه فروش، مستقل از join زنده): `product_id` (FK→products, SET NULL), `product_name`, `product_weight` (Numeric 10,3 — گرم), `product_purity` (Numeric 6,1), `applied_wage_percent` (Numeric 5,2 — اجرت مشتری نهایی), `serial_code`
+    - **چرا**: `DealerSale.bar_id` و `Bar.product_id` هر دو `ON DELETE SET NULL` هستند. قبلاً گزارش فروش نمایندگان محصول را زنده از `bar → product` می‌خواند، پس با حذف شمش یا محصول نام/وزن ناپدید می‌شد و آن فروش از مجموع وزن/اجرت هم (به‌خاطر INNER JOIN) حذف می‌شد
+    - Properties: `display_product_name`, `display_serial`, `display_weight`, `weight_mg`, `wage_mg`, `our_profit_mg` — اول snapshot، بعد fallback به join زنده
+    - `wage_mg` عمداً با همان قرارداد `metal_profit_mg` (وزن ناخالص × درصد) حساب می‌شود تا `wage_mg − metal_profit_mg` هم‌جنس بماند
 - **BuybackRequest**: id, dealer_id (FK→users), bar_id, customer_name/mobile, buyback_price, status (Pending/Approved/Completed/Rejected), admin_note, description, wage_refund_amount (rial), wage_refund_customer_id (FK→users), created_at, updated_at
 - **SubDealerRelation**: id, parent_dealer_id (FK→users, CASCADE), child_dealer_id (FK→users, CASCADE), commission_split_percent (Numeric 5,2, default=20), is_active, created_at, deactivated_at, admin_note
   - UniqueConstraint(parent_dealer_id, child_dealer_id), CheckConstraint(0-100), CheckConstraint(no self-ref)
@@ -837,7 +841,10 @@ total     = raw_metal + wage + tax
 - `POST /admin/dealer-requests/{id}/revision` — Request revision (admin_note required)
 - `POST /admin/dealer-requests/{id}/reject` — Reject request
 - `/admin/dealers` — Dealer list + create/edit
-- `GET /admin/dealers/sales` — گزارش فروش نمایندگان (فیلتر: نماینده، تاریخ، جستجو، تخفیف + آمار تجمیعی)
+- `GET /admin/dealers/sales` — گزارش فروش نمایندگان (فیلتر: نماینده، تاریخ، جستجو، تخفیف + آمار تجمیعی + تفکیک بر اساس محصول)
+  - جستجو علاوه بر `Bar.serial_code` روی snapshot (`DealerSale.serial_code`, `product_name`) هم اجرا می‌شود تا فروشِ شمشِ حذف‌شده هم پیدا شود
+  - `stats.by_product`: به‌ازای هر (محصول × نوع فلز) → تعداد، مجموع وزن (mg)، مجموع ریال، سود فلز نماینده، سود فلز ما
+  - aggregate‌ها از ستون‌های snapshot خوانده می‌شوند (با `OUTER JOIN` و `COALESCE` روی رکوردهای قدیمی) — نه `INNER JOIN` روی `Product↔Bar`
 - `POST /admin/dealers/{id}/generate-api-key` — Generate POS API key
 - `POST /admin/dealers/{id}/revoke-api-key` — Revoke POS API key
 - `POST /admin/dealers/{id}/rasis-sync` — Manual full sync of dealer inventory + pricing to Rasis POS device

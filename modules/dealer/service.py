@@ -349,6 +349,13 @@ class DealerService:
             commission_amount=0,
             discount_wage_percent=discount_wage_percent,
             description=description,
+            # Product snapshot — survives bar/product deletion
+            product_id=product.id if product else None,
+            product_name=product.name if product else None,
+            product_weight=product.weight if product else None,
+            product_purity=product.purity if product else None,
+            applied_wage_percent=ec_wage_pct,
+            serial_code=bar.serial_code,
         )
         db.add(sale)
         db.flush()
@@ -1063,11 +1070,15 @@ class DealerService:
 
         if search:
             search_term = f"%{search.strip()}%"
+            # Match the snapshot columns too — a deleted bar nulls out bar_id, and
+            # searching only through the join would make those sales unfindable.
             q = q.outerjoin(Bar, DealerSale.bar_id == Bar.id).filter(
                 or_(
                     DealerSale.customer_name.ilike(search_term),
                     DealerSale.customer_mobile.ilike(search_term),
                     DealerSale.customer_national_id.ilike(search_term),
+                    DealerSale.serial_code.ilike(search_term),
+                    DealerSale.product_name.ilike(search_term),
                     Bar.serial_code.ilike(search_term),
                     DealerSale.description.ilike(search_term),
                 )
@@ -1114,45 +1125,76 @@ class DealerService:
                 .scalar()
             )
 
-            # --- Metal-specific stats using DealerSale.metal_type ---
+            # --- Metal-specific stats ---
+            # Read weight/wage from the DealerSale snapshot columns, NOT from a live
+            # join through Bar→Product: both FKs are ON DELETE SET NULL, so joining
+            # silently drops sales whose bar or product was later deleted and
+            # under-reports every total. COALESCE onto the live row only as a
+            # fallback for rows written before the snapshot columns existed.
+            weight_col = sa_func.coalesce(DealerSale.product_weight, Product.weight)
+            wage_col = sa_func.coalesce(DealerSale.applied_wage_percent, Product.wage)
+
             def _metal_agg(metal_key: str):
-                """Calculate weight, wage_mg, dealer_profit_mg for a metal type."""
-                base_filters = [
-                    DealerSale.id.in_(filtered_ids),
-                    DealerSale.metal_type == metal_key,
-                ]
-                weight = (
-                    db.query(sa_func.coalesce(sa_func.sum(Product.weight), 0))
-                    .join(Bar, Bar.product_id == Product.id)
-                    .join(DealerSale, DealerSale.bar_id == Bar.id)
-                    .filter(*base_filters)
-                    .scalar()
+                """Return (weight_mg, our_profit_mg, dealer_profit_mg) for a metal type."""
+                row = (
+                    db.query(
+                        sa_func.coalesce(sa_func.sum(weight_col * 1000), 0),
+                        sa_func.coalesce(sa_func.sum(weight_col * wage_col / 100 * 1000), 0),
+                        sa_func.coalesce(sa_func.sum(DealerSale.metal_profit_mg), 0),
+                    )
+                    .outerjoin(Bar, DealerSale.bar_id == Bar.id)
+                    .outerjoin(Product, Bar.product_id == Product.id)
+                    .filter(
+                        DealerSale.id.in_(filtered_ids),
+                        DealerSale.metal_type == metal_key,
+                    )
+                    .one()
                 )
-                wage_mg = (
-                    db.query(sa_func.coalesce(
-                        sa_func.sum(Product.weight * Product.wage / 100 * 1000), 0
-                    ))
-                    .join(Bar, Bar.product_id == Product.id)
-                    .join(DealerSale, DealerSale.bar_id == Bar.id)
-                    .filter(*base_filters)
-                    .scalar()
-                )
-                dealer_profit = (
-                    db.query(sa_func.coalesce(sa_func.sum(DealerSale.metal_profit_mg), 0))
-                    .filter(*base_filters)
-                    .scalar()
-                )
-                our = int(wage_mg) - int(dealer_profit)
-                return int(float(weight) * 1000), our, int(dealer_profit)
+                weight_mg, wage_mg, dealer_mg = int(row[0]), int(row[1]), int(row[2])
+                # Wage is the pool; the dealer's cut comes out of it. Never report negative.
+                return weight_mg, max(0, wage_mg - dealer_mg), dealer_mg
 
             gold_weight_mg, gold_our_mg, gold_dealer_mg = _metal_agg("gold")
             silver_weight_mg, silver_our_mg, silver_dealer_mg = _metal_agg("silver")
+
+            # --- Per-product breakdown: what actually sold ---
+            name_col = sa_func.coalesce(DealerSale.product_name, Product.name, "نامشخص")
+            product_rows = (
+                db.query(
+                    name_col.label("name"),
+                    DealerSale.metal_type.label("metal_type"),
+                    sa_func.count(DealerSale.id).label("count"),
+                    sa_func.coalesce(sa_func.sum(weight_col * 1000), 0).label("weight_mg"),
+                    sa_func.coalesce(sa_func.sum(DealerSale.sale_price), 0).label("revenue"),
+                    sa_func.coalesce(sa_func.sum(weight_col * wage_col / 100 * 1000), 0).label("wage_mg"),
+                    sa_func.coalesce(sa_func.sum(DealerSale.metal_profit_mg), 0).label("dealer_mg"),
+                )
+                .outerjoin(Bar, DealerSale.bar_id == Bar.id)
+                .outerjoin(Product, Bar.product_id == Product.id)
+                .filter(DealerSale.id.in_(filtered_ids))
+                .group_by(name_col, DealerSale.metal_type)
+                .order_by(sa_func.sum(DealerSale.sale_price).desc())
+                .all()
+            )
+            by_product = [
+                {
+                    "name": r.name,
+                    "metal_type": r.metal_type,
+                    "count": int(r.count),
+                    "weight_mg": int(r.weight_mg),
+                    "revenue": int(r.revenue),
+                    "dealer_profit_mg": int(r.dealer_mg),
+                    "our_profit_mg": max(0, int(r.wage_mg) - int(r.dealer_mg)),
+                }
+                for r in product_rows
+            ]
         else:
             filtered_revenue = 0
             filtered_discount_count = 0
             gold_weight_mg = silver_weight_mg = 0
             gold_our_mg = silver_our_mg = 0
             gold_dealer_mg = silver_dealer_mg = 0
+            by_product = []
 
         stats = {
             "total": total,
@@ -1166,6 +1208,8 @@ class DealerService:
             "silver_weight_mg": silver_weight_mg,
             "silver_our_profit_mg": silver_our_mg,
             "silver_dealer_profit_mg": silver_dealer_mg,
+            # Per-product breakdown
+            "by_product": by_product,
         }
 
         # --- Paginate ---

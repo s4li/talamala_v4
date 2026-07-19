@@ -305,13 +305,13 @@ class PosService:
             db.flush()
             return {"success": False, "message": "مبلغ پرداخت با قیمت محاسباتی مطابقت ندارد"}
 
-        # Rasis POS: remove bar from dealer's POS before marking sold
-        try:
-            from modules.rasis.service import rasis_service
-            if dealer.rasis_sharepoint:
-                rasis_service.remove_bar_from_pos(db, bar, dealer)
-        except Exception:
-            pass  # Never block POS sales
+        # # Rasis POS: remove bar from dealer's POS before marking sold
+        # try:
+        #     from modules.rasis.service import rasis_service
+        #     if dealer.rasis_sharepoint:
+        #         rasis_service.remove_bar_from_pos(db, bar, dealer)
+        # except Exception:
+        #     pass  # Never block POS sales
 
         # Mark sold
         bar.status = BarStatus.SOLD
@@ -369,6 +369,13 @@ class PosService:
             applied_metal_price=metal_price,
             discount_wage_percent=0,
             description=desc,
+            # Product snapshot — survives bar/product deletion
+            product_id=product.id if product else None,
+            product_name=product.name if product else None,
+            product_weight=product.weight if product else None,
+            product_purity=product.purity if product else None,
+            applied_wage_percent=ec_wage,
+            serial_code=bar.serial_code,
         )
         db.add(sale)
         db.flush()

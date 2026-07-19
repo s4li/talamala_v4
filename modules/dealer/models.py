@@ -72,6 +72,15 @@ class DealerSale(Base):
     metal_type = Column(String(20), default="gold", nullable=False)   # "gold", "silver" — maps to PRECIOUS_METALS
     discount_wage_percent = Column(Numeric(5, 2), default=0, nullable=False)  # تخفیف اجرت از سهم نماینده (درصد)
     description = Column(Text, nullable=True)
+    # --- Product snapshot (immutable at sale time) ---
+    # bar_id/product_id are SET NULL on delete, so the live join can vanish.
+    # These columns keep the report correct after a bar or product is removed.
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
+    product_name = Column(String, nullable=True)                      # نام محصول در لحظه فروش
+    product_weight = Column(Numeric(10, 3), nullable=True)            # وزن (گرم)
+    product_purity = Column(Numeric(6, 1), nullable=True)             # عیار (در هزار)
+    applied_wage_percent = Column(Numeric(5, 2), nullable=True)       # اجرت مشتری نهایی در لحظه فروش (درصد)
+    serial_code = Column(String, nullable=True, index=True)           # سریال شمش در لحظه فروش
     # Sub-dealer commission split tracking
     parent_dealer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     parent_commission_mg = Column(BigInteger, default=0, nullable=False)  # parent's share (milligrams)
@@ -80,6 +89,59 @@ class DealerSale(Base):
     dealer = relationship("User", foreign_keys=[dealer_id])
     parent_dealer = relationship("User", foreign_keys=[parent_dealer_id])
     bar = relationship("Bar", foreign_keys=[bar_id])
+    product = relationship("Product", foreign_keys=[product_id])
+
+    # --- Display helpers: snapshot first, live join only as fallback ---
+
+    @property
+    def display_product_name(self) -> str:
+        if self.product_name:
+            return self.product_name
+        if self.bar and self.bar.product:
+            return self.bar.product.name
+        return "—"
+
+    @property
+    def display_serial(self) -> str:
+        if self.serial_code:
+            return self.serial_code
+        if self.bar:
+            return self.bar.serial_code
+        return "—"
+
+    @property
+    def display_weight(self):
+        """Weight in grams (Decimal) or None."""
+        if self.product_weight is not None:
+            return self.product_weight
+        if self.bar and self.bar.product:
+            return self.bar.product.weight
+        return None
+
+    @property
+    def weight_mg(self) -> int:
+        w = self.display_weight
+        return int(float(w) * 1000) if w else 0
+
+    @property
+    def wage_mg(self) -> int:
+        """Total wage in milligrams of metal — the pool split between us and the dealer.
+
+        Mirrors how metal_profit_mg is computed at sale time (gross weight × percent),
+        so `wage_mg - metal_profit_mg` is a like-for-like figure.
+        """
+        w = self.display_weight
+        pct = self.applied_wage_percent
+        if pct is None and self.bar and self.bar.product:
+            pct = self.bar.product.wage
+        if not w or pct is None:
+            return 0
+        return int(float(w) * float(pct) / 100 * 1000)
+
+    @property
+    def our_profit_mg(self) -> int:
+        """Our share of the wage after the dealer's cut."""
+        return max(0, self.wage_mg - (self.metal_profit_mg or 0))
 
 
 # ==========================================
