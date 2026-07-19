@@ -92,10 +92,10 @@
                 <div class="text-muted small">قیمت: —</div>
                 {% endif %}
 
+                {# موجودی عمداً نمایش داده نمی‌شود؛ فقط ناموجودی اعلام می‌شود.
+                   div همیشه رندر می‌شود تا mt-auto فاصله‌گذاری کارت را حفظ کند. #}
                 <div class="mt-auto pt-2">
-                    {% if p.inventory > 0 %}
-                    <span class="badge-tm badge-tm-secondary stock-badge"><span class="tm-stock-dot in-stock"></span> {{ p.inventory }} موجود</span>
-                    {% else %}
+                    {% if p.inventory <= 0 %}
                     <span class="badge-tm badge-tm-info stock-badge"><span class="tm-stock-dot out-of-stock"></span> ناموجود</span>
                     {% endif %}
                 </div>
