@@ -67,58 +67,6 @@
                 </td>
             </tr>
 
-            {# Edit Modal #}
-            {% if user.has_permission('settings', 'edit') %}
-            <div class="modal fade" id="editModal{{ t.id }}" tabindex="-1">
-                <div class="modal-dialog">
-                    <form action="/admin/testimonials/{{ t.id }}/edit" method="POST" enctype="multipart/form-data" class="modal-content">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <div class="modal-header">
-                            <h5 class="modal-title fw-bold">ویرایش نظر</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">نام شخص</label>
-                                <input type="text" name="person_name" class="form-control" value="{{ t.person_name }}" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">سمت / عنوان</label>
-                                <input type="text" name="person_title" class="form-control" value="{{ t.person_title }}" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">متن نظر</label>
-                                <textarea name="body" class="form-control" rows="4" required>{{ t.body }}</textarea>
-                            </div>
-                            <div class="row g-3">
-                                <div class="col-6">
-                                    <label class="form-label fw-bold">تصویر (اختیاری)</label>
-                                    <input type="file" name="avatar" class="form-control" accept="image/*">
-                                    {% if t.avatar_path %}
-                                    <small class="text-muted">تصویر فعلی موجود است</small>
-                                    {% endif %}
-                                </div>
-                                <div class="col-3">
-                                    <label class="form-label fw-bold">ترتیب</label>
-                                    <input type="number" name="sort_order" class="form-control" value="{{ t.sort_order }}">
-                                </div>
-                                <div class="col-3 d-flex align-items-end">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" name="is_active"
-                                               {% if t.is_active %}checked{% endif %}>
-                                        <label class="form-check-label">فعال</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-                            <button type="submit" class="btn btn-tm-primary">ذخیره</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            {% endif %}
         {% endfor %}
         </tbody>
     </table>
@@ -130,6 +78,63 @@
 </div>
 {% endif %}
 
+
+{# ═══ Edit Modals ═══
+   Kept OUTSIDE the table: a <div> is not valid inside <tbody>, so the browser
+   foster-parents it out during parsing and the modal stops opening. #}
+{% if items and user.has_permission('settings', 'edit') %}
+{% for t in items %}
+        <div class="modal fade" id="editModal{{ t.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <form action="/admin/testimonials/{{ t.id }}/edit" method="POST" enctype="multipart/form-data" class="modal-content">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">ویرایش نظر</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">نام شخص</label>
+                            <input type="text" name="person_name" class="form-control" value="{{ t.person_name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">سمت / عنوان</label>
+                            <input type="text" name="person_title" class="form-control" value="{{ t.person_title }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">متن نظر</label>
+                            <textarea name="body" class="form-control" rows="4" required>{{ t.body }}</textarea>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <label class="form-label fw-bold">تصویر (اختیاری)</label>
+                                <input type="file" name="avatar" class="form-control" accept="image/*">
+                                {% if t.avatar_path %}
+                                <small class="text-muted">تصویر فعلی موجود است</small>
+                                {% endif %}
+                            </div>
+                            <div class="col-3">
+                                <label class="form-label fw-bold">ترتیب</label>
+                                <input type="number" name="sort_order" class="form-control" value="{{ t.sort_order }}">
+                            </div>
+                            <div class="col-3 d-flex align-items-end">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_active"
+                                           {% if t.is_active %}checked{% endif %}>
+                                    <label class="form-check-label">فعال</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                        <button type="submit" class="btn btn-tm-primary">ذخیره</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+{% endfor %}
+{% endif %}
 
 {# ═══ Add Modal ═══ #}
 {% if user.has_permission('settings', 'create') %}

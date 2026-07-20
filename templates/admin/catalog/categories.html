@@ -60,42 +60,6 @@
                             </div>
                         </td>
                     </tr>
-
-                    <!-- Edit Modal -->
-                    {% if user.has_permission("products", "edit") %}
-                    <div class="modal fade" id="editModal{{ cat.id }}" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <form method="POST" action="/admin/categories/edit/{{ cat.id }}">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                    <div class="modal-header"><h5 class="modal-title">ویرایش «{{ cat.name }}»</h5></div>
-                                    <div class="modal-body">
-                                        <div class="mb-3">
-                                            <label class="form-label-tm">نام</label>
-                                            <input type="text" name="name" class="form-control form-control-tm" value="{{ cat.name }}" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label-tm">اسلاگ (انگلیسی)</label>
-                                            <input type="text" name="slug" class="form-control form-control-tm" dir="ltr" value="{{ cat.slug }}" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label-tm">ترتیب نمایش</label>
-                                            <input type="number" name="sort_order" class="form-control form-control-tm" value="{{ cat.sort_order }}">
-                                        </div>
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" name="is_active" value="true"
-                                                   {% if cat.is_active %}checked{% endif %}>
-                                            <label class="form-check-label">فعال</label>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button class="btn btn-tm-primary" type="submit">ذخیره</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
                     {% else %}
                     <tr><td colspan="7" class="text-center text-muted py-4">دسته‌بندی‌ای تعریف نشده</td></tr>
                     {% endfor %}
@@ -104,6 +68,47 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Modals — kept OUTSIDE the table on purpose.
+     A <div> is not valid inside <tbody>; the browser foster-parents it out of
+     the table during parsing, which mangles the form and stops the modal from
+     opening. -->
+{% if user.has_permission("products", "edit") %}
+{% for cat in categories %}
+<div class="modal fade" id="editModal{{ cat.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="/admin/categories/edit/{{ cat.id }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header"><h5 class="modal-title">ویرایش «{{ cat.name }}»</h5></div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label-tm">نام</label>
+                        <input type="text" name="name" class="form-control form-control-tm" value="{{ cat.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-tm">اسلاگ (انگلیسی)</label>
+                        <input type="text" name="slug" class="form-control form-control-tm" dir="ltr" value="{{ cat.slug }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-tm">ترتیب نمایش</label>
+                        <input type="number" name="sort_order" class="form-control form-control-tm" value="{{ cat.sort_order }}">
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" name="is_active" value="true"
+                               {% if cat.is_active %}checked{% endif %}>
+                        <label class="form-check-label">فعال</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-tm-primary" type="submit">ذخیره</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
 
 <!-- Add Modal -->
 {% if user.has_permission("products", "create") %}
