@@ -94,6 +94,25 @@ class CartService:
         db.flush()
         return True
 
+    @staticmethod
+    def summarize_totals(items_data: List[dict]) -> dict:
+        """Split the cart total into raw metal / wage / tax / gift box.
+
+        Derived from the per-item breakdown that get_cart_items_with_pricing
+        already computes, so it reconciles with total_price by construction:
+        line_total = (raw + wage + tax + gift_box) * quantity.
+        """
+        totals = {"raw_gold": 0, "wage": 0, "tax": 0, "gift_box": 0, "grand_total": 0}
+        for it in items_data:
+            qty = it.get("quantity", 0)
+            d = it.get("details") or {}
+            totals["raw_gold"] += int(d.get("raw_gold", 0)) * qty
+            totals["wage"] += int(d.get("wage", 0)) * qty
+            totals["tax"] += int(d.get("tax", 0)) * qty
+            totals["gift_box"] += int(it.get("gift_box_price", 0)) * qty
+            totals["grand_total"] += int(it.get("line_total", 0))
+        return totals
+
     def get_cart_items_with_pricing(self, db: Session, customer_id: int,
                                     dealer=None) -> Tuple[List[dict], int]:
         """

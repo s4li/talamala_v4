@@ -65,6 +65,7 @@ async def view_cart(
         "user": me,
         "items": items,
         "total_price": total_price,
+        "totals": cart_service.summarize_totals(items),
         "gold_items": gold_items,
         "total_gold_mg": total_gold_mg,
         "cart_count": sum(it["quantity"] for it in items),
