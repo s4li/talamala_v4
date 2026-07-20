@@ -626,9 +626,12 @@
         noLoc.classList.add('d-none');
         container.innerHTML = available.map(loc => {
             const hasReal = loc.stock > 0, hasPre = !hasReal && loc.preorder_stock > 0, can = hasReal || hasPre;
-            let badge = hasReal ? `<span class="badge-tm badge-tm-success">${loc.stock} موجود</span>` : hasPre ? `<span class="badge-tm badge-tm-warning">پیش‌سفارش</span>` : '';
+            // The per-dealer quantity stays in the payload and on the element as a data
+            // attribute for client-side logic, but is deliberately not rendered — the
+            // customer sees only whether the branch can fulfil the order.
+            let badge = hasReal ? `<span class="badge-tm badge-tm-success">موجود</span>` : hasPre ? `<span class="badge-tm badge-tm-warning">پیش‌سفارش</span>` : '';
             let note = hasReal ? `<div class="small text-success mt-1"><i class="bi bi-lightning-charge me-1"></i>تحویل فوری</div>` : hasPre ? `<div class="small text-warning mt-1"><i class="bi bi-clock me-1"></i>تحویل: ${loc.preorder_delivery_days}</div>` : '';
-            return `<div class="col-md-6"><div class="location-card ${can?'':'no-stock'} ${selectedLocationId==loc.id?'selected':''}" ${can?`onclick="selectLocation(${loc.id}, this)"`:''}>
+            return `<div class="col-md-6"><div class="location-card ${can?'':'no-stock'} ${selectedLocationId==loc.id?'selected':''}" data-stock="${loc.stock}" data-preorder-stock="${loc.preorder_stock}" ${can?`onclick="selectLocation(${loc.id}, this)"`:''}>
                 <div class="d-flex justify-content-between align-items-start"><div>
                     <div class="fw-bold"><i class="bi bi-shop me-1"></i>${loc.name}</div>
                     <div class="small text-muted">${loc.city}${loc.province?' - '+loc.province:''}</div>
