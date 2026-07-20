@@ -248,6 +248,7 @@ async def delete_product(user=Depends(require_permission("products", level="full
   - محصول مخفی در آن کانال **نه لیست می‌شود و نه از مسیر مستقیم قابل خرید است**
   - `is_hidden_in_shop` روی: لیست فروشگاه، صفحه جزئیات محصول (۴۰۴)، `POST /cart/update`، `POST /api/cart/update`
   - `is_hidden_in_pos` روی: `GET /api/pos/products`، `GET /api/pos/categories` (شمارش)، `POST /api/pos/reserve`، `GET /api/dealer/products`، انتخابگر شمش `/dealer/pos`، و ثبت فروش `create_pos_sale`
+  - ⚠️ **قانون**: اندپوینت‌های دستگاه پوز (`/api/pos/*`, `/api/dealer/*`) نباید هیچ تغییر رفتاری جانبی بگیرند — اپ اندروید به خروجی فعلی وابسته است. در `get_categories_for_dealer` عمداً هیچ join به `Product` و هیچ فیلتر `is_active` اضافه نشده و فقط محصولات مخفی کنار گذاشته می‌شوند (یک‌بار این اشتباه شد و اپ نتوانست دسته‌ها را بگیرد)
   - قابل تنظیم از فرم افزودن/ویرایش محصول در پنل ادمین + بج در لیست محصولات
   - ⚠️ محدودیت شناخته‌شده: سبدهای **موجود** مسدود نمی‌شوند؛ مخفی‌کردن محصول جلوی نهایی‌شدن سبدی که از قبل آن را داشته نمی‌گیرد
 

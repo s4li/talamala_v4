@@ -190,6 +190,7 @@ talamala_v4/
   - `is_hidden_in_shop=True` → از لیست فروشگاه، صفحه جزئیات (۴۰۴)، و افزودن به سبد (هر دو مسیر form و AJAX) حذف می‌شود
   - `is_hidden_in_pos=True` → از `/api/pos/products`، شمارش دسته‌های پوز، `reserve`، `/api/dealer/products`، انتخابگر شمش پوز نماینده (`get_available_bars`) و ثبت فروش پوز نماینده حذف می‌شود
   - هر دو opt-in هستند (پیش‌فرض `False` = قابل نمایش)
+  - ⚠️ **اندپوینت‌های پوز نباید تغییر رفتار جانبی بگیرند**: اپ اندروید به خروجی `/api/pos/*` و `/api/dealer/*` وابسته است. هنگام افزودن این فیچر، یک join به `Product` + فیلتر `is_active` به `get_categories_for_dealer` اضافه شد و اپ نتوانست دسته‌ها را بگیرد (محصولات غیرفعالِ دارای شمشِ فروش‌پذیر، دسته‌شان صفر شد). آن کوئری حالا فقط محصولات مخفی را کنار می‌گذارد و هیچ فیلتر دیگری ندارد — دست نزن
   - ⚠️ **checkout سبدهای موجود را مسدود نمی‌کند** — اگر محصولی بعد از افزوده‌شدن به سبد مخفی شود، آن سبد همچنان نهایی می‌شود
   - `metal_type` maps to `PRECIOUS_METALS` keys ("gold", "silver") — determines which asset price + base purity to use for pricing
   - Properties: `categories` (list of ProductCategory), `category_ids` (list of int)

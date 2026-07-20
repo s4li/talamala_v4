@@ -44,7 +44,17 @@ class PosService:
                 Bar.is_sellable == True,
             )
             .distinct()
-            .scalar_subquery()
+            .subquery()
+        )
+
+        # Only POS-hidden products are excluded. Deliberately NOT joined to Product
+        # and NOT filtered on Product.is_active: the Android POS app depends on this
+        # endpoint's output staying exactly as it was, and an is_active filter here
+        # drops categories whose stocked products happen to be inactive.
+        hidden_pos_product_ids = (
+            db.query(Product.id)
+            .filter(Product.is_hidden_in_pos == True)
+            .subquery()
         )
 
         categories = (
@@ -56,14 +66,10 @@ class PosService:
                 sa_func.count(ProductCategoryLink.product_id.distinct()).label("product_count"),
             )
             .join(ProductCategoryLink, ProductCategoryLink.category_id == ProductCategory.id)
-            # Join Product so the count matches what /api/pos/products actually returns —
-            # otherwise a hidden or inactive product keeps its category on the device.
-            .join(Product, Product.id == ProductCategoryLink.product_id)
             .filter(
                 ProductCategory.is_active == True,
-                Product.is_active == True,
-                Product.is_hidden_in_pos == False,
                 ProductCategoryLink.product_id.in_(available_product_ids),
+                ~ProductCategoryLink.product_id.in_(hidden_pos_product_ids),
             )
             .group_by(ProductCategory.id)
             .order_by(ProductCategory.sort_order, ProductCategory.name)

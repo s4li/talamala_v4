@@ -240,6 +240,7 @@ uvicorn main:app --reload
 | TS-03-24 | مخفی در وب — پوز دست‌نخورده | همان محصول در `/api/pos/products` | همچنان نمایش داده شود (فلگ‌ها مستقل‌اند) | ☐ |
 | TS-03-25 | مخفی در پوز — لیست | `is_hidden_in_pos=True` → `GET /api/pos/products` | محصول نباشد | ☐ |
 | TS-03-26 | مخفی در پوز — دسته‌ها | `GET /api/pos/categories` | `product_count` آن محصول را نشمارد | ☐ |
+| TS-03-26b | **رگرسیون**: محصول غیرفعال در دسته‌های پوز | `is_active=False`, `is_hidden_in_pos=False` + شمش فروش‌پذیر | دسته همچنان با `product_count` درست برگردد (فیلتر `is_active` نباید به این کوئری اضافه شود) | ☐ |
 | TS-03-27 | مخفی در پوز — reserve | `POST /api/pos/reserve` با product_id | ناموفق + «این محصول در دستگاه پوز در دسترس نیست» | ☐ |
 | TS-03-28 | مخفی در پوز — API نماینده | `GET /api/dealer/products` | محصول نباشد | ☐ |
 | TS-03-29 | مخفی در پوز — انتخابگر شمش | `/dealer/pos` | شمش‌های آن محصول در لیست نباشند | ☐ |
