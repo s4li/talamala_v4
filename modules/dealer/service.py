@@ -62,6 +62,55 @@ class DealerService:
         db.flush()
         return True
 
+    # ------------------------------------------
+    # POS device (card terminal + contract)
+    # ------------------------------------------
+
+    def update_pos_device(
+        self, db: Session, dealer: User,
+        terminal_number: str = "", device_code: str = "",
+        sim_number: str = "", sim_pin: str = "",
+        contract_file=None,
+    ) -> User:
+        """
+        Save the dealer's POS terminal details.
+
+        A new contract replaces the old one (and deletes it from disk); leaving
+        the file input empty keeps whatever is already stored.
+        """
+        from common.upload import save_document_file, delete_file
+
+        dealer.pos_terminal_number = terminal_number.strip() or None
+        dealer.pos_device_code = device_code.strip() or None
+        dealer.pos_sim_number = sim_number.strip() or None
+        dealer.pos_sim_pin = sim_pin.strip() or None
+
+        if contract_file is not None and getattr(contract_file, "filename", ""):
+            path = save_document_file(contract_file, subfolder="dealer_contracts")
+            if path:
+                old = dealer.pos_contract_file
+                dealer.pos_contract_file = path
+                dealer.pos_contract_name = contract_file.filename
+                dealer.pos_contract_uploaded_at = now_utc()
+                if old and old != path:
+                    delete_file(old)
+
+        db.flush()
+        return dealer
+
+    def delete_pos_contract(self, db: Session, dealer: User) -> bool:
+        """Remove the stored contract file and clear its columns."""
+        from common.upload import delete_file
+
+        if not dealer.pos_contract_file:
+            return False
+        delete_file(dealer.pos_contract_file)
+        dealer.pos_contract_file = None
+        dealer.pos_contract_name = None
+        dealer.pos_contract_uploaded_at = None
+        db.flush()
+        return True
+
     def list_dealers(self, db: Session, page: int = 1, per_page: int = 30, status: str = "") -> Tuple[List[User], int]:
         q = db.query(User).filter(User.is_dealer == True)
         if status == "active":

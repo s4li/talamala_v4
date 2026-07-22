@@ -14,6 +14,10 @@ static/uploads/*
 !static/uploads/.gitkeep
 !static/uploads/products/
 
+# Private documents (dealer contracts) — never served by the static mount
+private_uploads/*
+!private_uploads/.gitkeep
+
 # IDE
 .vscode/
 .idea/

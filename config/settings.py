@@ -93,6 +93,11 @@ ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 DEFAULT_IMAGE_MAX_SIZE = (800, 800)
 
+# Documents (contracts, scans). NOT under static/ — these hold personal data and
+# are served only through authenticated routes, never by the static file mount.
+PRIVATE_UPLOAD_DIR = "private_uploads"
+ALLOWED_DOCUMENT_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp"}
+
 
 # ==========================================
 # 🔧 App

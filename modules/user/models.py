@@ -81,6 +81,15 @@ class User(Base):
     rasis_last_record_version = Column(BigInteger, default=0, nullable=False, server_default="0")  # Last fetched receipt RecordVersion
     custom_credit_limit_mg = Column(BigInteger, nullable=True)  # سقف اعتبار شخصی (mg) — NULL = از tier default
 
+    # === POS device (dealers that own a card terminal) ===
+    pos_terminal_number = Column(String(32), nullable=True)   # شماره پایانه
+    pos_device_code = Column(String(64), nullable=True)       # کد دستگاه
+    pos_sim_number = Column(String(20), nullable=True)        # شماره سیم‌کارت
+    pos_sim_pin = Column(String(16), nullable=True)           # پین سیم‌کارت (plaintext — operators need to read it)
+    pos_contract_file = Column(String(255), nullable=True)    # قرارداد نمایندگی — path under PRIVATE_UPLOAD_DIR
+    pos_contract_name = Column(String(255), nullable=True)    # original filename, for the download
+    pos_contract_uploaded_at = Column(DateTime(timezone=True), nullable=True)
+
     # === Admin-specific ===
     admin_role = Column(String, nullable=True)           # "admin" | "operator"
     _permissions = Column("permissions", Text, nullable=True)  # JSON list
@@ -147,6 +156,12 @@ class User(Base):
     def role(self) -> str:
         """Admin role: 'admin' or 'operator'. Returns empty string if not admin."""
         return self.admin_role or ""
+
+    @property
+    def has_pos_device(self) -> bool:
+        """True once any POS terminal detail has been recorded for this dealer."""
+        return bool(self.pos_terminal_number or self.pos_device_code
+                    or self.pos_sim_number or self.pos_contract_file)
 
     @property
     def permissions(self) -> dict:

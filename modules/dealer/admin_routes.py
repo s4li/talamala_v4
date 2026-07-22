@@ -4,11 +4,16 @@ Dealer Module - Admin Routes
 Admin management of dealers, buyback approvals, and stats.
 """
 
-from fastapi import APIRouter, Request, Depends, Form
-from fastapi.responses import RedirectResponse, HTMLResponse
+import os
+import urllib.parse
+from typing import Optional
+
+from fastapi import APIRouter, Request, Depends, Form, File, UploadFile, HTTPException
+from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from sqlalchemy.orm import Session
 
 from config.database import get_db
+from config.settings import PRIVATE_UPLOAD_DIR
 from common.templating import templates
 from common.security import new_csrf_token, csrf_check
 from modules.auth.deps import require_permission
@@ -135,6 +140,15 @@ def _load_edit_geo(db: Session, dealer):
 def _parse_int(val: str) -> int | None:
     """Parse string to int, return None if empty."""
     return int(val) if val and val.strip().isdigit() else None
+
+
+def _safe_contract_path(stored_path: str) -> str | None:
+    """Resolve a stored contract path, refusing anything outside the private dir."""
+    if not stored_path:
+        return None
+    root = os.path.abspath(PRIVATE_UPLOAD_DIR)
+    full = os.path.abspath(stored_path)
+    return full if os.path.commonpath([root, full]) == root else None
 
 
 @router.get("/create", response_class=HTMLResponse)
@@ -282,6 +296,7 @@ async def dealer_edit_form(
     dealer_id: int,
     request: Request,
     error: str = None,
+    msg: str = None,
     user=Depends(require_permission("dealers")),
     db: Session = Depends(get_db),
 ):
@@ -304,6 +319,7 @@ async def dealer_edit_form(
         "csrf_token": csrf,
         "active_page": "dealers",
         "error": error,
+        "msg": msg,
     })
     response.set_cookie("csrf_token", csrf, httponly=True, samesite="lax")
     return response
@@ -467,6 +483,94 @@ async def rasis_sync_dealer(
 
     result = rasis_service.sync_dealer_inventory(db, dealer)
     db.commit()
+    return RedirectResponse(f"/admin/dealers/{dealer_id}/edit", status_code=302)
+
+
+# ==========================================
+# POS Device (terminal details + signed contract)
+# ==========================================
+
+@router.post("/{dealer_id}/pos-device")
+async def save_pos_device(
+    dealer_id: int,
+    request: Request,
+    pos_terminal_number: str = Form(""),
+    pos_device_code: str = Form(""),
+    pos_sim_number: str = Form(""),
+    pos_sim_pin: str = Form(""),
+    csrf_token: str = Form(""),
+    user=Depends(require_permission("dealers", level="edit")),
+    db: Session = Depends(get_db),
+):
+    """Save the dealer's card-terminal details and optionally replace the contract."""
+    csrf_check(request, csrf_token)
+    dealer = dealer_service.get_dealer(db, dealer_id)
+    if not dealer:
+        return RedirectResponse("/admin/dealers", status_code=302)
+
+    # Read the upload off the raw form: an untouched file input still posts a
+    # part with an empty filename, which a declared UploadFile param would 422 on.
+    form = await request.form()
+    contract_file = form.get("contract_file")
+    # Duck-typed on purpose: form parsing yields a Starlette UploadFile, which is
+    # NOT an instance of fastapi.UploadFile, and an untouched input yields a str.
+    if not getattr(contract_file, "filename", ""):
+        contract_file = None
+
+    try:
+        dealer_service.update_pos_device(
+            db, dealer,
+            terminal_number=pos_terminal_number,
+            device_code=pos_device_code,
+            sim_number=pos_sim_number,
+            sim_pin=pos_sim_pin,
+            contract_file=contract_file,
+        )
+    except HTTPException as e:
+        db.rollback()
+        msg = urllib.parse.quote(str(e.detail))
+        return RedirectResponse(f"/admin/dealers/{dealer_id}/edit?error={msg}", status_code=302)
+
+    db.commit()
+    msg = urllib.parse.quote("اطلاعات دستگاه پوز ذخیره شد")
+    return RedirectResponse(f"/admin/dealers/{dealer_id}/edit?msg={msg}", status_code=302)
+
+
+@router.get("/{dealer_id}/pos-contract")
+async def download_pos_contract(
+    dealer_id: int,
+    user=Depends(require_permission("dealers")),
+    db: Session = Depends(get_db),
+):
+    """Stream the contract. It lives outside static/, so this is the only way to read it."""
+    dealer = dealer_service.get_dealer(db, dealer_id)
+    if not dealer or not dealer.pos_contract_file:
+        raise HTTPException(404, "فایل قرارداد یافت نشد")
+
+    path = _safe_contract_path(dealer.pos_contract_file)
+    if not path or not os.path.exists(path):
+        raise HTTPException(404, "فایل قرارداد روی سرور موجود نیست")
+
+    return FileResponse(
+        path,
+        filename=dealer.pos_contract_name or os.path.basename(path),
+        media_type="application/octet-stream",
+    )
+
+
+@router.post("/{dealer_id}/pos-contract/delete")
+async def delete_pos_contract(
+    dealer_id: int,
+    request: Request,
+    csrf_token: str = Form(""),
+    user=Depends(require_permission("dealers", level="edit")),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    dealer = dealer_service.get_dealer(db, dealer_id)
+    if dealer:
+        dealer_service.delete_pos_contract(db, dealer)
+        db.commit()
     return RedirectResponse(f"/admin/dealers/{dealer_id}/edit", status_code=302)
 
 

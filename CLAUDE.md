@@ -154,7 +154,8 @@ talamala_v4/
 │   ├── css/checkbox-dropdown.css
 │   ├── vendor/html5-qrcode/     # Scanner library
 │   ├── vendor/tinymce/          # Self-hosted TinyMCE 7.x (NO CDN) + langs/fa.js
-│   └── uploads/                 # Uploaded images
+│   └── uploads/                 # Uploaded images (عمومی — از /static سرو می‌شود)
+├── private_uploads/             # اسناد خصوصی (قرارداد نمایندگان) — سرو نمی‌شود، فقط از route احراز‌هویت‌شده
 ├── .env.example
 └── requirements.txt
 ```
@@ -169,6 +170,9 @@ talamala_v4/
   - **Identity**: mobile, first_name, last_name, national_id, birth_date
   - **Customer fields**: customer_type (real/legal), company_name, economic_code, postal_code, address, phone, referral_code
   - **Dealer fields**: tier_id (FK→dealer_tiers), province_id, city_id, district_id, dealer_address, landline_phone, is_warehouse, is_postal_hub, commission_percent, api_key (unique), otp_code, otp_expiry, rasis_sharepoint (Integer, nullable — Rasis POS device mapping), custom_credit_limit_mg (BigInteger, nullable — NULL=use tier default)
+  - **POS device fields** (نمایندگانی که دستگاه پوز دارند): pos_terminal_number (شماره پایانه), pos_device_code (کد دستگاه), pos_sim_number (شماره سیم‌کارت), pos_sim_pin (پین سیم‌کارت — متن ساده), pos_contract_file (مسیر فایل قرارداد زیر `private_uploads/`), pos_contract_name (نام اصلی فایل), pos_contract_uploaded_at
+    - فایل قرارداد **خارج از `static/`** ذخیره می‌شود و فقط از مسیر احراز‌هویت‌شدهٔ `/admin/dealers/{id}/pos-contract` قابل دانلود است — هرگز آن را زیر `static/uploads/` نگذار (آنجا عمومی است)
+    - Property: `has_pos_device` → آیا هیچ‌کدام از مشخصات پوز ثبت شده است
   - Property: `effective_credit_limit_mg` → `custom_credit_limit_mg or tier.default_credit_limit_mg or 0`
   - **Admin fields**: admin_role (admin/operator), _permissions (JSON dict: `{"key": "level", ...}` where level is one of: `view`, `create`, `edit`, `full`)
   - Properties: `full_name`, `display_name`, `is_staff` (→ is_admin), `is_profile_complete`, `primary_redirect`, `tier_name`, `type_label`, `type_icon`, `type_color`, `has_permission(perm_key, level="view")` — checks hierarchically (view < create < edit < full)
@@ -874,6 +878,9 @@ total     = raw_metal + wage + tax
   - aggregate‌ها از ستون‌های snapshot خوانده می‌شوند (با `OUTER JOIN` و `COALESCE` روی رکوردهای قدیمی) — نه `INNER JOIN` روی `Product↔Bar`
 - `POST /admin/dealers/{id}/generate-api-key` — Generate POS API key
 - `POST /admin/dealers/{id}/revoke-api-key` — Revoke POS API key
+- `POST /admin/dealers/{id}/pos-device` — ثبت/ویرایش مشخصات دستگاه پوز + آپلود فایل قرارداد (سطح `dealers:edit`)
+- `GET /admin/dealers/{id}/pos-contract` — دانلود فایل قرارداد (استریم از پوشه خصوصی، سطح `dealers:view`)
+- `POST /admin/dealers/{id}/pos-contract/delete` — حذف فایل قرارداد (سطح `dealers:edit`)
 - `POST /admin/dealers/{id}/rasis-sync` — Manual full sync of dealer inventory + pricing to Rasis POS device
 - `GET /admin/dealers/{id}/sub-dealers` — Sub-dealer management
 - `POST /admin/dealers/{id}/sub-dealers/add` — Create sub-dealer relation

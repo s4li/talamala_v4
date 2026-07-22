@@ -20,6 +20,13 @@
 </div>
 {% endif %}
 
+{% if msg %}
+<div class="alert-tm-success">
+    <i class="bi bi-check-circle me-1"></i>
+    {{ msg }}
+</div>
+{% endif %}
+
 <div class="card-tm no-hover">
     <form method="POST" action="{% if dealer %}/admin/dealers/{{ dealer.id }}/edit{% else %}/admin/dealers/create{% endif %}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -297,6 +304,98 @@
         {% endif %}
 </div>
 
+<!-- POS Device (terminal details + contract) -->
+<div class="card-tm no-hover mt-4">
+    <div class="border-bottom pb-3 mb-3 d-flex align-items-center justify-content-between">
+        <h6 class="fw-bold mb-0">
+            <i class="bi bi-credit-card-2-front text-tm-primary me-1"></i>
+            مشخصات دستگاه پوز
+        </h6>
+        {% if dealer.has_pos_device %}
+        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>ثبت شده</span>
+        {% else %}
+        <span class="badge bg-secondary">ثبت نشده</span>
+        {% endif %}
+    </div>
+
+    {% set can_edit_pos = user.has_permission("dealers", "edit") %}
+    <form method="POST" action="/admin/dealers/{{ dealer.id }}/pos-device" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label-tm">شماره پایانه</label>
+                <input type="text" name="pos_terminal_number"{% if not can_edit_pos %} readonly{% endif %} class="form-control form-control-tm" dir="ltr"
+                       maxlength="32" value="{{ dealer.pos_terminal_number or '' }}" placeholder="مثلاً 99079327">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label-tm">کد دستگاه پوز</label>
+                <input type="text" name="pos_device_code"{% if not can_edit_pos %} readonly{% endif %} class="form-control form-control-tm" dir="ltr"
+                       maxlength="64" value="{{ dealer.pos_device_code or '' }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label-tm">شماره سیم‌کارت دستگاه</label>
+                <input type="tel" name="pos_sim_number"{% if not can_edit_pos %} readonly{% endif %} class="form-control form-control-tm" dir="ltr"
+                       maxlength="20" value="{{ dealer.pos_sim_number or '' }}" placeholder="09xxxxxxxxx">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label-tm">پین سیم‌کارت</label>
+                <div class="input-group">
+                    <input type="password" name="pos_sim_pin"{% if not can_edit_pos %} readonly{% endif %} id="posSimPin" class="form-control form-control-tm" dir="ltr"
+                           maxlength="16" value="{{ dealer.pos_sim_pin or '' }}" autocomplete="new-password">
+                    <button class="btn btn-tm-outline" type="button" id="posSimPinToggle" title="نمایش/مخفی">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+                <small class="text-muted">به‌صورت متن ساده ذخیره می‌شود — فقط کاربران دارای دسترسی «نمایندگان» آن را می‌بینند.</small>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label-tm">فایل قرارداد نماینده</label>
+            {% if dealer.pos_contract_file %}
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                <a href="/admin/dealers/{{ dealer.id }}/pos-contract" class="btn btn-sm btn-tm-outline">
+                    <i class="bi bi-download me-1"></i>
+                    {{ dealer.pos_contract_name or 'دانلود قرارداد' }}
+                </a>
+                {% if dealer.pos_contract_uploaded_at %}
+                <small class="text-muted">بارگذاری: {{ dealer.pos_contract_uploaded_at | jdate }}</small>
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="text-muted small mb-2">هنوز قراردادی بارگذاری نشده است.</p>
+            {% endif %}
+            {% if can_edit_pos %}
+            <input type="file" name="contract_file" class="form-control form-control-tm"
+                   accept=".pdf,.jpg,.jpeg,.png,.webp">
+            <small class="text-muted">
+                PDF یا تصویر، حداکثر ۱۰ مگابایت. بارگذاری فایل جدید جایگزین قبلی می‌شود.
+                فایل خارج از پوشه عمومی ذخیره می‌شود و فقط از همین صفحه قابل دانلود است.
+            </small>
+            {% endif %}
+        </div>
+
+        {% if can_edit_pos %}
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-tm-primary">
+                <i class="bi bi-check-circle me-1"></i> ذخیره مشخصات پوز
+            </button>
+        </div>
+        {% endif %}
+    </form>
+
+    {% if dealer.pos_contract_file and can_edit_pos %}
+    <form method="POST" action="/admin/dealers/{{ dealer.id }}/pos-contract/delete" class="mt-2"
+          onsubmit="return confirm('فایل قرارداد حذف شود؟ این کار برگشت‌پذیر نیست.')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-trash me-1"></i> حذف فایل قرارداد
+        </button>
+    </form>
+    {% endif %}
+</div>
+
 <!-- Rasis POS Sync -->
 <div class="card-tm no-hover mt-4">
     <h6 class="fw-bold border-bottom pb-2 mb-3"><i class="bi bi-terminal me-1"></i>همگام‌سازی پوز راسیس</h6>
@@ -321,6 +420,18 @@
 
 {% block extra_js %}
 <script>
+// PIN reveal toggle
+(function(){
+    const pin = document.getElementById('posSimPin');
+    const btn = document.getElementById('posSimPinToggle');
+    if (!pin || !btn) return;
+    btn.addEventListener('click', function(){
+        const show = pin.type === 'password';
+        pin.type = show ? 'text' : 'password';
+        btn.innerHTML = show ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+    });
+})();
+
 async function loadCities(provinceId) {
     const citySelect = document.getElementById('citySelect');
     const districtSelect = document.getElementById('districtSelect');
