@@ -1,0 +1,71 @@
+{#
+    POS device fields — shared by the create form and the edit page's own card.
+
+    Context:
+      dealer      User or None (None while creating)
+      form_data   dict of resubmitted values, used when create failed validation
+      can_edit    whether to render the file input (view-only staff get readonly text fields)
+#}
+{% set fd = form_data or {} %}
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <label class="form-label-tm">شماره پایانه</label>
+        <input type="text" name="pos_terminal_number" class="form-control form-control-tm" dir="ltr"
+               maxlength="32" placeholder="مثلاً 99079327"
+               {% if not can_edit %}readonly{% endif %}
+               value="{{ dealer.pos_terminal_number if dealer else (fd.pos_terminal_number or '') }}">
+    </div>
+    <div class="col-md-6">
+        <label class="form-label-tm">کد دستگاه پوز</label>
+        <input type="text" name="pos_device_code" class="form-control form-control-tm" dir="ltr"
+               maxlength="64"
+               {% if not can_edit %}readonly{% endif %}
+               value="{{ dealer.pos_device_code if dealer else (fd.pos_device_code or '') }}">
+    </div>
+    <div class="col-md-6">
+        <label class="form-label-tm">شماره سیم‌کارت دستگاه</label>
+        <input type="tel" name="pos_sim_number" class="form-control form-control-tm" dir="ltr"
+               maxlength="20" placeholder="09xxxxxxxxx"
+               {% if not can_edit %}readonly{% endif %}
+               value="{{ dealer.pos_sim_number if dealer else (fd.pos_sim_number or '') }}">
+    </div>
+    <div class="col-md-6">
+        <label class="form-label-tm">پین سیم‌کارت</label>
+        <div class="input-group">
+            <input type="password" name="pos_sim_pin" id="posSimPin" class="form-control form-control-tm" dir="ltr"
+                   maxlength="16" autocomplete="new-password"
+                   {% if not can_edit %}readonly{% endif %}
+                   value="{{ dealer.pos_sim_pin if dealer else (fd.pos_sim_pin or '') }}">
+            <button class="btn btn-tm-outline" type="button" id="posSimPinToggle" title="نمایش/مخفی">
+                <i class="bi bi-eye"></i>
+            </button>
+        </div>
+        <small class="text-muted">به‌صورت متن ساده ذخیره می‌شود — فقط کاربران دارای دسترسی «نمایندگان» آن را می‌بینند.</small>
+    </div>
+</div>
+
+<div class="mb-3">
+    <label class="form-label-tm">فایل قرارداد نماینده</label>
+    {% if dealer and dealer.pos_contract_file %}
+    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+        <a href="/admin/dealers/{{ dealer.id }}/pos-contract" class="btn btn-sm btn-tm-outline">
+            <i class="bi bi-download me-1"></i>
+            {{ dealer.pos_contract_name or 'دانلود قرارداد' }}
+        </a>
+        {% if dealer.pos_contract_uploaded_at %}
+        <small class="text-muted">بارگذاری: {{ dealer.pos_contract_uploaded_at | jdate }}</small>
+        {% endif %}
+    </div>
+    {% elif dealer %}
+    <p class="text-muted small mb-2">هنوز قراردادی بارگذاری نشده است.</p>
+    {% endif %}
+    {% if can_edit %}
+    <input type="file" name="contract_file" class="form-control form-control-tm"
+           accept=".pdf,.jpg,.jpeg,.png,.webp">
+    <small class="text-muted">
+        PDF یا تصویر، حداکثر ۱۰ مگابایت.
+        {% if dealer %}بارگذاری فایل جدید جایگزین قبلی می‌شود.{% endif %}
+        فایل خارج از پوشه عمومی ذخیره می‌شود و فقط از همین صفحه قابل دانلود است.
+    </small>
+    {% endif %}
+</div>

@@ -6,9 +6,7 @@ Admin management of dealers, buyback approvals, and stats.
 
 import os
 import urllib.parse
-from typing import Optional
-
-from fastapi import APIRouter, Request, Depends, Form, File, UploadFile, HTTPException
+from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from sqlalchemy.orm import Session
 
@@ -142,6 +140,19 @@ def _parse_int(val: str) -> int | None:
     return int(val) if val and val.strip().isdigit() else None
 
 
+def _form_upload(form, field: str):
+    """
+    Pull an uploaded file off the raw form, or None.
+
+    Declaring it as an UploadFile param would 422 the whole submit, because an
+    untouched file input still posts a part with an empty filename. The check is
+    duck-typed on purpose: form parsing yields a Starlette UploadFile, which is
+    not an instance of fastapi.UploadFile.
+    """
+    upload = form.get(field)
+    return upload if getattr(upload, "filename", "") else None
+
+
 def _safe_contract_path(stored_path: str) -> str | None:
     """Resolve a stored contract path, refusing anything outside the private dir."""
     if not stored_path:
@@ -194,6 +205,10 @@ async def dealer_create_submit(
     is_postal_hub: str = Form("off"),
     can_distribute: str = Form("off"),
     is_central_warehouse: str = Form("off"),
+    pos_terminal_number: str = Form(""),
+    pos_device_code: str = Form(""),
+    pos_sim_number: str = Form(""),
+    pos_sim_pin: str = Form(""),
     csrf_token: str = Form(""),
     user=Depends(require_permission("dealers", level="create")),
     db: Session = Depends(get_db),
@@ -202,6 +217,10 @@ async def dealer_create_submit(
 
     # Collect submitted form data for re-rendering on error
     form_data = {
+        "pos_terminal_number": pos_terminal_number.strip(),
+        "pos_device_code": pos_device_code.strip(),
+        "pos_sim_number": pos_sim_number.strip(),
+        "pos_sim_pin": pos_sim_pin.strip(),
         "mobile": mobile.strip(),
         "full_name": full_name.strip(),
         "national_id": national_id.strip(),
@@ -274,6 +293,26 @@ async def dealer_create_submit(
     dealer = result["dealer"]
     db.commit()
 
+    # POS device details (optional at creation). The dealer already exists at this
+    # point, so a rejected contract must not throw the whole creation away — it
+    # sends the operator to the edit page with the reason instead.
+    dealer_service.update_pos_device(
+        db, dealer,
+        terminal_number=pos_terminal_number,
+        device_code=pos_device_code,
+        sim_number=pos_sim_number,
+        sim_pin=pos_sim_pin,
+    )
+    db.commit()
+
+    pos_error = None
+    try:
+        if dealer_service.attach_pos_contract(db, dealer, _form_upload(await request.form(), "contract_file")):
+            db.commit()
+    except HTTPException as e:
+        db.rollback()
+        pos_error = str(e.detail)
+
     # Rasis POS: auto-register dealer as branch
     try:
         from modules.rasis.service import rasis_service
@@ -283,6 +322,10 @@ async def dealer_create_submit(
             db.commit()
     except Exception:
         pass  # Never block dealer creation
+
+    if pos_error:
+        msg = urllib.parse.quote(f"نماینده ساخته شد ولی فایل قرارداد ذخیره نشد: {pos_error}")
+        return RedirectResponse(f"/admin/dealers/{dealer.id}/edit?error={msg}", status_code=302)
 
     return RedirectResponse("/admin/dealers", status_code=302)
 
@@ -508,30 +551,24 @@ async def save_pos_device(
     if not dealer:
         return RedirectResponse("/admin/dealers", status_code=302)
 
-    # Read the upload off the raw form: an untouched file input still posts a
-    # part with an empty filename, which a declared UploadFile param would 422 on.
-    form = await request.form()
-    contract_file = form.get("contract_file")
-    # Duck-typed on purpose: form parsing yields a Starlette UploadFile, which is
-    # NOT an instance of fastapi.UploadFile, and an untouched input yields a str.
-    if not getattr(contract_file, "filename", ""):
-        contract_file = None
+    dealer_service.update_pos_device(
+        db, dealer,
+        terminal_number=pos_terminal_number,
+        device_code=pos_device_code,
+        sim_number=pos_sim_number,
+        sim_pin=pos_sim_pin,
+    )
+    db.commit()
 
+    # The file is handled separately so a rejected upload keeps the typed details
     try:
-        dealer_service.update_pos_device(
-            db, dealer,
-            terminal_number=pos_terminal_number,
-            device_code=pos_device_code,
-            sim_number=pos_sim_number,
-            sim_pin=pos_sim_pin,
-            contract_file=contract_file,
-        )
+        if dealer_service.attach_pos_contract(db, dealer, _form_upload(await request.form(), "contract_file")):
+            db.commit()
     except HTTPException as e:
         db.rollback()
-        msg = urllib.parse.quote(str(e.detail))
+        msg = urllib.parse.quote(f"مشخصات ذخیره شد ولی فایل قرارداد ذخیره نشد: {e.detail}")
         return RedirectResponse(f"/admin/dealers/{dealer_id}/edit?error={msg}", status_code=302)
 
-    db.commit()
     msg = urllib.parse.quote("اطلاعات دستگاه پوز ذخیره شد")
     return RedirectResponse(f"/admin/dealers/{dealer_id}/edit?msg={msg}", status_code=302)
 

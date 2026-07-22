@@ -70,33 +70,40 @@ class DealerService:
         self, db: Session, dealer: User,
         terminal_number: str = "", device_code: str = "",
         sim_number: str = "", sim_pin: str = "",
-        contract_file=None,
     ) -> User:
-        """
-        Save the dealer's POS terminal details.
-
-        A new contract replaces the old one (and deletes it from disk); leaving
-        the file input empty keeps whatever is already stored.
-        """
-        from common.upload import save_document_file, delete_file
-
+        """Save the dealer's POS terminal details (no file involved)."""
         dealer.pos_terminal_number = terminal_number.strip() or None
         dealer.pos_device_code = device_code.strip() or None
         dealer.pos_sim_number = sim_number.strip() or None
         dealer.pos_sim_pin = sim_pin.strip() or None
-
-        if contract_file is not None and getattr(contract_file, "filename", ""):
-            path = save_document_file(contract_file, subfolder="dealer_contracts")
-            if path:
-                old = dealer.pos_contract_file
-                dealer.pos_contract_file = path
-                dealer.pos_contract_name = contract_file.filename
-                dealer.pos_contract_uploaded_at = now_utc()
-                if old and old != path:
-                    delete_file(old)
-
         db.flush()
         return dealer
+
+    def attach_pos_contract(self, db: Session, dealer: User, upload) -> bool:
+        """
+        Store a new contract file, replacing (and deleting) any previous one.
+
+        Raises HTTPException for a rejected extension/size — kept separate from
+        update_pos_device() so a bad file never discards the typed-in details.
+        """
+        from common.upload import save_document_file, delete_file
+
+        if not upload or not getattr(upload, "filename", ""):
+            return False
+
+        path = save_document_file(upload, subfolder="dealer_contracts")
+        if not path:
+            return False
+
+        old = dealer.pos_contract_file
+        dealer.pos_contract_file = path
+        dealer.pos_contract_name = upload.filename
+        dealer.pos_contract_uploaded_at = now_utc()
+        if old and old != path:
+            delete_file(old)
+
+        db.flush()
+        return True
 
     def delete_pos_contract(self, db: Session, dealer: User) -> bool:
         """Remove the stored contract file and clear its columns."""
