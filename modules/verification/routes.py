@@ -46,7 +46,7 @@ def _bar_to_result(bar: Bar, db: Session) -> dict:
         "status_label": bar.status_label,
         "status_color": bar.status_color,
         "location": bar.dealer_location.full_name if bar.dealer_location else "—",
-        "batch_code": bar.batch.batch_number if bar.batch else "—",
+        "batch_code": bar.batch_numbers or "—",
         "created_at": bar.created_at,
         "history": history_list,
         "has_image": bool(bar.first_image),
@@ -135,7 +135,9 @@ async def api_verify_check(code: str = "", db: Session = Depends(get_db)):
         "status": bar.status,
         "status_label": bar.status_label,
         "location": bar.dealer_location.full_name if bar.dealer_location else None,
-        "batch": bar.batch.batch_number if bar.batch else None,
+        # `batch` stays a single string for existing API consumers; `batches` is the full list
+        "batch": bar.batch_numbers or None,
+        "batches": [b.batch_number for b in bar.batches],
         "qr_url": f"/verify/qr/{bar.serial_code}.png",
         "history": [
             {

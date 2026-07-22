@@ -103,7 +103,7 @@ from modules.catalog.models import (  # noqa: F401
     Batch, BatchImage, ProductTierWage,
 )
 from modules.inventory.models import (  # noqa: F401
-    Bar, BarImage, OwnershipHistory, DealerTransfer, BarTransfer,
+    Bar, BarImage, BarBatchLink, OwnershipHistory, DealerTransfer, BarTransfer,
     ReconciliationSession, ReconciliationItem, CustodialDeliveryRequest,
 )
 from modules.cart.models import Cart, CartItem  # noqa: F401

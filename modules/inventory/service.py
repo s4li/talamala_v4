@@ -9,13 +9,13 @@ import secrets
 from typing import List, Optional, Tuple
 
 from fastapi import UploadFile
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.exc import IntegrityError
 
 from common.helpers import safe_int, now_utc
 from common.upload import save_upload_file, delete_file
 from modules.inventory.models import (
-    Bar, BarImage, BarStatus, OwnershipHistory, DealerTransfer, TransferType,
+    Bar, BarImage, BarBatchLink, BarStatus, OwnershipHistory, DealerTransfer, TransferType,
     ReconciliationSession, ReconciliationItem, ReconciliationStatus, ReconciliationItemStatus,
 )
 
@@ -54,7 +54,7 @@ class InventoryService:
         query = db.query(Bar).options(
             joinedload(Bar.product),
             joinedload(Bar.customer),
-            joinedload(Bar.batch),
+            selectinload(Bar.batch_links).joinedload(BarBatchLink.batch),
             joinedload(Bar.dealer_location),
         ).order_by(Bar.id.desc())
 
@@ -182,8 +182,10 @@ class InventoryService:
         bar.status = new_status
         bar.product_id = new_prod
         bar.customer_id = new_cust
-        bar.batch_id = safe_int(data.get("batch_id")) if data.get("batch_id") != "0" else None
         bar.is_preorder = bool(data.get("is_preorder"))
+
+        if "batch_ids" in data:
+            self.set_batches(db, bar, data.get("batch_ids") or [])
 
         # Sellability change: mirror onto the Rasis POS device if this dealer has one
         new_sellable = bool(data.get("is_sellable"))
@@ -233,6 +235,50 @@ class InventoryService:
 
         db.flush()
         return bar
+
+    # ==========================================
+    # Batches (M2M)
+    # ==========================================
+
+    def _valid_batch_ids(self, db: Session, batch_ids) -> List[int]:
+        """Keep only ids that exist, de-duplicated, order preserved."""
+        from modules.catalog.models import Batch
+        wanted = list(dict.fromkeys(i for i in (safe_int(b) for b in batch_ids or []) if i))
+        if not wanted:
+            return []
+        existing = {b.id for b in db.query(Batch.id).filter(Batch.id.in_(wanted)).all()}
+        return [i for i in wanted if i in existing]
+
+    def set_batches(self, db: Session, bar: Bar, batch_ids) -> List[int]:
+        """Replace a bar's batch set. Returns the ids actually linked."""
+        wanted = self._valid_batch_ids(db, batch_ids)
+        current = {link.batch_id: link for link in bar.batch_links}
+
+        for batch_id, link in current.items():
+            if batch_id not in wanted:
+                bar.batch_links.remove(link)  # delete-orphan cascade removes the row
+        for batch_id in wanted:
+            if batch_id not in current:
+                bar.batch_links.append(BarBatchLink(batch_id=batch_id))
+
+        db.flush()
+        return wanted
+
+    def bulk_set_batches(self, db: Session, bar_ids: List[int], batch_ids) -> int:
+        """Replace the batch set of many bars at once. Returns bars touched."""
+        if not bar_ids:
+            return 0
+        wanted = self._valid_batch_ids(db, batch_ids)
+
+        db.query(BarBatchLink).filter(BarBatchLink.bar_id.in_(bar_ids)).delete(synchronize_session=False)
+        db.flush()
+        if wanted:
+            db.bulk_save_objects([
+                BarBatchLink(bar_id=bar_id, batch_id=batch_id)
+                for bar_id in bar_ids for batch_id in wanted
+            ])
+            db.flush()
+        return len(bar_ids)
 
     # ==========================================
     # Bulk Actions
@@ -294,9 +340,14 @@ class InventoryService:
             if not explicit_status:
                 update_data[Bar.status] = BarStatus.SOLD if cust_id else BarStatus.ASSIGNED
 
-        # Other fields
-        if data.get("target_batch_id") not in (None, ""):
-            update_data[Bar.batch_id] = safe_int(data["target_batch_id"]) if data["target_batch_id"] != "0" else None
+        # Batches (M2M): "" = leave alone, "0" = clear, otherwise replace with the given set
+        raw_batches = data.get("target_batch_ids")
+        if isinstance(raw_batches, str):
+            raw_batches = [b for b in raw_batches.split(",") if b.strip()]
+        batch_change = raw_batches not in (None, [])
+        # "0" anywhere in the selection means "clear all batches"
+        new_batches = [] if any(str(b).strip() == "0" for b in (raw_batches or [])) else (raw_batches or [])
+
         if has_dealer:
             update_data[Bar.dealer_id] = target_dealer
 
@@ -310,15 +361,18 @@ class InventoryService:
             )
             update_data[Bar.status] = explicit_status
 
+        count = 0
         if update_data:
             # Always clear reservation on bulk update
             update_data[Bar.reserved_customer_id] = None
             update_data[Bar.reserved_until] = None
             count = db.query(Bar).filter(Bar.id.in_(ids)).update(update_data, synchronize_session=False)
             db.flush()
-            return count
 
-        return 0
+        if batch_change:
+            count = max(count, self.bulk_set_batches(db, ids, new_batches))
+
+        return count
 
     def _validate_bulk_status(self, db: Session, ids: List[int], status: str,
                               product, customer, dealer) -> None:

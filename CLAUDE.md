@@ -200,7 +200,7 @@ talamala_v4/
 - **Batch / BatchImage**: بچ تولید (ذوب)
 
 ### inventory/models.py
-- **Bar**: id, serial_code (unique), product_id, batch_id, dealer_id (FK→users), customer_id (FK→users), claim_code (unique, nullable — for POS/gift), status (RAW/ASSIGNED/RESERVED/SOLD), reserved_customer_id, reserved_until, delivered_at (nullable — NULL = custodial/"امانی", set = physically delivered), is_sellable (Boolean, default False, indexed)
+- **Bar**: id, serial_code (unique), product_id, dealer_id (FK→users), customer_id (FK→users), claim_code (unique, nullable — for POS/gift), status (RAW/ASSIGNED/RESERVED/SOLD), reserved_customer_id, reserved_until, delivered_at (nullable — NULL = custodial/"امانی", set = physically delivered), is_sellable (Boolean, default False, indexed)
   - **`is_sellable` = دروازه فروش**: موجودی نمایش‌داده‌شده در **همه** کانال‌ها برابر تعداد شمش‌های `is_sellable=True` است — فروشگاه، سبد، چک‌اوت، تخصیص شمش هنگام سفارش، POS نماینده، POS مشتری، REST API نماینده، سینک Rasis
   - Opt-in: شمش جدید پیش‌فرض **غیرقابل فروش** است و باید صراحتاً فعال شود
   - مستقل از `status`؛ تغییرش رزرو فعال را پاک نمی‌کند (برخلاف `bulk_update`)
@@ -209,6 +209,10 @@ talamala_v4/
   - Relationship: `dealer_location` → User (physical location), `customer` → User (owner)
   - Custodial gold ("طلای امانی") = bars with `status == SOLD` and `delivered_at IS NULL`
   - QR codes: generated on-the-fly per request (never saved to disk) — served via authenticated admin endpoint only
+- **BarBatchLink**: id, bar_id (FK→bars, CASCADE), batch_id (FK→batches, CASCADE) — M2M junction (UniqueConstraint) — یک شمش می‌تواند از چند بچ/ذوب ریخته شده باشد
+  - Bar properties: `batches` (list, sorted by batch_number), `batch_ids`, `batch_numbers` (رشتهٔ جداشده با «، »)
+  - Service: `inventory_service.set_batches(db, bar, ids)` (تک شمش، جایگزینی کامل)، `bulk_set_batches(db, bar_ids, ids)` (گروهی)
+  - ستون قدیمی `bars.batch_id` در دیتابیس باقی مانده ولی دیگر خوانده/نوشته نمی‌شود (داده‌اش در مهاجرت به جدول لینک منتقل شد)
 - **BarImage**: id, bar_id, file_path
 - **OwnershipHistory**: id, bar_id, previous_owner_id, new_owner_id, transfer_date, description
 - **DealerTransfer**: id, bar_id, from_dealer_id, to_dealer_id, transferred_by, transferred_at, description (table: dealer_location_transfers)

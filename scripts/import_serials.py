@@ -168,7 +168,6 @@ def main_import():
             product_id=product_id,
             customer_id=None,    # historical sale, owner unknown
             dealer_id=None,      # no longer in our warehouse
-            batch_id=None,
             is_sellable=False,   # sold bars are never offered for sale
         ))
 

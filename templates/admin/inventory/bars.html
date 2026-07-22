@@ -167,7 +167,11 @@
                             {% endif %}
                         </td>
                         <td>{{ bar.product.name if bar.product else '—' }}</td>
-                        <td>{{ bar.batch.batch_number if bar.batch else '—' }}</td>
+                        <td>
+                            {% for b in bar.batches %}
+                            <span class="badge bg-light text-dark border">{{ b.batch_number }}</span>
+                            {% else %}—{% endfor %}
+                        </td>
                         <td>
                             {% if bar.dealer_location %}
                             <span class="badge bg-{{ bar.dealer_location.type_color }}">
@@ -310,11 +314,12 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label-tm small">بچ</label>
-                        <select id="bulk_batch" class="form-select form-select-tm form-select-sm">
-                            <option value="">بدون تغییر</option>
+                        <label class="form-label-tm small">بچ / ذوب</label>
+                        <select id="bulk_batch" class="form-select form-select-tm form-select-sm" multiple size="5">
+                            <option value="0">حذف همه بچ‌ها</option>
                             {% for b in all_batches %}<option value="{{ b.id }}">{{ b.batch_number }}</option>{% endfor %}
                         </select>
+                        <small class="text-muted d-block">چیزی انتخاب نکنید = بدون تغییر. چند انتخاب با Ctrl.</small>
                     </div>
                     <!-- Cascade geo filter for dealer in bulk -->
                     <div class="col-12 mt-2">
@@ -426,7 +431,7 @@
         const fields = {
             'target_product_id': document.getElementById('bulk_product').value,
             'target_customer_id': document.getElementById('bulk_customer').value,
-            'target_batch_id': document.getElementById('bulk_batch').value,
+            'target_batch_ids': [...document.getElementById('bulk_batch').selectedOptions].map(o => o.value).join(','),
             'target_dealer_id': document.getElementById('bulk_dealer').value,
             'target_status': document.getElementById('bulk_status').value,
         };

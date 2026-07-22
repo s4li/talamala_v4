@@ -314,7 +314,7 @@ async def delete_product(user=Depends(require_permission("products", level="full
   - تغییر این فیلد رزرو فعال (`reserved_customer_id`) را پاک نمی‌کند
   - همگام‌سازی Rasis: فعال‌کردن → `add_bar_to_pos`، غیرفعال‌کردن → `remove_bar_from_pos` (best-effort، هرگز عملیات ادمین را بلاک نمی‌کند)
   - ورودی رسید Rasis عمداً این فیلد را چک نمی‌کند — فروشی که فیزیکاً روی دستگاه انجام شده باید ثبت شود
-- ارتباطات: محصول، مالک (user_id FK → users)، بچ، بسته‌بندی، نمایندگی (dealer_id FK → users where is_dealer=True)
+- ارتباطات: محصول، مالک (user_id FK → users)، بچ‌ها (M2M از طریق `bar_batch_links` — یک شمش می‌تواند از چند ذوب باشد)، بسته‌بندی، نمایندگی (dealer_id FK → users where is_dealer=True)
 - تصاویر شمش (BarImage)
 
 #### طلای امانی (Custodial Gold)
@@ -339,12 +339,12 @@ async def delete_product(user=Depends(require_permission("products", level="full
 | متد | مسیر | توضیح |
 |------|------|--------|
 | GET | `/admin/bars` | لیست شمش‌ها (فیلتر وضعیت، استان/شهر/محله، نمایندگی، سطح نمایندگی `?tier_id=X`، قابلیت فروش `?sellable=1\|0`، جستجو سریال) |
-| GET/POST | `/admin/bars/{id}/edit` | ویرایش شمش (نمایندگی بجای مکان) + سوییچ «قابل فروش» + نمایش/دانلود QR Code |
+| GET/POST | `/admin/bars/{id}/edit` | ویرایش شمش (نمایندگی بجای مکان) + انتخاب چندتایی بچ/ذوب (حداقل یکی الزامی) + سوییچ «قابل فروش» + نمایش/دانلود QR Code |
 | POST | `/admin/bars/bulk_action` | عملیات گروهی — `action`: `update` / `delete` / `sellable_on` / `sellable_off` (سطح دسترسی `inventory:full`) |
 
 #### عملیات گروهی — تعیین وضعیت (`target_status`)
 
-- فیلدهای `update`: `target_status`، `target_product_id`، `target_customer_id`، `target_batch_id`، `target_dealer_id`
+- فیلدهای `update`: `target_status`، `target_product_id`، `target_customer_id`، `target_batch_ids` (چند بچ، جداشده با کاما؛ خالی = بدون تغییر، `0` = حذف همه)، `target_dealer_id`
 - **بدون `target_status`**: وضعیت مثل قبل به‌صورت ضمنی تعیین می‌شود (محصول → Assigned، حذف محصول → Raw، مالک → Sold، حذف مالک → Assigned). اگر هیچ‌کدام تغییر نکند، وضعیت **دست‌نخورده** می‌ماند — به همین دلیل تخصیص صرفِ نمایندگی، شمش خام را خام باقی می‌گذاشت
 - **با `target_status`**: بر تعیین ضمنی **اولویت** دارد
 - مقادیر مجاز: `Raw` / `Assigned` / `Sold` — ثابت `inventory_service.BULK_STATUSES`

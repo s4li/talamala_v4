@@ -188,7 +188,7 @@ async def update_bar(
     status: str = Form(...),
     product_id: str = Form(None),
     customer_id: str = Form(None),
-    batch_id: str = Form(None),
+    batch_ids: List[str] = Form(None),
     dealer_id: str = Form(None),
     is_preorder: str = Form(None),
     is_sellable: str = Form(None),
@@ -199,15 +199,16 @@ async def update_bar(
     user=Depends(require_permission("inventory", level="edit")),
 ):
     csrf_check(request, csrf_token)
-    if not batch_id or batch_id.strip() in ("", "0"):
-        msg = urllib.parse.quote("انتخاب بچ الزامی است.")
+    selected_batches = [b for b in (batch_ids or []) if b and b.strip() not in ("", "0")]
+    if not selected_batches:
+        msg = urllib.parse.quote("انتخاب حداقل یک بچ الزامی است.")
         return RedirectResponse(f"/admin/bars/edit/{bar_id}?error={msg}", status_code=303)
     try:
         inventory_service.update_bar(db, bar_id, {
             "status": status,
             "product_id": product_id,
             "customer_id": customer_id,
-            "batch_id": batch_id,
+            "batch_ids": selected_batches,
             "dealer_id": dealer_id,
             "is_preorder": is_preorder,
             "is_sellable": is_sellable,
@@ -232,7 +233,7 @@ async def bulk_action(
     selected_ids: str = Form(...),
     target_product_id: str = Form(None),
     target_customer_id: str = Form(None),
-    target_batch_id: str = Form(None),
+    target_batch_ids: str = Form(None),
     target_dealer_id: str = Form(None),
     target_status: str = Form(None),
     csrf_token: Optional[str] = Form(None),
@@ -262,7 +263,7 @@ async def bulk_action(
             count = inventory_service.bulk_update(db, ids, {
                 "target_product_id": target_product_id,
                 "target_customer_id": target_customer_id,
-                "target_batch_id": target_batch_id,
+                "target_batch_ids": target_batch_ids,
                 "target_dealer_id": target_dealer_id,
                 "target_status": target_status,
             })

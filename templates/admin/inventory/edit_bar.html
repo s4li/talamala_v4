@@ -47,13 +47,13 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label-tm">بچ <span class="text-danger">*</span></label>
-                        <select name="batch_id" class="form-select form-select-tm" required>
-                            <option value="">— انتخاب بچ —</option>
+                        <label class="form-label-tm">بچ / ذوب <span class="text-danger">*</span></label>
+                        <select name="batch_ids" class="form-select form-select-tm" multiple size="6" required>
                             {% for b in batches %}
-                            <option value="{{ b.id }}" {% if bar.batch_id == b.id %}selected{% endif %}>{{ b.batch_number }}</option>
+                            <option value="{{ b.id }}" {% if b.id in bar.batch_ids %}selected{% endif %}>{{ b.batch_number }}{% if b.melt_number %} — ذوب {{ b.melt_number }}{% endif %}</option>
                             {% endfor %}
                         </select>
+                        <small class="text-muted">برای انتخاب چند بچ، کلید Ctrl (یا ⌘) را نگه دارید.</small>
                     </div>
                     <!-- Cascade Geo Filter for Dealer -->
                     <div class="col-12">

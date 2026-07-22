@@ -12,6 +12,7 @@ CustodialDeliveryRequest: Customer-initiated physical delivery of custodial bars
 import enum
 from sqlalchemy import (
     Column, Integer, String, DateTime, ForeignKey, Boolean, Text, Numeric,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -56,7 +57,8 @@ class Bar(Base):
     # Foreign keys to catalog + user
     product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
     customer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
-    batch_id = Column(Integer, ForeignKey("batches.id", ondelete="SET NULL"), nullable=True, index=True)
+    # Batches are M2M (a bar can be cast from several melts) — see BarBatchLink.
+    # The legacy single `batch_id` column still exists in the DB but is no longer read or written.
 
     # Dealer/warehouse tracking (dealer IS the location)
     dealer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -83,8 +85,9 @@ class Bar(Base):
     # Relationships
     product = relationship("Product", foreign_keys=[product_id])
     customer = relationship("User", foreign_keys=[customer_id])
-    batch = relationship("Batch", foreign_keys=[batch_id])
     dealer_location = relationship("User", foreign_keys=[dealer_id])
+
+    batch_links = relationship("BarBatchLink", back_populates="bar", cascade="all, delete-orphan")
 
     images = relationship("BarImage", back_populates="bar", cascade="all, delete-orphan")
     history = relationship("OwnershipHistory", back_populates="bar", cascade="all, delete-orphan",
@@ -95,6 +98,21 @@ class Bar(Base):
     @property
     def first_image(self):
         return self.images[0].file_path if self.images else None
+
+    @property
+    def batches(self):
+        """Batches (melts) this bar was cast from, ordered by batch number."""
+        return sorted((link.batch for link in self.batch_links if link.batch),
+                      key=lambda b: b.batch_number)
+
+    @property
+    def batch_ids(self):
+        return [link.batch_id for link in self.batch_links]
+
+    @property
+    def batch_numbers(self) -> str:
+        """Human-readable list of batch numbers, e.g. 'B-1001، B-1002'."""
+        return "، ".join(b.batch_number for b in self.batches)
 
     @property
     def status_label(self) -> str:
@@ -118,6 +136,27 @@ class Bar(Base):
 
     def __repr__(self):
         return f"<Bar {self.serial_code} ({self.status})>"
+
+
+# ==========================================
+# Bar ↔ Batch (M2M Junction)
+# ==========================================
+
+class BarBatchLink(Base):
+    """A bar can be cast from gold coming out of several melts (بچ / ذوب)."""
+
+    __tablename__ = "bar_batch_links"
+
+    id = Column(Integer, primary_key=True)
+    bar_id = Column(Integer, ForeignKey("bars.id", ondelete="CASCADE"), nullable=False, index=True)
+    batch_id = Column(Integer, ForeignKey("batches.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    bar = relationship("Bar", back_populates="batch_links")
+    batch = relationship("Batch")
+
+    __table_args__ = (
+        UniqueConstraint("bar_id", "batch_id", name="uq_bar_batch_link"),
+    )
 
 
 # ==========================================
