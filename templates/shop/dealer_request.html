@@ -125,7 +125,6 @@
                         <a href="{{ src }}" target="_blank" title="{{ att.kind_label }}">
                             <img src="{{ src }}" alt="{{ att.kind_label }}" class="rounded border"
                                  style="width:80px;height:80px;object-fit:cover;">
-                            <div class="small text-muted text-center">{{ att.kind_label }}</div>
                         </a>
                         {% endfor %}
                     </div>
@@ -133,21 +132,26 @@
                 {% endif %}
 
                 <!-- عکس جواز کسب و عکس مغازه -->
+                {% set docs = [
+                    {'kind': 'license', 'field': 'license_image', 'label': 'عکس جواز کسب', 'icon': 'bi-file-earmark-text'},
+                    {'kind': 'shop', 'field': 'shop_image', 'label': 'عکس مغازه', 'icon': 'bi-shop'}
+                ] %}
                 <div class="row g-3 mb-3">
+                    {% for doc in docs %}
                     <div class="col-md-6">
-                        <label class="form-label-tm fw-bold">
-                            <i class="bi bi-file-earmark-text me-1"></i>عکس جواز کسب
-                        </label>
-                        <input type="file" name="license_image" class="form-control form-control-tm"
+                        <label class="form-label-tm fw-bold"><i class="bi {{ doc.icon }} me-1"></i>{{ doc.label }}</label>
+                        {% if dealer_request and dealer_request[doc.field] %}
+                        <div class="mb-2">
+                            <a href="/dealer-request/document/{{ doc.kind }}" target="_blank">
+                                <img src="/dealer-request/document/{{ doc.kind }}" alt="{{ doc.label }}"
+                                     class="rounded border" style="width:90px;height:90px;object-fit:cover;">
+                            </a>
+                        </div>
+                        {% endif %}
+                        <input type="file" name="{{ doc.field }}" class="form-control form-control-tm"
                                accept=".jpg,.jpeg,.png,.webp,.pdf">
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label-tm fw-bold">
-                            <i class="bi bi-shop me-1"></i>عکس مغازه
-                        </label>
-                        <input type="file" name="shop_image" class="form-control form-control-tm"
-                               accept=".jpg,.jpeg,.png,.webp,.pdf">
-                    </div>
+                    {% endfor %}
                 </div>
                 <small class="text-muted d-block mb-3">
                     <i class="bi bi-info-circle me-1"></i>

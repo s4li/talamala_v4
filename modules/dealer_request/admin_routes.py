@@ -62,6 +62,26 @@ async def admin_dealer_request_list(
 # Detail
 # ==========================================
 
+@router.get("/{req_id}/document/{kind}")
+async def admin_download_request_document(
+    req_id: int,
+    kind: str,
+    user=Depends(require_permission("dealer_requests")),
+    db: Session = Depends(get_db),
+):
+    """Serve an application's licence / shop photo."""
+    field = {"license": "license_image", "shop": "shop_image"}.get(kind)
+    req = dealer_request_service.get_request(db, req_id) if field else None
+    stored = getattr(req, field, None) if req else None
+    if not stored:
+        raise HTTPException(404, "فایل یافت نشد")
+
+    path = resolve_upload_path(stored)
+    if not path or not os.path.exists(path):
+        raise HTTPException(404, "فایل روی سرور موجود نیست")
+    return FileResponse(path, filename=os.path.basename(path))
+
+
 @router.get("/attachment/{attachment_id}")
 async def admin_download_attachment(
     attachment_id: int,

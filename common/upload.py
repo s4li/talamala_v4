@@ -121,6 +121,30 @@ def form_upload(form, field: str):
     return upload if getattr(upload, "filename", "") else None
 
 
+def copy_document_file(stored_path: str, subfolder: str = "") -> Optional[str]:
+    """
+    Duplicate a stored document under a new name in the private dir.
+
+    Used when a document travels between records (approved application → dealer):
+    each record owns its own file, so deleting one never blanks the other.
+    """
+    src = resolve_upload_path(stored_path)
+    if not src or not os.path.exists(src):
+        return None
+
+    target_dir = os.path.join(PRIVATE_UPLOAD_DIR, subfolder) if subfolder else PRIVATE_UPLOAD_DIR
+    os.makedirs(target_dir, exist_ok=True)
+
+    ext = os.path.splitext(src)[1].lower()
+    dest = os.path.join(target_dir, f"{uuid.uuid4().hex}{ext}")
+    try:
+        shutil.copyfile(src, dest)
+        return dest.replace("\\", "/")
+    except OSError as e:
+        print(f"Document Copy Error: {e}")
+        return None
+
+
 def resolve_upload_path(stored_path: str) -> Optional[str]:
     """
     Turn a stored relative path into an absolute one, or None if it escapes.

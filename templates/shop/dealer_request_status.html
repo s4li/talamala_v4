@@ -85,6 +85,27 @@
                 </div>
             </div>
 
+            <!-- License / shop photos -->
+            {% if dealer_request.license_image or dealer_request.shop_image %}
+            <div class="mt-4">
+                <small class="text-muted fw-bold">جواز کسب و مغازه</small>
+                <div class="d-flex flex-wrap gap-3 mt-2">
+                    {% for doc in [
+                        {'kind': 'license', 'field': 'license_image', 'label': 'جواز کسب'},
+                        {'kind': 'shop', 'field': 'shop_image', 'label': 'مغازه'}
+                    ] %}
+                    {% if dealer_request[doc.field] %}
+                    <a href="/dealer-request/document/{{ doc.kind }}" target="_blank" class="text-decoration-none">
+                        <img src="/dealer-request/document/{{ doc.kind }}" alt="{{ doc.label }}" class="rounded border"
+                             style="width:80px;height:80px;object-fit:cover;">
+                        <div class="small text-muted text-center">{{ doc.label }}</div>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Attachments -->
             {% if dealer_request.attachments %}
             <div class="mt-4">
@@ -92,10 +113,9 @@
                 <div class="d-flex flex-wrap gap-2 mt-2">
                     {% for att in dealer_request.attachments %}
                     {% set src = "/dealer-request/attachment/" ~ att.id if att.is_private else "/" ~ att.file_path %}
-                    <a href="{{ src }}" target="_blank" title="{{ att.kind_label }}">
-                        <img src="{{ src }}" alt="{{ att.kind_label }}" class="rounded border"
+                    <a href="{{ src }}" target="_blank">
+                        <img src="{{ src }}" alt="مدرک" class="rounded border"
                              style="width:80px;height:80px;object-fit:cover;">
-                        <div class="small text-muted text-center">{{ att.kind_label }}</div>
                     </a>
                     {% endfor %}
                 </div>

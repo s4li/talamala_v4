@@ -69,6 +69,9 @@ class DealerRequest(Base):
     gender = Column(String, nullable=True)            # Gender enum value
     province_id = Column(Integer, ForeignKey("geo_provinces.id", ondelete="SET NULL"), nullable=True)
     city_id = Column(Integer, ForeignKey("geo_cities.id", ondelete="SET NULL"), nullable=True)
+    # Same column names as User so approval can copy them across verbatim
+    license_image = Column(String(255), nullable=True)   # عکس جواز کسب
+    shop_image = Column(String(255), nullable=True)      # عکس مغازه
     status = Column(String, nullable=False, default=DealerRequestStatus.PENDING.value)
     admin_note = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

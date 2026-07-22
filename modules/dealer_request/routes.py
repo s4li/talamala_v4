@@ -22,6 +22,9 @@ from common.upload import form_upload as _form_upload, resolve_upload_path
 
 router = APIRouter(tags=["dealer-request"])
 
+# Same names as the columns on both DealerRequest and User
+REQUEST_DOCUMENT_FIELDS = {"license": "license_image", "shop": "shop_image"}
+
 
 # ==========================================
 # GET - Form or Status
@@ -187,6 +190,25 @@ async def dealer_request_submit(
 
     db.rollback()
     return await _err(result["message"])
+
+
+@router.get("/dealer-request/document/{kind}")
+async def download_own_document(
+    kind: str,
+    db: Session = Depends(get_db),
+    me=Depends(require_login),
+):
+    """Serve the applicant's own licence / shop photo (stored outside static/)."""
+    field = REQUEST_DOCUMENT_FIELDS.get(kind)
+    req = dealer_request_service.get_active_request(db, me.id) if field else None
+    stored = getattr(req, field, None) if req else None
+    if not stored:
+        raise HTTPException(404, "فایل یافت نشد")
+
+    path = resolve_upload_path(stored)
+    if not path or not os.path.exists(path):
+        raise HTTPException(404, "فایل روی سرور موجود نیست")
+    return FileResponse(path, filename=os.path.basename(path))
 
 
 @router.get("/dealer-request/attachment/{attachment_id}")

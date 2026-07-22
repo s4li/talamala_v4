@@ -67,8 +67,8 @@ class DealerRequestService:
 
         # Save attachments
         self._save_attachments(db, req.id, files or [])
-        self._save_typed_attachment(db, req.id, license_image, AttachmentKind.LICENSE.value)
-        self._save_typed_attachment(db, req.id, shop_image, AttachmentKind.SHOP.value)
+        self._save_request_document(db, req, "license_image", license_image)
+        self._save_request_document(db, req, "shop_image", shop_image)
 
         return {"success": True, "message": "\u062f\u0631\u062e\u0648\u0627\u0633\u062a \u0634\u0645\u0627 \u0628\u0627 \u0645\u0648\u0641\u0642\u06cc\u062a \u062b\u0628\u062a \u0634\u062f.", "request": req}
 
@@ -163,7 +163,48 @@ class DealerRequestService:
         req.admin_note = admin_note.strip() or None
         req.updated_at = now_utc()
         db.flush()
-        return {"success": True, "message": "\u062f\u0631\u062e\u0648\u0627\u0633\u062a \u062a\u0627\u06cc\u06cc\u062f \u0634\u062f."}
+
+        promoted = self._promote_to_dealer(db, req)
+        message = "\u062f\u0631\u062e\u0648\u0627\u0633\u062a \u062a\u0627\u06cc\u06cc\u062f \u0634\u062f \u0648 \u0646\u0645\u0627\u06cc\u0646\u062f\u06af\u06cc \u0641\u0639\u0627\u0644 \u0634\u062f." if promoted else "\u062f\u0631\u062e\u0648\u0627\u0633\u062a \u062a\u0627\u06cc\u06cc\u062f \u0634\u062f."
+        return {"success": True, "message": message, "promoted": promoted}
+
+    def _promote_to_dealer(self, db: Session, req: DealerRequest) -> bool:
+        """
+        Turn the applicant into a dealer, carrying the application data over.
+
+        Without this the approval only flipped a status while the notification
+        already told the applicant to open the dealer panel \u2014 which they had no
+        access to. Existing dealer fields are never overwritten; only blanks are
+        filled, so re-approving can't undo an admin's later edits.
+        """
+        from modules.user.models import User
+        from common.upload import copy_document_file
+
+        user = db.query(User).filter(User.id == req.user_id).first() if req.user_id else None
+        if not user:
+            return False
+
+        user.is_dealer = True
+        if not user.first_name:
+            user.first_name = req.first_name
+        if not user.last_name:
+            user.last_name = req.last_name
+        if not user.province_id:
+            user.province_id = req.province_id
+        if not user.city_id:
+            user.city_id = req.city_id
+
+        # Each record owns its own copy \u2014 deleting the dealer's photo later must
+        # not blank the application it was approved from.
+        for field in ("license_image", "shop_image"):
+            source = getattr(req, field)
+            if source and not getattr(user, field):
+                copied = copy_document_file(source, subfolder="dealer_documents")
+                if copied:
+                    setattr(user, field, copied)
+
+        db.flush()
+        return True
 
     def request_revision(self, db: Session, request_id: int, admin_note: str = "") -> Dict[str, Any]:
         req = db.query(DealerRequest).filter(DealerRequest.id == request_id).first()
@@ -236,8 +277,8 @@ class DealerRequestService:
 
         # Save new attachments (keep existing ones)
         self._save_attachments(db, req.id, files or [])
-        self._save_typed_attachment(db, req.id, license_image, AttachmentKind.LICENSE.value)
-        self._save_typed_attachment(db, req.id, shop_image, AttachmentKind.SHOP.value)
+        self._save_request_document(db, req, "license_image", license_image)
+        self._save_request_document(db, req, "shop_image", shop_image)
 
         return {"success": True, "message": "\u062f\u0631\u062e\u0648\u0627\u0633\u062a \u0628\u0627 \u0645\u0648\u0641\u0642\u06cc\u062a \u0627\u0635\u0644\u0627\u062d \u0648 \u0627\u0631\u0633\u0627\u0644 \u0634\u062f."}
 
@@ -261,14 +302,14 @@ class DealerRequestService:
                 ))
         db.flush()
 
-    def _save_typed_attachment(self, db: Session, request_id: int, upload, kind: str):
+    def _save_request_document(self, db: Session, req: DealerRequest, field: str, upload):
         """
-        Store the licence / shop photo.
+        Store the licence / shop photo on the request itself.
 
-        These go to the private upload dir rather than static/, because a
-        business licence carries personal data — they are readable only through
-        the authenticated attachment route. Re-uploading replaces the previous
-        one of the same kind so the reviewer never sees two conflicting photos.
+        The columns are named exactly as on User, so approve_request() can hand
+        them to the dealer record unchanged. They live in the private upload dir
+        rather than static/, because a business licence carries personal data.
+        Re-uploading replaces the previous file and deletes it from disk.
         """
         if not upload or not getattr(upload, "filename", ""):
             return
@@ -277,21 +318,10 @@ class DealerRequestService:
         if not path:
             return
 
-        previous = db.query(DealerRequestAttachment).filter(
-            DealerRequestAttachment.dealer_request_id == request_id,
-            DealerRequestAttachment.kind == kind,
-        ).all()
-        for old in previous:
-            if old.is_private:
-                delete_file(old.file_path)
-            db.delete(old)
-
-        db.add(DealerRequestAttachment(
-            dealer_request_id=request_id,
-            file_path=path,
-            original_filename=upload.filename,
-            kind=kind,
-        ))
+        old = getattr(req, field)
+        setattr(req, field, path)
+        if old and old != path:
+            delete_file(old)
         db.flush()
 
 

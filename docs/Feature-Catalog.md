@@ -1815,16 +1815,18 @@ metal_price, base_purity = get_product_pricing(product, db)
 |------|------|--------|
 | GET | `/dealer-request` | فرم ثبت درخواست یا صفحه وضعیت (بسته به وجود درخواست فعال) |
 | GET | `/dealer-request?edit=1` | فرم ویرایش درخواست (فقط وقتی وضعیت RevisionNeeded باشد) |
-| GET | `/dealer-request/attachment/{id}` | نمایش مدرک خود متقاضی (فقط مالک درخواست) |
+| GET | `/dealer-request/document/{license\|shop}` | نمایش عکس جواز کسب / مغازه خود متقاضی |
+| GET | `/dealer-request/attachment/{id}` | نمایش سایر مدارک خود متقاضی (فقط مالک درخواست) |
 | POST | `/dealer-request` | ثبت درخواست جدید یا ارسال مجدد درخواست اصلاح‌شده |
 
 ### آدرس‌های ادمین
 | متد | مسیر | توضیح |
 |------|------|--------|
 | GET | `/admin/dealer-requests` | لیست درخواست‌ها (فیلتر + جستجو + آمار) |
-| GET | `/admin/dealer-requests/attachment/{id}` | نمایش مدرک بارگذاری‌شده (استریم از پوشه خصوصی) |
+| GET | `/admin/dealer-requests/{id}/document/{license\|shop}` | نمایش عکس جواز کسب / مغازه درخواست |
+| GET | `/admin/dealer-requests/attachment/{id}` | نمایش سایر مدارک بارگذاری‌شده |
 | GET | `/admin/dealer-requests/{id}` | جزئیات درخواست + پیوست‌ها |
-| POST | `/admin/dealer-requests/{id}/approve` | تایید درخواست |
+| POST | `/admin/dealer-requests/{id}/approve` (**نمایندگی را فعال می‌کند و اطلاعات + مدارک را منتقل می‌کند**) | تایید درخواست |
 | POST | `/admin/dealer-requests/{id}/revision` | درخواست اصلاح (admin_note الزامی) |
 | POST | `/admin/dealer-requests/{id}/reject` | رد درخواست |
 
