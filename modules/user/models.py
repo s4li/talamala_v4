@@ -90,6 +90,10 @@ class User(Base):
     pos_contract_name = Column(String(255), nullable=True)    # original filename, for the download
     pos_contract_uploaded_at = Column(DateTime(timezone=True), nullable=True)
 
+    # === Dealer documents (private — same handling as the contract) ===
+    license_image = Column(String(255), nullable=True)   # عکس جواز کسب
+    shop_image = Column(String(255), nullable=True)      # عکس مغازه
+
     # === Admin-specific ===
     admin_role = Column(String, nullable=True)           # "admin" | "operator"
     _permissions = Column("permissions", Text, nullable=True)  # JSON list

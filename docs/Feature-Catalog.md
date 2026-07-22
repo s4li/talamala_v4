@@ -1132,6 +1132,18 @@ async def delete_product(user=Depends(require_permission("products", level="full
 | GET | `/admin/dealers/{id}/pos-contract` | دانلود فایل قرارداد | `dealers:view` |
 | POST | `/admin/dealers/{id}/pos-contract/delete` | حذف فایل قرارداد | `dealers:edit` |
 
+### مدارک نماینده — جواز کسب و مغازه (ادمین)
+
+| متد | مسیر | توضیح | دسترسی |
+|------|------|--------|---------|
+| POST | `/admin/dealers/{id}/documents` | آپلود عکس جواز کسب و/یا عکس مغازه | `dealers:edit` |
+| GET | `/admin/dealers/{id}/document/{license\|shop}` | نمایش/دانلود مدرک | `dealers:view` |
+| POST | `/admin/dealers/{id}/document/{kind}/delete` | حذف مدرک | `dealers:edit` |
+
+- هر دو در `private_uploads/dealer_documents/` ذخیره می‌شوند (خارج از `static/`) و فقط از مسیر بالا قابل مشاهده‌اند
+- در فرم **ایجاد** نماینده هم قابل بارگذاری‌اند؛ مارک‌آپ مشترک در `templates/admin/dealers/_documents_fields.html`
+- بارگذاری مجدد، فایل قبلی همان نوع را جایگزین و از دیسک حذف می‌کند
+
 - فایل قرارداد در `private_uploads/dealer_contracts/` ذخیره می‌شود — **خارج از `static/`** و بنابراین از اینترنت مستقیماً قابل دسترسی نیست؛ تنها راه خواندن، همان مسیر احراز‌هویت‌شده بالاست
 - آپلود فایل جدید، فایل قبلی را از دیسک هم حذف می‌کند
 - پین سیم‌کارت به‌صورت متن ساده ذخیره می‌شود (اپراتور باید بتواند بخواند) و در فرم ماسک‌شده با دکمه نمایش دیده می‌شود
@@ -1803,12 +1815,14 @@ metal_price, base_purity = get_product_pricing(product, db)
 |------|------|--------|
 | GET | `/dealer-request` | فرم ثبت درخواست یا صفحه وضعیت (بسته به وجود درخواست فعال) |
 | GET | `/dealer-request?edit=1` | فرم ویرایش درخواست (فقط وقتی وضعیت RevisionNeeded باشد) |
+| GET | `/dealer-request/attachment/{id}` | نمایش مدرک خود متقاضی (فقط مالک درخواست) |
 | POST | `/dealer-request` | ثبت درخواست جدید یا ارسال مجدد درخواست اصلاح‌شده |
 
 ### آدرس‌های ادمین
 | متد | مسیر | توضیح |
 |------|------|--------|
 | GET | `/admin/dealer-requests` | لیست درخواست‌ها (فیلتر + جستجو + آمار) |
+| GET | `/admin/dealer-requests/attachment/{id}` | نمایش مدرک بارگذاری‌شده (استریم از پوشه خصوصی) |
 | GET | `/admin/dealer-requests/{id}` | جزئیات درخواست + پیوست‌ها |
 | POST | `/admin/dealer-requests/{id}/approve` | تایید درخواست |
 | POST | `/admin/dealer-requests/{id}/revision` | درخواست اصلاح (admin_note الزامی) |

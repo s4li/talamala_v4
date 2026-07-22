@@ -11,9 +11,9 @@ from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from sqlalchemy.orm import Session
 
 from config.database import get_db
-from config.settings import PRIVATE_UPLOAD_DIR
 from common.templating import templates
 from common.security import new_csrf_token, csrf_check
+from common.upload import form_upload as _form_upload, resolve_upload_path
 from modules.auth.deps import require_permission
 from modules.dealer.service import dealer_service
 from modules.dealer.models import DealerTier
@@ -138,28 +138,6 @@ def _load_edit_geo(db: Session, dealer):
 def _parse_int(val: str) -> int | None:
     """Parse string to int, return None if empty."""
     return int(val) if val and val.strip().isdigit() else None
-
-
-def _form_upload(form, field: str):
-    """
-    Pull an uploaded file off the raw form, or None.
-
-    Declaring it as an UploadFile param would 422 the whole submit, because an
-    untouched file input still posts a part with an empty filename. The check is
-    duck-typed on purpose: form parsing yields a Starlette UploadFile, which is
-    not an instance of fastapi.UploadFile.
-    """
-    upload = form.get(field)
-    return upload if getattr(upload, "filename", "") else None
-
-
-def _safe_contract_path(stored_path: str) -> str | None:
-    """Resolve a stored contract path, refusing anything outside the private dir."""
-    if not stored_path:
-        return None
-    root = os.path.abspath(PRIVATE_UPLOAD_DIR)
-    full = os.path.abspath(stored_path)
-    return full if os.path.commonpath([root, full]) == root else None
 
 
 @router.get("/create", response_class=HTMLResponse)
@@ -307,7 +285,11 @@ async def dealer_create_submit(
 
     pos_error = None
     try:
-        if dealer_service.attach_pos_contract(db, dealer, _form_upload(await request.form(), "contract_file")):
+        form = await request.form()
+        touched = dealer_service.attach_pos_contract(db, dealer, _form_upload(form, "contract_file"))
+        for kind, field in (("license", "license_image"), ("shop", "shop_image")):
+            touched |= dealer_service.attach_dealer_document(db, dealer, kind, _form_upload(form, field))
+        if touched:
             db.commit()
     except HTTPException as e:
         db.rollback()
@@ -324,7 +306,7 @@ async def dealer_create_submit(
         pass  # Never block dealer creation
 
     if pos_error:
-        msg = urllib.parse.quote(f"نماینده ساخته شد ولی فایل قرارداد ذخیره نشد: {pos_error}")
+        msg = urllib.parse.quote(f"نماینده ساخته شد ولی فایل‌ها ذخیره نشدند: {pos_error}")
         return RedirectResponse(f"/admin/dealers/{dealer.id}/edit?error={msg}", status_code=302)
 
     return RedirectResponse("/admin/dealers", status_code=302)
@@ -573,6 +555,76 @@ async def save_pos_device(
     return RedirectResponse(f"/admin/dealers/{dealer_id}/edit?msg={msg}", status_code=302)
 
 
+@router.post("/{dealer_id}/documents")
+async def save_dealer_documents(
+    dealer_id: int,
+    request: Request,
+    csrf_token: str = Form(""),
+    user=Depends(require_permission("dealers", level="edit")),
+    db: Session = Depends(get_db),
+):
+    """Upload the dealer's licence and/or shop photo."""
+    csrf_check(request, csrf_token)
+    dealer = dealer_service.get_dealer(db, dealer_id)
+    if not dealer:
+        return RedirectResponse("/admin/dealers", status_code=302)
+
+    form = await request.form()
+    saved, failed = [], None
+    try:
+        for kind, field in (("license", "license_image"), ("shop", "shop_image")):
+            if dealer_service.attach_dealer_document(db, dealer, kind, _form_upload(form, field)):
+                saved.append(kind)
+        db.commit()
+    except HTTPException as e:
+        db.rollback()
+        failed = str(e.detail)
+
+    if failed:
+        msg = urllib.parse.quote(f"مدارک ذخیره نشد: {failed}")
+        return RedirectResponse(f"/admin/dealers/{dealer_id}/edit?error={msg}", status_code=302)
+
+    msg = urllib.parse.quote("مدارک نماینده ذخیره شد" if saved else "فایلی انتخاب نشده بود")
+    return RedirectResponse(f"/admin/dealers/{dealer_id}/edit?msg={msg}", status_code=302)
+
+
+@router.get("/{dealer_id}/document/{kind}")
+async def download_dealer_document(
+    dealer_id: int,
+    kind: str,
+    user=Depends(require_permission("dealers")),
+    db: Session = Depends(get_db),
+):
+    """Stream the licence / shop photo — the only way to read it."""
+    field = dealer_service.DOCUMENT_FIELDS.get(kind)
+    dealer = dealer_service.get_dealer(db, dealer_id) if field else None
+    stored = getattr(dealer, field, None) if dealer else None
+    if not stored:
+        raise HTTPException(404, "فایل یافت نشد")
+
+    path = resolve_upload_path(stored)
+    if not path or not os.path.exists(path):
+        raise HTTPException(404, "فایل روی سرور موجود نیست")
+    return FileResponse(path, filename=os.path.basename(path))
+
+
+@router.post("/{dealer_id}/document/{kind}/delete")
+async def delete_dealer_document_route(
+    dealer_id: int,
+    kind: str,
+    request: Request,
+    csrf_token: str = Form(""),
+    user=Depends(require_permission("dealers", level="edit")),
+    db: Session = Depends(get_db),
+):
+    csrf_check(request, csrf_token)
+    dealer = dealer_service.get_dealer(db, dealer_id)
+    if dealer:
+        dealer_service.delete_dealer_document(db, dealer, kind)
+        db.commit()
+    return RedirectResponse(f"/admin/dealers/{dealer_id}/edit", status_code=302)
+
+
 @router.get("/{dealer_id}/pos-contract")
 async def download_pos_contract(
     dealer_id: int,
@@ -584,7 +636,7 @@ async def download_pos_contract(
     if not dealer or not dealer.pos_contract_file:
         raise HTTPException(404, "فایل قرارداد یافت نشد")
 
-    path = _safe_contract_path(dealer.pos_contract_file)
+    path = resolve_upload_path(dealer.pos_contract_file)
     if not path or not os.path.exists(path):
         raise HTTPException(404, "فایل قرارداد روی سرور موجود نیست")
 

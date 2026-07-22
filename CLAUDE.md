@@ -173,6 +173,7 @@ talamala_v4/
   - **POS device fields** (نمایندگانی که دستگاه پوز دارند): pos_terminal_number (شماره پایانه), pos_device_code (کد دستگاه), pos_sim_number (شماره سیم‌کارت), pos_sim_pin (پین سیم‌کارت — متن ساده), pos_contract_file (مسیر فایل قرارداد زیر `private_uploads/`), pos_contract_name (نام اصلی فایل), pos_contract_uploaded_at
     - فایل قرارداد **خارج از `static/`** ذخیره می‌شود و فقط از مسیر احراز‌هویت‌شدهٔ `/admin/dealers/{id}/pos-contract` قابل دانلود است — هرگز آن را زیر `static/uploads/` نگذار (آنجا عمومی است)
     - Property: `has_pos_device` → آیا هیچ‌کدام از مشخصات پوز ثبت شده است
+  - **مدارک نماینده**: license_image (عکس جواز کسب), shop_image (عکس مغازه) — هر دو زیر `private_uploads/dealer_documents/`، فقط از `/admin/dealers/{id}/document/{license|shop}` قابل مشاهده
   - Property: `effective_credit_limit_mg` → `custom_credit_limit_mg or tier.default_credit_limit_mg or 0`
   - **Admin fields**: admin_role (admin/operator), _permissions (JSON dict: `{"key": "level", ...}` where level is one of: `view`, `create`, `edit`, `full`)
   - Properties: `full_name`, `display_name`, `is_staff` (→ is_admin), `is_profile_complete`, `primary_redirect`, `tier_name`, `type_label`, `type_icon`, `type_color`, `has_permission(perm_key, level="view")` — checks hierarchically (view < create < edit < full)
@@ -309,7 +310,11 @@ talamala_v4/
 - **DealerRequest**: id, user_id (FK→users), first_name, last_name, birth_date, email, mobile, gender, province_id (FK→geo_provinces), city_id (FK→geo_cities), status, admin_note, created_at, updated_at
   - Properties: `full_name`, `status_label`, `status_color`, `gender_label`, `province_name`, `city_name`
   - Relationships: user, province, city, attachments
-- **DealerRequestAttachment**: id, dealer_request_id (FK, CASCADE), file_path, original_filename, created_at
+- **AttachmentKind** (enum): LICENSE (جواز کسب) / SHOP (مغازه) / OTHER (سایر مدارک)
+- **DealerRequestAttachment**: id, dealer_request_id (FK, CASCADE), file_path, original_filename, kind (String(20), default "other"), created_at
+  - عکس جواز و عکس مغازه زیر `private_uploads/dealer_requests/` می‌روند (نه `static/`) و فقط از مسیرهای احراز‌هویت‌شده سرو می‌شوند؛ آپلود مجدد همان نوع، فایل قبلی را جایگزین و از دیسک حذف می‌کند
+  - آپلود چندتایی «سایر مدارک» مثل قبل در `static/uploads/dealer_requests/` می‌ماند
+  - Properties: `kind_label`, `is_private` — و روی DealerRequest: `license_images`, `shop_images`, `other_attachments`
 
 ### notification/models.py
 - **NotificationType** (str enum, 15 types): ORDER_STATUS, ORDER_DELIVERY, PAYMENT_SUCCESS, PAYMENT_FAILED, WALLET_TOPUP, WALLET_WITHDRAW, WALLET_TRADE, OWNERSHIP_TRANSFER, CUSTODIAL_DELIVERY, TICKET_UPDATE, DEALER_SALE, DEALER_BUYBACK, DEALER_REQUEST, REVIEW_REPLY, SYSTEM
@@ -801,7 +806,8 @@ total     = raw_metal + wage + tax
 ### Dealer Request (Customer)
 - `GET /dealer-request` — Show form (new) or status page (existing)
 - `GET /dealer-request?edit=1` — Show pre-filled form for RevisionNeeded requests
-- `POST /dealer-request` — Submit new or resubmit revised request
+- `POST /dealer-request` — Submit new or resubmit revised request (شامل `license_image` و `shop_image`)
+- `GET /dealer-request/attachment/{id}` — نمایش مدرک خودِ متقاضی (فقط مالک درخواست)
 
 ### Dealer Panel (Web)
 - `GET /dealer/dashboard` — Dealer dashboard (stats, quick actions)
@@ -868,6 +874,7 @@ total     = raw_metal + wage + tax
 - `/admin/coupons`
 - `GET /admin/dealer-requests` — Dealer request list (filter: status, search)
 - `GET /admin/dealer-requests/{id}` — Dealer request detail
+- `GET /admin/dealer-requests/attachment/{id}` — نمایش مدرک بارگذاری‌شده (استریم از پوشه خصوصی)
 - `POST /admin/dealer-requests/{id}/approve` — Approve request
 - `POST /admin/dealer-requests/{id}/revision` — Request revision (admin_note required)
 - `POST /admin/dealer-requests/{id}/reject` — Reject request
@@ -878,6 +885,9 @@ total     = raw_metal + wage + tax
   - aggregate‌ها از ستون‌های snapshot خوانده می‌شوند (با `OUTER JOIN` و `COALESCE` روی رکوردهای قدیمی) — نه `INNER JOIN` روی `Product↔Bar`
 - `POST /admin/dealers/{id}/generate-api-key` — Generate POS API key
 - `POST /admin/dealers/{id}/revoke-api-key` — Revoke POS API key
+- `POST /admin/dealers/{id}/documents` — آپلود عکس جواز کسب و عکس مغازه (سطح `dealers:edit`)
+- `GET /admin/dealers/{id}/document/{license|shop}` — نمایش/دانلود مدرک (سطح `dealers:view`)
+- `POST /admin/dealers/{id}/document/{kind}/delete` — حذف مدرک (سطح `dealers:edit`)
 - `POST /admin/dealers/{id}/pos-device` — ثبت/ویرایش مشخصات دستگاه پوز + آپلود فایل قرارداد (سطح `dealers:edit`)
 - `GET /admin/dealers/{id}/pos-contract` — دانلود فایل قرارداد (استریم از پوشه خصوصی، سطح `dealers:view`)
 - `POST /admin/dealers/{id}/pos-contract/delete` — حذف فایل قرارداد (سطح `dealers:edit`)

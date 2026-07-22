@@ -105,6 +105,48 @@ class DealerService:
         db.flush()
         return True
 
+    # ------------------------------------------
+    # Dealer documents (licence / shop photo)
+    # ------------------------------------------
+
+    DOCUMENT_FIELDS = {"license": "license_image", "shop": "shop_image"}
+
+    def attach_dealer_document(self, db: Session, dealer: User, kind: str, upload) -> bool:
+        """
+        Store the dealer's licence or shop photo, replacing any previous one.
+
+        Stored privately like the contract: a business licence carries personal
+        data and must not be readable straight off the static mount.
+        """
+        from common.upload import save_document_file, delete_file
+
+        field = self.DOCUMENT_FIELDS.get(kind)
+        if not field or not upload or not getattr(upload, "filename", ""):
+            return False
+
+        path = save_document_file(upload, subfolder="dealer_documents")
+        if not path:
+            return False
+
+        old = getattr(dealer, field)
+        setattr(dealer, field, path)
+        if old and old != path:
+            delete_file(old)
+
+        db.flush()
+        return True
+
+    def delete_dealer_document(self, db: Session, dealer: User, kind: str) -> bool:
+        from common.upload import delete_file
+
+        field = self.DOCUMENT_FIELDS.get(kind)
+        if not field or not getattr(dealer, field, None):
+            return False
+        delete_file(getattr(dealer, field))
+        setattr(dealer, field, None)
+        db.flush()
+        return True
+
     def delete_pos_contract(self, db: Session, dealer: User) -> bool:
         """Remove the stored contract file and clear its columns."""
         from common.upload import delete_file

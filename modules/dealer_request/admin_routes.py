@@ -4,16 +4,19 @@ Dealer Request Module - Admin Routes
 Admin manages dealer requests: list, detail, approve, reject, request revision.
 """
 
-from fastapi import APIRouter, Request, Depends, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+import os
+
+from fastapi import APIRouter, Request, Depends, Form, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from sqlalchemy.orm import Session
 
 from config.database import get_db
 from common.templating import templates
 from common.security import new_csrf_token, csrf_check
+from common.upload import resolve_upload_path
 from modules.auth.deps import require_permission
 from modules.dealer_request.service import dealer_request_service
-from modules.dealer_request.models import DealerRequestStatus
+from modules.dealer_request.models import DealerRequestStatus, DealerRequestAttachment
 
 router = APIRouter(prefix="/admin/dealer-requests", tags=["admin-dealer-requests"])
 
@@ -58,6 +61,25 @@ async def admin_dealer_request_list(
 # ==========================================
 # Detail
 # ==========================================
+
+@router.get("/attachment/{attachment_id}")
+async def admin_download_attachment(
+    attachment_id: int,
+    user=Depends(require_permission("dealer_requests")),
+    db: Session = Depends(get_db),
+):
+    """Serve an uploaded document. Licence/shop photos live outside static/."""
+    att = db.query(DealerRequestAttachment).filter(
+        DealerRequestAttachment.id == attachment_id
+    ).first()
+    if not att:
+        raise HTTPException(404, "فایل یافت نشد")
+
+    path = resolve_upload_path(att.file_path)
+    if not path or not os.path.exists(path):
+        raise HTTPException(404, "فایل روی سرور موجود نیست")
+    return FileResponse(path, filename=att.original_filename or os.path.basename(path))
+
 
 @router.get("/{req_id}", response_class=HTMLResponse)
 async def admin_dealer_request_detail(

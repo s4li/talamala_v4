@@ -108,6 +108,36 @@ def save_document_file(upload_file: UploadFile, subfolder: str = "") -> Optional
         return None
 
 
+def form_upload(form, field: str):
+    """
+    Pull an uploaded file off a raw form, or None.
+
+    Declaring it as an UploadFile param would 422 the whole submit, because an
+    untouched file input still posts a part with an empty filename. The check is
+    duck-typed on purpose: form parsing yields a Starlette UploadFile, which is
+    not an instance of fastapi.UploadFile.
+    """
+    upload = form.get(field)
+    return upload if getattr(upload, "filename", "") else None
+
+
+def resolve_upload_path(stored_path: str) -> Optional[str]:
+    """
+    Turn a stored relative path into an absolute one, or None if it escapes.
+
+    Guards the authenticated download routes: whatever is in the DB must resolve
+    inside one of our upload roots, never elsewhere on disk.
+    """
+    if not stored_path:
+        return None
+    full = os.path.abspath(stored_path)
+    for root in (PRIVATE_UPLOAD_DIR, UPLOAD_DIR):
+        root_abs = os.path.abspath(root)
+        if os.path.commonpath([root_abs, full]) == root_abs:
+            return full
+    return None
+
+
 def delete_file(file_path: str) -> bool:
     """Safely delete a file from disk. Returns True if deleted."""
     try:

@@ -91,9 +91,11 @@
                 <small class="text-muted fw-bold">مدارک بارگذاری شده</small>
                 <div class="d-flex flex-wrap gap-2 mt-2">
                     {% for att in dealer_request.attachments %}
-                    <a href="/{{ att.file_path }}" target="_blank">
-                        <img src="/{{ att.file_path }}" alt="مدرک" class="rounded border"
+                    {% set src = "/dealer-request/attachment/" ~ att.id if att.is_private else "/" ~ att.file_path %}
+                    <a href="{{ src }}" target="_blank" title="{{ att.kind_label }}">
+                        <img src="{{ src }}" alt="{{ att.kind_label }}" class="rounded border"
                              style="width:80px;height:80px;object-fit:cover;">
+                        <div class="small text-muted text-center">{{ att.kind_label }}</div>
                     </a>
                     {% endfor %}
                 </div>

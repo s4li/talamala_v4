@@ -38,6 +38,20 @@ class Gender(str, enum.Enum):
     FEMALE = "female"
 
 
+class AttachmentKind(str, enum.Enum):
+    """What an uploaded file shows. OTHER covers the free-form document slot."""
+    LICENSE = "license"   # عکس جواز کسب
+    SHOP = "shop"         # عکس مغازه
+    OTHER = "other"
+
+
+ATTACHMENT_KIND_LABELS = {
+    AttachmentKind.LICENSE.value: "جواز کسب",
+    AttachmentKind.SHOP.value: "مغازه",
+    AttachmentKind.OTHER.value: "سایر مدارک",
+}
+
+
 # ==========================================
 # DealerRequest
 # ==========================================
@@ -113,6 +127,22 @@ class DealerRequest(Base):
     def city_name(self) -> str:
         return self.city.name if self.city else "\u2014"
 
+    def attachments_of(self, kind: str) -> list:
+        """Attachments of one kind \u2014 'license', 'shop' or 'other'."""
+        return [a for a in self.attachments if (a.kind or AttachmentKind.OTHER.value) == kind]
+
+    @property
+    def license_images(self) -> list:
+        return self.attachments_of(AttachmentKind.LICENSE.value)
+
+    @property
+    def shop_images(self) -> list:
+        return self.attachments_of(AttachmentKind.SHOP.value)
+
+    @property
+    def other_attachments(self) -> list:
+        return self.attachments_of(AttachmentKind.OTHER.value)
+
 
 # ==========================================
 # DealerRequestAttachment
@@ -129,6 +159,8 @@ class DealerRequestAttachment(Base):
     )
     file_path = Column(String, nullable=False)
     original_filename = Column(String, nullable=True)
+    kind = Column(String(20), nullable=False, default=AttachmentKind.OTHER.value,
+                  server_default=AttachmentKind.OTHER.value)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     dealer_request = relationship("DealerRequest", back_populates="attachments")
@@ -136,3 +168,12 @@ class DealerRequestAttachment(Base):
     __table_args__ = (
         Index("ix_dealer_req_attach_req", "dealer_request_id"),
     )
+
+    @property
+    def kind_label(self) -> str:
+        return ATTACHMENT_KIND_LABELS.get(self.kind, ATTACHMENT_KIND_LABELS[AttachmentKind.OTHER.value])
+
+    @property
+    def is_private(self) -> bool:
+        """Newer uploads live outside static/ and are readable only via the authenticated route."""
+        return bool(self.file_path) and not self.file_path.startswith("static/")

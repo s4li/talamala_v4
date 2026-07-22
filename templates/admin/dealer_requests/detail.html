@@ -75,10 +75,12 @@
             </div>
             <div class="d-flex flex-wrap gap-3">
                 {% for att in dealer_request.attachments %}
-                <a href="/{{ att.file_path }}" target="_blank" class="text-decoration-none">
+                {% set src = "/admin/dealer-requests/attachment/" ~ att.id if att.is_private else "/" ~ att.file_path %}
+                <a href="{{ src }}" target="_blank" class="text-decoration-none">
                     <div class="text-center">
-                        <img src="/{{ att.file_path }}" alt="{{ att.original_filename or 'مدرک' }}"
+                        <img src="{{ src }}" alt="{{ att.original_filename or 'مدرک' }}"
                              class="rounded border" style="width:120px;height:120px;object-fit:cover;">
+                        <div class="small fw-bold mt-1">{{ att.kind_label }}</div>
                         {% if att.original_filename %}
                         <div class="small text-muted mt-1" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                             {{ att.original_filename }}

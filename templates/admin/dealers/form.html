@@ -193,6 +193,12 @@
             <small class="text-muted fw-normal">(اختیاری)</small>
         </h6>
         {% with can_edit = true %}{% include "admin/dealers/_pos_device_fields.html" %}{% endwith %}
+
+        <h6 class="fw-bold mb-3 mt-4 pb-2" style="border-bottom: 1px solid var(--tm-primary-100);">
+            <i class="bi bi-images text-tm-primary me-1"></i> مدارک نماینده
+            <small class="text-muted fw-normal">(اختیاری)</small>
+        </h6>
+        {% with can_edit = true %}{% include "admin/dealers/_documents_fields.html" %}{% endwith %}
         {% endif %}
 
         <!-- سقف اعتبار طلا (فقط ویرایش) -->
@@ -312,6 +318,38 @@
             </button>
         </form>
         {% endif %}
+</div>
+
+<!-- Dealer documents (licence + shop photo) -->
+<div class="card-tm no-hover mt-4">
+    <div class="border-bottom pb-3 mb-3 d-flex align-items-center justify-content-between">
+        <h6 class="fw-bold mb-0">
+            <i class="bi bi-images text-tm-primary me-1"></i>
+            مدارک نماینده
+        </h6>
+        {% if dealer.license_image and dealer.shop_image %}
+        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>کامل</span>
+        {% elif dealer.license_image or dealer.shop_image %}
+        <span class="badge bg-warning text-dark">ناقص</span>
+        {% else %}
+        <span class="badge bg-secondary">بارگذاری نشده</span>
+        {% endif %}
+    </div>
+
+    {% set can_edit_docs = user.has_permission("dealers", "edit") %}
+    <form method="POST" action="/admin/dealers/{{ dealer.id }}/documents" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        {% with can_edit = can_edit_docs %}{% include "admin/dealers/_documents_fields.html" %}{% endwith %}
+
+        {% if can_edit_docs %}
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-tm-primary">
+                <i class="bi bi-upload me-1"></i> ذخیره مدارک
+            </button>
+        </div>
+        {% endif %}
+    </form>
 </div>
 
 <!-- POS Device (terminal details + contract) -->

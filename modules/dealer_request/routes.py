@@ -5,9 +5,10 @@ GET /dealer-request  - Show form or status
 POST /dealer-request - Submit application
 """
 
+import os
 from typing import List
-from fastapi import APIRouter, Request, Depends, Form, File, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Request, Depends, Form, File, UploadFile, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from sqlalchemy.orm import Session
 
 from config.database import get_db
@@ -16,7 +17,8 @@ from common.security import new_csrf_token, csrf_check
 from modules.auth.deps import require_login
 from modules.customer.address_models import GeoProvince
 from modules.dealer_request.service import dealer_request_service
-from modules.dealer_request.models import DealerRequestStatus
+from modules.dealer_request.models import DealerRequestStatus, DealerRequestAttachment
+from common.upload import form_upload as _form_upload, resolve_upload_path
 
 router = APIRouter(tags=["dealer-request"])
 
@@ -101,6 +103,11 @@ async def dealer_request_submit(
     me=Depends(require_login),
 ):
     csrf_check(request, csrf_token)
+    # Read off the raw form: an untouched file input posts an empty-filename part
+    # that a declared UploadFile param would reject with a 422.
+    form = await request.form()
+    license_image = _form_upload(form, "license_image")
+    shop_image = _form_upload(form, "shop_image")
     from common.helpers import validate_iranian_mobile
 
     # Collect form data for error re-rendering (mimics dealer_request object attributes)
@@ -154,6 +161,8 @@ async def dealer_request_submit(
             email=email,
             gender=gender,
             files=files or [],
+            license_image=license_image,
+            shop_image=shop_image,
         )
     else:
         result = dealer_request_service.create_request(
@@ -168,6 +177,8 @@ async def dealer_request_submit(
             email=email,
             gender=gender,
             files=files or [],
+            license_image=license_image,
+            shop_image=shop_image,
         )
 
     if result["success"]:
@@ -176,6 +187,25 @@ async def dealer_request_submit(
 
     db.rollback()
     return await _err(result["message"])
+
+
+@router.get("/dealer-request/attachment/{attachment_id}")
+async def download_own_attachment(
+    attachment_id: int,
+    db: Session = Depends(get_db),
+    me=Depends(require_login),
+):
+    """Serve one of the requester's own uploads (licence/shop photos are private)."""
+    att = db.query(DealerRequestAttachment).filter(
+        DealerRequestAttachment.id == attachment_id
+    ).first()
+    if not att or not att.dealer_request or att.dealer_request.user_id != me.id:
+        raise HTTPException(404, "فایل یافت نشد")
+
+    path = resolve_upload_path(att.file_path)
+    if not path or not os.path.exists(path):
+        raise HTTPException(404, "فایل روی سرور موجود نیست")
+    return FileResponse(path, filename=att.original_filename or os.path.basename(path))
 
 
 async def _render_form_with_error(request, db, me, error_msg, form_data=None):

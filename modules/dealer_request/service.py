@@ -10,9 +10,9 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func as sa_func, or_
 
 from modules.dealer_request.models import (
-    DealerRequest, DealerRequestAttachment, DealerRequestStatus,
+    DealerRequest, DealerRequestAttachment, DealerRequestStatus, AttachmentKind,
 )
-from common.upload import save_upload_file
+from common.upload import save_upload_file, save_document_file, delete_file
 from common.helpers import now_utc
 
 
@@ -35,6 +35,8 @@ class DealerRequestService:
         email: str = "",
         gender: str = "",
         files: List[UploadFile] = None,
+        license_image: UploadFile = None,
+        shop_image: UploadFile = None,
     ) -> Dict[str, Any]:
         """Create a new dealer request. Prevents duplicate PENDING requests."""
 
@@ -65,6 +67,8 @@ class DealerRequestService:
 
         # Save attachments
         self._save_attachments(db, req.id, files or [])
+        self._save_typed_attachment(db, req.id, license_image, AttachmentKind.LICENSE.value)
+        self._save_typed_attachment(db, req.id, shop_image, AttachmentKind.SHOP.value)
 
         return {"success": True, "message": "\u062f\u0631\u062e\u0648\u0627\u0633\u062a \u0634\u0645\u0627 \u0628\u0627 \u0645\u0648\u0641\u0642\u06cc\u062a \u062b\u0628\u062a \u0634\u062f.", "request": req}
 
@@ -205,6 +209,8 @@ class DealerRequestService:
         email: str = "",
         gender: str = "",
         files: List[UploadFile] = None,
+        license_image: UploadFile = None,
+        shop_image: UploadFile = None,
     ) -> Dict[str, Any]:
         """Update a RevisionNeeded request and resubmit as Pending."""
         req = db.query(DealerRequest).filter(
@@ -230,6 +236,8 @@ class DealerRequestService:
 
         # Save new attachments (keep existing ones)
         self._save_attachments(db, req.id, files or [])
+        self._save_typed_attachment(db, req.id, license_image, AttachmentKind.LICENSE.value)
+        self._save_typed_attachment(db, req.id, shop_image, AttachmentKind.SHOP.value)
 
         return {"success": True, "message": "\u062f\u0631\u062e\u0648\u0627\u0633\u062a \u0628\u0627 \u0645\u0648\u0641\u0642\u06cc\u062a \u0627\u0635\u0644\u0627\u062d \u0648 \u0627\u0631\u0633\u0627\u0644 \u0634\u062f."}
 
@@ -249,7 +257,41 @@ class DealerRequestService:
                     dealer_request_id=request_id,
                     file_path=path,
                     original_filename=f.filename,
+                    kind=AttachmentKind.OTHER.value,
                 ))
+        db.flush()
+
+    def _save_typed_attachment(self, db: Session, request_id: int, upload, kind: str):
+        """
+        Store the licence / shop photo.
+
+        These go to the private upload dir rather than static/, because a
+        business licence carries personal data — they are readable only through
+        the authenticated attachment route. Re-uploading replaces the previous
+        one of the same kind so the reviewer never sees two conflicting photos.
+        """
+        if not upload or not getattr(upload, "filename", ""):
+            return
+
+        path = save_document_file(upload, subfolder="dealer_requests")
+        if not path:
+            return
+
+        previous = db.query(DealerRequestAttachment).filter(
+            DealerRequestAttachment.dealer_request_id == request_id,
+            DealerRequestAttachment.kind == kind,
+        ).all()
+        for old in previous:
+            if old.is_private:
+                delete_file(old.file_path)
+            db.delete(old)
+
+        db.add(DealerRequestAttachment(
+            dealer_request_id=request_id,
+            file_path=path,
+            original_filename=upload.filename,
+            kind=kind,
+        ))
         db.flush()
 
 

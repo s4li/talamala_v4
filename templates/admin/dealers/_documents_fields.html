@@ -1,0 +1,47 @@
+{#
+    Dealer documents (licence + shop photo) — shared by the create form and the
+    edit page's own card.
+
+    Context:
+      dealer    User or None (None while creating)
+      can_edit  whether the file inputs are rendered
+#}
+<div class="row g-3">
+    {% for doc in [
+        {'kind': 'license', 'field': 'license_image', 'label': 'عکس جواز کسب', 'icon': 'bi-file-earmark-text'},
+        {'kind': 'shop', 'field': 'shop_image', 'label': 'عکس مغازه', 'icon': 'bi-shop'}
+    ] %}
+    {% set stored = dealer[doc.field] if dealer else None %}
+    <div class="col-md-6">
+        <label class="form-label-tm"><i class="bi {{ doc.icon }} me-1"></i>{{ doc.label }}</label>
+
+        {% if stored %}
+        <div class="mb-2">
+            <a href="/admin/dealers/{{ dealer.id }}/document/{{ doc.kind }}" target="_blank">
+                <img src="/admin/dealers/{{ dealer.id }}/document/{{ doc.kind }}" alt="{{ doc.label }}"
+                     class="rounded border" style="width:140px;height:140px;object-fit:cover;">
+            </a>
+            {% if can_edit %}
+            <form method="POST" action="/admin/dealers/{{ dealer.id }}/document/{{ doc.kind }}/delete" class="d-inline-block align-top ms-1"
+                  onsubmit="return confirm('{{ doc.label }} حذف شود؟')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        {% elif dealer %}
+        <p class="text-muted small mb-2">بارگذاری نشده است.</p>
+        {% endif %}
+
+        {% if can_edit %}
+        <input type="file" name="{{ doc.field }}" class="form-control form-control-tm"
+               accept=".pdf,.jpg,.jpeg,.png,.webp">
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+<small class="text-muted d-block mt-2">
+    تصویر یا PDF، حداکثر ۱۰ مگابایت. خارج از پوشه عمومی ذخیره می‌شود و فقط از همین صفحه قابل مشاهده است.
+</small>

@@ -121,14 +121,39 @@
                     <label class="form-label-tm fw-bold">مدارک فعلی</label>
                     <div class="d-flex flex-wrap gap-2 mt-1">
                         {% for att in dealer_request.attachments %}
-                        <a href="/{{ att.file_path }}" target="_blank">
-                            <img src="/{{ att.file_path }}" alt="مدرک" class="rounded border"
+                        {% set src = "/dealer-request/attachment/" ~ att.id if att.is_private else "/" ~ att.file_path %}
+                        <a href="{{ src }}" target="_blank" title="{{ att.kind_label }}">
+                            <img src="{{ src }}" alt="{{ att.kind_label }}" class="rounded border"
                                  style="width:80px;height:80px;object-fit:cover;">
+                            <div class="small text-muted text-center">{{ att.kind_label }}</div>
                         </a>
                         {% endfor %}
                     </div>
                 </div>
                 {% endif %}
+
+                <!-- عکس جواز کسب و عکس مغازه -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label-tm fw-bold">
+                            <i class="bi bi-file-earmark-text me-1"></i>عکس جواز کسب
+                        </label>
+                        <input type="file" name="license_image" class="form-control form-control-tm"
+                               accept=".jpg,.jpeg,.png,.webp,.pdf">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-tm fw-bold">
+                            <i class="bi bi-shop me-1"></i>عکس مغازه
+                        </label>
+                        <input type="file" name="shop_image" class="form-control form-control-tm"
+                               accept=".jpg,.jpeg,.png,.webp,.pdf">
+                    </div>
+                </div>
+                <small class="text-muted d-block mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    هرکدام یک فایل، حداکثر ۱۰ مگابایت.
+                    {% if dealer_request %}بارگذاری مجدد، فایل قبلی همان مورد را جایگزین می‌کند.{% endif %}
+                </small>
 
                 <!-- Row 5: File Upload -->
                 <div class="mb-3">
