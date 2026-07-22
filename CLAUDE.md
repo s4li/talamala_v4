@@ -863,6 +863,7 @@ total     = raw_metal + wage + tax
 - `POST /admin/orders/{id}/send-delivery-otp` — Send delivery OTP to dealer for gold order
 - `POST /admin/orders/{id}/confirm-delivery-otp` — Confirm gold order delivery with OTP
 - `GET /admin/bars?sellable=1|0` — Filter bar list by sellability
+- `GET /admin/bars?tier_id=X` — Filter bar list by dealer tier (سطح نمایندگی) of the bar's physical location; combines with `dealer_id`/`status`/`product_id`/`sellable`
 - `POST /admin/bars/bulk_action` — Bulk ops: `action=update|delete|sellable_on|sellable_off` (requires `inventory:full`)
   - `update` accepts `target_status` (`Raw`/`Assigned`/`Sold` — `inventory_service.BULK_STATUSES`) which **overrides** the status implied by product/customer. `Reserved` is rejected: bulk-setting it yields a bar with no holder/expiry that `release_expired_reservations()` never frees. Validated per-bar by `_validate_bulk_status()` — Raw needs product+owner cleared; Assigned/Sold need dealer+product; Sold also needs an owner
 - `GET /admin/bars/{bar_id}/qr` — Generate and stream high-res QR code PNG on-the-fly (for laser printing)

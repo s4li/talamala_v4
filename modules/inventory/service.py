@@ -44,6 +44,7 @@ class InventoryService:
         status: str = None,
         product_id: int = None,
         dealer_id: int = None,
+        dealer_tier_id: int = None,
         is_sellable: bool = None,
     ) -> Tuple[List[Bar], int, int]:
         """
@@ -67,6 +68,12 @@ class InventoryService:
             query = query.filter(Bar.product_id == product_id)
         if dealer_id:
             query = query.filter(Bar.dealer_id == dealer_id)
+        if dealer_tier_id:
+            # Bars whose physical location is a dealer of this tier
+            from modules.user.models import User
+            query = query.filter(Bar.dealer_id.in_(
+                db.query(User.id).filter(User.tier_id == dealer_tier_id)
+            ))
         if is_sellable is not None:
             query = query.filter(Bar.is_sellable == is_sellable)
 

@@ -21,6 +21,7 @@ from modules.inventory.service import inventory_service
 from modules.catalog.models import Product, Batch
 from modules.user.models import User
 from modules.customer.address_models import GeoProvince
+from modules.dealer.models import DealerTier
 
 router = APIRouter(tags=["inventory-admin"])
 
@@ -43,6 +44,7 @@ async def list_bars(
     status: str = Query(None),
     product_id: str = Query(None),
     dealer_id: str = Query(None),
+    tier_id: str = Query(None),
     sellable: str = Query(None),
     msg: str = Query(None),
     error: str = Query(None),
@@ -52,13 +54,14 @@ async def list_bars(
     _customer_id = safe_int(customer_id)
     _product_id = safe_int(product_id)
     _dealer_id = safe_int(dealer_id)
+    _tier_id = safe_int(tier_id)
     _status = status if status else None
     _sellable = {"1": True, "0": False}.get(sellable)
 
     bars, total, total_pages = inventory_service.list_bars(
         db, page=page, search=search or None, customer_id=_customer_id,
         status=_status, product_id=_product_id, dealer_id=_dealer_id,
-        is_sellable=_sellable,
+        dealer_tier_id=_tier_id, is_sellable=_sellable,
     )
 
     filter_customer = None
@@ -67,6 +70,7 @@ async def list_bars(
 
     all_dealers = db.query(User).filter(User.is_dealer == True, User.is_active == True).order_by(User.first_name, User.last_name).all()
     all_provinces = db.query(GeoProvince).order_by(GeoProvince.sort_order, GeoProvince.name).all()
+    all_tiers = db.query(DealerTier).order_by(DealerTier.sort_order, DealerTier.name).all()
 
     from common.templating import get_setting_from_db
     preorder_max = int(get_setting_from_db(db, "preorder_max_count", "100"))
@@ -82,12 +86,14 @@ async def list_bars(
         status_filter=status or "",
         product_filter=product_id or "",
         dealer_filter=dealer_id or "",
+        tier_filter=tier_id or "",
         sellable_filter=sellable or "",
         all_products=db.query(Product).all(),
         all_customers=db.query(User).filter(User.is_dealer == False, User.is_admin == False).all(),
         all_batches=db.query(Batch).all(),
         all_dealers=all_dealers,
         all_provinces=all_provinces,
+        all_tiers=all_tiers,
         bar_statuses=BarStatus,
         bulk_statuses=inventory_service.BULK_STATUSES,
         preorder_max=preorder_max,

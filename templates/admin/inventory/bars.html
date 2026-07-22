@@ -68,7 +68,7 @@
             <!-- Geo cascade + dealer filter row -->
             <div class="col-12 mt-2">
                 <div class="row g-2 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md">
                         <label class="form-label-tm small mb-0"><i class="bi bi-geo-alt me-1"></i>استان</label>
                         <select class="form-select form-select-sm" id="filterProvince">
                             <option value="">همه استان‌ها</option>
@@ -77,24 +77,33 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md">
                         <label class="form-label-tm small mb-0">شهر</label>
                         <select class="form-select form-select-sm" id="filterCity" disabled>
                             <option value="">همه شهرها</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md">
                         <label class="form-label-tm small mb-0">محله</label>
                         <select class="form-select form-select-sm" id="filterDistrict" disabled>
                             <option value="">همه محله‌ها</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md">
+                        <label class="form-label-tm small mb-0"><i class="bi bi-diagram-3 me-1"></i>سطح نمایندگی</label>
+                        <select name="tier_id" class="form-select form-select-sm" id="filterTier">
+                            <option value="">همه سطوح</option>
+                            {% for t in all_tiers %}
+                            <option value="{{ t.id }}" {% if tier_filter|string == t.id|string %}selected{% endif %}>{{ t.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md">
                         <label class="form-label-tm small mb-0">نمایندگی</label>
                         <select name="dealer_id" class="form-select form-select-sm" id="filterDealer">
                             <option value="">همه نمایندگان</option>
                             {% for d in all_dealers %}
-                            <option value="{{ d.id }}" {% if dealer_filter|string == d.id|string %}selected{% endif %}>{{ d.full_name }} ({{ d.type_label }})</option>
+                            <option value="{{ d.id }}" data-tier="{{ d.tier_id or '' }}" {% if dealer_filter|string == d.id|string %}selected{% endif %}>{{ d.full_name }} ({{ d.type_label }})</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -191,7 +200,7 @@
 
 <!-- Pagination -->
 {% from "components/pagination.html" import pagination %}
-{% set qs %}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if product_filter %}&product_id={{ product_filter }}{% endif %}{% if dealer_filter %}&dealer_id={{ dealer_filter }}{% endif %}{% if sellable_filter %}&sellable={{ sellable_filter }}{% endif %}{% endset %}
+{% set qs %}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if product_filter %}&product_id={{ product_filter }}{% endif %}{% if dealer_filter %}&dealer_id={{ dealer_filter }}{% endif %}{% if tier_filter %}&tier_id={{ tier_filter }}{% endif %}{% if sellable_filter %}&sellable={{ sellable_filter }}{% endif %}{% endset %}
 {{ pagination(page, total_pages, '/admin/bars', qs) }}
 
 <!-- Generate Modal -->
@@ -485,6 +494,16 @@
 
     // Filter section cascade
     setupCascade('filterProvince', 'filterCity', 'filterDistrict', 'filterDealer', null);
+
+    // Tier filter: picking a tier clears the specific-dealer choice (they'd contradict each other)
+    const tierSel = document.getElementById('filterTier');
+    if (tierSel) {
+        tierSel.addEventListener('change', function(){
+            if (!this.value) return;
+            const dealerSel = document.getElementById('filterDealer');
+            if (dealerSel) dealerSel.value = '';
+        });
+    }
 
     // Bulk modal cascade
     setupCascade('bulkProvince', 'bulkCity', 'bulkDistrict', 'bulk_dealer',

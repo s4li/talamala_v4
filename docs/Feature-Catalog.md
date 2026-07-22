@@ -338,7 +338,7 @@ async def delete_product(user=Depends(require_permission("products", level="full
 ### آدرس‌های ادمین
 | متد | مسیر | توضیح |
 |------|------|--------|
-| GET | `/admin/bars` | لیست شمش‌ها (فیلتر وضعیت، نمایندگی، قابلیت فروش `?sellable=1\|0`، جستجو سریال) |
+| GET | `/admin/bars` | لیست شمش‌ها (فیلتر وضعیت، استان/شهر/محله، نمایندگی، سطح نمایندگی `?tier_id=X`، قابلیت فروش `?sellable=1\|0`، جستجو سریال) |
 | GET/POST | `/admin/bars/{id}/edit` | ویرایش شمش (نمایندگی بجای مکان) + سوییچ «قابل فروش» + نمایش/دانلود QR Code |
 | POST | `/admin/bars/bulk_action` | عملیات گروهی — `action`: `update` / `delete` / `sellable_on` / `sellable_off` (سطح دسترسی `inventory:full`) |
 
