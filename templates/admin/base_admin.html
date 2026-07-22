@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="/static/css/checkbox-dropdown.css?v={{ STATIC_VER }}">
 <style>
     .img-thumb {
         width: 60px;
@@ -206,5 +207,6 @@ function closeSidebar() {
 }
 </script>
 <script src="/static/js/price-input.js?v={{ STATIC_VER }}"></script>
+<script src="/static/js/checkbox-dropdown.js?v={{ STATIC_VER }}"></script>
 {% block page_js %}{% endblock %}
 {% endblock %}

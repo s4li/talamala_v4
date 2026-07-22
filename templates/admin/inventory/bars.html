@@ -315,11 +315,12 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label-tm small">بچ / ذوب</label>
-                        <select id="bulk_batch" class="form-select form-select-tm form-select-sm" multiple size="5">
-                            <option value="0">حذف همه بچ‌ها</option>
+                        <select id="bulk_batch" class="form-select form-select-tm form-select-sm" multiple
+                                data-checkbox-dropdown data-size="sm" data-placeholder="بدون تغییر">
+                            <option value="0" data-cbd-exclusive="1">حذف همه بچ‌ها</option>
                             {% for b in all_batches %}<option value="{{ b.id }}">{{ b.batch_number }}</option>{% endfor %}
                         </select>
-                        <small class="text-muted d-block">چیزی انتخاب نکنید = بدون تغییر. چند انتخاب با Ctrl.</small>
+                        <small class="text-muted d-block mt-1">چیزی تیک نزنید = بدون تغییر</small>
                     </div>
                     <!-- Cascade geo filter for dealer in bulk -->
                     <div class="col-12 mt-2">

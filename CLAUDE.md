@@ -150,6 +150,8 @@ talamala_v4/
 ├── alembic/                     # Migrations
 ├── static/
 │   ├── js/scanner.js            # TmScanner barcode/QR wrapper
+│   ├── js/checkbox-dropdown.js  # <select multiple> → دراپ‌دان چک‌باکسی (لود در base_admin)
+│   ├── css/checkbox-dropdown.css
 │   ├── vendor/html5-qrcode/     # Scanner library
 │   ├── vendor/tinymce/          # Self-hosted TinyMCE 7.x (NO CDN) + langs/fa.js
 │   └── uploads/                 # Uploaded images
@@ -454,6 +456,21 @@ STATIC_VERSION = "1.1"  # ← عدد را افزایش بده
 - بدون بامپ ورژن، مرورگر کاربران (مخصوصاً موبایل) نسخه کش‌شده قدیمی را نشان می‌دهد
 - فایل‌های تأثیرپذیر: `base.html`، `public/verify.html`، `admin/dashboard.html`
 - **چک‌لیست**: آیا فایلی در `static/css/` یا `static/vendor/` یا `static/js/` تغییر کرد؟ → `STATIC_VERSION` را بامپ کن
+
+### Checkbox Dropdown (انتخاب چندتایی)
+هر `<select multiple>` با اتریبیوت `data-checkbox-dropdown` خودکار به دراپ‌دان چک‌باکسی تبدیل می‌شود (`static/js/checkbox-dropdown.js`، لودشده در `base_admin.html`).
+
+```html
+<select name="batch_ids" multiple data-checkbox-dropdown
+        data-placeholder="انتخاب بچ..." data-size="sm">
+  <option value="0" data-cbd-exclusive="1">حذف همه</option>
+  ...
+</select>
+```
+- **progressive enhancement**: خودِ `<select>` در DOM می‌ماند (فقط از دید پنهان می‌شود) و منبع حقیقت است — پس ارسال فرم و کدهایی که `selectedOptions` را می‌خوانند دست‌نخورده کار می‌کنند
+- `data-cbd-exclusive="1"`: گزینهٔ سنتینل (مثل «حذف همه») — با بقیه جمع نمی‌شود و «انتخاب همه» تیکش نمی‌زند
+- `required` روی سلکت توسط JS برداشته می‌شود (کنترلِ مخفیِ required در کروم سابمیت را بی‌صدا بلاک می‌کند) — اعتبارسنجی سمت سرور الزامی است
+- سرچ‌باکس خودکار وقتی گزینه‌ها > ۸ تا باشند (یا `data-search="1"`)
 
 ### ⚠️ Localization Rule — بدون وابستگی به CDN/اینترنت
 > **قانون بدون استثنا**: تمام وابستگی‌های فرانت‌اند (JS library, CSS, فونت, ادیتور) باید **لوکالیزه** باشند — فایل‌ها در `static/vendor/` قرار بگیرند و هیچ CDN یا لینک خارجی استفاده نشود.

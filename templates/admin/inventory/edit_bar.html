@@ -17,7 +17,7 @@
     <!-- Edit Form -->
     <div class="col-lg-7">
         <div class="card-tm no-hover">
-            <form method="POST" action="/admin/bars/update/{{ bar.id }}" enctype="multipart/form-data">
+            <form method="POST" action="/admin/bars/update/{{ bar.id }}" enctype="multipart/form-data" id="barEditForm">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -48,12 +48,13 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-tm">بچ / ذوب <span class="text-danger">*</span></label>
-                        <select name="batch_ids" class="form-select form-select-tm" multiple size="6" required>
+                        <select name="batch_ids" class="form-select form-select-tm" multiple required
+                                data-checkbox-dropdown data-placeholder="انتخاب بچ / ذوب...">
                             {% for b in batches %}
                             <option value="{{ b.id }}" {% if b.id in bar.batch_ids %}selected{% endif %}>{{ b.batch_number }}{% if b.melt_number %} — ذوب {{ b.melt_number }}{% endif %}</option>
                             {% endfor %}
                         </select>
-                        <small class="text-muted">برای انتخاب چند بچ، کلید Ctrl (یا ⌘) را نگه دارید.</small>
+                        <small class="text-muted">یک شمش می‌تواند از چند ذوب باشد — هر تعداد را تیک بزنید.</small>
                     </div>
                     <!-- Cascade Geo Filter for Dealer -->
                     <div class="col-12">
@@ -280,6 +281,22 @@
 {% block page_js %}
 <script>
 (function(){
+    // At least one batch — the native `required` is dropped by the checkbox
+    // dropdown (a hidden required control silently blocks submit in Chrome),
+    // so guard here; the server rejects it too.
+    const batchSel = document.querySelector('select[name="batch_ids"]');
+    document.getElementById('barEditForm').addEventListener('submit', function(e){
+        if (batchSel.selectedOptions.length) return;
+        e.preventDefault();
+        const wrap = batchSel.closest('.cbd');
+        if (wrap) wrap.classList.add('is-invalid');
+        alert('انتخاب حداقل یک بچ / ذوب الزامی است.');
+    });
+    batchSel.addEventListener('change', function(){
+        const wrap = batchSel.closest('.cbd');
+        if (wrap && batchSel.selectedOptions.length) wrap.classList.remove('is-invalid');
+    });
+
     const dealerSelect = document.getElementById('dealerSelect');
     const noteBox = document.getElementById('transferNoteBox');
     const origVal = dealerSelect.value;

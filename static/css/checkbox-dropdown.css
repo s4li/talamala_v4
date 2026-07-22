@@ -1,0 +1,80 @@
+/* ===========================================================
+   Checkbox Dropdown
+   -----------------------------------------------------------
+   Progressive enhancement for <select multiple>: the native
+   control stays in the DOM (hidden) so form submission and any
+   existing JS reading .selectedOptions keep working — this is
+   only the UI layer on top of it.
+   =========================================================== */
+
+.cbd { position: relative; width: 100%; }
+
+/* Visually hidden, but still submitted with the form and readable by scripts */
+.cbd-native {
+  position: absolute !important; opacity: 0; pointer-events: none;
+  width: 1px; height: 1px; min-height: 0; padding: 0; border: 0; margin: 0;
+  clip-path: inset(50%); overflow: hidden;
+}
+
+.cbd-toggle {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; min-height: 48px; padding: 6px 12px;
+  border: 1px solid var(--tm-border); border-radius: 8px;
+  background: #fff; color: var(--tm-subtitle);
+  font-family: 'IRANYekan', sans-serif; font-size: 14px; text-align: right;
+  cursor: pointer; transition: border-color 0.2s ease;
+}
+.cbd-toggle:hover { border-color: var(--tm-info-700); }
+.cbd-toggle:focus-visible { outline: none; border-color: var(--tm-primary); box-shadow: 0 0 0 3px rgba(107, 0, 45, 0.08); }
+.cbd.is-open .cbd-toggle { border-color: var(--tm-primary); }
+.cbd.is-invalid .cbd-toggle { border-color: var(--tm-negative, #dc3545); }
+
+.cbd-sm .cbd-toggle { min-height: 38px; font-size: 13px; padding: 4px 10px; }
+
+.cbd-label { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.cbd-placeholder { color: var(--tm-info-600); font-size: 13px; }
+.cbd-caret { flex: 0 0 auto; color: var(--tm-info-500); font-size: 12px; transition: transform 0.2s ease; }
+.cbd.is-open .cbd-caret { transform: rotate(180deg); }
+
+.cbd-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--tm-secondary-900, #f7f2f2); color: var(--tm-primary);
+  border: 1px solid var(--tm-border); border-radius: 6px;
+  padding: 1px 7px; font-size: 12px; line-height: 1.7; max-width: 100%;
+}
+.cbd-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cbd-chip-x { border: 0; background: none; padding: 0; line-height: 1; color: inherit; opacity: 0.55; cursor: pointer; }
+.cbd-chip-x:hover { opacity: 1; }
+
+.cbd-panel {
+  position: absolute; z-index: 1080; top: calc(100% + 4px); right: 0; left: 0;
+  background: #fff; border: 1px solid var(--tm-border); border-radius: 8px;
+  box-shadow: var(--tm-shadow-lg, 0 8px 25px rgba(0, 0, 0, 0.1));
+  padding: 8px; display: none;
+}
+.cbd.is-open .cbd-panel { display: block; }
+.cbd.drop-up .cbd-panel { top: auto; bottom: calc(100% + 4px); }
+
+.cbd-search {
+  width: 100%; height: 36px; margin-bottom: 6px; padding: 0 10px;
+  border: 1px solid var(--tm-border); border-radius: 6px;
+  font-family: 'IRANYekan', sans-serif; font-size: 13px;
+}
+.cbd-search:focus { outline: none; border-color: var(--tm-primary); }
+
+.cbd-actions { display: flex; gap: 12px; padding: 0 4px 6px; border-bottom: 1px solid var(--tm-border); margin-bottom: 6px; }
+.cbd-action { border: 0; background: none; padding: 0; font-size: 12px; color: var(--tm-primary); cursor: pointer; }
+.cbd-action:hover { text-decoration: underline; }
+
+.cbd-list { max-height: 240px; overflow-y: auto; }
+
+.cbd-option { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.cbd-option:hover { background: var(--tm-info-900, #f2f2f2); }
+.cbd-option input { flex: 0 0 auto; margin: 0; cursor: pointer; }
+.cbd-option > span { flex: 1 1 auto; }
+.cbd-option.is-hidden { display: none; }
+
+/* Sentinel option (e.g. "clear everything") — can't be combined with the rest */
+.cbd-option-exclusive { color: var(--tm-negative, #dc3545); border-bottom: 1px solid var(--tm-border); border-radius: 6px 6px 0 0; margin-bottom: 4px; }
+
+.cbd-empty { padding: 10px 8px; font-size: 12px; color: var(--tm-info-500); text-align: center; }
